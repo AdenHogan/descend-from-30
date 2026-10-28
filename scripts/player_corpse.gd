@@ -134,7 +134,7 @@ func _recover() -> void:
 		parts.append("%d item%s" % [int(summary["items_taken"]), "" if summary["items_taken"] == 1 else "s"])
 	var left_behind: bool = int(summary.get("items_left", 0)) > 0 or int(summary.get("notes_left", 0)) > 0
 	if parts.is_empty():
-		HUD.show_feedback("Your pockets are full — make room to take what they carried.")
+		HUD.show_feedback("Your pockets are full — make room to take what they carried.", true)
 	elif left_behind:
 		HUD.show_feedback("Recovered " + " and ".join(parts) + ". Some is still on them — make room.")
 	else:

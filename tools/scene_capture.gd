@@ -237,8 +237,8 @@ func _do(step: String) -> void:
 			if p[1] == "x":
 				_shop.close()
 			elif p[1] == "take":
-				var slip = _shop.upgrades_box.find_children("Slip_*", "", true, false)[0]
-				_shop._on_card_chosen(slip.name.substr(5), slip)
+				var card = _shop.upgrades_box.find_children("Card_*", "", true, false)[0]
+				_shop._on_card_chosen(card.name.substr(5), card)
 			elif p[1] == "buy":
 				_shop._on_buy_pressed(int(p[2]))
 			else:

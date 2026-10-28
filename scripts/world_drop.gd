@@ -347,7 +347,7 @@ func _try_pickup() -> bool:
 			HUD.show_feedback(WorldState.key_display(target_apartment) + " picked up.")
 			HUD.refresh_inventory()
 		else:
-			HUD.show_feedback("Inventory full.")
+			HUD.show_feedback("Inventory full.", true)
 			return false
 	elif not instance_data.is_empty():
 		added = WorldState.add_instance_to_inventory(WorldState.instance_from_dict(instance_data))
@@ -355,7 +355,7 @@ func _try_pickup() -> bool:
 			HUD.show_feedback(ItemData.get_item(item_id).get("name", "Item") + " picked up.")
 			HUD.refresh_inventory()
 		else:
-			HUD.show_feedback("Inventory full.")
+			HUD.show_feedback("Inventory full.", true)
 			return false
 	elif ItemData.get_item(item_id).get("is_ammo", false):
 		# Bullets that don't wholly fit the pockets load a gun carried (owner round 48h); what fits nowhere stays on the floor.
@@ -368,7 +368,7 @@ func _try_pickup() -> bool:
 				HUD.show_feedback(str(res["msg"]))
 				HUD.refresh_inventory()
 				return true                      # some of it went into the gun / the pack: the click did something, the rest stays on the floor
-			HUD.show_feedback("Inventory full.")
+			HUD.show_feedback("Inventory full.", true)
 			return false
 		HUD.show_feedback(str(res["msg"]) if str(res["msg"]) != "" else ItemData.get_item(item_id).get("name", "Item") + " picked up.")
 		HUD.refresh_inventory()
@@ -379,7 +379,7 @@ func _try_pickup() -> bool:
 			HUD.show_feedback(item_data.get("name", "Item") + " picked up.")
 			HUD.refresh_inventory()
 		else:
-			HUD.show_feedback("Inventory full.")
+			HUD.show_feedback("Inventory full.", true)
 			return false
 	if drop_key != "":
 		WorldState.remove_world_drop(drop_key)

@@ -4,6 +4,9 @@ extends Node
 # searching literally can be the bar, from the S to the G"): the dark-glass / brass kit (scripts/lamp.gd), the pack + body rings that wear it, the found-item panel, and SEARCHING.
 # The LOOK is the owner's to judge. This pins what can be measured: the palette is the mock-up's, nothing says more than a word where a word will do, the middle card always fits between
 # the slots, SEARCHING lights its letters in order and resolves, and the search never leaves a panel on the screen.
+# Round 48l ("a big UI disconnect. So many different font styles, colours, and types of text… too many longer bits of text which are small and tough to read… didn't we change this back to
+# the black and gold version?"): the WORKBENCH, the MERCHANT and the HUD's top-of-screen message wear the same kit — one type scale, the kit's three faces and no handwriting, ONE verb
+# (UPGRADE) on the button at every level, a checklist that says what a step needs against what you have, a button that cannot act yet is dim but pressable and says why when pressed.
 
 const StubScript := preload("res://tests/_anchor_stub.gd")
 const RingGeo := preload("res://scripts/ring_geo.gd")
@@ -32,6 +35,9 @@ func _ready() -> void:
 	await _test_loot_panel()
 	await _test_found_tag_in_the_world()
 	await _test_rings()
+	await _test_workbench()
+	await _test_shop()
+	await _test_feedback_pill()
 	Ledger.muted = false
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -355,3 +361,192 @@ func _test_rings() -> void:
 	HUD.select_slot(-1)
 	pw.slots = []
 	WorldState.inventory.clear()
+
+
+# ---------------------------------------------------------------------------------------------------------------------------------- round 48l: the workbench, the merchant, the message line
+const SCALE := [32, 26, 20, 18]
+
+
+func _all(n: Node, out: Array = []) -> Array:
+	out.append(n)
+	for c in n.get_children():
+		_all(c, out)
+	return out
+
+
+## Every Label / button / text box under `root`: its face must be one of the kit's three and its size one of the four on the scale (nothing falls back to the default font, nothing is a one-off size).
+func _type_audit(root: Node) -> String:
+	var bad: PackedStringArray = []
+	var faces := [Lamp.font("head"), Lamp.font("label"), Lamp.font("body")]
+	for n in _all(root):
+		if n is Label:
+			var f: Font = n.get_theme_font("font")
+			var px: int = n.get_theme_font_size("font_size")
+			if not (f in faces) or not (px in SCALE):
+				bad.append("'%s' (%d px)" % [String(n.text).left(18), px])
+		elif n is LampButton:
+			if not (n.px in SCALE):
+				bad.append("button '%s' (%d px)" % [n.text, n.px])
+		elif n is LineEdit:
+			if not (n.get_theme_font("font") in faces) or not (n.get_theme_font_size("font_size") in SCALE):
+				bad.append("text box")
+	return ", ".join(bad)
+
+
+## Every visible Control under `root` lies inside `root`'s rectangle.
+func _outside(root: Control) -> String:
+	var r: Rect2 = root.get_global_rect().grow(1.0)
+	var out: PackedStringArray = []
+	for n in _all(root):
+		if n is Control and n != root and n.is_visible_in_tree() and n.size.x > 0.0 and not (n is ScrollContainer):
+			var gr: Rect2 = (n as Control).get_global_rect()
+			if not r.encloses(gr) and not (n.get_parent() is ScrollContainer):
+				out.append("%s %s" % [n.get_class(), str(gr)])
+	return ", ".join(out)
+
+
+func _test_workbench() -> void:
+	print("[the workbench: Lamplight, one type scale, one verb, a checklist that says what you have]")
+	WorldState.new_game()
+	var h1 = _weapon("002")
+	var h2 = _weapon("002")
+	WorldState.inventory = [h1, h2]
+	WorldState.scrap_unlocked = true
+	WorldState.scrap = 20
+	var wb = load("res://scripts/workbench_ui.gd").new()
+	add_child(wb)
+	var was_paused: bool = get_tree().paused
+	wb.open()
+	await _frames(3)
+	check(wb.visible and get_tree().paused, "the bench pauses the game while it is open")
+	check(wb._card.get_child(0) is LampGlass and wb._card.get_child(0).size == wb._card.size, "the panel is the kit's dark glass, and it covers the whole panel (%s of %s)" % [str(wb._card.get_child(0).size), str(wb._card.size)])
+	for tab in ["upgrade", "tune", "salvage"]:
+		wb.show_tab(tab)
+		await _frames(3)
+		var t: String = _type_audit(wb._card)
+		check(t == "", "%s: only the kit's three faces, only the four sizes (%s)" % [tab, t])
+		var o: String = _outside(wb._card)
+		check(o == "", "%s: everything lies inside the panel (%s)" % [tab, o])
+	wb.show_tab("upgrade")
+	await _frames(2)
+	# the checklist, against what you have
+	check(wb._upgrade_btn.text == "UPGRADE" and wb._upgrade_btn.solid, "Lv1 -> 2: the button says UPGRADE")
+	check(wb._needs.rows.size() == 1 and wb._needs.rows[0]["label"] == "SCRAP" and not wb._needs.rows[0]["ok"] and String(wb._needs.rows[0]["have"]).contains("20"),
+		"with 20 scrap the SCRAP row is crossed and says what you have (%s)" % wb._needs.text)
+	check(wb._upgrade_btn.looks_off and not wb._upgrade_btn.disabled, "…the button looks off, but stays pressable")
+	wb._on_upgrade_pressed()
+	check(wb._msg_kind == "err" and wb._msg.text.contains("30 scrap") and h1.level == 1 and WorldState.scrap == 20, "pressing it says why, in red (%s) and spends nothing" % wb._msg.text)
+	WorldState.scrap = 400
+	wb.refresh()
+	check(wb._needs.rows[0]["ok"] and not wb._upgrade_btn.looks_off, "with the scrap the row is ticked and the button lights")
+	wb._on_upgrade_pressed()
+	check(h1.level == 2 and wb._msg_kind == "ok" and wb._msg.text.contains("Upgraded to Lv 2"), "it upgrades, and says so in green (%s)" % wb._msg.text)
+	# Lv2 -> 3: a pick of two
+	check(wb._upgrade_btn.text == "UPGRADE" and not wb._next_caption.text.contains("REINFORCE") and not wb._next_caption.text.contains("TEMPER"), "Lv2 -> 3: still UPGRADE (the old button said REINFORCE here)")
+	var cards: Array = wb._perk_box.find_children("Card_*", "LampCard", true, false)
+	check(cards.size() == 2 and wb._upgrade_btn.looks_off, "two cards to choose from, and the button waits for a choice")
+	wb._on_upgrade_pressed()
+	check(wb._msg.text.contains("Pick one") and h1.level == 2, "pressing it early says to pick one (%s)" % wb._msg.text)
+	cards[0].chosen.emit()
+	await _frames(2)
+	cards = wb._perk_box.find_children("Card_*", "LampCard", true, false)
+	check(cards[0].held and not cards[1].held and not wb._upgrade_btn.looks_off, "a click lights the card (CHOSEN) and the button")
+	var t3: String = _type_audit(wb._card)
+	check(t3 == "", "with the cards up: only the kit's faces and sizes (%s)" % t3)
+	wb._on_upgrade_pressed()
+	check(h1.level == 3 and wb._msg.text.contains("2 tuning points"), "Lv3, and the message says where the points are spent (%s)" % wb._msg.text)
+	# Lv3 -> 4: a spare is stripped for parts
+	check(wb._needs.rows.size() == 2 and wb._needs.rows[1]["label"] == "SPARE" and wb._needs.rows[1]["ok"] and String(wb._needs.rows[1]["have"]).begins_with("your "), "the spare is a row of its own, ticked when you carry one (%s)" % wb._needs.text)
+	check(wb._next_caption.text.contains("LV 4") and wb._next_caption.text.contains("2 TUNING POINTS"), "what the level gives is the caption (%s)" % wb._next_caption.text)
+	# the tune page: one line of guidance, a grid that fits
+	wb.show_tab("tune")
+	await _frames(3)
+	check(wb._points_label.text.contains("POINTS") and wb._points_label.text.contains("free of"), "TUNE says how many points are free (%s)" % wb._points_label.text)
+	check(wb._msg.text.contains("One point raises one stat"), "…and in one line what a point is (%s)" % wb._msg.text)
+	check(wb.TUNE_NAME_W + wb.TUNE_PIPS_W + 2.0 * wb.TUNE_BTN_W + wb.TUNE_DESC_W + 4.0 * wb.TUNE_GAP <= wb.RIGHT_W + 0.01 and wb.TUNE_DESC_W >= 200.0, "the tune columns fit the pane (%.0f of %.0f)" % [wb.TUNE_NAME_W + wb.TUNE_PIPS_W + 2.0 * wb.TUNE_BTN_W + wb.TUNE_DESC_W + 4.0 * wb.TUNE_GAP, wb.RIGHT_W])
+	check(wb._tune_grid.get_global_rect().end.y <= wb._set_btn.get_global_rect().position.y + 1.0, "the grid ends above the button (%.0f / %.0f)" % [wb._tune_grid.get_global_rect().end.y, wb._set_btn.get_global_rect().position.y])
+	wb.close()
+	check(not wb.visible and get_tree().paused == was_paused, "closing puts the pause back exactly as it was")
+	wb.queue_free()
+	await _frames(2)
+	WorldState.inventory.clear()
+
+
+func _test_shop() -> void:
+	print("[the merchant: the same kit, one card per perk, one row per ware]")
+	WorldState.new_game()
+	var shop = load("res://scenes/shop_ui.tscn").instantiate()
+	add_child(shop)
+	WorldState.current_floor = 20
+	shop.open(20, "Well, well.")
+	await _frames(4)
+	check(shop.sheet.get_child(0) is LampGlass and shop.sheet.get_child(0).size == shop.sheet.size, "the page is the kit's dark glass, and it covers the whole page (%s of %s)" % [str(shop.sheet.get_child(0).size), str(shop.sheet.size)])
+	check(shop.active_tab == "upgrades", "a first visit opens on the offer")
+	var cards: Array = shop.upgrades_box.find_children("Card_*", "LampCard", true, false)
+	var offer: Array = WorldState.get_upgrade_offer(20)
+	check(cards.size() == offer.size() and cards.size() > 0, "one card for every perk on offer (%d of %d)" % [cards.size(), offer.size()])
+	var t: String = _type_audit(shop.sheet)
+	check(t == "", "the offer: only the kit's three faces and four sizes (%s)" % t)
+	check(shop.rarity_word({"w": 1}) == "RARE" and shop.rarity_ink({"drawback": true}) == Lamp.RED and shop.rarity_ink({"kind": "boon"}) == Lamp.GREEN, "a card names its rarity; a trade-off is the kit's red, a good turn its green")
+	var c0: LampCard = cards[0]
+	var before_upgrades: int = WorldState.active_upgrades.size()
+	var id: String = c0.name.substr(5)
+	check(not c0.held, "no card is lit before a click")
+	shop._on_card_chosen(id, c0)
+	check(c0.held, "choosing a card lights it at once (CHOSEN)")
+	check(WorldState.active_upgrades.size() == before_upgrades, "…the choice itself waits for the beat (the flourish is not the logic)")
+	shop._on_card_chosen(id, c0)
+	await get_tree().create_timer(shop.STAMP_BEAT + 0.25).timeout
+	check(WorldState.active_upgrades.has(id) and WorldState.active_upgrades.size() == before_upgrades + 1, "after the beat the SAME `_on_take_upgrade` ran, once (a second click mid-beat did nothing)")
+	check(shop.active_tab == "shop", "and the page moved on to the wares")
+	await _frames(3)
+	check(shop.money_label.get_theme_font("font") == Lamp.font("head"), "the notes are in the kit's head face, not a hand")
+	var tw: String = _type_audit(shop.sheet)
+	check(tw == "", "the wares: only the kit's three faces and four sizes (%s)" % tw)
+	var ow: String = _outside(shop.sheet)
+	check(ow == "", "the wares and the sell column lie inside the panel (%s)" % ow)
+	check(shop.rows_box.get_global_rect().end.x <= shop.sell_box.get_global_rect().position.x + 1.0, "wares on the left, what you can sell on the right, side by side")
+	# the rows keep one line of the description each; the whole of it stands under the list for the ware the pointer is on
+	shop.rows_box.get_child(0).mouse_entered.emit()
+	var full0: String = String(ItemData.get_item(shop.stock[0]["item_id"]).get("description", ""))
+	check(shop.detail_label.text == full0 and full0 != "", "pointing at a ware shows its whole description under the list")
+	# a purchase: the first press asks, the second pays
+	WorldState.wallet_unlocked = true
+	WorldState.wallet_balance = 5000
+	WorldState.inventory.clear()
+	shop._on_buy_pressed(0)
+	check(shop.buy_buttons[0].text == "SURE?", "the first press on BUY asks (SURE?)")
+	shop._on_buy_pressed(0)
+	await _frames(3)
+	check(shop.stock[0]["sold"] and shop.buy_buttons[0].text == "SOLD" and shop.buy_buttons[0].disabled, "the second pays, and the row reads SOLD")
+	WorldState.wallet_balance = 0
+	WorldState.inventory.clear()
+	shop._on_buy_pressed(1)
+	shop._on_buy_pressed(1)
+	check(not shop.stock[1]["sold"] and shop.buy_buttons[1].text == "BUY", "without the notes the second press refuses and the button is BUY again")
+	shop.close()
+	check(not shop.visible, "the page puts away")
+	shop.queue_free()
+	await _frames(2)
+
+
+func _test_feedback_pill() -> void:
+	print("[the message at the top of the screen: a Lamplight pill, readable, red for a refusal]")
+	HUD.show_feedback("Equipped Hammer.")
+	await _frames(3)
+	check(HUD.feedback_pill.visible and HUD.feedback_label.text == "Equipped Hammer.", "the line shows in the pill")
+	check(HUD.feedback_label.get_theme_font("font") == Lamp.font("body") and HUD.feedback_label.get_theme_font_size("font_size") == Lamp.PX_BODY, "…in the kit's body face at the body size (it was 14 px)")
+	check(HUD.feedback_label.get_theme_color("font_color") == Lamp.TEXT, "…in the kit's cream, not yellow")
+	check(absf(HUD.feedback_pill.position.x + HUD.feedback_pill.size.x * 0.5 - 576.0) < 3.0, "…centred at the top")
+	check(HUD.feedback_pill.mouse_filter == Control.MOUSE_FILTER_IGNORE and HUD.feedback_label.mouse_filter == Control.MOUSE_FILTER_IGNORE, "…and never eats a click meant for the world")
+	HUD.show_feedback("Inventory full.", true)
+	check(HUD.feedback_label.get_theme_color("font_color") == Lamp.RED, "a refusal is red")
+	HUD.show_feedback("Inventory full.")
+	check(HUD.feedback_label.get_theme_color("font_color") == Lamp.TEXT, "…and the next plain line is cream again")
+	var long_line := "You lever the door off its hinge. Glass everywhere — and loud, and every one of the dead on this floor heard it."
+	HUD.show_feedback(long_line)
+	await _frames(3)
+	check(HUD.feedback_pill.size.x <= HUD.FEEDBACK_MAX_W + 60.0 and HUD.feedback_pill.size.y > 40.0 and HUD.feedback_pill.size.y < 110.0, "a long line wraps to two lines inside a bounded pill (%s)" % str(HUD.feedback_pill.size))
+	HUD.feedback_timer = 0.02
+	await _frames(4)
+	check(not HUD.feedback_pill.visible, "when its time is up the pill is gone")

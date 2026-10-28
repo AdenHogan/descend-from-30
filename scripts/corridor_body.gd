@@ -80,7 +80,7 @@ func search() -> String:
 	var loot: Dictionary = WorldState.dead_body_loot(apartment_key(), body_name)
 	var item: String = str(loot.get("item", ""))
 	if item != "" and not WorldState.add_to_inventory(item):
-		HUD.show_feedback("There's something in their pockets — but yours are full.")
+		HUD.show_feedback("There's something in their pockets — but yours are full.", true)
 		return "full"
 	WorldState.mark_anchor_searched(apartment_key(), body_name)
 	if item == "":

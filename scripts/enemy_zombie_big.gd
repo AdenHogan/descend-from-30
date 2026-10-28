@@ -433,7 +433,7 @@ func _drop_key() -> void:
 		kd.drop_key = dk
 		get_parent().add_child(kd)
 		kd.toss(global_position, feet, 1.0)
-		HUD.show_feedback("Key dropped nearby — inventory full.")
+		HUD.show_feedback("Key dropped nearby — inventory full.", true)
 
 
 func _separation_nudge() -> float:

@@ -1,4 +1,10 @@
-# The Ledger — the look the menus that act on the world share
+# The Ledger (paper kit) and the Lamplight (dark glass)
+
+> **Round 48l — the merchant and the workbench are LAMPLIGHT now** (owner, on a workbench screenshot: *"There's a big UI disconnect. So many different font styles, colours, and types of text… too many
+> longer bits of text which are small and tough to read. We need clear and concise… Also, didn't we change this back to the black and gold version?"*). Everything below that describes
+> "the two paper menus" is HISTORY: nothing wears the paper kit (`scripts/ledger*.gd`) any more except its own tests and the desk sounds (`Ledger.play`, still every screen's sound). The paper widgets are
+> unused and can be deleted when the owner says so. See "Round 48l — one type scale, one verb" at the end.
+
 
 **BUILT v1 (round 48j) — two looks, one for each job (see "The Lamplight" below: the rings, the found-item panel and SEARCHING were moved to it after the owner saw the paper rings).** Owner: *"I quite like the ledger look as it ties together with the Player detail UI. At the same time, I'd like the appropriate amount of UX design too, from glitz,
 glam, lighting, sound effects and whatnot that makes a UI like this look good. We want it to look good, clean, connected, and strong… and no offence, we don't want it to look like AI slop."*
@@ -107,3 +113,22 @@ kit (source check), have no help strip, the middle card never overlaps a slot fo
 - The hotbar / world pills (`world_drop` pickup pill) are still the dark form.
 - No gamepad focus pass on the new buttons beyond Godot's own (the buttons are real `Button`s, so focus and `ui_accept` work; the proofreader's-corner focus mark is drawn).
 - Fonts: Barlow (SIL OFL) and Special Elite (Apache 2.0) live in `assets/fonts/ledger/` with their licences; the heads reuse the logo's Barlow Condensed.
+
+## Round 48l — one type scale, one verb (the workbench, the merchant, the message line)
+
+**The scale** (`Lamp.PX_*`, a gate on every Lamplight screen — `lamp_test._type_audit` walks a screen and fails on a face outside the kit's three or a size off the four): **32** a screen's name and a big number
+(WORKBENCH, the scrap, the notes), **26** an item's / perk's / weapon's name and the big action buttons, **20** every sentence and every figure, **18** letter-spaced captions, tabs, buttons and a rank's effect. No handwriting
+anywhere (the old screens mixed the run's hand, the typed voice, three printed faces and a dozen sizes).
+- **Workbench** (`workbench_ui.gd`, 1000 × 560 dark glass with brass brackets): header (WORKBENCH · SCRAP n · ×), three tabs, the weapon list on the left (a name and a one-word level tag), the page on the right. **ONE verb: UPGRADE** —
+  the button says it at Lv1 → 2 and at every level after (the old button read REINFORCE at Lv2 and TEMPER at the forge where every other page said upgrade; "Reinforced" is only the NAME of the Lv2 upgrade, shown on its card).
+  UPGRADE: the weapon's name + level, what it has (names only), `NEXT  LV 3  ·  +2 TUNING POINTS`, two cards to choose from (a chosen card is lit — brass brackets and a CHOSEN tab) or one plain card for the first step, then a
+  **checklist of what the step needs against what you have** (`LampNeeds`: a green tick and "you have 120", or a red cross and "you have 20"; a SPARE row — "Lv1+ bat, club or hammer · your Hammer / none in your pack" — when a spare is stripped for parts).
+  **A button that cannot act yet is dim but PRESSABLE and says why in red at the foot** ("Need 30 scrap — you have 20." / "Pick one of the two upgrades.") with a knock — the owner: "if I press, it doesn't say if I have enough scrap". A success is green
+  ("Upgraded to Lv 3 — Heavy Head. +2 tuning points — spend them on TUNE."). TUNE: `POINTS  2 free of 4`, one line at the foot of what a point is ("One point raises one stat, for good. Points come from upgrading, from Lv3."), the stat grid
+  (name · rank boxes · − · + · its effect), SET IN STEEL; a legendary weapon's NAME box + RENAME sit on the points line. SALVAGE: a row per item (name · condition · BREAK DOWN +n → SURE?). The forge (past Legendary) is a brass progress bar, a SCRAP and a DOOR row, PUT IN 25 / PUT IN ALL I CAN.
+  Public API and every action unchanged (`open / show_tab / select_weapon / choose_perk / confirm / forge / stage_point / set_tuning / rename / salvage`); `WeaponUpgrades` gained `feed_short` and its refusal lines are shorter ("Need 30 scrap — you have 20.").
+- **Merchant** (`shop_ui.gd`, 1040 × 584): MERCHANT · FLOOR 25 · FIRST VISIT, the tabs on the title line, the notes top right. THE OFFER: three cards (a rarity word — COMMON / UNCOMMON / RARE brass, TRADE-OFF red, A GOOD TURN green —, the name, the description, CLICK TO TAKE); a click lights the card, the other two fade, a beat later the unchanged
+  `_on_take_upgrade` runs. TAKE NONE → TAKE NONE — SURE?. WARES: one row per ware (the 56 px icon at 1:1, the name in its band's colour, one line of its description, the price, BUY → SURE? → SOLD) with **the whole description of the ware under the pointer in a strip under the list**, and what you can SELL beside it (name · price · SELL → SURE?).
+- **The message line** (`HUD.feedback_pill` round `feedback_label`, still the Label tests read): the kit's dark-glass pill with brass edges at the top centre, the body face at 20 px in cream (it was 14 px yellow), wrapping at 700 px; `HUD.show_feedback(text, true)` is a **refusal** — red text and a red-tinted edge — used by "Inventory full." / "Your pack is full." / "Not enough notes." / the exhausted and broken lines (15 literal refusals). Fades over the last half second.
+- `LampButton` (`looks_off`, `refuse()`, `solid`, a brass `tag`), `LampCard` (`chosen`, `held`, `clickable`), `LampPips`, `LampNeeds` are the controls; `LampGlass` sets its offsets as well as its anchors now (in a plain Control parent it stayed 0 × 0 and the panel drew NOTHING — caught by a screenshot, the tests passed; `lamp_test` now asserts the glass covers its panel, mutation-checked).
+- Tested in `lamp_test` (`_test_workbench`, `_test_shop`, `_test_feedback_pill`) and the suites that drive the screens' logic (`weapon_upgrade_test`, `progression_test`, `merchant_smoke_test`, `floor15_test`). `tools/scene_capture`: `shop:take` clicks the first `Card_*`.

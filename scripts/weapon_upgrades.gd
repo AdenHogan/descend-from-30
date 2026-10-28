@@ -431,6 +431,16 @@ static func find_feed(inst, inventory: Array) -> int:
 	return best
 
 
+## The spare in a checklist row: "Lv1+ bat, club or hammer" (the sentence form is `feed_label`; a spare of at least that level counts — `find_feed`).
+static func feed_short(inst, feed_level: int) -> String:
+	var fam := String(FAMILY.get(inst.item_id, ""))
+	if fam == "blade":
+		return "Lv%d+ knife or sword" % feed_level
+	if fam == "blunt":
+		return "Lv%d+ bat, club or hammer" % feed_level
+	return "Lv%d+ %s" % [feed_level, inst.get_data().get("name", "weapon")]
+
+
 static func feed_label(inst, feed_level: int) -> String:
 	var fam := String(FAMILY.get(inst.item_id, ""))
 	if fam == "blade":
@@ -457,7 +467,7 @@ static func check(inst, inventory: Array, scrap: int) -> Dictionary:
 		out["scrap"] = maxi(0, int(cost["scrap"]) - inst.forge_paid)
 		var need: int = int(HEIRLOOM[to]["crossings"])
 		if inst.crossings < need:
-			out["reason"] = "Only a weapon carried through the lobby door into a later game can go further (%d/%d crossings)." % [inst.crossings, need]
+			out["reason"] = "It has to be carried out through the lobby door into a later game first (%d/%d)." % [inst.crossings, need]
 			return out
 		if out["scrap"] > 0:
 			out["reason"] = "Forge it: %d more scrap to put in." % out["scrap"]
@@ -469,10 +479,10 @@ static func check(inst, inventory: Array, scrap: int) -> Dictionary:
 	if out["feed_level"] > 0:
 		out["feed_index"] = find_feed(inst, inventory)
 		if out["feed_index"] == -1:
-			out["reason"] = "Needs %s to strip for parts." % feed_label(inst, out["feed_level"])
+			out["reason"] = "Needs %s." % feed_label(inst, out["feed_level"])
 			return out
 	if scrap < out["scrap"]:
-		out["reason"] = "Needs %d scrap (you have %d)." % [out["scrap"], scrap]
+		out["reason"] = "Need %d scrap — you have %d." % [out["scrap"], scrap]
 		return out
 	out["ok"] = true
 	return out

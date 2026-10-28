@@ -614,7 +614,7 @@ func _attempt_force() -> void:
 	var item_data = instance.get_data()
 
 	if instance.is_depleted:
-		HUD.show_feedback("It's broken — repair it with a toolbox.")
+		HUD.show_feedback("It's broken — repair it with a toolbox.", true)
 		return
 	if not item_data.get("is_weapon", false) and not item_data.get("can_force_lock", false):
 		HUD.show_feedback("Need a weapon or tool to force this.")
@@ -642,7 +642,7 @@ func _attempt_locked() -> void:
 	var item_data = instance.get_data()
 
 	if instance.is_depleted:
-		HUD.show_feedback("It's broken — repair it with a toolbox.")
+		HUD.show_feedback("It's broken — repair it with a toolbox.", true)
 		return
 	# Only a can_force_lock weapon or a gun can force a lock (a plain weapon
 	# can't) — reject up front so the channel isn't started for nothing.
@@ -758,7 +758,7 @@ func _attempt_barricade_removal() -> void:
 	# red zone. If you exhausted yourself to zero, you wait until stamina recovers
 	# into yellow before you can start again.
 	if WorldState.stamina < WorldState.max_stamina * 0.375 and not WorldState.god_mode:
-		HUD.show_feedback("Too exhausted — recover first.")
+		HUD.show_feedback("Too exhausted — recover first.", true)
 		return
 
 	removal_uses_tool = _has_removal_tool()

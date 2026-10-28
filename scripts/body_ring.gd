@@ -137,7 +137,7 @@ func take_all() -> Dictionary:
 		bits.append("%d item%s" % [int(s["items_taken"]), "" if int(s["items_taken"]) == 1 else "s"])
 	var left: bool = int(s.get("items_left", 0)) > 0 or int(s.get("notes_left", 0)) > 0
 	if bits.is_empty() and left:
-		HUD.show_feedback("Your pack is full.")
+		HUD.show_feedback("Your pack is full.", true)
 	elif not bits.is_empty():
 		HUD.show_feedback("Took " + ", ".join(bits) + (". Your pack is full - the rest stays." if left else "."))
 	return s

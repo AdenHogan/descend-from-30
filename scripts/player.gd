@@ -717,16 +717,16 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 	if weapon_type == "" or weapon_type == "gun":
 		return
 	if instance.is_depleted:
-		HUD.show_feedback("It's broken — repair it with a toolbox.")
+		HUD.show_feedback("It's broken — repair it with a toolbox.", true)
 		return
 	var stamina_cost = WEAPON_STAMINA_COST.get(weapon_type, 15.0) * WorldState.get_melee_cost_mult() \
 		* instance.perk_mult("stamina")          # workbench perk (Featherweight)
 	# Attacking requires at least 2 bars (25%). In the red zone you can move but not swing.
 	if WorldState.stamina < WorldState.get_max_stamina() * 0.25 and not WorldState.god_mode:
-		HUD.show_feedback("Too exhausted to swing.")
+		HUD.show_feedback("Too exhausted to swing.", true)
 		return
 	if WorldState.stamina < stamina_cost and not WorldState.god_mode:
-		HUD.show_feedback("Too exhausted to swing.")
+		HUD.show_feedback("Too exhausted to swing.", true)
 		return
 
 	if not WorldState.god_mode:
@@ -874,7 +874,7 @@ func _do_gun_attack(instance: ItemInstance, _slot_index: int) -> void:
 	# Guns fire from their MAGAZINE (18, or 10 damaged). Loose bullets stay
 	# in inventory until loaded — press the use key on the equipped gun.
 	if instance.is_depleted:
-		HUD.show_feedback("The gun's worn out — repair it with a toolbox.")
+		HUD.show_feedback("The gun's worn out — repair it with a toolbox.", true)
 		return
 	if instance.mag_count <= 0:
 		if WorldState.get_ammo_total() > 0:
@@ -927,7 +927,7 @@ func _do_gun_attack(instance: ItemInstance, _slot_index: int) -> void:
 		"body": HUD.show_feedback("Body shot.")
 		"miss": HUD.show_feedback("Missed.")
 	if worn_out:
-		HUD.show_feedback("The gun's worn out — repair it with a toolbox.")
+		HUD.show_feedback("The gun's worn out — repair it with a toolbox.", true)
 	if nearest.has_method("receive_hit_from_gun"):
 		nearest.receive_hit_from_gun(outcome)
 	if outcome != "miss":
@@ -998,7 +998,7 @@ func _calculate_gun_outcome(distance: float, damaged: bool = false, instance: It
 
 func _do_push() -> void:
 	if WorldState.stamina < 10.0 and not WorldState.god_mode:
-		HUD.show_feedback("Too exhausted to push.")
+		HUD.show_feedback("Too exhausted to push.", true)
 		return
 	var now = Time.get_ticks_msec() / 1000.0
 	var time_since_last = now - last_push_time
@@ -1739,7 +1739,7 @@ func _throw_can(slot_index: int) -> void:
 	var thrown_data: Dictionary = WorldState.inventory[slot_index].get_data()
 	var is_molotov: bool = thrown_data.get("is_molotov", false)
 	if not WorldState.is_scavenge_mode and not is_molotov:     # a Molotov is a weapon: it flies in either stance
-		HUD.show_feedback("Switch to scavenge to throw.")
+		HUD.show_feedback("Switch to scavenge to throw.", true)
 		return
 	if is_attacking:
 		return
@@ -1777,12 +1777,12 @@ func _throw_can(slot_index: int) -> void:
 func _do_attack_action(from_mouse: bool) -> void:
 	var slot = HUD.selected_slot
 	if slot < 0 or slot >= WorldState.inventory.size():
-		HUD.show_feedback("No weapon selected.")
+		HUD.show_feedback("No weapon selected.", true)
 		return
 	var instance = WorldState.get_instance_at(slot)
 	var item_data = instance.get_data()
 	if not item_data.get("is_weapon", false):
-		HUD.show_feedback("No weapon selected.")
+		HUD.show_feedback("No weapon selected.", true)
 		return
 	var weapon_type = _get_weapon_type(item_data)
 	if weapon_type == "gun":

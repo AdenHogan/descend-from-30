@@ -362,7 +362,7 @@ func use_at(k: int) -> void:
 		return
 	var d: Dictionary = inst.get_data()
 	if d.get("is_throwable", false) or d.get("is_extinguisher", false):
-		HUD.show_feedback("Stand up first.")
+		HUD.show_feedback("Stand up first.", true)
 		return
 	var p = get_tree().get_first_node_in_group("player")
 	if p != null and p.has_method("use_item"):

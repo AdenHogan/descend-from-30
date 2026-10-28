@@ -10,7 +10,7 @@ var accent: Color = Lamp.BRASS
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)      # offsets too: in a plain Control (not a container) the pane would otherwise stay 0 x 0 until the parent resizes
 	resized.connect(queue_redraw)
 
 

@@ -1,27 +1,33 @@
 extends CanvasLayer
 
-# Merchant shop screen (docs/STORE_DESIGN.md steps 4-5), in the LEDGER look (owner round 48j; scripts/ledger.gd): one sheet of ruled paper on the desk. The visit's offer of three is
-# three slips taped to the page; taking one stamps it, the other two are set aside, and the choice is written into the book. The wares are a ruled column; a purchase is signed for
-# (a first press circles it, the second stamps SOLD). Everything is the same logic as before — only what you see and hear changed: `_on_take_upgrade` / `_on_buy_pressed` /
-# `_on_sell_pressed` do exactly what they did (the bots and the tests call them directly); the stamp is the CLICK's flourish, played just before they run.
+# Merchant shop screen (docs/STORE_DESIGN.md steps 4-5), in the LAMPLIGHT look (owner round 48l; scripts/lamp.gd): dark glass with brass corners and the kit's one type scale — the same
+# look as the workbench, the rings and the found-item tag, no handwriting. The visit's offer of three is three cards; choosing one lights it (brass brackets, a CHOSEN tab), the other two
+# are set aside and, a beat later, the choice is made. The wares are one row each (icon, name, one line about it, price, BUY) with the things you can SELL beside them; a purchase is
+# confirmed with a second press (BUY -> SURE?). Everything is the same logic as before — only what you see and hear changed: `_on_take_upgrade` / `_on_buy_pressed` / `_on_sell_pressed` do
+# exactly what they did (the bots and the tests call them directly); the lit card is the CLICK's flourish, played just before they run.
 
 const SCREEN_W = 1152.0
 const SCREEN_H = 648.0
-const PANEL_W = 960.0
+const PANEL_W = 1040.0
 const PANEL_H = 584.0
-const STAMP_BEAT := 0.55                    # seconds the stamp sits on a taken slip before the page moves on
+const PAD := 36.0
+const STAMP_BEAT := 0.55                    # seconds a chosen card sits lit before the page moves on
+const WARES_W := 620.0                      # the wares column; the sell column takes the rest
+const ROW_H := 60.0
+const SELL_ROW_H := 40.0
 
-# Each band is an INK on the ledger (a printed ledger has no neon): plain, blue pen, and the dark gold of a thing worth a second look.
+# The band of a ware sets its name's colour: plain cream, brass, bright brass (the kit has no neon; green / red only ever mean better / worse).
 const BAND_COLORS = {
-	"common": Ledger.INK,
-	"quality": Ledger.BLUE_INK,
-	"legendary": Ledger.GOLD_INK,
+	"common": Lamp.TEXT,
+	"quality": Lamp.BRASS,
+	"legendary": Lamp.BRASS_HI,
 }
 
 var current_floor: int = 0
 var stock: Array = []
 var money_label: Label = null
 var dialogue_label: Label = null
+var detail_label: Label = null
 var rows_box: VBoxContainer = null
 var buy_buttons: Array = []
 var pending_confirm: int = -1
@@ -30,20 +36,19 @@ var sell_buttons: Array = []
 var pending_sell_confirm: int = -1
 # Upgrades tab (step 6): the offer of three (pick one) leads the visit; shop is the
 # errand. Tab bar lets you flip back to review owned upgrades.
-var shop_content: VBoxContainer = null
+var shop_content: HBoxContainer = null
 var upgrades_box: VBoxContainer = null
-var tab_shop_btn: Button = null
-var tab_upg_btn: Button = null
+var tab_shop_btn: LampButton = null
+var tab_upg_btn: LampButton = null
 var active_tab: String = "shop"
 var refuse_armed: bool = false
 
-var sheet: LedgerSheet = null
+var sheet: Control = null
 var backdrop: TextureRect = null
 var floor_label: Label = null
-var _refuse_btn: Button = null
-var _stamping: String = ""                   # the perk id whose slip is being stamped (clicks are ignored until the beat ends)
-var _fresh_sold: int = -1                     # the ware just bought: its SOLD stamp is pressed live, not shown already down
-var _stamps: Dictionary = {}                  # ware index -> its LedgerStamp, so a fresh sale can be pressed
+var _refuse_btn: LampButton = null
+var _stamping: String = ""                   # the perk id whose card is being lit (clicks are ignored until the beat ends)
+var _fresh_sold: int = -1                     # the ware just bought: its row dims live, not already dim
 var _first_open: bool = true
 
 
@@ -53,140 +58,101 @@ func _ready() -> void:
 
 
 func _build_ui() -> void:
-	# the room goes dim round the page: a vignette, not a flat wash — the middle of the screen stays the world
-	backdrop = TextureRect.new()
-	backdrop.name = "Backdrop"
-	var grad := Gradient.new()
-	grad.offsets = PackedFloat32Array([0.0, 0.5, 1.0])
-	grad.colors = PackedColorArray([Color(0, 0, 0, 0.0), Color(0, 0, 0, 0.10), Color(0.02, 0.012, 0.008, 0.62)])
-	var gt := GradientTexture2D.new()
-	gt.gradient = grad
-	gt.fill = GradientTexture2D.FILL_RADIAL
-	gt.fill_from = Vector2(0.5, 0.46)
-	gt.fill_to = Vector2(1.0, 1.0)
-	gt.width = 256
-	gt.height = 144
-	backdrop.texture = gt
-	backdrop.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	backdrop.stretch_mode = TextureRect.STRETCH_SCALE
-	backdrop.size = Vector2(SCREEN_W, SCREEN_H)
-	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	backdrop = Lamp.backdrop()
+	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE        # the shop never paused the game; the world stays clickable round it
 	add_child(backdrop)
 
-	sheet = LedgerSheet.new()
+	sheet = Control.new()
 	sheet.name = "Panel"
-	sheet.seed_value = 20
 	sheet.position = Vector2((SCREEN_W - PANEL_W) / 2.0, 30)
 	sheet.size = Vector2(PANEL_W, PANEL_H)
 	sheet.custom_minimum_size = Vector2(PANEL_W, PANEL_H)
-	sheet.rule_first = 118.0
-	sheet.margin_x = 80.0
+	sheet.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(sheet)
+	var glass := LampGlass.new()
+	glass.corners = Lamp.ALL
+	sheet.add_child(glass)
 
-	var margin = MarginContainer.new()
-	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 104)
-	margin.add_theme_constant_override("margin_right", 44)
-	margin.add_theme_constant_override("margin_top", 26)
-	margin.add_theme_constant_override("margin_bottom", 24)
-	margin.mouse_filter = Control.MOUSE_FILTER_PASS
-	sheet.add_child(margin)
-
-	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 6)
-	margin.add_child(vbox)
-
-	# the head of the page: the merchant's name printed, the floor and the player's notes in the player's own hand
-	var header = HBoxContainer.new()
-	header.add_theme_constant_override("separation", 18)
-	vbox.add_child(header)
-
-	var title = Ledger.label("MERCHANT", "head", 46, Ledger.INK)
-	header.add_child(title)
-
-	floor_label = Ledger.label("", "hand", 24, Ledger.hand_ink())
-	floor_label.size_flags_vertical = Control.SIZE_SHRINK_END
-	header.add_child(floor_label)
-
-	var spacer = Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	header.add_child(spacer)
-
-	var notes_box = VBoxContainer.new()                 # the player's notes: a small printed word over a number in their own hand
-	notes_box.add_theme_constant_override("separation", -4)
-	header.add_child(notes_box)
-	var notes_head = Ledger.label("NOTES", "head", 16, Ledger.INK_SOFT)
-	notes_head.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	notes_box.add_child(notes_head)
-	money_label = Ledger.label("", "hand", 36, Ledger.hand_ink())
+	# the head: the merchant, the floor, the player's notes; the two tabs on the same line
+	var title := Lamp.label("MERCHANT", "head", Lamp.PX_TITLE, Lamp.TEXT)
+	title.position = Vector2(PAD, 16)
+	sheet.add_child(title)
+	floor_label = Lamp.label("", "label", Lamp.PX_LABEL, Lamp.LABEL)
+	floor_label.position = Vector2(PAD, 56)
+	sheet.add_child(floor_label)
+	tab_upg_btn = _tab_button("THE OFFER", "upgrades", Vector2(300, 18))
+	tab_shop_btn = _tab_button("WARES", "shop", Vector2(456, 18))
+	var close_btn := LampButton.new()
+	close_btn.text = "×"
+	close_btn.px = Lamp.PX_TITLE
+	close_btn.position = Vector2(PANEL_W - PAD - 40.0, 16)
+	close_btn.size = Vector2(40, 40)
+	close_btn.custom_minimum_size = Vector2(40, 40)
+	close_btn.pressed.connect(close)
+	sheet.add_child(close_btn)
+	money_label = Lamp.label("", "head", Lamp.PX_TITLE, Lamp.BRASS)
+	money_label.position = Vector2(PANEL_W - PAD - 40.0 - 14.0 - 130.0, 16)
+	money_label.size = Vector2(130, 40)
+	money_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	money_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	notes_box.add_child(money_label)
+	sheet.add_child(money_label)
+	var notes_cap := Lamp.label("NOTES", "label", Lamp.PX_LABEL, Lamp.LABEL)
+	notes_cap.position = Vector2(PANEL_W - PAD - 40.0 - 14.0 - 130.0 - 76.0, 16)
+	notes_cap.size = Vector2(70, 40)
+	notes_cap.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	notes_cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	sheet.add_child(notes_cap)
 
-	dialogue_label = Ledger.label("", "typed", 15, Ledger.INK_SOFT, true)
-	# Wrap within the page — a long line (the handoff gift) must never stretch the shop off-screen.
-	dialogue_label.custom_minimum_size = Vector2(PANEL_W - 190, 0)
-	vbox.add_child(dialogue_label)
-
-	# tabs: two ruled boxes, the one you are on inked in
-	var tabs = HBoxContainer.new()
-	tabs.add_theme_constant_override("separation", 10)
-	vbox.add_child(tabs)
-	tab_upg_btn = _tab_button("THE OFFER", "upgrades")
-	tabs.add_child(tab_upg_btn)
-	tab_shop_btn = _tab_button("WARES", "shop")
-	tabs.add_child(tab_shop_btn)
-
-	var rule = LedgerRule.new()
-	rule.seed_value = 8
-	rule.double = true
-	vbox.add_child(rule)
+	dialogue_label = Lamp.label("", "body", Lamp.PX_BODY, Lamp.SOFT, true)
+	dialogue_label.position = Vector2(PAD, 80)
+	dialogue_label.size = Vector2(PANEL_W - 2.0 * PAD, 24)
+	dialogue_label.custom_minimum_size = Vector2(PANEL_W - 2.0 * PAD, 0)       # wrap within the panel — a long line (the handoff gift) must never stretch the shop off-screen
+	sheet.add_child(dialogue_label)
+	var rule := ColorRect.new()
+	rule.color = Lamp.EDGE_DIM
+	rule.position = Vector2(PAD, 124)
+	rule.size = Vector2(PANEL_W - 2.0 * PAD, 1)
+	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	sheet.add_child(rule)
 
 	# Upgrades tab content
 	upgrades_box = VBoxContainer.new()
-	upgrades_box.add_theme_constant_override("separation", 10)
-	upgrades_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	vbox.add_child(upgrades_box)
+	upgrades_box.position = Vector2(PAD, 140)
+	upgrades_box.size = Vector2(PANEL_W - 2.0 * PAD, PANEL_H - 140.0 - 24.0)
+	upgrades_box.add_theme_constant_override("separation", 14)
+	sheet.add_child(upgrades_box)
 
-	# Shop tab content (wares + sell)
-	shop_content = VBoxContainer.new()
-	shop_content.add_theme_constant_override("separation", 6)
-	shop_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	vbox.add_child(shop_content)
-
+	# Shop tab content: the wares on the left, what you can sell on the right
+	shop_content = HBoxContainer.new()
+	shop_content.position = Vector2(PAD, 136)
+	shop_content.size = Vector2(PANEL_W - 2.0 * PAD, PANEL_H - 136.0 - 20.0)
+	shop_content.add_theme_constant_override("separation", 28)
+	sheet.add_child(shop_content)
+	var left := VBoxContainer.new()
+	left.add_theme_constant_override("separation", 10)
+	shop_content.add_child(left)
 	rows_box = VBoxContainer.new()
-	rows_box.add_theme_constant_override("separation", 2)
-	rows_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	shop_content.add_child(rows_box)
-
-	var rule2 = LedgerRule.new()
-	rule2.seed_value = 12
-	shop_content.add_child(rule2)
+	rows_box.custom_minimum_size = Vector2(WARES_W, 0)
+	rows_box.add_theme_constant_override("separation", 4)
+	left.add_child(rows_box)
+	detail_label = Lamp.label("", "body", Lamp.PX_BODY, Lamp.BODY, true)          # the whole description of the ware under the pointer (the rows keep one line each)
+	detail_label.custom_minimum_size = Vector2(WARES_W, 72)
+	left.add_child(detail_label)
 	sell_box = VBoxContainer.new()
-	sell_box.add_theme_constant_override("separation", 2)
+	sell_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sell_box.add_theme_constant_override("separation", 6)
 	shop_content.add_child(sell_box)
 
-	var foot = HBoxContainer.new()
-	vbox.add_child(foot)
-	var foot_sp = Control.new()
-	foot_sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	foot_sp.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	foot.add_child(foot_sp)
-	var close_btn = LedgerButton.new()
-	close_btn.text = "LEAVE"
-	close_btn.custom_minimum_size = Vector2(140, 40)
-	close_btn.seed_value = 31
-	close_btn.pressed.connect(close)
-	foot.add_child(close_btn)
 
-
-func _tab_button(label: String, tab: String) -> Button:
-	var b := LedgerButton.new()
+func _tab_button(label: String, tab: String, pos: Vector2) -> LampButton:
+	var b := LampButton.new()
 	b.text = label
-	b.px = 18
-	b.custom_minimum_size = Vector2(150, 34)
-	b.seed_value = 41 if tab == "shop" else 40
+	b.position = pos
+	b.size = Vector2(146, 40)
+	b.custom_minimum_size = Vector2(146, 40)
+	b.toggle_mode = true
 	b.pressed.connect(func(): _show_tab(tab, true))
+	sheet.add_child(b)
 	return b
 
 
@@ -198,11 +164,7 @@ func open(floor_num: int, greeting: String) -> void:
 	# over once this visit's upgrade is settled.
 	if WorldState.handoff_pending() and not WorldState.is_upgrade_offer_resolved(floor_num):
 		dialogue_label.text += "\nSomething was left for you by the lobby door. It is yours once you have chosen."
-	floor_label.text = "Floor %d%s" % [floor_num, "" if WorldState.is_upgrade_offer_resolved(floor_num) else " — first visit"]
-	floor_label.add_theme_font_override("font", Ledger.font("hand"))      # the hand follows the run's character
-	floor_label.add_theme_color_override("font_color", Ledger.hand_ink())
-	money_label.add_theme_font_override("font", Ledger.font("hand"))
-	money_label.add_theme_color_override("font_color", Ledger.hand_ink())
+	floor_label.text = ("FLOOR %d%s" % [floor_num, "" if WorldState.is_upgrade_offer_resolved(floor_num) else "   ·   FIRST VISIT"])
 	pending_confirm = -1
 	refuse_armed = false
 	_stamping = ""
@@ -214,7 +176,7 @@ func open(floor_num: int, greeting: String) -> void:
 	_arrive()
 
 
-## The page is set down on the desk: it settles a few px and the room dims behind it. A touch of sound; nothing that waits on the player.
+## The panel arrives: it settles a few px and the room dims behind it. A touch of sound; nothing that waits on the player.
 func _arrive() -> void:
 	Ledger.play("sheet", -7.0)
 	var base_y := 30.0
@@ -237,12 +199,8 @@ func _show_tab(tab: String, user: bool = false) -> void:
 	refuse_armed = false
 	upgrades_box.visible = tab == "upgrades"
 	shop_content.visible = tab == "shop"
-	tab_upg_btn.solid = tab == "upgrades"
-	tab_shop_btn.solid = tab == "shop"
-	sheet.ruled = tab == "upgrades"                # the slips lie on ruled paper; the wares column rules itself
-	sheet.queue_redraw()
-	tab_upg_btn.queue_redraw()
-	tab_shop_btn.queue_redraw()
+	tab_upg_btn.button_pressed = tab == "upgrades"
+	tab_shop_btn.button_pressed = tab == "shop"
 	if tab == "upgrades":
 		_refresh_upgrades()
 		return
@@ -276,9 +234,14 @@ func close() -> void:
 	_stamping = ""
 
 
-func _refresh_upgrades() -> void:
-	for child in upgrades_box.get_children():
+func _clear(box: Node) -> void:
+	for child in box.get_children():
+		box.remove_child(child)
 		child.queue_free()
+
+
+func _refresh_upgrades() -> void:
+	_clear(upgrades_box)
 	_refuse_btn = null
 
 	if WorldState.is_upgrade_offer_resolved(current_floor):
@@ -286,18 +249,17 @@ func _refresh_upgrades() -> void:
 		return
 
 	var offer: Array = WorldState.get_upgrade_offer(current_floor)
-	var intro = Ledger.label("", "head", 19, Ledger.RED_INK)
+	var intro := Lamp.label("", "label", Lamp.PX_LABEL, Lamp.BRASS)
 	if offer.is_empty():
 		intro.text = "NOTHING LEFT TO OFFER"
 		upgrades_box.add_child(intro)
 		_add_upgrade_button("CONTINUE TO THE WARES", func(): WorldState.resolve_upgrade_offer(current_floor, ""); _show_tab("shop"))
 		return
-	intro.text = "TAKE ONE OF THREE  ·  IT STAYS WITH YOU THROUGH THE WHOLE DESCENT"
+	intro.text = "TAKE ONE OF THREE   ·   YOU KEEP IT FOR THE WHOLE DESCENT"
 	upgrades_box.add_child(intro)
 
-	var cards = HBoxContainer.new()
-	cards.add_theme_constant_override("separation", 22)
-	cards.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var cards := HBoxContainer.new()
+	cards.add_theme_constant_override("separation", 20)
 	upgrades_box.add_child(cards)
 	var k := 0
 	for id in offer:
@@ -305,19 +267,16 @@ func _refresh_upgrades() -> void:
 		k += 1
 
 	# Refusal is a live choice (drawbacks make skipping sometimes right).
-	var refuse = LedgerButton.new()
-	refuse.custom_minimum_size = Vector2(190, 36)
+	var refuse := LampButton.new()
+	refuse.custom_minimum_size = Vector2(230, 44)
 	refuse.text = "TAKE NONE"
-	refuse.px = 17
-	refuse.ink = Ledger.INK_SOFT
-	refuse.seed_value = 52
 	refuse.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	refuse.pressed.connect(_on_refuse)
 	upgrades_box.add_child(refuse)
 	_refuse_btn = refuse
 
 
-## The word printed on a slip: how rare the perk is, or that it costs you something. (Rarity is the merchant's own weight `w` — docs/PERKS.md.)
+## The word printed on a card: how rare the perk is, or that it costs you something. (Rarity is the merchant's own weight `w` — docs/PERKS.md.)
 static func rarity_word(up: Dictionary) -> String:
 	if up.get("drawback", false):
 		return "TRADE-OFF"
@@ -331,70 +290,53 @@ static func rarity_word(up: Dictionary) -> String:
 	return "RARE"
 
 
+## Its colour: a trade-off is the red the kit uses for "worse", a good turn the green for "better", the rest a brass that brightens with rarity.
 static func rarity_ink(up: Dictionary) -> Color:
 	if up.get("drawback", false):
-		return Ledger.RED_INK
+		return Lamp.RED
+	if up.get("kind", "") == "boon":
+		return Lamp.GREEN
 	var w := int(up.get("w", 3))
-	if up.get("kind", "") == "boon" or w == 3:
-		return Ledger.BLUE_INK
-	if w <= 2:
-		return Ledger.GOLD_INK
-	return Ledger.INK_SOFT
+	if w >= 4:
+		return Lamp.LABEL
+	if w == 3:
+		return Lamp.BRASS
+	return Lamp.BRASS_HI
 
 
 func _make_upgrade_card(id: String, index: int = 0) -> Control:
 	var up: Dictionary = Progression.perk_info(id)
-	var slip := LedgerSlip.new()
-	slip.name = "Slip_" + id
-	slip.seed_value = 100 + index * 17 + id.hash() % 50
-	slip.tilt_deg = [-0.8, 0.5, -0.4][index % 3]
-	slip.custom_minimum_size = Vector2(250, 262)
-	slip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	slip.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var box = VBoxContainer.new()
-	box.add_theme_constant_override("separation", 7)
-	slip.content.add_child(box)
-	var ink := rarity_ink(up)
-	var tag = Ledger.label(rarity_word(up), "head", 15, ink)
-	box.add_child(tag)
-	var name_l = Ledger.label(String(up.get("name", id)), "head", 34, Ledger.INK)
-	box.add_child(name_l)
-	slip.underline_target = name_l
-	var desc = Ledger.label(String(up.get("desc", "")), "body", 17, Ledger.INK, true)
-	desc.custom_minimum_size = Vector2(slip.custom_minimum_size.x - 2.0 * slip.margin - 6.0, 0)    # a wrapping label needs a width to measure its height against
+	var card := LampCard.new()
+	card.name = "Card_" + id
+	card.custom_minimum_size = Vector2((PANEL_W - 2.0 * PAD - 40.0) / 3.0, 230)
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.margin = 18
+	card.content.add_theme_constant_override("separation", 8)
+	card.content.add_child(Lamp.label(rarity_word(up), "label", Lamp.PX_LABEL, rarity_ink(up)))
+	var name_l := Lamp.label(String(up.get("name", id)), "head", Lamp.PX_NAME, Lamp.TEXT, true)
+	name_l.custom_minimum_size = Vector2(card.custom_minimum_size.x - 2.0 * card.margin, 0)
+	card.content.add_child(name_l)
+	var desc := Lamp.label(String(up.get("desc", "")), "body", Lamp.PX_BODY, Lamp.BODY, true)
+	desc.custom_minimum_size = Vector2(card.custom_minimum_size.x - 2.0 * card.margin, 0)    # a wrapping label needs a width to measure its height against
 	desc.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	box.add_child(desc)
-	var take = LedgerButton.new()
-	take.text = "TAKE"
-	take.px = 20
-	take.seed_value = 60 + index
-	take.pressed.connect(func(): _on_card_chosen(id, slip))
-	box.add_child(take)
-	var stamp := LedgerStamp.new()
-	stamp.word = "TAKEN"
-	stamp.px = 36
-	stamp.seed_value = 10 + index
-	stamp.tilt_deg = -8.0 + 3.0 * index
-	stamp.centre = Vector2(0.5, 0.66)
-	stamp.name = "Stamp"
-	stamp.set_anchors_preset(Control.PRESET_FULL_RECT)
-	slip.add_child(stamp)
-	return slip
+	card.content.add_child(desc)
+	card.content.add_child(Lamp.label("CLICK TO TAKE", "label", Lamp.PX_LABEL, Lamp.BRASS))
+	card.chosen.connect(func(): _on_card_chosen(id, card))
+	return card
 
 
-## The click: stamp the slip, set the other two aside, then let the page move on. The choice itself is `_on_take_upgrade` (unchanged); this is only its flourish.
-func _on_card_chosen(id: String, slip: LedgerSlip) -> void:
+## The click: light the card (brass brackets and a CHOSEN tab), set the other two aside, then let the page move on. The choice itself is `_on_take_upgrade` (unchanged); this is only its flourish.
+func _on_card_chosen(id: String, card: Control) -> void:
 	if _stamping != "":
 		return
 	_stamping = id
-	var stamp := slip.get_node_or_null("Stamp") as LedgerStamp
-	if stamp != null:
-		stamp.play(sheet)
-	for sib in slip.get_parent().get_children():
-		if sib != slip and sib is Control:
+	if card is LampCard:
+		(card as LampCard).held = true
+	Ledger.play("pen", -9.0)
+	for sib in card.get_parent().get_children():
+		if sib != card and sib is Control:
 			var t := create_tween().set_parallel(true)
 			t.tween_property(sib, "modulate:a", 0.28, 0.3).set_delay(0.12)
-			t.tween_property(sib, "scale", Vector2(0.96, 0.96), 0.3).set_delay(0.12)
 	await get_tree().create_timer(STAMP_BEAT).timeout
 	if visible and _stamping == id:
 		_stamping = ""
@@ -410,7 +352,7 @@ func _on_take_upgrade(id: String) -> void:
 	HUD.show_feedback("Upgrade: " + String(Progression.perk_info(id).get("name", id)))
 	_show_tab("shop")
 	Ledger.play("pen", -9.0)                       # the choice is written down
-	floor_label.text = "Floor %d — %s" % [current_floor, String(Progression.perk_info(id).get("name", id))]
+	floor_label.text = ("FLOOR %d   ·   %s" % [current_floor, String(Progression.perk_info(id).get("name", id))]).to_upper()
 
 
 func _on_refuse() -> void:
@@ -418,7 +360,7 @@ func _on_refuse() -> void:
 		refuse_armed = true
 		if _refuse_btn != null:
 			_refuse_btn.text = "TAKE NONE — SURE?"
-			_refuse_btn.ink = Ledger.RED_INK
+			_refuse_btn.tone = Lamp.RED
 			_refuse_btn.queue_redraw()
 		HUD.show_feedback("Click again to take none of them.")
 		return
@@ -427,123 +369,134 @@ func _on_refuse() -> void:
 
 
 func _render_owned_upgrades() -> void:
-	var header = Ledger.label("ACQUIRED THIS DESCENT", "head", 19, Ledger.RED_INK)
-	upgrades_box.add_child(header)
+	upgrades_box.add_child(Lamp.label("YOURS THIS DESCENT", "label", Lamp.PX_LABEL, Lamp.BRASS))
 	if WorldState.active_upgrades.is_empty():
-		var none = Ledger.label("(none yet)", "hand", 20, Ledger.hand_ink())
-		upgrades_box.add_child(none)
+		upgrades_box.add_child(Lamp.label("Nothing yet.", "body", Lamp.PX_BODY, Lamp.DIM))
 	for id in WorldState.active_upgrades:
 		var up: Dictionary = Progression.perk_info(id)
-		var row = HBoxContainer.new()
-		row.add_theme_constant_override("separation", 10)
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 16)
 		upgrades_box.add_child(row)
-		row.add_child(Ledger.label(String(up.get("name", id)), "head", 22, Ledger.INK))
-		row.add_child(Ledger.label(String(up.get("desc", "")), "body", 16, Ledger.INK_SOFT))
+		var nm := Lamp.label(String(up.get("name", id)), "head", Lamp.PX_NAME, Lamp.TEXT)
+		nm.custom_minimum_size = Vector2(280, 0)
+		nm.clip_text = true
+		row.add_child(nm)
+		var ds := Lamp.label(String(up.get("desc", "")), "body", Lamp.PX_BODY, Lamp.SOFT)
+		ds.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		ds.clip_text = true
+		ds.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		row.add_child(ds)
 
 
 func _add_upgrade_button(text: String, cb: Callable) -> void:
-	var b = LedgerButton.new()
+	var b := LampButton.new()
 	b.text = text
-	b.custom_minimum_size = Vector2(260, 38)
+	b.custom_minimum_size = Vector2(300, 44)
 	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	b.pressed.connect(cb)
 	upgrades_box.add_child(b)
 
 
 func _refresh() -> void:
-	for child in rows_box.get_children():
-		child.queue_free()
+	_clear(rows_box)
 	buy_buttons.clear()
-	_stamps.clear()
+	if detail_label != null:
+		detail_label.text = ""
 
 	for i in range(stock.size()):
 		var entry = stock[i]
 		var item_data = ItemData.get_item(entry["item_id"])
-		var ink: Color = BAND_COLORS.get(entry["band"], Ledger.INK)
+		var ink: Color = BAND_COLORS.get(entry["band"], Lamp.TEXT)
+		var sold: bool = bool(entry["sold"])
 
-		var holder = MarginContainer.new()               # the line and, over it, a stamp if it is sold
+		var holder := PanelContainer.new()                  # one ware: a dark card
+		holder.custom_minimum_size = Vector2(WARES_W, ROW_H)
+		var card := StyleBoxFlat.new()
+		card.bg_color = Lamp.CARD
+		card.border_color = Lamp.EDGE
+		card.set_border_width_all(1)
+		card.content_margin_left = 6
+		card.content_margin_right = 10
+		card.content_margin_top = 2
+		card.content_margin_bottom = 2
+		holder.add_theme_stylebox_override("panel", card)
+		holder.mouse_filter = Control.MOUSE_FILTER_PASS
+		holder.mouse_entered.connect(_show_ware_detail.bind(i))
 		rows_box.add_child(holder)
-		var row = HBoxContainer.new()
+		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 12)
 		holder.add_child(row)
 
-		var icon = TextureRect.new()
+		var icon := TextureRect.new()
 		icon.custom_minimum_size = Vector2(56, 56)     # the icon 1:1 (it's drawn 56x56)
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon.texture = ItemData.get_texture(entry["item_id"])
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(icon)
 
-		var text_box = VBoxContainer.new()
+		var text_box := VBoxContainer.new()
 		text_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		text_box.add_theme_constant_override("separation", 0)
+		text_box.alignment = BoxContainer.ALIGNMENT_CENTER
+		text_box.add_theme_constant_override("separation", -2)
 		row.add_child(text_box)
-
-		var name_label = Ledger.label(String(item_data.get("name", "???")), "head", 24, ink)
+		var name_label := Lamp.label(String(item_data.get("name", "???")), "head", Lamp.PX_NAME, ink)
+		name_label.clip_text = true
 		text_box.add_child(name_label)
-
-		var desc_label = Ledger.label(String(item_data.get("description", "")), "body", 14, Ledger.INK_SOFT, true)
+		var desc_label := Lamp.label(String(item_data.get("description", "")), "body", Lamp.PX_LABEL, Lamp.SOFT)
+		desc_label.clip_text = true                                    # one line about it; a longer one is trimmed, never wrapped over the next ware
+		desc_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		text_box.add_child(desc_label)
 
-		var price_label = Ledger.label(str(int(entry["price"])), "typed", 22, ink)
-		price_label.custom_minimum_size = Vector2(64, 0)
+		var price_label := Lamp.label(str(int(entry["price"])), "head", Lamp.PX_NAME, Lamp.BRASS if not sold else Lamp.DIM)
+		price_label.custom_minimum_size = Vector2(60, 0)
 		price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		price_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		row.add_child(price_label)
 
-		var buy_btn = LedgerButton.new()
-		buy_btn.custom_minimum_size = Vector2(104, 34)
+		var buy_btn := LampButton.new()
+		buy_btn.custom_minimum_size = Vector2(110, 40)
 		buy_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		buy_btn.px = 18
-		buy_btn.seed_value = 70 + i
-		if entry["sold"]:
+		if sold:
 			buy_btn.text = "SOLD"
 			buy_btn.disabled = true
+			name_label.add_theme_color_override("font_color", Lamp.DIM)
+			desc_label.add_theme_color_override("font_color", Lamp.DIM)
+			holder.modulate = Color(1, 1, 1, 0.55)
+			if i == _fresh_sold:                                       # the sale just made: it dims live, from lit
+				_fresh_sold = -1
+				holder.modulate = Color(1.5, 1.25, 0.8, 1.0)
+				create_tween().tween_property(holder, "modulate", Color(1, 1, 1, 0.55), 0.4)
 		else:
 			buy_btn.text = "BUY"
 			buy_btn.pressed.connect(_on_buy_pressed.bind(i))
 		row.add_child(buy_btn)
 		buy_buttons.append(buy_btn)
-		# a sold line is crossed out and stamped; one sold just now is stamped in front of the player
-		if entry["sold"]:
-			var stamp := LedgerStamp.new()
-			stamp.word = "SOLD"
-			stamp.px = 26
-			stamp.seed_value = 30 + i
-			stamp.tilt_deg = -4.0
-			holder.add_child(stamp)
-			_stamps[i] = stamp
-			if i == _fresh_sold:
-				_fresh_sold = -1
-				stamp.play.call_deferred(sheet)
-			else:
-				stamp.set_down.call_deferred()
-			name_label.add_theme_color_override("font_color", Ledger.INK_FAINT)
-			price_label.add_theme_color_override("font_color", Ledger.INK_FAINT)
-		if i < stock.size() - 1:
-			var rl = LedgerRule.new()
-			rl.seed_value = 200 + i
-			rl.colour = Ledger.INK_FAINT
-			rows_box.add_child(rl)
 
 	_refresh_sell_section()
 	_update_money_label()
 
 
+## The whole description of ware `i` under the rows (each row shows one line of it).
+func _show_ware_detail(i: int) -> void:
+	if detail_label == null or i < 0 or i >= stock.size():
+		return
+	detail_label.text = String(ItemData.get_item(stock[i]["item_id"]).get("description", ""))
+
+
 func _refresh_sell_section() -> void:
-	for child in sell_box.get_children():
-		child.queue_free()
+	_clear(sell_box)
 	sell_buttons.clear()
 	pending_sell_confirm = -1
 
 	var remaining = WorldState.get_sales_remaining(current_floor)
-	var header = Ledger.label("", "head", 17, Ledger.INK_SOFT)
+	sell_box.add_child(Lamp.label("SELL", "label", Lamp.PX_LABEL, Lamp.BRASS))
+	var note := Lamp.label("", "body", Lamp.PX_BODY, Lamp.SOFT, true)
+	note.custom_minimum_size = Vector2(300, 0)
+	sell_box.add_child(note)
 	if remaining <= 0:
-		header.text = "SELLING  —  \"Not in a position to buy more right now.\""
-		sell_box.add_child(header)
+		note.text = "\"Not in a position to buy more right now.\""
 		return
-	header.text = "SELLING  —  the merchant will take %d more item%s this visit" % [remaining, "" if remaining == 1 else "s"]
-	sell_box.add_child(header)
+	note.text = "Takes %d more this visit." % remaining
 
 	for i in range(WorldState.inventory.size()):
 		var instance = WorldState.get_instance_at(i)
@@ -553,19 +506,22 @@ func _refresh_sell_section() -> void:
 			continue
 		if ItemData.get_item(instance.item_id).get("is_ammo", false):
 			price *= instance.count
-		var row = HBoxContainer.new()
+		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 10)
+		row.custom_minimum_size = Vector2(0, SELL_ROW_H)
 		sell_box.add_child(row)
-		var name_label = Ledger.label(instance.get_display_name(), "body", 16, Ledger.INK)
+		var name_label := Lamp.label(instance.get_display_name(), "head", Lamp.PX_BODY, Lamp.TEXT)
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		name_label.clip_text = true
 		row.add_child(name_label)
-		var price_label = Ledger.label(str(price), "typed", 16, Ledger.GREEN_INK)
+		var price_label := Lamp.label(str(price), "head", Lamp.PX_BODY, Lamp.GREEN)
+		price_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		row.add_child(price_label)
-		var btn = LedgerButton.new()
+		var btn := LampButton.new()
 		btn.text = "SELL"
-		btn.px = 16
-		btn.seed_value = 90 + i
-		btn.custom_minimum_size = Vector2(84, 28)
+		btn.custom_minimum_size = Vector2(88, 36)
+		btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		btn.pressed.connect(_on_sell_pressed.bind(i))
 		row.add_child(btn)
 		sell_buttons.append(btn)
@@ -599,7 +555,7 @@ func _on_buy_pressed(index: int) -> void:
 				not buy_buttons[pending_confirm].disabled:
 			buy_buttons[pending_confirm].text = "BUY"
 		pending_confirm = index
-		buy_buttons[index].text = "SIGN?"
+		buy_buttons[index].text = "SURE?"
 		return
 
 	pending_confirm = -1
@@ -607,13 +563,13 @@ func _on_buy_pressed(index: int) -> void:
 	var price = int(entry["price"])
 
 	if WorldState.get_money_total() < price:
-		HUD.show_feedback("Not enough notes.")
+		HUD.show_feedback("Not enough notes.", true)
 		buy_buttons[index].text = "BUY"
 		if buy_buttons[index].has_method("refuse"):
 			buy_buttons[index].refuse()
 		return
 	if not WorldState.add_to_inventory(entry["item_id"]):
-		HUD.show_feedback("Inventory full.")
+		HUD.show_feedback("Inventory full.", true)
 		buy_buttons[index].text = "BUY"
 		if buy_buttons[index].has_method("refuse"):
 			buy_buttons[index].refuse()

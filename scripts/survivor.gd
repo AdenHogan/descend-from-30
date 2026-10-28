@@ -1283,7 +1283,7 @@ func _give_gift() -> String:
 	var id: String = str(rec.get("gift", ""))
 	var n: int = int(rec.get("gift_n", 0))
 	if not WorldState.add_to_inventory(id, n):
-		HUD.show_feedback("No room to carry it.")
+		HUD.show_feedback("No room to carry it.", true)
 		return say_text("gift_full", "Come back when you can carry it.")
 	rec["gave"] = true
 	rec["aided"] = true

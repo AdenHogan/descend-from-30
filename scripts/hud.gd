@@ -39,6 +39,9 @@ var slot_icons: Array = []
 var slot_durability_bars: Array = []
 var selected_slot: int = -1
 var feedback_label: Label = null
+var feedback_pill: PanelContainer = null     # the Lamplight pill round the feedback line (what fades)
+var feedback_style: StyleBoxFlat = null
+const FEEDBACK_MAX_W := 700.0                # a longer line wraps at this width
 var feedback_timer: float = 0.0
 # Player-speech dialogue (tutorial prompts): a centred first-person line, its
 # own panel above the action bar. Transient lines auto-hide; prompt lines
@@ -370,14 +373,32 @@ func _create_slot_icons() -> void:
 		slot.gui_input.connect(_on_slot_gui_input.bind(i))
 
 func _create_feedback_label() -> void:
+	# The one-line message at the top of the screen ("Equipped Hammer.", "Inventory full."): the Lamplight kit's dark glass pill with brass edges, the body face at the kit's body size (owner
+	# round 48l: it was 14 px yellow text — "small and tough to read"). A refusal (`show_feedback(text, true)`) is red. `feedback_label` stays the Label (callers and tests read its text);
+	# the pill around it is what fades.
+	feedback_pill = PanelContainer.new()
+	feedback_pill.name = "FeedbackPill"
+	feedback_pill.mouse_filter = Control.MOUSE_FILTER_IGNORE  # never eat world clicks
+	feedback_style = StyleBoxFlat.new()
+	feedback_style.bg_color = Color(Lamp.GLASS_TOP.r, Lamp.GLASS_TOP.g, Lamp.GLASS_TOP.b, 0.94)
+	feedback_style.border_color = Lamp.BRASS_DIM
+	feedback_style.set_border_width_all(2)
+	feedback_style.content_margin_left = 22
+	feedback_style.content_margin_right = 22
+	feedback_style.content_margin_top = 8
+	feedback_style.content_margin_bottom = 8
+	feedback_pill.add_theme_stylebox_override("panel", feedback_style)
 	feedback_label = Label.new()
-	feedback_label.mouse_filter = Control.MOUSE_FILTER_IGNORE  # never eat world clicks
-	feedback_label.add_theme_font_size_override("font_size", 14)
-	feedback_label.position = Vector2(SCREEN_W / 2 - 250, 34.0)   # top-centre
-	feedback_label.size = Vector2(500, 30)
+	feedback_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	feedback_label.add_theme_font_override("font", Lamp.font("body"))
+	feedback_label.add_theme_font_size_override("font_size", Lamp.PX_BODY)
+	feedback_label.add_theme_color_override("font_color", Lamp.TEXT)
 	feedback_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	feedback_label.modulate = Color(1, 1, 0.5, 0)
-	$Control.add_child(feedback_label)
+	feedback_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	feedback_pill.add_child(feedback_label)
+	feedback_pill.position = Vector2(SCREEN_W / 2 - 100, 30.0)   # top-centre
+	feedback_pill.visible = false
+	$Control.add_child(feedback_pill)
 
 
 # --- World-anchored loot prompt -------------------------------------------
@@ -848,9 +869,10 @@ func _process(delta: float) -> void:
 	if feedback_timer > 0:
 		feedback_timer -= delta
 		var alpha = min(feedback_timer / 0.5, 1.0)
-		feedback_label.modulate = Color(1, 1, 0.5, alpha)
+		feedback_pill.modulate = Color(1, 1, 1, alpha)
+		feedback_pill.position.x = (SCREEN_W - feedback_pill.size.x) * 0.5
 		if feedback_timer <= 0:
-			feedback_label.modulate = Color(1, 1, 0.5, 0)
+			feedback_pill.visible = false
 
 	# Transient dialogue auto-hide (persistent prompt lines keep timer at 0).
 	if dialogue_timer > 0:
@@ -1628,10 +1650,19 @@ func discard_slot(slot: int, dir_x: float = 0.0) -> void:
 func _context_cancel() -> void:
 	context_menu.visible = false
 
-func show_feedback(text: String) -> void:
+## `bad` = a refusal (red): the pack is full, there are not enough notes. Everything else is the kit's cream on glass.
+func show_feedback(text: String, bad: bool = false) -> void:
 	feedback_label.text = SettingsManager.localize(text)
+	var w: float = minf(Lamp.font("body").get_string_size(feedback_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, Lamp.PX_BODY).x + 2.0, FEEDBACK_MAX_W)
+	feedback_label.custom_minimum_size = Vector2(w, 0)
+	feedback_label.size = Vector2(w, 0)                        # an autowrapping label measures its height at its CURRENT width: give it the new one first, or the pill keeps the last (taller) line's height
+	feedback_label.add_theme_color_override("font_color", Lamp.RED if bad else Lamp.TEXT)
+	feedback_style.border_color = Lamp.RED.darkened(0.35) if bad else Lamp.BRASS_DIM
 	feedback_timer = 2.0
-	feedback_label.modulate = Color(1, 1, 0.5, 1)
+	feedback_pill.visible = true
+	feedback_pill.reset_size()
+	feedback_pill.position.x = (SCREEN_W - feedback_pill.size.x) * 0.5
+	feedback_pill.modulate = Color(1, 1, 1, 1)
 
 func _make_slot_style(locked: bool) -> StyleBoxFlat:
 	var style = StyleBoxFlat.new()

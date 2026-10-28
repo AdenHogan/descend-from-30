@@ -374,8 +374,13 @@ func _test_workbench_ui() -> void:
 	WorldState.scrap = 20
 	check(ui.confirm().contains("30 scrap"), "can't afford the gun's step → says why")
 	ui.show_tab("upgrade")
-	var costs_txt: String = ui._cost_label.text
-	check(costs_txt.contains("COSTS") and costs_txt.contains("GIVES") and not costs_txt.contains("+2 tuning"), "the cost line names what it COSTS and what it GIVES - tuning points are never written as a price")
+	var needs_txt: String = ui._needs.text
+	check(needs_txt.contains("SCRAP") and needs_txt.contains("30") and needs_txt.contains("you have 20") and not needs_txt.contains("TUNING"),
+		"the checklist names the scrap it NEEDS against what you HAVE (%s) - tuning points are never written as a price" % needs_txt.replace("\n", " | "))
+	ui.select_weapon(1)
+	var cap_txt: String = ui._next_caption.text
+	check(cap_txt.contains("LV 4") and cap_txt.contains("2 TUNING POINTS"), "what the next level GIVES is the caption, tuning points included (%s)" % cap_txt)
+	check(ui._needs.text.contains("SPARE") and ui._needs.text.contains("none in your pack") and ui._upgrade_btn.looks_off, "a missing spare is a crossed row, and the button looks off (but stays pressable)")
 	WorldState.scrap = 60
 	ui.close()
 	check(not get_tree().paused and not ui.visible, "closing restores play")

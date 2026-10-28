@@ -433,7 +433,7 @@ static func choose(who: Node, idx: int) -> bool:
 		if str(e).begins_with("give_gun:") or str(e).begins_with("give_item:"):
 			receives += 1
 	if receives > 0 and WorldState.inventory.size() - _slots_freed(dos) + receives > WorldState.get_inventory_slots():
-		HUD.show_feedback("No room to carry it.")
+		HUD.show_feedback("No room to carry it.", true)
 		return false
 	var before := stage(qid)
 	for e in dos:

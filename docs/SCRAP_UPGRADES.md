@@ -367,3 +367,7 @@ station (never traded with the merchant); build **gun + hammer first**.
 A charred flat now looks it (burnt module art, `tools/art/burnt.py`), says so when you walk in ("Gutted… whatever's left is scrap"), and its
 salvage is **visible and instant**: a scrap node reads "Scrap [E] Take" on approach and one press adds its bag to the counter — no search timer, no
 loot panel. Nodes with nothing in a charred flat are gone. Rates unchanged (`SCRAP_CHANCE_CHARRED` 0.75, bags 14-30).
+
+## Round 48l — the bench in Lamplight, one verb
+
+The bench's screen is the dark-glass Lamplight now (docs/LEDGER_UI.md "Round 48l"). The button says **UPGRADE** at every level — the Lv2 step is no longer a "REINFORCE" button and the forge no longer a "TEMPER" one (Reinforced is the NAME of the Lv2 upgrade). What a step needs is a checklist against what you have (SCRAP; a SPARE where one is stripped for parts — `WeaponUpgrades.feed_short`); an upgrade you cannot make yet is a dim, pressable button that says why in red. `check()`'s reasons are one short line each ("Need 30 scrap — you have 20.", "Needs a spare Lv1 bat, club or hammer.", "It has to be carried out through the lobby door into a later game first (0/1).").
