@@ -26,6 +26,7 @@ func _ready() -> void:
 	_test_buses()
 	_test_streams()
 	await _test_claims()
+	await _test_handover()
 	await _test_breach_room()
 	Game.music_fade_scale = 1.0
 	WorldState.dev_seed = 0
@@ -58,20 +59,26 @@ func _test_buses() -> void:
 			again += 1
 	check(again == 1, "…and asking again never stacks a second one")
 	check(AudioServer.get_bus_index(Game.MUSIC_BUS) != -1, "a Music bus exists")
-	check(Game.music_player.bus == Game.MUSIC_BUS and Game.breach_player.bus == Game.MUSIC_BUS, "both music players ride it")
+	check(Game.music_player.bus == Game.MUSIC_BUS and Game.breach_player.bus == Game.MUSIC_BUS and Game.clear_player.bus == Game.MUSIC_BUS and Game.clear_hit_player.bus == Game.MUSIC_BUS, "every music player rides it (bed, pulse, won song, win hit)")
 	check(AudioServer.get_bus_index(Game.ENEMY_BUS) != -1 and Game.music_player.bus != Game.ENEMY_BUS, "the enemy bus is still its own, and the music is not on it")
 
 
 func _test_streams() -> void:
-	print("[streams: two loops, stereo, loopable]")
-	for mood in ["calm", "breach"]:
+	print("[streams: three loops, stereo, loopable]")
+	for mood in ["calm", "breach", "breach_clear"]:
 		var s = load(String(Game.MUSIC_MOODS[mood]["stream"]))
 		check(s is AudioStreamOggVorbis, "%s: %s loads as Ogg Vorbis" % [mood, String(Game.MUSIC_MOODS[mood]["stream"]).get_file()])
 		if s is AudioStreamOggVorbis:
 			check(s.loop, "%s: set to loop" % mood)
 			check(s.get_length() > 20.0 and s.get_length() < 40.0, "%s: a loop of a sensible length (%.1f s)" % [mood, s.get_length()])
 	check(Game.music_player.playing, "the exploration bed is playing from the start")
-	check(not Game.breach_player.playing, "the breach track is stopped until something claims it")
+	check(not Game.breach_player.playing and not Game.clear_player.playing, "the breach track and its won twin are stopped until something claims them")
+	var pulse = load(String(Game.MUSIC_MOODS["breach"]["stream"]))
+	var won = load(String(Game.MUSIC_MOODS["breach_clear"]["stream"]))
+	check(absf(pulse.get_length() - won.get_length()) < 0.02, "the pulse and its won twin are the SAME length (%.3f / %.3f s) — they can start on the same beat" % [pulse.get_length(), won.get_length()])
+	check(Game.mood_family("breach") == "pulse" and Game.mood_family("breach_clear") == "pulse" and Game.mood_family("calm") == "", "the two are one family; the bed is its own thing")
+	var hit = load(Game.CLEAR_HIT_STREAM)
+	check(hit is AudioStreamOggVorbis and not hit.loop and hit.get_length() > 2.0, "the win hit is a one-shot (%.1f s)" % (hit.get_length() if hit != null else 0.0))
 
 
 func _test_claims() -> void:
@@ -130,6 +137,56 @@ func _test_claims() -> void:
 	await _settle()
 
 
+func _test_handover() -> void:
+	print("[the won song: a hand-over on the beat inside the pulse family, one hit, and the bed under both]")
+	check(is_equal_approx(Game.step_position(10.0, 27.4286), 10.0) and absf(Game.step_position(30.0, 27.4286) - 2.5714) < 0.01 and Game.step_position(-3.0, 27.4286) == 0.0 and Game.step_position(5.0, 0.0) == 0.0,
+			"the in-step start position wraps a longer sibling and never goes negative")
+	var a := Node.new()
+	add_child(a)
+	Game.music_claim(a, "breach")
+	await _settle()
+	check(Game.music_mood == "breach" and Game.breach_player.playing and not Game.clear_player.playing, "the pulse is playing alone")
+	var hits0: int = Game.clear_hits
+	Game.music_claim(a, "breach_clear")
+	await get_tree().process_frame
+	check(Game.music_mood == "breach_clear", "the node turns its claim to the won song: mood breach_clear")
+	check(Game.clear_hits == hits0 + 1, "…and the win hit fires, once (%d)" % (Game.clear_hits - hits0))
+	check(Game.clear_hit_player.playing, "…and it is sounding")
+	check(Game.clear_player.playing and Game.last_step_from == "breach", "the won loop did NOT start from its first beat: it came in on the beat the pulse was on (stepped in beside '%s')" % Game.last_step_from)
+	await _settle()
+	check(Game.clear_player.volume_db > -15.0 and Game.breach_player.volume_db <= -60.0 and not Game.breach_player.playing, "the pulse has handed over: the won song up (%.1f dB), the pulse stopped" % Game.clear_player.volume_db)
+	check(Game.music_player.volume_db <= -60.0 and Game.music_player.playing, "the bed stays ducked under it, still playing")
+	# the same claim again is not a second hit
+	Game.music_claim(a, "breach_clear")
+	await _settle()
+	check(Game.clear_hits == hits0 + 1, "claiming the same mood again does not fire the hit twice")
+	# trouble comes back: straight back to the fight, and no hit (it is not a win)
+	Game.music_claim(a, "breach")
+	await _settle()
+	check(Game.music_mood == "breach" and Game.breach_player.playing and not Game.clear_player.playing and Game.clear_hits == hits0 + 1, "the fight starting again flips it back to the pulse — and that is not a win, so no hit")
+	# a hand-over crosses fast; a hand-back to the bed does not
+	Game.music_fade_scale = 1.0
+	Game.music_claim(a, "breach_clear")
+	await get_tree().create_timer(0.7).timeout
+	check(Game._mood_gain["breach_clear"] > 0.95 and Game._mood_gain["breach"] < 0.05, "a pulse hand-over is over inside a second (won %.2f, pulse %.2f)" % [Game._mood_gain["breach_clear"], Game._mood_gain["breach"]])
+	Game.music_release(a)
+	await get_tree().create_timer(0.7).timeout
+	check(Game._mood_gain["breach_clear"] > 0.5 and Game._mood_gain["calm"] < 0.5, "…but the way back to the bed is slow (won %.2f, bed %.2f after 0.7 s)" % [Game._mood_gain["breach_clear"], Game._mood_gain["calm"]])
+	Game.music_fade_scale = 400.0
+	await _settle()
+	check(Game.music_mood == "calm" and not Game.clear_player.playing and not Game.breach_player.playing, "released: calm, both pulse-family players stopped")
+	a.free()
+	# a freed claimant on the won song can never strand it
+	var b := Node.new()
+	add_child(b)
+	Game.music_claim(b, "breach_clear")
+	await _settle()
+	check(Game.music_mood == "breach_clear" and Game.clear_player.playing and Game.last_step_from == "", "a claimant on the won song alone starts it from the top (no sibling to step in beside)")
+	b.free()
+	await _settle()
+	check(Game.music_mood == "calm" and not Game.clear_player.playing, "…and freeing that node drops it")
+
+
 func _room(apt: String) -> Node:
 	WorldState.current_apartment_id = apt
 	WorldState.current_floor = WorldState._apartment_floor(apt)
@@ -175,15 +232,35 @@ func _test_breach_room() -> void:
 	# it does not hand back while any of them stands …
 	room._breach_music_tick(5.0)
 	check(Game.music_mood == "breach", "a tick with the dead still standing keeps the pulse")
-	# … but once they are all down it does
+	# … but once they are all down the SAME SONG turns to its won self — it does not drop away
 	for z in get_tree().get_nodes_in_group("zombie"):
 		if room.is_ancestor_of(z):
 			z.free()
 	room._entrant_todo.clear()
 	check(not room.breach_threat_alive(), "with the last of them gone the room reports no threat")
+	var hits0: int = Game.clear_hits
 	room._breach_music_tick(5.0)
 	await _settle()
-	check(Game.music_mood == "calm" and not Game.breach_player.playing, "the pulse hands back to the bed, and stops")
+	check(Game.music_mood == "breach_clear" and Game.clear_player.playing and not Game.breach_player.playing, "the last one down: the pulse turns into the victory loop (mood %s)" % Game.music_mood)
+	check(Game.clear_hits == hits0 + 1, "…with the win hit, once")
+	check(room._breach_music_phase == "won", "the room is in its won phase (%s)" % room._breach_music_phase)
+	# it stays on — a long while after the room is clear
+	room._breach_music_tick(room.BREACH_WON_HOLD * 0.5)
+	await _settle()
+	check(Game.music_mood == "breach_clear", "half the hold later it is still playing (the old rule dropped it half a second after the last kill)")
+	# someone comes in again: back to the fight, no second hit
+	room._entrant_todo.append({"key": "x", "delay": 1.0})
+	room._breach_music_tick(1.0)
+	await _settle()
+	check(Game.music_mood == "breach" and room._breach_music_phase == "fight" and Game.clear_hits == hits0 + 1, "a late arrival flips it back to the pulse (no hit)")
+	room._entrant_todo.clear()
+	room._breach_music_tick(1.0)
+	await _settle()
+	check(Game.music_mood == "breach_clear" and Game.clear_hits == hits0 + 2, "and once they are down again it is the victory loop again, with its hit")
+	# it holds for a fixed time and then drains back to the bed
+	room._breach_music_tick(room.BREACH_WON_HOLD + 1.0)
+	await _settle()
+	check(Game.music_mood == "calm" and not Game.clear_player.playing and room._breach_music_phase == "", "after the hold it hands back to the bed")
 	room.queue_free()
 	await get_tree().physics_frame
 	await get_tree().physics_frame

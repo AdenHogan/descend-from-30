@@ -13,8 +13,15 @@ the audio. It needs cleaning. Maybe also create a more pulse pounding track too 
                                        that lands on the boom that starts the loop again. Every hit is a sine / saw — no noise bursts, so it is loud and
                                        tight but never static.
 
+  assets/audio/music/breach_clear_loop.ogg  THE SAME SONG, WON (owner round 48l: "I love the breach room music, that almost techno type music. Keep it on longer and don't switch just
+                                       because all enemies are defeated, or if you change it, turn that song into a sort of victory song when the room is clear"). Same 140 BPM,
+                                       same 16-bar length and the same kick on every beat (so it can be started at the very beat the pulse is on — `Game` hands the play position
+                                       across), but the dissonance is resolved: E minor -> C -> G -> D, a bright pad, a plucked arpeggio, an offbeat chord stab sidechained to the
+                                       kick, a bell melody; no flat-two, no tritone, no screech. The arrangement is the SAME in every bar, so it can begin anywhere in the loop.
+  assets/audio/music/victory_hit.ogg   the one-shot that lands as the last of them falls: a boom, a clang and a major chord thrown open, in a hall.
+
 Everything is deterministic (seeded) and made from sines and band-limited saws (polyBLEP) — CC0, like the rest of assets/audio. Run:
-    python3 tools/gen_music.py [--wav DIR]       (needs numpy + scipy + ffmpeg with libvorbis; --wav also keeps the 16-bit WAVs for inspection)
+    python3 tools/gen_music.py [--wav DIR] [--only dread,breach,victory]     (needs numpy + scipy + ffmpeg with libvorbis; --wav also keeps the 16-bit WAVs for inspection)
 """
 import os
 import subprocess
@@ -406,11 +413,167 @@ def breach_loop():
     return master(loop, -15.5, -1.5)
 
 
+# ------------------------------------------------------------------------------------------------------------------------ the victory loop
+def _tri(root, minor):
+    """MIDI notes of a triad on `root`: root, third, fifth."""
+    return [root, root + (3 if minor else 4), root + 7]
+
+
+def victory_loop():
+    rng = np.random.default_rng(2602)
+    bpm = 140
+    step = SR * 60 // bpm // 4                          # a 16th: exactly the breach loop's grid
+    bar = 16 * step
+    N = 16 * bar                                        # the same length as breach_loop, so the two can share a play position
+    M = N + 4 * SR
+    dry = np.zeros((M, 2))
+    send = np.zeros(M)
+    duck_env = np.zeros(M)
+
+    def kick_at(s, **kw):
+        k = kick(**kw)
+        put(dry, s, k)
+        d = np.exp(-tarr(int(0.30 * SR)) / 0.11)
+        n = min(len(d), M - s)
+        duck_env[s:s + n] = np.maximum(duck_env[s:s + n], d[:n] * kw.get("amp", 1.0))
+
+    # E minor -> C -> G -> D, two bars each, twice over the 16 bars: i - VI - III - VII, the way a song turns when it has won
+    prog = [(40, True), (36, False), (43, False), (38, False)] * 2          # (root MIDI at octave 2, minor?) per 2 bars
+    chord_of_bar = [prog[b // 2] for b in range(16)]
+
+    # 1. the PULSE — the same four-on-the-floor kick, lighter on the 2 and 4; the last beat of every 4th bar fills in 16ths
+    for b in range(16):
+        for beat in range(4):
+            kick_at(b * bar + beat * 4 * step, amp=1.05 if beat == 0 else 0.92)
+        if b % 4 == 3:
+            for s16 in (13, 14, 15):
+                kick_at(b * bar + s16 * step, amp=0.45, f0=52.0, drop=110.0, decay=0.08, dur=0.22)
+    duck = 1.0 - 0.70 * np.clip(duck_env, 0.0, 1.0)
+
+    # 2. the SUB — a sine on each bar's root an octave down, sidechained to the kick
+    sub = np.zeros(M)
+    for b in range(16):
+        f = m2f(chord_of_bar[b][0] - 12)
+        n = bar + int(0.04 * SR)
+        v = sine(f, n) + 0.28 * sine(f * 2.0, n, 0.2)
+        v *= smooth_env(n, 0.02, 0.04)
+        put_mono(sub, b * bar, v)
+    dry += pan(sub * duck * 0.36, 0.0)
+
+    # 3. the OFFBEAT STAB — the "and" of every beat, a chord of saws through a closing filter: the bounce that keeps a techno track moving
+    for b in range(16):
+        root, minor = chord_of_bar[b]
+        notes = [m + 24 for m in _tri(root, minor)] + [root + 36]
+        for beat in range(4):
+            at = b * bar + beat * 4 * step + 2 * step
+            n = int(step * 1.6)
+            te = tarr(n)
+            for i, m in enumerate(notes):
+                v = saw(m2f(m), n, float(rng.random())) + 0.7 * saw(m2f(m) * 2.0 ** (7.0 / 1200.0), n, float(rng.random()))
+                v = audiolib.lp(v, SR, 2600.0, order=2, zero_phase=False) * np.exp(-te / 0.07) * np.minimum(te / 0.002, 1.0) * 0.085
+                d = duck[at:at + n] if at + n <= M else np.ones(n)
+                put(dry, at, pan(v * d, -0.45 + 0.3 * i))
+
+    # 4. the ARPEGGIO — plucked saws, 16ths over the chord tones: up, up, down, up
+    arp_pat = [0, 1, 2, 3, 2, 1, 2, 3, 0, 1, 2, 3, 2, 1, 2, 3]
+    for b in range(16):
+        root, minor = chord_of_bar[b]
+        tones = [m + 24 for m in _tri(root, minor)] + [root + 36]
+        for s16, ti in enumerate(arp_pat):
+            if s16 % 4 == 2:                                                 # the offbeat belongs to the stab
+                continue
+            f = m2f(tones[ti])
+            n = int(step * 0.95)
+            te = tarr(n)
+            osc = saw(f, n) + 0.8 * saw(f * 2.0 ** (8.0 / 1200.0), n, 0.37)
+            note = audiolib.lp(osc, SR, 3600.0, order=2, zero_phase=False) * np.exp(-te / 0.085) * np.minimum(te / 0.002, 1.0) * (0.21 if s16 % 4 == 0 else 0.15)
+            note[-int(0.004 * SR):] *= np.linspace(1.0, 0.0, int(0.004 * SR))
+            at = b * bar + s16 * step
+            d = duck[at:at + n] if at + n <= M else np.ones(n)
+            put(dry, at, pan(note * d, 0.0))
+
+    # 5. the PAD — a bright triad swelling under every two bars, a saw pair a few cents apart in each ear
+    for blk in range(8):
+        root, minor = chord_of_bar[blk * 2]
+        n = 2 * bar + int(0.9 * SR)
+        te = tarr(n)
+        for ni, m in enumerate([root + 12] + [x + 12 for x in _tri(root, minor)[1:]] + [root + 24]):
+            for side, cents in ((-1, -8.0), (1, 7.0)):
+                v = saw(m2f(m) * 2.0 ** (cents / 1200.0), n, float(rng.random()))
+                v = sweep_lp(v, 1500.0 + 500.0 * np.sin(np.pi * te / te[-1]))
+                v *= smooth_env(n, 0.5, 0.7) * 0.05
+                put(dry, blk * 2 * bar, pan(v, side * 0.65))
+                put_mono(send, blk * 2 * bar, v * 0.4)
+
+    # 6. the MELODY — a bell on the chord's best notes: a figure that rises, hangs, and answers itself in the second bar of each chord
+    for b in range(16):
+        root, minor = chord_of_bar[b]
+        third = root + (3 if minor else 4)
+        figure = [(0, root + 36), (6, root + 31), (10, third + 36)] if b % 2 == 0 else [(2, root + 31), (8, third + 36), (12, root + 43)]      # bar 1 of a chord rises and hangs; bar 2 answers
+        for s16, m in figure:
+            bl = fm_bell(m2f(m), 2.6, index=1.5) * 0.085
+            bl = audiolib.lp(bl, SR, 5200.0, order=2, zero_phase=False)
+            at = b * bar + s16 * step
+            put(dry, at, pan(bl, 0.4 if (b + s16) % 2 else -0.4))
+            for j, (dt, g) in enumerate(((0.43, 0.4), (0.86, 0.18))):          # a dotted-eighth echo, each repeat darker
+                e = audiolib.lp(bl, SR, 3200.0 / (1 + j), order=2, zero_phase=False) * g
+                put(dry, at + int(dt * SR), pan(e, -0.4 if (b + s16) % 2 else 0.4))
+            put_mono(send, at, bl * 0.7)
+
+    # 7. the BOOM at the top of the loop and at bar 9, lighter than the pulse's
+    for b in (0, 8):
+        n = int(2.0 * SR)
+        te = tarr(n)
+        boom = np.sin(2.0 * np.pi * np.cumsum(36.0 + 46.0 * np.exp(-te / 0.12)) / SR) * np.exp(-te / 0.6) * 0.6
+        put(dry, b * bar, boom)
+
+    wet = reverb_stereo(send, 2.2, 53, ((60, 400, 1.4), (400, 2200, 1.0), (2200, 6000, 0.5)))
+    loop = fold(mix_wet(dry, wet, 0.55), N)
+    loop = circ_filter(loop, 30.0, 11000.0)
+    return master(loop, -16.5, -1.5)
+
+
+def victory_hit():
+    """The last one falls: a boom, a clang and E major thrown open in a hall (2.8 s of hit and a 3 s hall tail; plays once over the hand-over from the pulse to the victory loop)."""
+    rng = np.random.default_rng(2603)
+    N = int(2.8 * SR)
+    M = N + 3 * SR
+    dry = np.zeros((M, 2))
+    send = np.zeros(M)
+    n = int(2.4 * SR)
+    te = tarr(n)
+    boom = np.sin(2.0 * np.pi * np.cumsum(34.0 + 58.0 * np.exp(-te / 0.12)) / SR) * np.exp(-te / 0.7) * 1.0
+    put(dry, 0, boom)
+    clang = np.zeros(n)
+    for ratio, g, dec in ((1.0, 1.0, 1.0), (2.32, 0.7, 0.8), (4.17, 0.5, 0.55), (6.43, 0.35, 0.4)):
+        clang += g * np.sin(2.0 * np.pi * 196.0 * ratio * te) * np.exp(-te / dec)
+    clang = audiolib.lp(clang, SR, 5000.0, order=2, zero_phase=False) * np.minimum(te / 0.002, 1.0) * 0.16
+    put(dry, 0, pan(clang, 0.2))
+    put_mono(send, 0, clang * 1.2)
+    for i, m in enumerate((52, 59, 64, 68, 71, 76)):                              # E3 B3 E4 G#4 B4 E5: open, major, certain
+        v = saw(m2f(m), n, float(rng.random())) + 0.7 * saw(m2f(m) * 2.0 ** (9.0 / 1200.0), n, float(rng.random()))
+        v = audiolib.lp(v, SR, 3400.0, order=2, zero_phase=False) * np.exp(-te / (0.9 - 0.05 * i)) * np.minimum(te / 0.004, 1.0) * 0.1
+        put(dry, 0, pan(v, -0.6 + 0.24 * i))
+        put_mono(send, 0, v * 0.8)
+    wet = reverb_stereo(send, 2.6, 61, ((60, 400, 1.6), (400, 2200, 1.2), (2200, 6000, 0.5)))
+    out = mix_wet(dry, wet, 0.6)[:M]
+    out = circ_filter(out, 30.0, 11000.0)
+    fade = int(0.35 * SR)
+    out[-fade:] *= np.linspace(1.0, 0.0, fade)[:, None]
+    return master(out, -17.0, -1.5)
+
+
 def main():
     wav_dir = sys.argv[sys.argv.index("--wav") + 1] if "--wav" in sys.argv else None
+    only = set(sys.argv[sys.argv.index("--only") + 1].split(",")) if "--only" in sys.argv else {"dread", "breach", "victory"}
     os.makedirs(OUT, exist_ok=True)
-    encode(os.path.join(OUT, "dread_loop.ogg"), dread_loop(), wav_dir, "dread_loop")
-    encode(os.path.join(OUT, "breach_loop.ogg"), breach_loop(), wav_dir, "breach_loop")
+    if "dread" in only:
+        encode(os.path.join(OUT, "dread_loop.ogg"), dread_loop(), wav_dir, "dread_loop")
+    if "breach" in only:
+        encode(os.path.join(OUT, "breach_loop.ogg"), breach_loop(), wav_dir, "breach_loop")
+    if "victory" in only:
+        encode(os.path.join(OUT, "breach_clear_loop.ogg"), victory_loop(), wav_dir, "breach_clear_loop")
+        encode(os.path.join(OUT, "victory_hit.ogg"), victory_hit(), wav_dir, "victory_hit")
 
 
 if __name__ == "__main__":

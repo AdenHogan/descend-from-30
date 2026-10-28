@@ -13,6 +13,8 @@ const SCENES = {
 
 var music_player: AudioStreamPlayer = null          # the exploration bed (dread_loop) — always playing, ducked while a claim wants another mood
 var breach_player: AudioStreamPlayer = null         # the breach-room track (breach_loop) — runs only while something claims the "breach" mood
+var clear_player: AudioStreamPlayer = null          # the same song, won (breach_clear_loop) — runs only while something claims the "breach_clear" mood
+var clear_hit_player: AudioStreamPlayer = null      # the one-shot that lands as the pulse turns into the victory loop
 
 # A dedicated bus for enemy SFX (zombie moans). The stair ascent fades THIS bus
 # out as the player climbs away, so the floor's zombies recede without touching
@@ -20,23 +22,33 @@ var breach_player: AudioStreamPlayer = null         # the breach-room track (bre
 const ENEMY_BUS := "Enemies"
 const MUSIC_BUS := "Music"
 
-# --- MUSIC MOODS (owner round 46: "a more pulse pounding track… for entering breach rooms") ----------------------------------------------------
+# --- MUSIC MOODS (owner round 46: "a more pulse pounding track… for entering breach rooms"; round 48l: "keep it on longer… turn that song into a sort of victory song when the room is clear") ---
 # One mood plays at a time. A scene that wants a mood CLAIMS it (`music_claim(self, "breach")`) and releases it when its reason is over; a claim
 # whose node is freed / out of the tree is dropped on its own, so a scene change, a death or a quit can never leave the pulse stuck on. The newest
 # claim wins; with none the mood is "calm". Moods cross-fade in real time (not game time — a slow-motion beat must not stretch a fade) and keep
 # running through the pause menu. The calm loop is only DUCKED during a breach (it keeps its place), the breach loop starts over each entry.
+# THE PULSE FAMILY: "breach" and "breach_clear" are ONE song in two states (same 140 BPM, same 16 bars, the same kick on every beat; the second has the
+# dissonance resolved). Moving between them is a HAND-OVER, not a fade through silence: the incoming loop starts at the very beat the outgoing one is on
+# (`_play_in_step`) and they cross in `PULSE_HANDOVER` seconds; going from the fight to the win also fires one hit (`clear_hit_player`).
 ## `in` / `out` = seconds for the mood to rise to full / fall to silence. The pulse comes in FAST (the first boom + beat must land as the door opens, under the fade
 ## from black), the bed drops away fast to make room, and each hands back SLOWLY — the bed swells back over 3.2 s, the pulse drains over 3.2 s — the way tension does.
 const MUSIC_MOODS := {
 	"calm": {"stream": "res://assets/audio/music/dread_loop.ogg", "db": -10.0, "in": 3.2, "out": 0.6},
-	"breach": {"stream": "res://assets/audio/music/breach_loop.ogg", "db": -9.0, "in": 0.25, "out": 3.2},
+	"breach": {"stream": "res://assets/audio/music/breach_loop.ogg", "db": -9.0, "in": 0.25, "out": 3.2, "family": "pulse"},
+	"breach_clear": {"stream": "res://assets/audio/music/breach_clear_loop.ogg", "db": -9.0, "in": 0.25, "out": 3.2, "family": "pulse"},
 }
+const PULSE_HANDOVER := 0.45          # seconds: one pulse mood giving way to the other (both rise / fall in this)
+const CLEAR_HIT_STREAM := "res://assets/audio/music/victory_hit.ogg"
+const CLEAR_HIT_DB := -7.0
 const SILENT_DB := -80.0
 var music_mood := "calm"
 var music_fade_scale := 1.0           # tests raise this to cross-fade in a blink
 var _music_claims: Array = []         # [{"node": Node, "mood": String}], oldest first
-var _mood_gain := {"calm": 1.0, "breach": 0.0}     # linear 0..1 each mood is currently at
+var _mood_gain := {"calm": 1.0, "breach": 0.0, "breach_clear": 0.0}     # linear 0..1 each mood is currently at
 var _music_tick_msec := 0
+var _last_mood := "calm"
+var clear_hits := 0                   # how many times the win hit has fired (tests)
+var last_step_from := ""              # the sibling the last pulse-family start came in beside ("" = it started from its first beat) (tests: a headless player has no real position)
 
 
 func _ready() -> void:
@@ -49,6 +61,13 @@ func _ready() -> void:
 	music_player = _make_music_player("MusicPlayer", "calm")
 	music_player.play()
 	breach_player = _make_music_player("BreachMusicPlayer", "breach")      # silent and stopped until something claims the mood
+	clear_player = _make_music_player("BreachClearMusicPlayer", "breach_clear")
+	clear_hit_player = AudioStreamPlayer.new()
+	clear_hit_player.name = "BreachClearHitPlayer"
+	clear_hit_player.stream = load(CLEAR_HIT_STREAM)
+	clear_hit_player.bus = MUSIC_BUS
+	clear_hit_player.volume_db = CLEAR_HIT_DB
+	add_child(clear_hit_player)
 	_music_tick_msec = Time.get_ticks_msec()
 
 
@@ -128,29 +147,90 @@ func _process(_delta: float) -> void:
 	if music_player == null:
 		return
 	music_mood = wanted_music_mood()
+	if music_mood == "breach_clear" and _last_mood == "breach":
+		_play_clear_hit()                                                     # the last one fell: the song turns, once
+	_last_mood = music_mood
 	for mood in _mood_gain.keys():
 		var want := 1.0 if mood == music_mood else 0.0
 		var g: float = _mood_gain[mood]
-		var span: float = float(MUSIC_MOODS[mood]["in" if want > g else "out"])
+		var span: float = PULSE_HANDOVER if _is_handover(mood) else float(MUSIC_MOODS[mood]["in" if want > g else "out"])
 		g = move_toward(g, want, dt * music_fade_scale / span)
 		_mood_gain[mood] = g
 	_apply_music_levels()
 
 
+## The family a mood belongs to ("" for the bed, which is its own thing).
+func mood_family(mood: String) -> String:
+	return String(MUSIC_MOODS[mood].get("family", "")) if MUSIC_MOODS.has(mood) else ""
+
+
+## Is `mood` part of a hand-over inside the pulse family right now — the wanted mood is a pulse mood, and `mood` is either the one rising while its sibling is still sounding, or the sibling giving way?
+func _is_handover(mood: String) -> bool:
+	var fam := mood_family(mood)
+	if fam == "" or mood_family(music_mood) != fam:
+		return false
+	if mood != music_mood:
+		return true                                                           # the sibling falling away
+	for other in _mood_gain.keys():
+		if other != mood and mood_family(String(other)) == fam and float(_mood_gain[other]) > 0.001:
+			return true                                                       # the wanted one rising while its sibling still sounds
+	return false
+
+
+func _player_for(mood: String) -> AudioStreamPlayer:
+	match mood:
+		"calm":
+			return music_player
+		"breach":
+			return breach_player
+		"breach_clear":
+			return clear_player
+	return null
+
+
 func _apply_music_levels() -> void:
-	for mood in ["calm", "breach"]:
-		var p: AudioStreamPlayer = music_player if mood == "calm" else breach_player
+	# Start before stopping: a loop coming in beside a sibling that falls silent on this very frame must still find it playing, to step in on its beat.
+	for mood in _mood_gain.keys():
+		var p: AudioStreamPlayer = _player_for(String(mood))
+		if p != null and mood != "calm" and float(_mood_gain[mood]) > 0.001 and not p.playing:
+			_play_in_step(String(mood), p)
+	for mood in _mood_gain.keys():
+		var p: AudioStreamPlayer = _player_for(String(mood))
 		if p == null:
 			continue
 		var g: float = _mood_gain[mood]
 		if g <= 0.001:
 			p.volume_db = SILENT_DB
-			if mood == "breach" and p.playing:
+			if mood != "calm" and p.playing:
 				p.stop()                                                      # the pulse starts again from its first beat on the next entry
 			continue
-		if mood == "breach" and not p.playing:
-			p.play()
 		p.volume_db = float(MUSIC_MOODS[mood]["db"]) + linear_to_db(g)
+
+
+## Start a pulse-family loop: beside a sibling that is already sounding, on the very beat it is on (they share a tempo, a grid and a length); alone, from its first beat.
+func _play_in_step(mood: String, p: AudioStreamPlayer) -> void:
+	var fam := mood_family(mood)
+	last_step_from = ""
+	for other in _mood_gain.keys():
+		if other == mood or fam == "" or mood_family(String(other)) != fam:
+			continue
+		var sib: AudioStreamPlayer = _player_for(String(other))
+		if sib != null and sib.playing and p.stream != null:
+			last_step_from = String(other)
+			p.play(step_position(sib.get_playback_position() + AudioServer.get_time_since_last_mix(), p.stream.get_length()))
+			return
+	p.play()
+
+
+## Where in a loop of `length` seconds a player must start to be on the beat a sibling is on at `at` seconds in (the loops share a tempo and a length; a longer sibling wraps).
+static func step_position(at: float, length: float) -> float:
+	return fmod(maxf(at, 0.0), length) if length > 0.0 else 0.0
+
+
+func _play_clear_hit() -> void:
+	clear_hits += 1
+	if clear_hit_player != null:
+		clear_hit_player.play()
 
 
 func _input(event: InputEvent) -> void:

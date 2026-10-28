@@ -2397,13 +2397,18 @@ func _spawn_breached_enemies() -> void:
 	_plan_breach_entrants()
 
 
-# --- BREACH MUSIC (owner round 46: "a more pulse pounding track… that fits horror themes for entering breach rooms") ----------------------------------
+# --- BREACH MUSIC (owner round 46: "a more pulse pounding track… that fits horror themes for entering breach rooms"; round 48l: "keep it on longer… turn that song into a
+# sort of victory song when the room is clear") ---------------------------------------------------------------------------------------------------------
 # The moment a breach flat is entered with its pack still standing, the pulse (assets/audio/music/breach_loop.ogg) takes over from the exploration bed
-# (`Game.music_claim`). It hands back — slowly, the way tension drains — once the last of the dead in this flat is down and nobody else is still due
-# through the front door. Freed with the room (`_exit_tree` releases; `Game` also drops a claim whose node left the tree). Live rooms only.
+# (`Game.music_claim`). When the last of the dead in this flat is down and nobody else is still due through the front door the SAME SONG turns to its won
+# self (breach_clear_loop.ogg — `Game` hands it over on the beat and fires the win hit) and stays on for `BREACH_WON_HOLD` seconds — three runs of the loop —
+# before it drains back to the bed. Someone arriving again (a late entrant, a riser) flips it straight back to the fight. Leaving the flat ends it at once
+# (`_exit_tree` releases; `Game` also drops a claim whose node left the tree). Live rooms only.
 const BREACH_MUSIC_POLL := 0.5
-var _breach_music_on := false
+const BREACH_WON_HOLD := 82.0                  # three turns of the 16-bar loop (27.43 s each)
+var _breach_music_phase := ""                  # "" (none) | "fight" | "won"
 var _breach_music_clock := 0.0
+var _breach_won_clock := 0.0
 
 
 ## True while anything hostile and alive stands in THIS flat (the pack, its leader, a wall crawler, an entrant already in) or an entrant is still due.
@@ -2419,21 +2424,33 @@ func breach_threat_alive() -> bool:
 func _begin_breach_music() -> void:
 	if passive or not breach_threat_alive():
 		return
-	_breach_music_on = true
+	_breach_music_phase = "fight"
 	_breach_music_clock = 0.0
 	Game.music_claim(self, "breach")
 
 
+## Called every frame with the frame's delta: polls the threat twice a second and runs the hold on the won song.
 func _breach_music_tick(delta: float) -> void:
-	if not _breach_music_on:
+	if _breach_music_phase == "":
 		return
+	if _breach_music_phase == "won":
+		_breach_won_clock += delta
 	_breach_music_clock += delta
-	if _breach_music_clock < BREACH_MUSIC_POLL:
+	if _breach_music_clock < BREACH_MUSIC_POLL and _breach_won_clock < BREACH_WON_HOLD:
 		return
 	_breach_music_clock = 0.0
-	if not breach_threat_alive():
-		_breach_music_on = false
-		Game.music_release(self)
+	var alive := breach_threat_alive()
+	if _breach_music_phase == "fight" and not alive:
+		_breach_music_phase = "won"
+		_breach_won_clock = 0.0
+		Game.music_claim(self, "breach_clear")
+	elif _breach_music_phase == "won":
+		if alive:
+			_breach_music_phase = "fight"
+			Game.music_claim(self, "breach")
+		elif _breach_won_clock >= BREACH_WON_HOLD:
+			_breach_music_phase = ""
+			Game.music_release(self)
 
 
 # --- BREACH ENTRANTS: one or two more come in through the torn-out front door (WorldState.breach_entrants) ---------------------------
