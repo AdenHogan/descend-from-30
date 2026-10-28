@@ -354,9 +354,10 @@ def _place_print(im, lay, printimg, ox, oy, k):
         _paste_clipped(im, pr, int(round(px)), int(round(py)))
 
 
-def render_full(theme, width_px=2400):
-    """The whole logo: the owner's print behind the 30, the worn lettering with its strikes of blood on it.  The look is computed once at logo_text.REF_W and carried to
-    `width_px` (see logo_text), so any size is the same picture."""
+def render_layers(theme, width_px=2400):
+    """The logo as its two layers on ONE canvas: (the print behind, the worn lettering with its strikes of blood over it), both RGBA, transparent, `width_px` wide.
+    The hand is under the letters, so putting the second over the first IS the logo (`render_full`); the game's opening fades the lettering in first, then the hand behind it.
+    The look is computed once at logo_text.REF_W and carried to `width_px` (see logo_text), so any size is the same picture."""
     lay = build_layout()
     bounds = full_bounds(lay)
     W, H, k, ox, oy = _frame(bounds, width_px)
@@ -373,8 +374,14 @@ def render_full(theme, width_px=2400):
         im.putalpha(ImageChops.multiply(im.getchannel('A'), ImageChops.invert(halo)))
         key = lay['num'].buffer(0.016 * NUM_H, join_style=1).difference(lay['num'])        # the 30: cream inside an ink keyline, so it reads over blood and over paper
         im = _paint(im, key, INK, k, ox, oy)
-    im.alpha_composite(logo_text.letters(ref, mask(words, W, H, k), mask(num, W, H, k), theme))
-    return im
+    return im, logo_text.letters(ref, mask(words, W, H, k), mask(num, W, H, k), theme)
+
+
+def render_full(theme, width_px=2400):
+    """The whole logo: the owner's print behind the 30, the worn lettering with its strikes of blood on it (the two layers, one over the other)."""
+    hand, text = render_layers(theme, width_px)
+    hand.alpha_composite(text)
+    return hand
 
 
 def render_wordmark(theme, width_px):
@@ -476,8 +483,13 @@ def all_outputs():
     files = {}
     fulls = {}
     for theme in ('dark', 'light'):
-        full = render_full(theme, 2400)
+        hand, text = render_layers(theme, 2400)
+        full = hand.copy()
+        full.alpha_composite(text)
         fulls[theme] = full
+        if theme == 'dark':                                          # the two layers of the dark logo, for the opening (the lettering fades in first, then the hand behind it)
+            files['assets/logo/logo_layer_hand_dark.png'] = _png(hand)
+            files['assets/logo/logo_layer_text_dark.png'] = _png(text)
         files['assets/logo/logo_full_%s.png' % theme] = _png(full)
         files['assets/logo/logo_full_%s_600.png' % theme] = _png(_small(full, 600))
         files['assets/logo/logo_wordmark_%s.png' % theme] = _png(render_wordmark(theme, 1600))

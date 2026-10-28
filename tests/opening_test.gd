@@ -2,7 +2,8 @@ extends Node
 
 # THE NEW-GAME / LOAD / RUN-START OPENING (owner round 35 + 35b): the exterior shot a run begins on — the tower in that run's light
 # (morning / dusk / night, more of the city and the building ruined each time), the camera climbing it floor by floor to the roof and
-# the sky, the title over the clouds (a new game or a load; a later run's cold open has none), a fade to black, then the run's time
+# the sky, the title over the clouds (a new game or a load; a later run's cold open has none) — since round 48n the title is the LOGO,
+# its lettering fading in first and the bloody handprint behind it a beat later — a fade to black, then the run's time
 # card. The burnt floors are THIS playthrough's own fire. Locks: the art + its meta exist for all three runs and agree; the looks
 # really differ (and escalate); the timeline (a pure function of t) fades in, climbs monotonically, brings the title up late, fades
 # out — and a title-less cut is shorter; the layers are anchored so the street is on screen at the start and the roof sits under the
@@ -34,6 +35,7 @@ func _ready() -> void:
 	_test_looks()
 	_test_timeline()
 	await _test_layers()
+	await _test_logo_title()
 	await _test_survivors()
 	await _test_runner()
 	_test_garden_plan()
@@ -185,6 +187,31 @@ func _test_timeline() -> void:
 	check(Ext.title_alpha(Ext.t_pan_end(true), true) == 1.0, "the title is up when the camera arrives at the roof")
 	check(Ext.title_visible(Ext.t_end(true), true) == 0.0, "the title leaves with the fade to black")
 	check(Ext.title_alpha(Ext.t_pan_end(false), false) == 0.0 and Ext.title_visible(5.0, false) == 0.0, "a cut with no title never shows one")
+	# the title is the LOGO in two layers (owner round 48n: "fade in text first, then fade in the hand behind it")
+	var order_ok := true
+	var rising := true
+	var last_w := 0.0
+	var last_h := 0.0
+	var ts: float = Ext.t_title_in(true) - 1.0
+	while ts < Ext.t_pan_end(true) + 1.0:
+		var wa: float = Ext.text_alpha(ts, true)
+		var ha: float = Ext.hand_alpha(ts, true)
+		if ha > 0.0 and wa < 1.0:
+			order_ok = false
+		if wa < last_w - 0.000001 or ha < last_h - 0.000001:
+			rising = false
+		last_w = wa
+		last_h = ha
+		ts += 0.01
+	check(order_ok, "the hand only starts once the lettering is fully up (text first, then the hand)")
+	check(rising, "…and neither layer ever fades back while the title lands")
+	check(Ext.text_alpha(Ext.t_title_in(true) - 0.05, true) == 0.0 and Ext.text_alpha(Ext.t_title_in(true) + Ext.T_TEXT_FADE * 0.5, true) > 0.2
+		and Ext.text_alpha(Ext.t_title_in(true) + Ext.T_TEXT_FADE * 0.5, true) < 0.8, "the lettering fades in over %.1f s from the title's start" % Ext.T_TEXT_FADE)
+	check(Ext.hand_alpha(Ext.t_hand_in(true) - 0.01, true) == 0.0 and Ext.hand_alpha(Ext.t_hand_in(true) + Ext.T_HAND_FADE * 0.5, true) > 0.2
+		and Ext.hand_alpha(Ext.t_hand_in(true) + Ext.T_HAND_FADE * 0.5, true) < 0.8, "the handprint then fades in over %.1f s" % Ext.T_HAND_FADE)
+	check(Ext.t_hand_in(true) - (Ext.t_title_in(true) + Ext.T_TEXT_FADE) >= 0.1, "a held beat with only the words on screen")
+	check(Ext.t_title_up(true) <= Ext.t_pan_end(true), "the whole logo is up before the camera settles on the roof (%.2f <= %.2f)" % [Ext.t_title_up(true), Ext.t_pan_end(true)])
+	check(Ext.text_alpha(5.0, false) == 0.0 and Ext.hand_alpha(Ext.t_pan_end(false) + 1.0, false) == 0.0, "a cut with no title shows neither layer")
 	check(Ext.t_end(true) > 12.0 and Ext.t_end(true) < 30.0, "the title cut is %.1f s — long enough to land, short enough to repeat" % Ext.t_end(true))
 	check(Ext.t_end(false) < Ext.t_end(true) - 3.0 and Ext.t_end(false) > 8.0, "a later run's cut is shorter (%.1f s)" % Ext.t_end(false))
 
@@ -243,6 +270,76 @@ func _test_layers() -> void:
 	check(e.beacons.size() >= 2 and e.flickers.size() >= 1, "beacons blink and a lamp is failing (%d / %d)" % [e.beacons.size(), e.flickers.size()])
 	check(e.birds != null, "crows circle the roof")
 	e.queue_free()
+
+
+func _test_logo_title() -> void:
+	print("[the title is the logo]")
+	var e := _built()
+	await get_tree().process_frame
+	check(e.load_ok and e.title != null and e.title is Control, "the title is a node of the exterior")
+	if not e.load_ok:
+		e.queue_free()
+		return
+	var kids: Array = e.title.get_children()
+	var names: Array = []
+	var all_sprites := true
+	for k in kids:
+		names.append(str(k.name))
+		if not (k is Sprite2D):
+			all_sprites = false
+	check(names == ["TitleHand", "TitleShadow", "TitleText"], "behind to front: the handprint, the lettering's shadow, the lettering (%s)" % str(names))
+	check(all_sprites, "…only pictures: no panel, no box, no background behind the logo")
+	check(e.title_hand.texture.resource_path == Ext.LOGO_HAND and e.title_words.texture.resource_path == Ext.LOGO_TEXT, "the two layers are the logo's own (assets/logo/logo_layer_*)")
+	check(e.title_hand.texture.get_size() == e.title_words.texture.get_size() and e.title_shadow.texture == e.title_words.texture,
+		"both layers are one canvas, so stacked they ARE the logo (%s)" % str(e.title_words.texture.get_size()))
+	check(e.title_shadow.material is ShaderMaterial, "the lettering casts a soft shadow (no panel — cream words would wash into a bright morning sky)")
+	# at rest the layers sit on the same spot at the same scale
+	e.t = Ext.t_title_up(true) + 0.2
+	e._apply(0.0)
+	check(e.title_hand.position == e.title_words.position and e.title_hand.scale == e.title_words.scale, "at rest the hand and the lettering are exactly registered")
+	check(e.title_words.modulate.a == 1.0 and e.title_hand.modulate.a == 1.0 and e.title.modulate.a == 1.0, "once up, the whole logo is fully visible")
+	# the fade-in in the real node
+	e.t = 0.5
+	e._apply(0.0)
+	check(e.title_words.modulate.a == 0.0 and e.title_hand.modulate.a == 0.0, "the opening starts with no title")
+	e.t = Ext.t_hand_in(true) - 0.02
+	e._apply(0.0)
+	check(e.title_words.modulate.a == 1.0 and e.title_hand.modulate.a == 0.0, "words up, the hand not yet")
+	e.t = Ext.t_hand_in(true) + T_HALF_HAND()
+	e._apply(0.0)
+	check(e.title_words.modulate.a == 1.0 and e.title_hand.modulate.a > 0.1 and e.title_hand.modulate.a < 0.9, "then the hand coming up behind them (%.2f)" % e.title_hand.modulate.a)
+	e.t = Ext.t_end(true)
+	e._apply(0.0)
+	check(e.title.modulate.a == 0.0, "the logo leaves with the fade to black")
+	# where it sits: on the screen, centred, and clear of the roof's gear at the end of the climb
+	var scale: float = Ext.LOGO_SCALE
+	var hr: Rect2i = e.title_hand.texture.get_image().get_used_rect()
+	var tr: Rect2i = e.title_words.texture.get_image().get_used_rect()
+	var ink: Rect2i = hr.merge(tr)
+	var half: Vector2 = e.title_words.texture.get_size() * 0.5
+	var x0: float = Ext.LOGO_CENTRE.x + (ink.position.x - half.x) * scale
+	var x1: float = Ext.LOGO_CENTRE.x + (ink.end.x - half.x) * scale
+	var y0: float = Ext.LOGO_CENTRE.y + (ink.position.y - half.y) * scale
+	var y1: float = Ext.LOGO_CENTRE.y + (ink.end.y - half.y) * scale
+	check(x0 >= 16.0 and x1 <= Ext.VIEW_W * Ext.PIXEL - 16.0 and y0 >= 8.0, "the logo's ink is on the screen (x %.0f..%.0f, y from %.0f)" % [x0, x1, y0])
+	check(absf((x0 + x1) * 0.5 - Ext.VIEW_W * Ext.PIXEL * 0.5) <= 12.0, "…centred across it (ink middle %.0f of %.0f)" % [(x0 + x1) * 0.5, Ext.VIEW_W * Ext.PIXEL * 0.5])
+	e.t = Ext.t_pan_end(true)
+	e._apply(0.0)
+	var scene: Node2D = e.layers["scene"]["node"]
+	var gear_top: float = (scene.position.y + 22.0 - 22.0) * Ext.PIXEL     # the rooftop's water tank / plant room / mast stand up to ~22 px above the parapet
+	check(y1 <= gear_top, "…and its lowest drip stays above the roof's gear at the end of the climb (%.0f <= %.0f)" % [y1, gear_top])
+	e.queue_free()
+	await get_tree().process_frame
+	# a cut with no title builds the node but shows nothing of it
+	var bare := _built("")
+	await get_tree().process_frame
+	check(bare.load_ok and not bare.title.visible, "a later run's cut has no title node on screen")
+	bare.queue_free()
+	await get_tree().process_frame
+
+
+func T_HALF_HAND() -> float:
+	return Ext.T_HAND_FADE * 0.5
 
 
 func _test_survivors() -> void:
@@ -470,13 +567,20 @@ func _test_overlay_flow() -> void:
 	await get_tree().process_frame
 	check(intro.stage == "exterior" and intro.ext != null and intro.ext.with_title, "a new game (a title in the config) starts on the exterior shot, with its title")
 	check(get_tree().paused, "the opening pauses play like the rest of the cold open")
-	var title_seen := 0.0
+	var words_seen := 0.0
+	var hand_seen := 0.0
+	var order_ok := true
 	var steps := 0
 	while intro.stage == "exterior" and steps < 4000:
 		intro._process(0.02)
-		title_seen = maxf(title_seen, intro.ext.title.modulate.a if intro.ext != null else title_seen)
+		if intro.ext != null:
+			words_seen = maxf(words_seen, intro.ext.title_words.modulate.a)
+			hand_seen = maxf(hand_seen, intro.ext.title_hand.modulate.a)
+			if intro.ext.title_hand.modulate.a > 0.0 and intro.ext.title_words.modulate.a < 1.0:
+				order_ok = false
 		steps += 1
-	check(title_seen >= 0.99, "the game's title came fully up on the way")
+	check(words_seen >= 0.99 and hand_seen >= 0.99, "the game's title came fully up on the way: the lettering (%.2f) and the handprint (%.2f)" % [words_seen, hand_seen])
+	check(order_ok, "…the lettering first, the handprint only once the words were up")
 	check(intro.stage == "card" and intro.ext == null, "then it hands on to the time card (the exterior is gone)")
 	check(intro.black.color.a == 1.0, "…over black, as the run information always was")
 	check(intro.gore.modulate.a < 0.2, "…the handprint isn't up yet — it arrives with the card")

@@ -13,6 +13,8 @@ save file. That exterior can also be used to show more damage and disaster outsi
 | a LATER run's cold open (after a death / an escape) | `intro_overlay` stage `"exterior"` | no | ~13 s |
 | a LOAD (Continue) — the save's own run | `Game.continue_game` → `opening_sequence.gd` | yes | ~19 s |
 
+**The title is the logo (round 48n)** — see "The opening's title" at the end: the lettering fades in first, then the bloody handprint behind it.
+
 After it fades to black the run carries on as before: the time card (MORNING / name / subtitle over the handprint) → the character's
 line (over their own cue — round 37, docs/CHARACTER_STORIES.md) → the lockout (only Joe and Amina are locked out). A load then drops into the saved scene out of black (the cold open is never replayed on Continue).
 A key **hurries** it: during the climb the clock runs 5× (it never cuts); once the title is up (or the climb is over, on the title-less
@@ -93,4 +95,24 @@ seed + run while it builds and puts the player's back (so it is the same every l
 (`back_requested`) close it with the hall still running. The profile scene on its own is unchanged (opaque; Back reloads the title). `tests/title_test.gd` locks all of it.
 **Not done / owner's call:** the look and the moan are checked under xvfb frames only; the hall is one corridor (floor 22) — other sections / floors, a second camera angle, doors that open on a dark flat, dust in the lamp light and a distant door slam are easy additions; the shamblers walk the one lane (there is no depth to a side-on corridor);
 the Gemini painting (`assets/Descend From 30 - Placeholder Title Screen.png`) is left in the repo, unreferenced.
+
+## The opening's title — the logo, lettering first, then the hand (round 48n)
+
+**Owner:** "during the opening animation transition up to the top of the building, the game title that appears needs to change to the logo too, no background just the text and hand, fade in text first, then fade in the hand behind it."
+
+`scripts/opening_exterior.gd` no longer draws a pixel-font `Label`. Its `Title` node is a `Control` holding three `Sprite2D`s on ONE canvas (`LOGO_SCALE` 0.25 — 2400 px shown at 600 — centred on `LOGO_CENTRE` (576, 195), linear + mipmapped):
+`TitleHand` (`assets/logo/logo_layer_hand_dark.png`, the print) → `TitleShadow` → `TitleText` (`logo_layer_text_dark.png`, the worn lettering with its strikes of blood). The two PNGs are `tools/art/logo.py`'s own layers (`render_layers`): put the second over the first and you have `logo_full_dark.png`
+byte for byte (checked), and the gate (`logo.py --check`) holds both current. Nothing is behind the logo — no panel, no vignette on it, no box (`opening_test` checks the title holds only `Sprite2D`s).
+
+**The timeline** (pure functions of `t`, like the rest): the title starts at `t_title_in` (74 % through the climb, as before); `text_alpha` fades the lettering in over `T_TEXT_FADE` 1.1 s (it settles `TEXT_RISE` 10 px); a held beat of `T_HAND_BEAT` 0.2 s with only the words; then
+`hand_alpha` brings the print up behind them over `T_HAND_FADE` 1.6 s — all of it up (`t_title_up`) before the camera settles on the roof. The old `title_alpha` is now "how much of the title is up" (= the hand, the last part to land); `title_visible` is the group's own fade to black. A key during the title cuts to the
+fade out, as it always did (the title may then be only partly up).
+
+**Legibility:** cream lettering washed into the bright morning sky and its clouds (checked in all three runs), so the lettering casts a soft shadow made from its OWN shape (`SHADOW_SHADER_CODE`: the text texture's mipmaps, level 3 tight + level 5 wide, dark night-tint, dropped `SHADOW_DROP` 3 px). It sits over the hand and under the words, and fades in with the words. It is a shadow, not a background.
+The afternoon and night skies read without it. The swell (5 s, peaks ~2.5 s in) still starts with the title, so its peak lands about when the hand does (judged from its envelope, not listened to).
+
+**The menu** (round 48n): Play / Settings / Exit on the title screen are Aldrich too (the logo's DESCEND FROM face), so the menu matches the words rather than the 30.
+
+Locked by `opening_test` (`_test_timeline`: text first, the hand only once the words are up, neither fades back, the beat, all up before the roof; `_test_logo_title`: the three sprites in order, only pictures, the logo's own textures, one canvas, registered at rest, the fade-in in the real node, on screen + centred + the lowest drip clear of the roof's gear;
+`_test_overlay_flow`: both layers come fully up in the real cold open, words first), `tutorial_test`, `title_test` (menu font). The LOOK was judged from frames rendered under xvfb in all three runs (a montage of the fade-in included) — the owner's eye on a real monitor is the real test.
 

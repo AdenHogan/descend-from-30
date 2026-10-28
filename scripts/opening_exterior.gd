@@ -42,16 +42,38 @@ const T_STILL := 0.9                    # the street, held, before the climb
 const T_PAN := 12.5                     # the climb (with a title to land)
 const T_PAN_SHORT := 8.5                # the climb of a later run's cold open (no title)
 const T_TITLE_AT := 0.74                # the title starts to come up this far (0..1) through the climb
-const T_TITLE_FADE := 1.8
+const T_TEXT_FADE := 1.1                # the title is the LOGO (owner round 48n): the lettering fades in first…
+const T_HAND_BEAT := 0.2                # …a held beat with only the words…
+const T_HAND_FADE := 1.6                # …then the bloody handprint behind them comes up
 const T_HOLD := 2.9                     # after the climb ends, before the fade out
 const T_HOLD_SHORT := 0.9
 const T_FADE_OUT := 1.4                 # picture + title -> black
 const HURRY_SPEED := 5.0
 
-const TITLE_COLOR := Color(0.72, 0.05, 0.05)
+const LOGO_DIR := "res://assets/logo/"
+const LOGO_HAND := LOGO_DIR + "logo_layer_hand_dark.png"     # the print (tools/art/logo.py writes both layers on ONE canvas: put them at the same place)
+const LOGO_TEXT := LOGO_DIR + "logo_layer_text_dark.png"     # the worn lettering with its strikes of blood
+const LOGO_SCALE := 0.25                # 2400 px wide -> 600 px on the 1152 x 648 screen
+const LOGO_CENTRE := Vector2(576.0, 195.0)
+const TEXT_RISE := 10.0                 # the words settle this far (px) as they fade in
+const SHADOW_DROP := 3.0                # the lettering casts a soft shadow (no panel behind the logo): cream words would wash into a bright morning sky and its clouds
+const SHADOW_SHADER_CODE := "shader_type canvas_item;
+// the lettering's own shape, blurred by sampling its mipmaps (the texture is 2400 px shown at ~600, so level 3 is ~2 px of screen and level 5 ~8 px), tinted night-dark
+uniform float tight_lod = 3.0;
+uniform float wide_lod = 5.0;
+uniform float tight_gain = 1.5;
+uniform float wide_gain = 1.6;
+uniform float strength = 0.62;
+uniform float halo = 0.30;
+void fragment() {
+	float tight = clamp(textureLod(TEXTURE, UV, tight_lod).a * tight_gain, 0.0, 1.0);
+	float wide = clamp(textureLod(TEXTURE, UV, wide_lod).a * wide_gain, 0.0, 1.0);
+	COLOR = vec4(0.02, 0.012, 0.035, clamp(tight * strength + wide * halo, 0.0, 0.85));
+}
+"
 const GLASS_DARK := Color(0.24, 0.26, 0.32)
 
-var title_text: String = "DESCEND FROM 30"
+var title_text: String = "DESCEND FROM 30"   # non-empty = this cut has the title; what is drawn is the logo (round 48n), never this string
 var run: int = 0                        # 0 = the run the game is on (WorldState.current_run)
 var own_input: bool = false             # a key hurries it (the cold open's overlay does this itself)
 var with_title: bool = true
@@ -65,7 +87,10 @@ var scroll: float = 457.0
 var world: Node2D = null
 var layers: Dictionary = {}             # name -> {"node": Node2D, "p": float, "h": float, "lift": float}
 var clouds: Array = []                  # [{"node": Sprite2D, "x": float, "y": float, "p": float, "v": float, "w": float}]
-var title: Label = null
+var title: Control = null               # the logo: the group's alpha is its fade to black; the two layers carry their own fade-in
+var title_hand: Sprite2D = null         # behind
+var title_shadow: Sprite2D = null       # the lettering's soft shadow, over the hand and under the words
+var title_words: Sprite2D = null        # in front
 var shade: ColorRect = null
 var flash: ColorRect = null
 var rain: Control = null
@@ -127,16 +152,39 @@ static func black_alpha(tt: float, wt: bool = true) -> float:
 	return clampf((tt - t_out(wt)) / T_FADE_OUT, 0.0, 1.0)
 
 
-static func title_alpha(tt: float, wt: bool = true) -> float:
-	if not wt:
-		return 0.0
-	var a := clampf((tt - t_title_in(true)) / T_TITLE_FADE, 0.0, 1.0)
+## The title is the logo, in two layers: the LETTERING fades in first (`text_alpha`), a beat later the HANDPRINT behind it (`hand_alpha`).
+static func t_hand_in(wt: bool = true) -> float:
+	return t_title_in(wt) + T_TEXT_FADE + T_HAND_BEAT
+
+
+## When the whole logo is up.
+static func t_title_up(wt: bool = true) -> float:
+	return t_hand_in(wt) + T_HAND_FADE
+
+
+static func _ease(a: float) -> float:
+	a = clampf(a, 0.0, 1.0)
 	return a * a * (3.0 - 2.0 * a)
 
 
-## The whole-picture fade to black also takes the title (it leaves with it).
+static func text_alpha(tt: float, wt: bool = true) -> float:
+	return _ease((tt - t_title_in(true)) / T_TEXT_FADE) if wt else 0.0
+
+
+static func hand_alpha(tt: float, wt: bool = true) -> float:
+	return _ease((tt - t_hand_in(true)) / T_HAND_FADE) if wt else 0.0
+
+
+## How much of the title is up: 1 once the last part of it (the hand) has landed.
+static func title_alpha(tt: float, wt: bool = true) -> float:
+	return hand_alpha(tt, wt)
+
+
+## The title group's own visibility: the whole-picture fade to black also takes the title (it leaves a little ahead of the shade).
 static func title_visible(tt: float, wt: bool = true) -> float:
-	return title_alpha(tt, wt) * (1.0 - clampf((tt - t_out(wt)) / (T_FADE_OUT * 0.7), 0.0, 1.0))
+	if not wt:
+		return 0.0
+	return 1.0 - clampf((tt - t_out(wt)) / (T_FADE_OUT * 0.7), 0.0, 1.0)
 
 
 func camera() -> float:
@@ -194,12 +242,26 @@ static func art_present(for_run: int = 1) -> bool:
 	for f in ["sky", "far", "mid", "scene", "garden", "fore", "clouds"]:
 		if not ResourceLoader.exists("%s%s_%d.png" % [DIR, f, for_run]):
 			return false
-	return ResourceLoader.exists(DIR + "burn.png") and FileAccess.file_exists("%sopening_meta_%d.json" % [DIR, for_run])
+	return ResourceLoader.exists(DIR + "burn.png") and FileAccess.file_exists("%sopening_meta_%d.json" % [DIR, for_run]) \
+		and ResourceLoader.exists(LOGO_HAND) and ResourceLoader.exists(LOGO_TEXT)
 
 
 func _tex(name: String) -> Texture2D:
 	var r = load(DIR + name)
 	return r if r is Texture2D else null
+
+
+## One layer of the logo: both are the same size and sit at the same place, so stacked they ARE the logo. Linear + mipmaps: a 2400 px picture shrunk 4x.
+func _logo_layer(node_name: String, path: String) -> Sprite2D:
+	var sp := Sprite2D.new()
+	sp.name = node_name
+	sp.texture = load(path) as Texture2D
+	sp.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	sp.scale = Vector2(LOGO_SCALE, LOGO_SCALE)
+	sp.position = LOGO_CENTRE
+	sp.modulate.a = 0.0
+	title.add_child(sp)
+	return sp
 
 
 func _build() -> bool:
@@ -271,24 +333,20 @@ func _build() -> bool:
 	flash.modulate.a = 0.0
 	add_child(flash)
 
-	title = Label.new()
+	title = Control.new()
 	title.name = "Title"
-	title.text = title_text
-	title.add_theme_font_override("font", preload("res://assets/fonts/PixelOperator8-Bold.ttf"))
-	title.add_theme_font_size_override("font_size", 62)
-	title.add_theme_color_override("font_color", TITLE_COLOR)
-	title.add_theme_color_override("font_outline_color", Color(0.07, 0.0, 0.02))
-	title.add_theme_constant_override("outline_size", 14)
-	title.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.35))
-	title.add_theme_constant_override("shadow_offset_y", 7)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	title.position = Vector2(0, 120)
-	title.size = Vector2(VIEW_W * PIXEL, 100)
+	title.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	title.modulate = Color(1, 1, 1, 0)
 	title.visible = with_title
 	add_child(title)
+	title_hand = _logo_layer("TitleHand", LOGO_HAND)
+	title_shadow = _logo_layer("TitleShadow", LOGO_TEXT)
+	var sh_mat := ShaderMaterial.new()
+	var sh_code := Shader.new()
+	sh_code.code = SHADOW_SHADER_CODE
+	sh_mat.shader = sh_code
+	title_shadow.material = sh_mat
+	title_words = _logo_layer("TitleText", LOGO_TEXT)
 
 	shade = ColorRect.new()
 	shade.name = "Shade"
@@ -665,9 +723,13 @@ func _apply(dt: float) -> void:
 		var gy: float = (float(layers["garden"]["node"].position.y) + 482.0) * PIXEL
 		rain.set("ground_y", gy if gy < 648.0 else -1.0)
 	shade.color.a = black_alpha(t, with_title)
-	var ta := title_visible(t, with_title)
-	title.modulate.a = ta
-	title.position.y = 120.0 + 14.0 * (1.0 - title_alpha(t, with_title))
+	title.modulate.a = title_visible(t, with_title)
+	var wa := text_alpha(t, with_title)
+	title_words.modulate.a = wa
+	title_words.position = LOGO_CENTRE + Vector2(0.0, TEXT_RISE * (1.0 - wa))
+	title_shadow.modulate.a = wa
+	title_shadow.position = title_words.position + Vector2(0.0, SHADOW_DROP)
+	title_hand.modulate.a = hand_alpha(t, with_title)
 	# the failing lamps
 	for f in flickers:
 		f["next"] = float(f["next"]) - dt

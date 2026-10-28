@@ -253,8 +253,8 @@ func _test_opener() -> void:
 	add_child(intro)
 	await get_tree().process_frame
 	check(get_tree().paused, "opener pauses the game")
-	check(intro.stage == "exterior" and intro.ext != null and intro.ext.title.text == "DESCEND FROM 30",
-		"a new game opens on the exterior shot, the game's title coming up over its sky")
+	check(intro.stage == "exterior" and intro.ext != null and intro.ext.title_text != "" and intro.ext.title_words != null and intro.ext.title_words.texture != null and intro.ext.title_hand.texture != null,
+		"a new game opens on the exterior shot, the game's title (the logo) coming up over its sky")
 	check(intro.black.color.a == 1.0, "starts on a black screen")
 	# Exterior (the title in its sky) → time card → line, each its own screen.
 	for i in 2000:

@@ -26,11 +26,11 @@ func _ready() -> void:
 			chk(btn.text == expected[nm],
 				"%s reads '%s' (got '%s')" % [nm, expected[nm], btn.text])
 			chk(not btn.disabled, "%s starts enabled" % nm)
-			# owner round 48i: "make the font for play settings and exit match the logo font" - the logo's Barlow Condensed Bold, in capitals like the logo
+			# owner round 48i/48n: "make the font for play settings and exit match the logo font" - round 48n: the logo's WORDS are Aldrich (DESCEND FROM), so the menu is too
 			var fnt: Font = btn.get_theme_font("font")
 			var base: Font = (fnt as FontVariation).base_font if fnt is FontVariation else fnt
-			chk(base is FontFile and base.resource_path == "res://assets/fonts/logo/BarlowCondensed-Bold.ttf",
-				"%s is set in the logo's typeface (got '%s')" % [nm, base.resource_path if base != null else "none"])
+			chk(base is FontFile and base.resource_path == "res://assets/fonts/logo/Aldrich-Regular.ttf",
+				"%s is set in the logo's words typeface (Aldrich) (got '%s')" % [nm, base.resource_path if base != null else "none"])
 
 	# New Game / Continue moved to the profile screen — nothing may still offer
 	# them here, or the player is asked the same question twice.

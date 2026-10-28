@@ -9,7 +9,7 @@ Made in-house (owner round 48; the final look in round 48m) by `python3 tools/ar
 | the layout, outputs, gate | `tools/art/logo.py` | the two faces, the layout, every file below, `--check`, `--press` |
 
 The files below are GENERATED — change the tools, never the files; `tools/art/logo.py --check` (in `tools/run_all_tests.sh`) fails on a stale or missing one.
-**It is wired into the TITLE SCREEN** (`scenes/title_screen.tscn`); the opening's own title (`scripts/opening_exterior.gd`), the run-1 title card and `project.godot`'s `icon`
+**It is wired into the TITLE SCREEN** (`scenes/title_screen.tscn`) and the OPENING's title (`scripts/opening_exterior.gd`, round 48n); the run-1 cold-open title card (the black-screen fallback) and `project.godot`'s `icon`
 still use the placeholders — see "Using it in the game" below.
 
 ![contact sheet](logo_sheet.png)
@@ -52,6 +52,7 @@ gaps and a few lumps of background, and a gentle smoothing of the outline. Nothi
 | `logo_full_dark.png` (2400 px wide) / `_600.png` | the print behind the 30, cream worn letters with their strikes of blood | dark backgrounds — the title screen, a store banner |
 | `logo_full_light.png` / `_600.png` | the same with ink words; the 30 stays cream inside an ink keyline so it reads over the blood *and* over the paper; the print is knocked out in a thin halo round the words | light backgrounds — press kit, documents |
 | `logo_wordmark_dark|light` (`.svg` pure vector, `.png` 1600 px, `_600.png`) | DESCEND / FROM and the 30 in flat blood, no print, no wear | tight spaces, credits |
+| `logo_layer_hand_dark.png` / `logo_layer_text_dark.png` (2400 px wide) | the dark logo as its TWO layers on one canvas — the print, and the worn lettering with its strikes of blood; stacked (hand under text) they are `logo_full_dark.png` exactly | the opening's title: the lettering fades in first, then the hand behind it |
 | `mark_handprint.png` (1000 px) | the print alone, drips included | a sticker, a loading mark, a watermark |
 | `icon.png` (512), `icon_1024.png`, `icon.ico` (16–256) | the print on a dark rounded tile with the 30 over its palm | app icon, favicon, store tile — reads at 64, the 30 still reads at 32 |
 
@@ -82,11 +83,11 @@ Cream `#eee6d6` · night ink `#18101c` · the hand runs from `#b42622` (thin) to
 `assets/logo/logo_full_dark.png` (transparent, 2400 x 1452) at scale 0.185 (444 x 269 on the 1152 x 648 screen), centred on (262.6, 188) — the LEFT column, with Play / Settings / Exit
 left-aligned under it, DESCEND's first letter on the same line as the buttons' text (x 51; `title_test` measures it from the texture's pixels) — drawn LINEAR + MIPMAPPED (`texture_filter = 4`; the
 PNG's import has `mipmaps/generate=true` — the project default is nearest, which would shred a 2400 px image shrunk 5x), above a soft dark shade column (`Menu/Root/LeftShade`) so it reads over the
-live hallway behind it (docs/OPENING.md "The title"). `title_test` locks it. **The menu's own font is still Barlow Condensed Bold** (round 48i: "make the font for play settings and exit match the
-logo font"): it now matches the 30 but not DESCEND FROM (Aldrich) — the owner's call whether the menu should move to Aldrich.
+live hallway behind it (docs/OPENING.md "The title"). `title_test` locks it. **The menu is set in Aldrich** (round 48n; round 48i made it Barlow Condensed to match the 30, the owner then asked for it to match DESCEND FROM): Play / Settings / Exit, 34 px, 2 px glyph spacing, the first letter on the same line as DESCEND's (x 51).
 
-Still on the placeholders, and not touched without a word from the owner: `scripts/opening_exterior.gd` (the title that rises over the clouds: a Label at size 62 in `TITLE_COLOR`),
-`scripts/hallway.gd` / `scripts/intro_overlay.gd` (the run-1 title card) and `project.godot` (`config/icon="res://icon.svg"` is Godot's default). The suites to re-run after wiring another
+**The opening's title (round 48n, owner: "no background just the text and hand, fade in text first, then fade in the hand behind it"):** `scripts/opening_exterior.gd`'s `Title` is the two layers above (hand behind, a soft shadow made from the lettering's own shape, then the lettering) at 600 px wide over the sky at the top of the climb — see docs/OPENING.md "The opening's title".
+
+Still on the placeholders, and not touched without a word from the owner: `scripts/hallway.gd` / `scripts/intro_overlay.gd` (the run-1 title card, and the black-screen fallback title if the exterior art is ever missing) and `project.godot` (`config/icon="res://icon.svg"` is Godot's default). The suites to re-run after wiring another
 place: `title_test`, `opening_test`, `run_bookends_test`, `tutorial_test`.
 
 ## The gate (`logo.py --check`)
