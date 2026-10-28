@@ -5,7 +5,7 @@ extends Control
 ## ("VS KNIFE"). Drawn here, with drawn ▲ / ▼, so the marks are the same on every machine. `text` is a plain dump of what it says (tests, and anything that wants to read it).
 
 const ROW_H := 26.0
-const HEAD_H := 24.0
+const HEAD_H := 28.0
 
 var rows: Array = []
 var versus: String = ""
@@ -43,7 +43,7 @@ func _draw() -> void:
 	Lamp.card(self, box, Lamp.WELL, Color(0.231, 0.176, 0.094))                      # #3b2d18, the board's comparison box
 	var y := 3.0
 	if versus != "":
-		Lamp.text(self, "label", Vector2(12.0, 17.0), "VS " + versus.to_upper(), 12, Lamp.LABEL, size.x - 24.0)
+		Lamp.text(self, "label", Vector2(12.0, 20.0), "VS " + versus.to_upper(), 16, Lamp.LABEL, size.x - 24.0)
 		y = HEAD_H - 3.0
 		draw_rect(Rect2(1.0, HEAD_H - 4.0, size.x - 2.0, 1.0), Color(0.231, 0.176, 0.094))
 	for i in range(rows.size()):

@@ -33,6 +33,7 @@ func _ready() -> void:
 		_test_open_with_crowbar()
 		_test_looted_by_others()
 		_test_key_labels()
+		_test_key_truth()
 		await _test_live_rooms()
 	WorldState.dev_seed = 0
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
@@ -215,8 +216,10 @@ func _test_looted_by_others() -> void:
 
 func _test_key_labels() -> void:
 	var t: String = WorldState.CABINET_KEY_PREFIX + cab
-	check(WorldState.key_display(t) == "Gun cabinet key — Apt " + cab, "the key names the cabinet")
-	check(WorldState.key_display(cab) == "Key — Apt " + cab, "a door key reads as before")
+	var fl: int = WorldState._apartment_floor(cab)
+	check(WorldState.key_display(t) == "Gun cabinet key — floor %d, flat %s" % [fl, cab], "the key names the cabinet, its floor AND its flat in full (it once read 'Apt 2')")
+	check(WorldState.key_display(cab) == "Flat key — floor %d, flat %s" % [fl, cab], "a door key says the same way where it opens")
+	check(WorldState.key_where(t) == WorldState.key_where(cab) and WorldState.key_flat(t) == cab and WorldState.key_flat(cab) == cab, "one place for both kinds: the flat is read the same from either target")
 	check(WorldState.key_tag(t) == "C" + cab, "its slot tag")
 	# its OWN item + icon (owner round 20b), never the apartment key
 	check(ItemData.get_item("038").get("name", "") == "Gun Cabinet Key", "item 038 is the Gun Cabinet Key")
@@ -231,8 +234,69 @@ func _test_key_labels() -> void:
 	WorldState.inventory.clear()
 	var inst := ItemInstance.new()
 	inst.setup_key("038", t)
-	check(inst.get_display_name() == "Gun cabinet key — Apt " + cab, "the item's name")
+	check(inst.get_display_name() == WorldState.key_display(t), "the item's name is the key's full description")
 	check(inst.target_apartment != cab, "it never opens the flat's front door")
+
+
+## A key must tell the truth about where it goes (owner round 48l: "it said apartment 2, but I didn't find one in apartment 2"): a cabinet key whose cabinet is not there says so, and a rest — which
+## re-deals the building — re-points a carried key at the cabinet its floor has now (or leaves it saying there is none).
+func _test_key_truth() -> void:
+	var t: String = WorldState.CABINET_KEY_PREFIX + cab
+	check(not WorldState.key_is_dead(t), "a key to a still-locked cabinet is live")
+	check(not WorldState.key_is_dead(cab), "a flat key is never dead")
+	var gone := WorldState.CABINET_KEY_PREFIX + "2999"          # flat 2999 does not exist (flats are 01..05)
+	check(WorldState.key_is_dead(gone), "a key to a flat with no cabinet is dead")
+	var tip: Dictionary = HUD.item_tip_content(_key_instance(gone))
+	check(String(tip["key_target"]) == gone and String(tip["hint"]).contains("gone"), "its tooltip says the cabinet is gone (%s)" % String(tip["hint"]))
+	var live: Dictionary = HUD.item_tip_content(_key_instance(t))
+	check(String(live["hint"]).contains(WorldState.key_where(t)) and not String(live["hint"]).contains("gone"), "a live key's tooltip names the floor and flat (%s)" % String(live["hint"]))
+	var lines: Array = Lamp.item_lines(_key_instance(t))
+	check(lines.size() >= 2 and String(lines[0]["title"]) == "Gun cabinet key" and String(lines[1]["note"]) == WorldState.key_where(t), "the ring's card: the name, then WHERE in full")
+	var dead_lines: Array = Lamp.item_lines(_key_instance(gone))
+	check(String(dead_lines[dead_lines.size() - 1].get("word", "")) == "NO CABINET", "the ring's card says NO CABINET for a dead key")
+	# a rest re-deals the building: carried cabinet keys follow their floor's cabinet, or stay and say there is none
+	var floor_n: int = WorldState._apartment_floor(cab)
+	var repointed := 0
+	var none_left := 0
+	for s2 in range(1, 120):
+		WorldState.dev_seed = 0
+		WorldState.master_seed = 9100 + s2
+		WorldState.apartment_layouts.clear()
+		WorldState.gun_cabinets.clear()
+		var old_cabs: Array = WorldState.gun_cabinets_on_floor(floor_n)
+		if old_cabs.is_empty():
+			continue
+		var before: String = WorldState.CABINET_KEY_PREFIX + str(old_cabs[0])
+		var inst := _key_instance(before)
+		WorldState.inventory.clear()
+		WorldState.inventory.append(inst)
+		seed(4400 + s2)                                    # the shift re-rolls the master seed with randi(): make it repeatable
+		WorldState.shift_building()
+		var tgt: String = str(inst.target_apartment)
+		var locked_now: Array = []
+		for c2 in WorldState.gun_cabinets_on_floor(floor_n):
+			if WorldState.gun_cabinet_state(c2) == "locked":
+				locked_now.append(c2)
+		check(WorldState._apartment_floor(WorldState.key_flat(tgt)) == floor_n, "the key stays on its own floor after the building shifts (%s)" % tgt)
+		if locked_now.is_empty():
+			none_left += 1
+			check(WorldState.key_is_dead(tgt), "the floor has no cabinet after the shift: the key says so, it does not point at one (%s)" % tgt)
+		else:
+			check(not WorldState.key_is_dead(tgt) and WorldState.key_flat(tgt) in locked_now, "the floor still has a cabinet: the key points at it (%s of %s)" % [tgt, str(locked_now)])
+			if tgt != before:
+				repointed += 1
+		if repointed >= 2 and none_left >= 1:
+			break
+	check(repointed >= 1, "at least one shift moved the cabinet and the key was re-pointed with it (%d)" % repointed)
+	check(none_left >= 1, "at least one shift left the floor without a cabinet (%d)" % none_left)
+	WorldState.inventory.clear()
+	_fresh(cab_seed)
+
+
+func _key_instance(target: String) -> ItemInstance:
+	var inst := ItemInstance.new()
+	inst.setup_key(WorldState.key_item_for(target), target)
+	return inst
 
 
 func _room(apt: String) -> Node:

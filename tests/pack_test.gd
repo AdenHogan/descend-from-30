@@ -404,11 +404,11 @@ func _test_pack_beside_loot() -> void:
 	await _frames(int(ceil(p.PACK_KNEEL_TIME * 60.0)) + 20)
 	check(pw.is_open and loot.visible, "ring up, panel still up")
 	var pr: Rect2 = loot.panel.get_global_rect()
-	check(pw.centre.x - pw.RING_R - pw.DISC_SEL * 0.5 > pr.end.x, "the panel slid LEFT of the ring (panel ends %.0f, ring starts %.0f)" % [pr.end.x, pw.centre.x - pw.RING_R - pw.DISC_SEL * 0.5])
-	check(pw.centre.x > HUD.SCREEN_W * 0.55 and pw.centre.x < HUD.SCREEN_W * 0.72, "the ring sits right of the panel but near the middle, not at the edge (%.0f of %.0f)" % [pw.centre.x, HUD.SCREEN_W])
-	var pair_l: float = pr.position.x
-	var pair_r: float = pw.centre.x + pw.RING_R + pw.DISC_SEL * 0.5
-	check(absf((pair_l + pair_r) * 0.5 - HUD.SCREEN_W * 0.5) < 40.0, "…the panel + ring pair is centred on the screen (%.0f..%.0f)" % [pair_l, pair_r])
+	# the found-item tag stands in the world beside its node (owner round 48l), so the RING moves to clear it instead of the tag sliding aside
+	var reach: float = pw.RING_R + pw.DISC_SEL * 0.5
+	var nearest := Vector2(clampf(pw.centre.x, pr.position.x, pr.end.x), clampf(pw.centre.y, pr.position.y, pr.end.y))
+	check(nearest.distance_to(pw.centre) >= reach, "the ring opened beside the tag never covers it (the tag is %.0f px from the ring's centre; the ring reaches %.0f)" % [nearest.distance_to(pw.centre), reach])
+	check(pw.centre.x >= reach and pw.centre.x <= HUD.SCREEN_W - reach and pw.centre.y >= reach and pw.centre.y <= pw.SCREEN_LIMIT - reach, "…and the whole ring is on the screen (%.0f, %.0f)" % [pw.centre.x, pw.centre.y])
 	# a ring slot is HUD ground (the room's click-to-search must not take a press that lands on it)
 	check(HUD.pointer_over_widget(_slot_pos(0)) and HUD.pointer_over_widget(pw.centre), "a press on the ring belongs to the ring, not the room under it")
 	# ring → panel: onto the found item with the bag full puts that one down and takes the new one

@@ -184,7 +184,7 @@ func _test_equip_box_tip() -> void:
 	for i in range(30):
 		await get_tree().process_frame
 	check(HUD.item_tip.visible and HUD._tip_title.text.contains("2805"), "hovering it names the item (\"%s\")" % HUD._tip_title.text)
-	check(HUD._tip_hint.text.contains("front door of flat 2805"), "…and says what the key opens (\"%s\")" % HUD._tip_hint.text)
+	check(HUD._tip_hint.text.contains("front door of floor 28, flat 2805"), "…and says what the key opens (\"%s\")" % HUD._tip_hint.text)
 	var r: Rect2 = HUD.item_tip.get_global_rect()
 	check(r.end.y <= box.get_global_rect().position.y and r.position.y >= 0.0 and r.end.x <= 1152.0,
 		"…rising ABOVE the box, on screen (%s)" % str(r))

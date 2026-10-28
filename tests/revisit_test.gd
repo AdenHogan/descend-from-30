@@ -81,9 +81,20 @@ func _test_left_item_stays_searchable() -> void:
 		for i in range(4):
 			await get_tree().process_frame
 		check(target.is_in_range, "standing beside it, the left-over node reads as in range")
+		# (owner round 48l) walking back up to it shows its tag beside it by itself, and [interact] then takes it in that one press
+		WorldState.is_scavenge_mode = true
+		WorldState.inventory.clear()
+		for i in range(4):
+			await get_tree().process_frame
+		var loot_ui_node = null
+		for ui in get_tree().get_nodes_in_group("loot_ui"):
+			loot_ui_node = ui
+		check(loot_ui_node != null and loot_ui_node.preview_showing_for(target), "walking back up to it, its tag stands beside it with no press")
+		var item_there: String = WorldState.get_anchor_item(apt, str(target.name))
 		WorldState.interaction_handled = false
 		target.try_interact()
-		check(WorldState.loot_open, "[interact] opens its loot panel again")
+		check(not WorldState.loot_open and WorldState.get_anchor_item(apt, str(target.name)) == "",
+			"[interact] takes it in one press (%s), nothing left open" % item_there)
 		for ui in get_tree().get_nodes_in_group("loot_ui"):
 			ui.leave()
 	await _leave(room)

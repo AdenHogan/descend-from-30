@@ -18,6 +18,7 @@ extends Node
 #   a:<action>       tap an input action (interact, attack, push, move_up ...)
 #   hold:<action>:<n> hold an action for n frames (screenshots every 10)
 #   x:<px>           teleport the player to x (keeping its current floor line)
+#   near:<anchor>    stand the player beside that scavenge node (in reach of it)
 #   go:<px>          walk the player to x (click-to-move target) and wait until arrived
 #   floor:<n> run:<n> set WorldState.current_floor / current_run
 #   give:<id>[:<lvl>] put an item in the inventory (optionally at a workbench level)
@@ -124,6 +125,14 @@ func _do(step: String) -> void:
 			if pl != null:
 				pl.global_position.x = float(p[1])     # keep the scene's own floor line (rooms ≠ corridor)
 			await _frames(1)
+		"near":
+			# near:<anchor name> — stand the player beside that scavenge node (in reach, the scene's own floor line)
+			var pl = _player()
+			if pl != null:
+				for cand in get_tree().get_nodes_in_group("scavenge_anchor"):
+					if str(cand.name) == p[1] and cand is Node2D:
+						pl.global_position.x = (cand as Node2D).global_position.x - 8.0
+			await _frames(3)
 		"go":
 			var pl = _player()
 			if pl != null and pl.has_method("set_move_target"):

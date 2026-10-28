@@ -1,27 +1,32 @@
 extends CanvasLayer
 
-# Scavenge: the SEARCH and its RESULT (owner round 48j: "maybe we don't even need the bar… the word searching literally can be the bar").
+# Scavenge: the SEARCH and its RESULT (owner round 48j: "maybe we don't even need the bar… the word searching literally can be the bar"; round 48l: "I like how searching is now in the game
+# world. Let's put the box in the game world too, smaller, beside the node, when a player walks back up to a node they have searched but did not take" / "this hammer box is too much").
 # While a search runs there is no panel at all: a small SEARCHING hangs above the node and its letters light S to G (scripts/search_word.gd), so the player and the room stay in view;
-# when the last letter is lit it resolves where it hangs — and either the result panel below appears (something found) or a one-line "Nothing." is said (nothing).
-# The result panel — CENTRED, dark glass with brass corners (scripts/lamp.gd), shows the item icon + name, and is taken by:
+# when the last letter is lit it resolves where it hangs — and either the result tag appears BESIDE THE NODE (something found) or a one-line "Nothing." is said (nothing).
+# The tag — small, dark glass with brass corners (scripts/lamp.gd), standing in the world beside the node it came from — says only what the player needs: the one-word kind, the name, a
+# line of fact where there is one (where a key opens; how many rounds) and, for a weapon, ONLY the numbers that differ from the one in hand (at most two). It is taken by:
+#   • pressing E / interact, or
 #   • double-clicking it, or
-#   • dragging it onto your pack (the backpack button, bottom-right — there is no bar or hotbar), or
-#   • pressing E / interact,
-# and LEFT by walking away, by clicking anywhere in the world off the panel, or — stepped up at
+#   • dragging it onto your pack (the backpack button, bottom-right — there is no bar or hotbar),
+# and LEFT by walking away, by clicking anywhere in the world off the tag, or — stepped up at
 # set-back furniture, where there's no walking — by any movement key (player.gd steps you down and
 # calls leave()). Searching again re-opens it. No Take/Leave buttons. The panel must ALWAYS be
 # leavable: a full inventory once trapped the player up at a bookshelf (owner playtest — S and clicks
-# were both ignored while it was open, and the only other exit, walking, doesn't exist up there).
-# Built in code so the layout is controlled here.
+# were both ignored while the loot panel was open, and the only other exit, walking, doesn't exist up there).
+# WALKING BACK UP to a node that was searched but not emptied shows the SAME tag beside it with no press at all (the PREVIEW — not modal: nothing is locked, you can walk on, fight, anything);
+# [interact] then takes it in that one press. Built in code so the layout is controlled here.
 
 const REVEAL_TIME = 3.0
 const EMPTY_REVEAL_FACTOR = 0.5        # a search that turns up nothing takes half as long (owner round 36g: "finding nothing takes too long")
 const RingGeo := preload("res://scripts/ring_geo.gd")
 const DRAG_THRESHOLD = 8.0
 const DOUBLE_CLICK_TIME = 0.35
-const PANEL_W = 380.0
-const PAD := 20.0                      # the glass's margin round its contents
-const ICON_BOX := 120.0                # the 56-px icon at exactly 2x (112) on a dark well
+const PANEL_W = 300.0
+const PAD := 14.0                      # the glass's margin round its contents
+const ICON_BOX := 68.0                 # the 56-px icon at exactly 1x on a dark well
+const TAG_GAP := 26.0                  # screen px between the node and the tag beside it
+const TAG_MARGIN := 8.0                # the tag is kept this far inside the screen
 const WORD_RISE := 34.0                # how far above the node the SEARCHING word hangs (screen px)
 const SCREEN_W = 1152.0
 const SCREEN_H = 648.0
@@ -37,18 +42,23 @@ var anchor_node: Node = null
 var has_item = false               # a takeable item is currently shown
 
 # UI
-var panel: PanelContainer = null       # the RESULT panel (hidden while a search runs)
+var panel: PanelContainer = null       # the RESULT tag (hidden while a search runs)
 var glass: LampGlass = null
 var icon: TextureRect = null
 var _land_tween: Tween = null
 var name_label: Label = null
 var kind_label: Label = null           # one word: what sort of thing it is
+var fact_label: Label = null           # one line of fact under the name: where a key opens, how many rounds — empty for most things
 var hint_label: Label = null           # the keys: "[E] TAKE"
-var compare_label: LampRows = null     # a found weapon's numbers, set beside the one in hand (ItemCompare)
+var compare_label: LampRows = null     # a found weapon's numbers that DIFFER from the one in hand (ItemCompare), at most two rows
 var icon_row: HBoxContainer = null
 var search_word: SearchWord = null     # SEARCHING, lit S to G while a search runs
 var _word_layer: CanvasLayer = null    # its own layer: it outlives this one's visibility for the beat it takes to resolve
 var _last_lit: int = 0
+var _preview: Dictionary = {}          # the PREVIEW tag (same parts as the result tag): shown beside a searched-but-not-taken node you walk back up to
+var _preview_layer: CanvasLayer = null # its own layer, for the same reason as the word's: it shows while this one is closed
+var _preview_node: Node = null
+var _preview_sig: String = ""
 
 # drag / double-click
 var drag_armed = false
@@ -56,11 +66,9 @@ var drag_active = false
 var drag_from = Vector2.ZERO
 var ghost: TextureRect = null
 var last_press_time = 0.0
-var _center: CenterContainer = null
+var _host: Control = null
 var _mouse_pos: Vector2 = Vector2.ZERO # the pointer as the last motion event reported it (a drag follows this — a touch drag has no cursor to poll)
-var _shift: float = 0.0                # how far the panel has slid left to make room for the pack ring
-const RING_GAP := 40.0                 # clear space between the panel and the ring
-const PACK_SHIFT := 340.0              # (the ring takes the right ~320 px of the screen; the panel centres in the rest)
+const RING_GAP := 24.0                 # clear space between the tag and the pack ring that opens beside it
 
 
 func _ready() -> void:
@@ -77,37 +85,67 @@ func leave() -> void:
 
 
 func _build_ui() -> void:
-	var center = CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(center)
-	_center = center
+	_host = Control.new()
+	_host.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_host)
 
-	# The panel is a pane of dark glass (scripts/lamp.gd): the glass only draws, a margin holds the contents, so a panel that changes height — a found weapon with its numbers under it — is
-	# still one pane whatever it holds.
-	panel = PanelContainer.new()
-	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.custom_minimum_size = Vector2(PANEL_W, 0)
-	panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
-	panel.visible = false
-	center.add_child(panel)
-	glass = LampGlass.new()
-	panel.add_child(glass)
+	# The result tag is a pane of dark glass (scripts/lamp.gd): the glass only draws, a margin holds the contents, so a tag that changes height — a found weapon with its numbers under it —
+	# is still one pane whatever it holds. It is placed in the world beside the node (`_place_tag`), never in the middle of the screen.
+	var parts: Dictionary = _make_tag(_host)
+	panel = parts["panel"]
+	glass = parts["glass"]
+	icon = parts["icon"]
+	icon_row = parts["icon_row"]
+	kind_label = parts["kind"]
+	name_label = parts["name"]
+	fact_label = parts["fact"]
+	compare_label = parts["compare"]
+	hint_label = parts["hint"]
+
+	# The PREVIEW tag: the same parts on a layer of its own, so it can stand beside a node while this layer is closed.
+	_preview_layer = CanvasLayer.new()
+	_preview_layer.layer = 3
+	add_child(_preview_layer)
+	var pv_host := Control.new()
+	pv_host.set_anchors_preset(Control.PRESET_FULL_RECT)
+	pv_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_preview_layer.add_child(pv_host)
+	_preview = _make_tag(pv_host)
+
+	# SEARCHING lives on a layer of its own, above this one.
+	_word_layer = CanvasLayer.new()
+	_word_layer.layer = 4
+	add_child(_word_layer)
+	search_word = SearchWord.new()
+	_word_layer.add_child(search_word)
+
+
+## One tag's parts, built under `host`: {panel, glass, icon, icon_row, kind, name, fact, compare, hint}. Hidden until something fills and shows it.
+func _make_tag(host: Control) -> Dictionary:
+	var tag := PanelContainer.new()
+	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tag.custom_minimum_size = Vector2(PANEL_W, 0)
+	tag.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	tag.visible = false
+	host.add_child(tag)
+	var gl := LampGlass.new()
+	tag.add_child(gl)
 	var pad := MarginContainer.new()
 	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for side in ["left", "right", "top", "bottom"]:
 		pad.add_theme_constant_override("margin_" + side, int(PAD))
-	panel.add_child(pad)
+	tag.add_child(pad)
 
-	var vbox = VBoxContainer.new()
+	var vbox := VBoxContainer.new()
 	vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vbox.add_theme_constant_override("separation", 12)
+	vbox.add_theme_constant_override("separation", 8)
 	pad.add_child(vbox)
 
-	icon_row = HBoxContainer.new()
-	icon_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	icon_row.add_theme_constant_override("separation", 16)
-	vbox.add_child(icon_row)
+	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", 12)
+	vbox.add_child(row)
 	var well := PanelContainer.new()                    # the thing sits on a dark well with a thin brass-brown edge, as on the board
 	well.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	well.custom_minimum_size = Vector2(ICON_BOX, ICON_BOX)
@@ -116,41 +154,40 @@ func _build_ui() -> void:
 	well_style.border_color = Lamp.EDGE
 	well_style.set_border_width_all(1)
 	well.add_theme_stylebox_override("panel", well_style)
-	icon_row.add_child(well)
-	icon = TextureRect.new()
-	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	icon.custom_minimum_size = Vector2(112, 112)        # the 56px icon at exactly 2x
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	well.add_child(icon)
+	row.add_child(well)
+	var pic := TextureRect.new()
+	pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pic.custom_minimum_size = Vector2(56, 56)           # the 56 px icon at exactly 1x
+	pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	pic.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	well.add_child(pic)
 
 	var col := VBoxContainer.new()
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
-	col.add_theme_constant_override("separation", 2)
-	icon_row.add_child(col)
-	kind_label = _lamp_label("", "label", 14, Lamp.LABEL)
-	col.add_child(kind_label)
-	name_label = _lamp_label("", "head", 34, Lamp.TEXT)
-	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	name_label.custom_minimum_size = Vector2(PANEL_W - 2.0 * PAD - ICON_BOX - 16.0, 0)
-	col.add_child(name_label)
+	col.add_theme_constant_override("separation", 0)
+	row.add_child(col)
+	var kind := _lamp_label("", "label", Lamp.PX_LABEL - 2, Lamp.LABEL)
+	col.add_child(kind)
+	var nm := _lamp_label("", "head", Lamp.PX_NAME, Lamp.TEXT)
+	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	nm.custom_minimum_size = Vector2(PANEL_W - 2.0 * PAD - ICON_BOX - 12.0, 0)
+	col.add_child(nm)
+	var fact := _lamp_label("", "body", Lamp.PX_BODY - 2, Lamp.BODY)
+	fact.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	fact.custom_minimum_size = Vector2(PANEL_W - 2.0 * PAD - ICON_BOX - 12.0, 0)
+	fact.visible = false
+	col.add_child(fact)
 
-	compare_label = LampRows.new()
-	compare_label.custom_minimum_size = Vector2(PANEL_W - 2.0 * PAD, 0)
-	compare_label.visible = false
-	vbox.add_child(compare_label)
+	var cmp := LampRows.new()
+	cmp.custom_minimum_size = Vector2(PANEL_W - 2.0 * PAD, 0)
+	cmp.visible = false
+	vbox.add_child(cmp)
 
-	hint_label = _lamp_label("", "label", 16, Lamp.BRASS)             # the keys, in brass: "[E] TAKE"
-	vbox.add_child(hint_label)
-
-	# SEARCHING lives on a layer of its own, above this one.
-	_word_layer = CanvasLayer.new()
-	_word_layer.layer = 4
-	add_child(_word_layer)
-	search_word = SearchWord.new()
-	_word_layer.add_child(search_word)
+	var hint := _lamp_label("", "label", Lamp.PX_LABEL, Lamp.BRASS)             # the keys, in brass: "[E]  TAKE"
+	vbox.add_child(hint)
+	return {"panel": tag, "glass": gl, "icon": pic, "icon_row": row, "kind": kind, "name": nm, "fact": fact, "compare": cmp, "hint": hint}
 
 
 func _lamp_label(text: String, kind: String, px: int, col: Color) -> Label:
@@ -185,15 +222,34 @@ func _land(sound: String) -> void:
 	_land_tween.tween_property(panel, "modulate:a", 1.0, 0.10)
 
 
-## The result panel shows (a search finished or the node was already searched), or hides (a search is running).
+## The result tag shows (a search finished or the node was already searched), or hides (a search is running). Shown, it stands beside its node.
 func _show_panel(on: bool) -> void:
 	panel.visible = on
 	if on:
 		panel.reset_size()           # a PanelContainer keeps its biggest size until told to shrink
+		_place_tag(panel, anchor_node)
+
+
+## Stand `tag` in the world beside `node` — to its right, or to its left when the right would leave the screen — a little above its middle, kept inside the screen (screen px via the canvas
+## transform, never current_scene). With no node it stands beside the player instead, never in the middle of the screen.
+func _place_tag(tag: PanelContainer, node: Node) -> void:
+	var src: Node2D = node as Node2D if node != null and is_instance_valid(node) else null
+	if src == null:
+		src = get_tree().get_first_node_in_group("player") as Node2D
+	var sz: Vector2 = tag.size
+	var at := Vector2(SCREEN_W * 0.5, SCREEN_H * 0.4)
+	if src != null:
+		at = get_viewport().get_canvas_transform() * src.global_position
+	var x: float = at.x + TAG_GAP
+	if x + sz.x > SCREEN_W - TAG_MARGIN:
+		x = at.x - TAG_GAP - sz.x
+	tag.position = Vector2(clampf(x, TAG_MARGIN, maxf(TAG_MARGIN, SCREEN_W - sz.x - TAG_MARGIN)), clampf(at.y - sz.y * 0.5 - 6.0, TAG_MARGIN, maxf(TAG_MARGIN, SCREEN_H - sz.y - TAG_MARGIN)))
 
 
 ## `node` = the scavenge node being searched (the SEARCHING word hangs over it); without it the node is looked up by name.
 func open(item_id: String, anchor_name: String, apartment_id: String, node: Node = null) -> void:
+	# Pressed on a node whose tag was ALREADY standing beside it: the tag said "[E] TAKE", so that one press takes it.
+	var quick: bool = node != null and is_instance_valid(node) and preview_showing_for(node)
 	WorldState.loot_open = true
 	is_revealing = false
 	has_item = false
@@ -213,8 +269,11 @@ func open(item_id: String, anchor_name: String, apartment_id: String, node: Node
 	get_tree().call_group("resident_npc", "on_scavenge", "start", apartment_id)
 	_restyle()
 	if WorldState.is_anchor_searched(apartment_id, anchor_name):
+		_hide_preview()
 		_reveal_item()
 		visible = has_item                    # an empty one has already said so and closed itself
+		if quick and has_item:
+			_take()                            # (a full pack leaves the tag up saying MAKE ROOM, exactly as a second press always did)
 		return
 
 	reveal_timer = 0.0
@@ -257,20 +316,11 @@ func _reveal_item() -> void:
 		HUD.show_feedback(nothing_line(current_apartment_id, current_anchor_name))
 		_close(false)
 		return
-	search_word.resolve(true)                # the word flares and lifts away as the panel arrives
+	search_word.resolve(true)                # the word flares and lifts away as the tag arrives
 	has_item = true
-	_set_icon(ItemData.get_texture(current_item_id))
-	WorldState.note_item_seen(current_item_id)   # seeing it in the panel counts as found (codex)
-	kind_label.text = "KEY" if current_key_target != "" else Lamp.kind_word(item_data)
-	if current_key_target != "":
-		name_label.text = WorldState.key_display(current_key_target)
-	elif _is_cabinet_weapon():
-		var inst = WorldState.gun_cabinet_weapon(current_apartment_id)
-		name_label.text = inst.get_display_name() + "  ·  " + inst.tier_label()
-	else:
-		name_label.text = item_data["name"]
-	hint_label.text = SettingsManager.localize("[{interact}]  TAKE")
-	_show_compare(item_data)
+	WorldState.note_item_seen(current_item_id)   # seeing it in the tag counts as found (codex)
+	var parts := _tag_parts()
+	_fill_tag(parts, current_item_id, current_key_target, current_apartment_id, current_anchor_name)
 	if _is_rounds() and not WorldState.guns_with_room().is_empty():
 		hint_label.text = SettingsManager.localize("[{interact}]  TAKE      [{item_use}]  LOAD")
 	_show_panel(true)
@@ -278,19 +328,73 @@ func _reveal_item() -> void:
 	_land("tick")
 
 
-## A weapon in the panel shows its numbers beside the one in hand, so the choice never needs the bag opened to compare (owner round 48i).
-func _show_compare(item_data: Dictionary) -> void:
-	compare_label.visible = false
-	compare_label.set_card({})
-	if _is_cabinet_weapon() or current_key_target != "" or not item_data.get("is_weapon", false):
+func _tag_parts() -> Dictionary:
+	return {"panel": panel, "icon": icon, "kind": kind_label, "name": name_label, "fact": fact_label, "hint": hint_label, "compare": compare_label}
+
+
+## Fill a tag (the result's or the preview's) for one thing, with only what the player needs (owner round 48l: "this hammer box is too much… simplify this information to what the player
+## needs"): the one-word kind, the name, a line of fact where there is one, for a weapon only the numbers that DIFFER from the one in hand, and the key to press. Items of a kind
+## are the same as each other (no per-item stats yet), so a table of their numbers would be the same table every time.
+func _fill_tag(parts: Dictionary, item_id: String, key_target: String, apt: String, anchor: String) -> void:
+	var d: Dictionary = ItemData.get_item(item_id)
+	var cabinet: bool = _is_cabinet_anchor_weapon(apt, anchor, item_id)
+	parts["icon"].texture = ItemData.get_texture(item_id)
+	parts["kind"].text = "KEY" if key_target != "" else Lamp.kind_word(d)
+	var nm: Label = parts["name"]
+	nm.add_theme_color_override("font_color", Lamp.TEXT)
+	var fact: String = ""
+	var fact_col: Color = Lamp.BODY
+	if key_target != "":
+		nm.text = WorldState.key_name(key_target)
+		fact = WorldState.key_where(key_target)
+		if WorldState.key_is_dead(key_target):
+			fact += " — no cabinet there now"
+			fact_col = Lamp.RED
+	elif cabinet:
+		var inst = WorldState.gun_cabinet_weapon(apt)
+		nm.text = inst.get_display_name() + "  ·  " + inst.tier_label()
+	else:
+		nm.text = d["name"]
+		if d.get("is_ammo", false):
+			var n: int = WorldState.get_anchor_amount(apt, anchor)
+			if n > 0:
+				fact = "%d rounds" % n
+	var fl: Label = parts["fact"]
+	fl.text = fact
+	fl.visible = fact != ""
+	fl.add_theme_color_override("font_color", fact_col)
+	parts["hint"].text = SettingsManager.localize("[{interact}]  TAKE")
+	_fill_compare(parts["compare"], d, item_id, key_target, cabinet)
+
+
+## A found weapon shows ONLY the numbers that differ from the one in hand — at most two, "VS KNIFE" over them — so the choice needs no bag open and no table of figures (owner round 48i, 48l).
+func _fill_compare(rows_node: LampRows, d: Dictionary, item_id: String, key_target: String, cabinet: bool) -> void:
+	rows_node.visible = false
+	rows_node.set_card({})
+	if cabinet or key_target != "" or not d.get("is_weapon", false):
 		return
 	var inst := ItemInstance.new()
-	inst.setup(current_item_id)
+	inst.setup(item_id)
 	var c: Dictionary = ItemCompare.card(inst, ItemCompare.held_weapon())
-	if c.is_empty():
+	if c.is_empty() or String(c["vs"]) == "":
 		return
-	compare_label.set_card(c)
-	compare_label.visible = true
+	var differing: Array = []
+	for r in c["rows"]:
+		if String(r["delta"]) != "":
+			differing.append(r)
+	if differing.is_empty():
+		return
+	rows_node.set_card({"rows": differing.slice(0, 2), "vs": c["vs"]})
+	rows_node.visible = true
+
+
+func _is_cabinet_anchor_weapon(apt: String, anchor: String, item_id: String) -> bool:
+	return anchor == WorldState.GUN_CABINET_ANCHOR and item_id == WorldState.CABINET_WEAPON and WorldState.gun_cabinet_state(apt) in ["open", "smashed"]
+
+
+## Kept for callers / tests that fill the result tag directly: the same numbers rule as `_fill_compare`.
+func _show_compare(item_data: Dictionary) -> void:
+	_fill_compare(compare_label, item_data, current_item_id, current_key_target, _is_cabinet_weapon())
 
 
 ## SEARCHING hangs a little above the node being searched (screen px, via the canvas transform — never current_scene), kept on the screen. If the node is somehow unknown it hangs over the
@@ -305,11 +409,22 @@ func _place_word() -> void:
 	search_word.position = Vector2(clampf(at.x, 80.0, SCREEN_W - 80.0), clampf(at.y, 30.0, SCREEN_H - 90.0)) - search_word.size * 0.5
 
 
-## Where the pack ring's centre sits while it shares the screen with this panel: the pair (panel + a gap + ring) is centred on the
-## screen, so neither is pushed out to an edge (owner round 36g: "the wheel is too far to the right… keep both relatively centre").
-static func ring_centre_x(ring_half: float) -> float:
-	var panel_right: float = SCREEN_W * 0.5 - PACK_SHIFT * 0.5 + PANEL_W * 0.5
-	return panel_right + RING_GAP + ring_half
+## Where the pack ring's centre sits while it shares the screen with the tag: `base` (above the kneeling player) when that already clears the tag, else pushed along the row to the side of the
+## tag with room — right of it, or left — and, if neither has, up or down. The ring never covers the thing it was opened to make room for (owner round 36g / 48l).
+func ring_centre(ring_half: float, base: Vector2) -> Vector2:
+	if panel == null or not panel.visible:
+		return base
+	var r := Rect2(panel.position, panel.size).grow(RING_GAP)
+	var nearest := Vector2(clampf(base.x, r.position.x, r.end.x), clampf(base.y, r.position.y, r.end.y))
+	if nearest.distance_to(base) >= ring_half:
+		return base
+	for cx in [r.end.x + ring_half, r.position.x - ring_half]:
+		if cx >= ring_half and cx <= SCREEN_W - ring_half:
+			return Vector2(cx, base.y)
+	for cy in [r.end.y + ring_half, r.position.y - ring_half]:
+		if cy >= ring_half and cy <= SCREEN_H - ring_half:
+			return Vector2(base.x, cy)
+	return base
 
 
 ## A found item is waiting (nothing mid-search): the pack ring may open beside it to make room (owner round 36f).
@@ -326,18 +441,19 @@ func _pack_open() -> bool:
 	return HUD.pack_wheel != null and is_instance_valid(HUD.pack_wheel) and HUD.pack_wheel.is_open
 
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PAUSED:
+		_hide_preview()                 # a paused game shows no tag (a dialogue, the journal)
+
+
 func _process(delta: float) -> void:
 	if not visible:
-		_shift = 0.0
+		_update_preview()
 		return
+	_hide_preview()                      # the real tag (or the search) takes over from the preview
 	panel.pivot_offset = panel.size * 0.5
-	# the panel slides left while the pack ring is up on the right
-	var want: float = PACK_SHIFT if _pack_open() else 0.0
-	_shift = lerpf(_shift, want, clampf(delta * 14.0, 0.0, 1.0))
-	if absf(_shift - want) < 0.5:
-		_shift = want
-	if _center != null:
-		_center.offset_right = -_shift
+	if panel.visible:
+		_place_tag(panel, anchor_node)   # it follows the node as the camera moves
 
 	# Walk away = leave. (Skip while actively dragging the item to a slot.)
 	if not drag_active and anchor_node != null and is_instance_valid(anchor_node):
@@ -369,6 +485,88 @@ func _process(delta: float) -> void:
 		return
 
 	_update_drag()
+
+
+# ---------------------------------------------------------------------------------------------------------------------------------- the preview: walking back up to a searched node
+## The node whose tag should stand beside it right now: the nearest scavenge node in reach that was searched and still holds something. Nothing while the real tag / a search is up (`visible`), the
+## pack ring is open, or the player is busy: the preview is only ever a glance, never a lock.
+func preview_target() -> Node:
+	if visible or WorldState.loot_open or not WorldState.is_scavenge_mode or get_tree().paused:
+		return null
+	var player = get_tree().get_first_node_in_group("player")
+	if player == null or not is_instance_valid(player) or player.is_dead or player.is_dying or player.is_cutscene or player.is_switching_mode or str(player.pack_phase) != "":
+		return null
+	if _pack_open():
+		return null
+	var best: Node = null
+	var best_d := 1.0e9
+	for a in get_tree().get_nodes_in_group("scavenge_anchor"):
+		if not is_instance_valid(a) or not a.visible or not bool(a.get("is_in_range")) or a.has_meta("ruin_scrap"):
+			continue
+		if not holds_takeable(a):
+			continue
+		var d: float = a.global_position.distance_to(player.global_position)
+		if d < best_d:
+			best_d = d
+			best = a
+	return best
+
+
+## A searched node that still holds something the player can take (a locked cabinet's gun is behind glass: not yet).
+static func holds_takeable(a: Node) -> bool:
+	var apt: String = String(a.get("apartment_id"))
+	var nm: String = String(a.name)
+	if not WorldState.is_anchor_searched(apt, nm):
+		return false
+	if WorldState.is_anchor_a_key(apt, nm):
+		return true
+	var item: String = WorldState.get_anchor_item(apt, nm)
+	if item == "":
+		return false
+	if nm == WorldState.GUN_CABINET_ANCHOR:
+		return WorldState.gun_cabinet_state(apt) in ["open", "smashed"]
+	return true
+
+
+func _update_preview() -> void:
+	var want: Node = preview_target()
+	if want == null:
+		_hide_preview()
+		return
+	var apt: String = String(want.get("apartment_id"))
+	var nm: String = String(want.name)
+	var key_target := ""
+	var item_id: String = WorldState.get_anchor_item(apt, nm)
+	if WorldState.is_anchor_a_key(apt, nm):
+		key_target = WorldState.get_anchor_key_target(apt, nm)
+		item_id = WorldState.key_item_for(key_target)
+	var sig := "%d|%s|%s|%d|%d" % [want.get_instance_id(), item_id, key_target, WorldState.get_anchor_amount(apt, nm), HUD.selected_slot]
+	var tag: PanelContainer = _preview["panel"]
+	if want != _preview_node or sig != _preview_sig or not tag.visible:
+		var fresh: bool = want != _preview_node or not tag.visible
+		_preview_node = want
+		_preview_sig = sig
+		_fill_tag(_preview, item_id, key_target, apt, nm)
+		tag.visible = true
+		tag.reset_size()
+		if fresh:
+			tag.pivot_offset = tag.size * 0.5
+			tag.modulate.a = 0.0
+			create_tween().tween_property(tag, "modulate:a", 1.0, 0.12)
+	_place_tag(tag, want)
+
+
+func _hide_preview() -> void:
+	if _preview.is_empty():
+		return
+	_preview["panel"].visible = false
+	_preview_node = null
+	_preview_sig = ""
+
+
+## Is the preview standing beside a node right now? (tests / the interactable)
+func preview_showing_for(node: Node) -> bool:
+	return not _preview.is_empty() and _preview["panel"].visible and _preview_node == node
 
 
 func _update_drag() -> void:

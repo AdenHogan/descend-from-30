@@ -20,7 +20,7 @@ extends Control
 const RingGeo := preload("res://scripts/ring_geo.gd")
 
 const OPEN_TIME := 0.16
-const RING_R := 120.0
+const RING_R := 160.0                   # room for a card of 22 px type in the middle (owner round 48l: "way too small and unreadable"); lamp_test measures it clear of every slot
 const DISC := 64.0
 const DISC_SEL := 76.0
 const DEAD_ZONE := 36.0
@@ -47,8 +47,8 @@ var _pad_k: int = -1                    # gamepad: the wedge the right stick las
 var _pad_latch: bool = false            # the stick must return to the middle before it steps a menu row again
 var pad_override = null                 # tests only: a Vector2 stands in for the right stick
 const PAD_DEAD := 0.55
-const MENU_W := 118.0
-const MENU_ROW_H := 22.0
+const MENU_W := 150.0
+const MENU_ROW_H := 30.0
 
 
 func _ready() -> void:
@@ -482,8 +482,10 @@ func _show(p: Node) -> void:
 	if HUD.body_ring != null and HUD.body_ring.wants_pair():
 		centre.x = float(HUD.body_ring.pair_x(s.x, half)[0])        # searching a body: this ring on the right, the body's on the left (body_ring.gd)
 	if loot_panel() != null:
-		# opened beside a found item (the inventory was full): the panel slides left and the ring sits just right of it — the pair centred on the screen
-		centre = Vector2(loot_panel().ring_centre_x(half), clampf(HUD.SCREEN_H * 0.5, half, maxf(half, SCREEN_LIMIT - half)))
+		# opened beside a found item (the inventory was full): the tag stands in the world beside its node, and the ring moves along the row to the side of it with room — never over it
+		var lp = loot_panel()
+		centre = lp.ring_centre(half, centre)
+		centre = Vector2(clampf(centre.x, half, HUD.SCREEN_W - half), clampf(centre.y, half, maxf(half, SCREEN_LIMIT - half)))
 	hover = -1
 	_last_hover = -2
 	_pad_k = -1

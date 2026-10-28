@@ -64,9 +64,15 @@ better / worse; everything is drawing — nothing in the kit decides anything.
   Sounds are the desk ones, softly (a tick on hover / equip, the pack's flap on open, tape on a craft, a page on a drop, two raps for no).
 - **Body ring** (`body_ring.gd`) — the same drawing in steel (`Lamp.STEEL` brackets, edge and base) with the fallen character's NAME on a steel tab over it; the middle says LOOT (take all) /
   EMPTY / TAKE (a drag over the pack) / the item as the pack ring reads it (`Lamp.item_lines`, so a thing reads the same on either).
-- **Found-item panel** (`loot_ui.gd`) — dark glass with brass brackets at two corners (the board's), the icon at 2× on a dark well, a one-word caption (BAT / MEDICAL / KEY…, `Lamp.kind_word`),
-  the name, a "VS KNIFE" comparison box for a weapon (`LampRows`, drawn rows with drawn arrows), and one line of keys: **[E] TAKE** (+ **[R] LOAD** for bullets when a gun has room). A refusal turns
-  the name red and says MAKE ROOM. It fades up and settles in a tenth of a second. Taking is unchanged (E, double-click, drag onto the pack / a ring slot).
+- **Found-item tag — IN THE WORLD (round 48l)** (`loot_ui.gd`) — owner: *"This hammer box is too much honestly… simplify this information to what the player needs. Also I don't want the box to just be overlayed in front. I like how
+  searching is now in the game world. Let's put the box in the game world too, smaller, and beside the node, when a player walks back up to a node they have searched but did not take."* The tag is **300 px wide** (was
+  380) and stands **beside the node** it came from — right of it, or left when the right would leave the screen, a little above its middle (`_place_tag`, screen px through the canvas transform; with no node it stands beside the
+  player, never mid-screen) — and follows the node as the camera moves. It carries only what a player needs: the icon at 1× on a dark well, a one-word kind (`Lamp.kind_word` — **BLUNT / BLADE / GUN / MEDICAL / KEY…**; the combat table's
+  "bat" is not shown: a hammer is not a bat), the name, **one line for what matters** (a weapon's "VS KNIFE" box lists only the rows that DIFFER, two at most — `LampRows`, header 16 px), and the keys **[E] TAKE**
+  (+ **[R] LOAD**). A refusal turns the name red and says MAKE ROOM. **A PREVIEW stands whenever the player is in reach of a searched node that still holds something** (`loot_ui.preview_target`: scavenge mode, in range,
+  searched, takeable; not while a search / the modal tag / the pack ring is up, paused, dead, mid-switch) — a second, non-modal tag on its own nested layer (`_preview`), faded in over 0.12 s; **pressing [interact] while it
+  shows takes the item in that one press** (`open(..., node)` sees `preview_showing_for(node)` → `_take()`; a full pack leaves the real tag up saying MAKE ROOM, as a second press always did). A locked cabinet's gun behind
+  glass is not "takeable" yet, so shows no preview. Taking is otherwise unchanged (E, double-click, drag onto the pack / a ring slot).
 - **SEARCHING** (`search_word.gd`, `SearchWord`) — **no panel and no bar while a search runs.** The word hangs just above the node being searched (screen position through the canvas transform
   of the node `Interactable` hands over — never the screen's centre; with no node it hangs over the player), on a thin dark plate, and its letters light **one after another, S to G**, dim to brass, as
   the timer runs (a very quiet tick as each comes on). When the last is lit it resolves where it hangs: **found** = the whole word flares warm white and lifts away as the result panel arrives;

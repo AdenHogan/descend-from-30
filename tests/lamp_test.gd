@@ -30,6 +30,7 @@ func _ready() -> void:
 	_test_kit()
 	await _test_search_word()
 	await _test_loot_panel()
+	await _test_found_tag_in_the_world()
 	await _test_rings()
 	Ledger.muted = false
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
@@ -80,7 +81,7 @@ func _test_kit() -> void:
 	var one: Vector2 = Lamp.info_size([{"title": "Bat"}])
 	var four: Vector2 = Lamp.info_size([{"title": "Bat"}, {"row": true, "label": "a", "text": "1", "delta": "", "tone": 0}, {"row": true, "label": "b", "text": "1", "delta": "", "tone": 0}, {"row": true, "label": "c", "text": "1", "delta": "", "tone": 0}])
 	check(four.y > one.y and four.x > one.x, "the card grows with what it says, and is wider when it carries rows")
-	check(Lamp.kind_word(_weapon("001").get_data()) == "KNIFE" and Lamp.kind_word(_weapon("006").get_data()) == "MEDICAL" and Lamp.kind_word({}) == "FOUND", "an item's caption is one word: its kind, else FOUND")
+	check(Lamp.kind_word(_weapon("001").get_data()) == "BLADE" and Lamp.kind_word(_weapon("006").get_data()) == "MEDICAL" and Lamp.kind_word({}) == "FOUND", "an item's caption is one word: its kind, else FOUND")
 	var all_one := true
 	var bad_word := ""
 	for id in ItemData.items:
@@ -153,10 +154,22 @@ func _test_loot_panel() -> void:
 	await _frames(2)
 	check(loot.has_item and loot.panel.visible and not loot.is_revealing, "when the last letter is lit the result panel arrives")
 	check(loot.search_word.resolving and loot.search_word.found, "…and the word has resolved as FOUND")
-	check(loot.kind_label.text == "BAT" and loot.name_label.text == "Baseball Bat", "the panel names it: one caption word (%s) over the name (%s)" % [loot.kind_label.text, loot.name_label.text])
+	check(loot.kind_label.text == "BLUNT" and loot.name_label.text == "Baseball Bat", "the panel names it: one caption word (%s) over the name (%s)" % [loot.kind_label.text, loot.name_label.text])
 	check(loot.hint_label.text.contains("TAKE") and loot.hint_label.text.split(" ", false).size() <= 4, "the only text under it is the key and one word (%s)" % loot.hint_label.text.strip_edges())
 	loot._show_compare(ItemData.get_item("014"))
-	check(loot.compare_label.visible and loot.compare_label.text.contains("Damage") and loot.compare_label.height() > 0.0, "a found weapon carries its numbers against the one in hand")
+	var found_inst := ItemInstance.new()
+	found_inst.setup("014")
+	var cmp_card: Dictionary = ItemCompare.card(found_inst, ItemCompare.held_weapon())
+	var differing := 0
+	for r in cmp_card.get("rows", []):
+		if String(r["delta"]) != "":
+			differing += 1
+	check(loot.compare_label.visible == (differing > 0 and String(cmp_card.get("vs", "")) != ""), "a found weapon shows numbers only when some DIFFER from the one in hand (%d differ)" % differing)
+	if loot.compare_label.visible:
+		var all_differ := true
+		for r in loot.compare_label.rows:
+			all_differ = all_differ and String(r["delta"]) != ""
+		check(loot.compare_label.rows.size() == mini(differing, 2) and all_differ and loot.compare_label.height() > 0.0, "…only those rows, at most two (%d shown) — never the whole table" % loot.compare_label.rows.size())
 	loot._show_compare(ItemData.get_item("006"))
 	check(not loot.compare_label.visible, "…and only a weapon does")
 	await _frames(20)
@@ -181,6 +194,88 @@ func _test_loot_panel() -> void:
 	check(not loot.search_word.visible and not loot.search_word.resolving, "leaving mid-search takes the word with it (nothing is left hanging in the room)")
 	HUD.selected_slot = -1
 	WorldState.inventory.clear()
+	anchor.queue_free()
+	loot.queue_free()
+	await _frames(2)
+
+
+## The found-item tag stands IN THE WORLD beside its node (owner round 48l: "put the box in the game world too, smaller, beside the node"), and shows by itself when the player walks back up
+## to a node they searched but did not empty; [interact] then takes it in one press.
+func _test_found_tag_in_the_world() -> void:
+	print("[the found-item tag beside its node]")
+	WorldState.new_game()
+	WorldState.is_scavenge_mode = true
+	WorldState.inventory.clear()
+	HUD.selected_slot = -1
+	var loot = load("res://scripts/loot_ui.gd").new()
+	add_child(loot)
+	var player = load("res://scenes/player.tscn").instantiate()
+	add_child(player)
+	var anchor := StubScript.new()
+	anchor.name = "anchor_pv"
+	anchor.apartment_id = "9996"
+	anchor.add_to_group("scavenge_anchor")
+	add_child(anchor)
+	anchor.global_position = Vector2(300.0, 220.0)
+	anchor.is_in_range = true
+	await _frames(3)
+	var tag: PanelContainer = loot._preview["panel"]
+	# not searched yet -> nothing to show; searched and empty -> nothing; searched and still holding -> the tag
+	WorldState.set_anchor_item("9996", "anchor_pv", "006")
+	loot._process(0.016)
+	check(not tag.visible and loot.preview_target() == null, "a node that was never searched shows no tag")
+	WorldState.mark_anchor_searched("9996", "anchor_pv")
+	loot._process(0.016)
+	check(loot.preview_showing_for(anchor) and tag.visible, "walking back up to a searched node that still holds something: its tag stands there by itself")
+	check(not WorldState.loot_open and not loot.visible, "…and it is a glance, not a lock: nothing is open, nothing is blocked")
+	check(loot._preview["name"].text == "Bandages" and loot._preview["hint"].text.contains("TAKE"), "it names the thing and says the key (%s / %s)" % [loot._preview["name"].text, loot._preview["hint"].text])
+	check(tag.position.x > anchor.global_position.x and absf((tag.position.y + tag.size.y * 0.5) - anchor.global_position.y) < tag.size.y, "it stands beside the node (the tag at %.0f, %.0f; the node at 300, 220)" % [tag.position.x, tag.position.y])
+	check(tag.size.x <= 320.0 and tag.size.y <= 190.0, "…small: %dx%d (the old centred panel was 380 wide)" % [int(tag.size.x), int(tag.size.y)])
+	anchor.global_position = Vector2(1100.0, 220.0)                                    # near the right edge: the tag goes to the node's LEFT, on the screen
+	loot._process(0.016)
+	check(tag.position.x + tag.size.x < 1100.0 and tag.position.x >= 0.0, "near the screen's edge it stands on the other side of the node (%.0f..%.0f)" % [tag.position.x, tag.position.x + tag.size.x])
+	anchor.global_position = Vector2(300.0, 220.0)
+	anchor.is_in_range = false
+	loot._process(0.016)
+	check(not tag.visible, "walk out of reach and it goes")
+	anchor.is_in_range = true
+	WorldState.is_scavenge_mode = false
+	loot._process(0.016)
+	check(not tag.visible, "in combat stance it is not shown (the nodes themselves are dark then)")
+	WorldState.is_scavenge_mode = true
+	WorldState.clear_anchor_item("9996", "anchor_pv")
+	loot._process(0.016)
+	check(not tag.visible, "a node that was emptied shows nothing")
+	# one press takes it
+	WorldState.set_anchor_item("9996", "anchor_pv", "006")
+	loot._process(0.016)
+	check(loot.preview_showing_for(anchor), "(a left-over node again)")
+	var before: int = WorldState.inventory.size()
+	loot.open("006", "anchor_pv", "9996", anchor)
+	check(WorldState.inventory.size() == before + 1 and not WorldState.loot_open and not loot.visible and WorldState.get_anchor_item("9996", "anchor_pv") == "", "[interact] while its tag is up takes it in ONE press")
+	loot._process(0.016)
+	check(not tag.visible, "…and the tag goes with it")
+	# a full pack: the same press leaves the tag up saying MAKE ROOM (as a second press always did)
+	while WorldState.inventory.size() < WorldState.get_inventory_slots():
+		WorldState.add_to_inventory("002")
+	WorldState.set_anchor_item("9996", "anchor_pv", "011")
+	WorldState.mark_anchor_searched("9996", "anchor_pv")
+	loot._process(0.016)
+	check(loot.preview_showing_for(anchor), "(a full pack, a left-over node)")
+	loot.open("011", "anchor_pv", "9996", anchor)
+	check(loot.visible and loot.has_item and loot.name_label.text == "Inventory full" and WorldState.loot_open, "a full pack refuses: the tag stays, red, saying MAKE ROOM — nothing is lost")
+	check(not tag.visible and loot.panel.visible, "…and the live tag has taken over from the preview")
+	# the ring opened beside it never covers it
+	var half := 208.0
+	var rect := Rect2(loot.panel.position, loot.panel.size)
+	var centre: Vector2 = loot.ring_centre(half, rect.get_center())
+	var nearest := Vector2(clampf(centre.x, rect.position.x, rect.end.x), clampf(centre.y, rect.position.y, rect.end.y))
+	check(nearest.distance_to(centre) >= half - 10.0 and centre.x >= half and centre.x <= 1152.0 - half, "a ring that would have opened on the tag moves along the row to clear it (%.0f, %.0f)" % [centre.x, centre.y])
+	var far := Vector2(rect.end.x + 400.0, 330.0)
+	check(loot.ring_centre(half, far) == far, "…and one that already clears it stays where it was")
+	loot.leave()
+	WorldState.inventory.clear()
+	player.queue_free()
 	anchor.queue_free()
 	loot.queue_free()
 	await _frames(2)

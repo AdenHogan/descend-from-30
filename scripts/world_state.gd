@@ -3815,6 +3815,7 @@ func shift_building() -> void:
 		var kp := str(k)
 		if kp.contains(":stairwell:") or kp.begins_with("followerR:") or kp.begins_with("boss:"):
 			zombie_positions.erase(k)
+	retarget_cabinet_keys()          # the cabinets were dealt again: a cabinet key in the pack follows its floor's cabinet (or says it has none)
 
 
 # Set when a pried crossing commits: the floor you ARRIVE on (floor_num-1). The
@@ -5132,9 +5133,55 @@ func _ensure_cabinet_key_room(floor_num: int) -> void:
 
 # How a key reads — a door key names its flat; a cabinet key names the cabinet.
 func key_display(target: String) -> String:
-	if target.begins_with(CABINET_KEY_PREFIX):
-		return "Gun cabinet key — Apt " + target.substr(CABINET_KEY_PREFIX.length())
-	return "Key — Apt " + target
+	return key_name(target) + " — " + key_where(target)
+
+
+## What a key IS, short: the name a ring's card puts over the place (`key_where`).
+func key_name(target: String) -> String:
+	return "Gun cabinet key" if target.begins_with(CABINET_KEY_PREFIX) else "Flat key"
+
+
+## The flat a key is for — "2402" — whichever kind it is.
+func key_flat(target: String) -> String:
+	return target.substr(CABINET_KEY_PREFIX.length()) if target.begins_with(CABINET_KEY_PREFIX) else target
+
+
+## WHERE a key opens, in the building's own numbers and always with the floor (owner round 48l: a card read "Apt 2" and the cabinet was not there — a key must say the floor AND the flat,
+## in full, and be right): "floor 24, flat 2402".
+func key_where(target: String) -> String:
+	var flat := key_flat(target)
+	var f := _apartment_floor(flat)
+	return ("floor %d, flat %s" % [f, flat]) if f > 0 else ("flat " + flat)
+
+
+## A cabinet key whose cabinet is not there to open any more (the building was rearranged, someone broke into it, it was already opened): it opens nothing. A flat key always has its flat.
+func key_is_dead(target: String) -> bool:
+	return target.begins_with(CABINET_KEY_PREFIX) and gun_cabinet_state(key_flat(target)) != "locked"
+
+
+## The building shifts when the player rests (`shift_building` re-rolls the seed, so the floors' cabinets are dealt again). A cabinet key already in the pack named a flat of the OLD
+## deal — where it now says "flat 2402" there may be nothing. Each carried cabinet key whose cabinet moved is re-pointed at the locked cabinet now on the SAME FLOOR (the same flat if it
+## holds one); a key whose floor has none stays as it is — `key_is_dead` says so, plainly. Returns how many were re-pointed.
+func retarget_cabinet_keys() -> int:
+	var moved := 0
+	for inst in inventory:
+		var tgt: String = str(inst.target_apartment)
+		if not tgt.begins_with(CABINET_KEY_PREFIX) or not key_is_dead(tgt):
+			continue
+		var flat := key_flat(tgt)
+		var f := _apartment_floor(flat)
+		var best := ""
+		for cab in gun_cabinets_on_floor(f):
+			if gun_cabinet_state(cab) != "locked":
+				continue
+			if cab == flat or best == "":
+				best = cab
+				if cab == flat:
+					break
+		if best != "":
+			inst.target_apartment = CABINET_KEY_PREFIX + best
+			moved += 1
+	return moved
 
 
 # Which item a key is: a cabinet key (target "cab:<apt>") is the Gun Cabinet Key, else the Apartment Key.

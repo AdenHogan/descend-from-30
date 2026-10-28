@@ -1255,8 +1255,11 @@ func item_tip_content(inst) -> Dictionary:
 	var hint := ""
 	if d.get("is_key", false) and str(inst.target_apartment) != "":
 		var tgt: String = str(inst.target_apartment)
-		hint = ("Opens the gun cabinet in flat " + tgt.substr(WorldState.CABINET_KEY_PREFIX.length())) \
-			if tgt.begins_with(WorldState.CABINET_KEY_PREFIX) else ("Opens the front door of flat " + tgt)
+		if tgt.begins_with(WorldState.CABINET_KEY_PREFIX):
+			hint = ("Opens the gun cabinet in the living room of " + WorldState.key_where(tgt)) if not WorldState.key_is_dead(tgt) \
+				else ("Its cabinet is gone — nothing in " + WorldState.key_where(tgt) + " takes this key now")
+		else:
+			hint = "Opens the front door of " + WorldState.key_where(tgt)
 	elif d.get("is_molotov", false):
 		hint = "Double-click to throw — it bursts into flame where it lands"
 	elif d.get("is_bottle", false):
@@ -1268,8 +1271,10 @@ func item_tip_content(inst) -> Dictionary:
 	elif d.get("is_health_item", false) or d.get("is_speed_boost", false) or d.get("is_extinguisher", false) \
 			or d.get("is_throwable", false) or d.get("can_repair", false):
 		hint = "Double-click to use"
+	var key_tgt: String = str(inst.target_apartment) if d.get("is_key", false) else ""
 	return {"title": inst.get_display_name(), "stats": stats, "desc": str(d.get("description", "")),
-		"hint": hint, "broken": broken, "legendary": inst.level >= WeaponUpgrades.LEGENDARY_LEVEL}
+		"hint": hint, "broken": broken, "legendary": inst.level >= WeaponUpgrades.LEGENDARY_LEVEL,
+		"key_target": key_tgt}
 
 
 func _is_gun_data(d: Dictionary) -> bool:

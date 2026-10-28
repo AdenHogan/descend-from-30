@@ -9,7 +9,10 @@ extends RefCounted
 ##   * information first — a word is ONE word (EQUIP, DROP, HELD, LOCKED); a number carries a coloured ▲ / ▼, never a sentence; no help strips;
 ##   * brass is what is YOURS or chosen (the item in hand, the corner brackets, the thing you are about to do); green / red are better / worse, and only that; a cool steel blue marks a body's
 ##     things, so two rings side by side are never mistaken;
-##   * the journal, the merchant and the workbench stay paper (scripts/ledger.gd) — those are places to sit and read; this is the glance-and-go layer that sits over the live game;
+##   * the journal stays paper (scripts/ledger.gd — it is the character's own diary); EVERYTHING ELSE the player operates is this look, the merchant and the workbench included (owner round 48l:
+##     "there's a big UI disconnect. So many different font styles, colours, and types of text… didn't we change this back to the black and gold version?");
+##   * ONE type scale (the PX_* constants below): a screen's name, an item's name, a sentence, a letter-spaced label — four sizes, nothing under 16 px, two faces, no handwriting;
+##   * words are short and say what to DO or what it MEANS: a cost is shown against what you have, a refusal says exactly what is missing;
 ##   * drawing only: every function paints on the CanvasItem it is handed and returns; nothing here owns state or decides anything the rings did before.
 ## The type is the logo's Barlow Condensed (heads and letter-spaced labels) over Barlow (plain), from scripts/ledger.gd — one set of faces for the whole game.
 
@@ -38,6 +41,12 @@ const TR := 2
 const BL := 4
 const BR := 8
 const ALL := 15
+
+## THE TYPE SCALE (px at the 1152 x 648 screen). Every Lamplight screen uses these four and nothing else — the owner's "too many font styles… small and tough to read".
+const PX_TITLE := 32        # a screen's name (WORKBENCH), a big number (scrap)
+const PX_NAME := 26         # an item's / perk's / weapon's name
+const PX_BODY := 20         # every sentence and every figure in a sentence
+const PX_LABEL := 18        # letter-spaced capitals: tabs, buttons, captions
 
 static var _label_font: Font = null
 
@@ -71,6 +80,61 @@ static func fit(f: Font, s: String, px: int, width: float) -> int:
 static func text(ci: CanvasItem, kind: String, baseline: Vector2, s: String, px: int, col: Color, width: float, align: int = HORIZONTAL_ALIGNMENT_LEFT) -> void:
 	var f: Font = font(kind)
 	ci.draw_string(f, baseline, s, align, width, fit(f, s, px, width), col)
+
+
+## A Label in the kit's faces and colours (never a different font or size by accident). `kind`: "head" / "label" / "body".
+static func label(text: String, kind: String, px: int, col: Color, wrap: bool = false) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_override("font", font(kind))
+	l.add_theme_font_size_override("font_size", px)
+	l.add_theme_color_override("font_color", col)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if wrap:
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	return l
+
+
+## A RichTextLabel set up the same way: Barlow at the body size in the body colour, bold = Barlow Condensed. Colour a word with [color=#hex] (use the `hex` helper).
+static func rich(px: int = PX_BODY, col: Color = BODY) -> RichTextLabel:
+	var r := RichTextLabel.new()
+	r.bbcode_enabled = true
+	r.scroll_active = false
+	r.fit_content = true
+	r.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	r.add_theme_font_override("normal_font", font("body"))
+	r.add_theme_font_override("bold_font", font("head"))
+	r.add_theme_font_size_override("normal_font_size", px)
+	r.add_theme_font_size_override("bold_font_size", px + 2)
+	r.add_theme_color_override("default_color", col)
+	return r
+
+
+static func hex(c: Color) -> String:
+	return c.to_html(false)
+
+
+## The room dims round a screen: a vignette that keeps the middle of the view the world (and stops clicks, because the game is paused behind it).
+static func backdrop() -> TextureRect:
+	var t := TextureRect.new()
+	t.name = "Backdrop"
+	var grad := Gradient.new()
+	grad.offsets = PackedFloat32Array([0.0, 0.5, 1.0])
+	grad.colors = PackedColorArray([Color(0, 0, 0, 0.30), Color(0, 0, 0, 0.52), Color(0.02, 0.012, 0.008, 0.82)])
+	var gt := GradientTexture2D.new()
+	gt.gradient = grad
+	gt.fill = GradientTexture2D.FILL_RADIAL
+	gt.fill_from = Vector2(0.5, 0.5)
+	gt.fill_to = Vector2(1.0, 1.0)
+	gt.width = 256
+	gt.height = 144
+	t.texture = gt
+	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	t.stretch_mode = TextureRect.STRETCH_SCALE
+	t.set_anchors_preset(Control.PRESET_FULL_RECT)
+	t.mouse_filter = Control.MOUSE_FILTER_STOP
+	return t
 
 
 static func fade(c: Color, a: float) -> Color:
@@ -202,7 +266,7 @@ static func slot(ci: CanvasItem, rect: Rect2, inst, o: Dictionary) -> void:
 	var num: int = o.get("num", 0)
 	if inst == null:
 		if num > 0:
-			text(ci, "label", rect.position + Vector2(0, rect.size.y * 0.5 + 5.0), str(num), 14, fade(DIM, 0.5 * t), rect.size.x, HORIZONTAL_ALIGNMENT_CENTER)
+			text(ci, "label", rect.position + Vector2(0, rect.size.y * 0.5 + 6.0), str(num), 18, fade(DIM, 0.5 * t), rect.size.x, HORIZONTAL_ALIGNMENT_CENTER)
 		return
 	var c := (rect.position + rect.size * 0.5).round()
 	var tex: Texture2D = ItemData.get_texture(inst.item_id)
@@ -210,7 +274,7 @@ static func slot(ci: CanvasItem, rect: Rect2, inst, o: Dictionary) -> void:
 		var broken: bool = inst.is_depleted and inst.get_max_durability() > 0
 		ci.draw_texture_rect(tex, Rect2(c - Vector2(SLOT_ICON, SLOT_ICON) * 0.5, Vector2(SLOT_ICON, SLOT_ICON)), false, Color(0.55, 0.42, 0.42, t) if broken else Color(1, 1, 1, t))
 	if num > 0:
-		text(ci, "label", rect.position + Vector2(5.0, 12.0), str(num), 11, fade(DIM, t), 16.0)
+		text(ci, "label", rect.position + Vector2(5.0, 15.0), str(num), 15, fade(DIM, t), 18.0)
 	var max_d: int = inst.get_max_durability()
 	if max_d > 1 and not inst.is_depleted:
 		var ratio := clampf(float(inst.current_durability) / float(max_d), 0.0, 1.0)
@@ -219,10 +283,10 @@ static func slot(ci: CanvasItem, rect: Rect2, inst, o: Dictionary) -> void:
 		ci.draw_rect(Rect2(bar.position, Vector2(maxf(bar.size.x * ratio, 2.0), bar.size.y)), fade(GREEN if ratio > 0.5 else (BRASS if ratio > 0.25 else RED), t))
 	if inst.count > 1:
 		var s := "x%d" % inst.count
-		var w := font("head").get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x + 8.0
-		var pill := Rect2(rect.end.x - w - 3.0, rect.end.y - 21.0, w, 15.0)
+		var w := font("head").get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x + 8.0
+		var pill := Rect2(rect.end.x - w - 3.0, rect.end.y - 25.0, w, 19.0)
 		ci.draw_rect(pill, Color(WELL.r, WELL.g, WELL.b, 0.86 * t))
-		text(ci, "head", Vector2(pill.position.x + 4.0, pill.end.y - 3.0), s, 14, fade(TEXT, t), w)
+		text(ci, "head", Vector2(pill.position.x + 4.0, pill.end.y - 3.0), s, 18, fade(TEXT, t), w)
 	if held:
 		brackets(ci, rect, fade(accent, t), 9.0, 3.0, ALL, 1.0)
 		tab(ci, Vector2(rect.position.x + rect.size.x * 0.5, rect.position.y - 1.0), "HELD", accent, t)
@@ -233,15 +297,26 @@ static func slot(ci: CanvasItem, rect: Rect2, inst, o: Dictionary) -> void:
 ## A small solid tab with one word on it, centred on `at` (the in-hand mark on a slot; the board's IN HAND).
 static func tab(ci: CanvasItem, at: Vector2, word: String, fill: Color, t: float = 1.0) -> Rect2:
 	var f := font("label")
-	var w := f.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x + 12.0
-	var r := Rect2(at - Vector2(w * 0.5, 7.0), Vector2(w, 14.0))
+	var w := f.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x + 14.0
+	var r := Rect2(at - Vector2(w * 0.5, 9.0), Vector2(w, 18.0))
 	ci.draw_rect(r, fade(fill, t))
-	text(ci, "label", Vector2(r.position.x + 1.0, r.end.y - 3.0), word, 11, fade(ON_BRASS, t), w, HORIZONTAL_ALIGNMENT_CENTER)
+	text(ci, "label", Vector2(r.position.x + 1.0, r.end.y - 4.0), word, 14, fade(ON_BRASS, t), w, HORIZONTAL_ALIGNMENT_CENTER)
 	return r
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------- the card in the middle
-const ROW_H := 17.0
+## The readout in the middle of a ring (owner round 48l, on two screenshots of the ring: "this text needs optimising. It's way too small and unreadable"): every size is from the type scale
+## — a name 22, a figure 20, a note 18, a caption 16 — so the card is read at a glance from where the player sits; it WRAPS a long name onto a second line rather than shrinking it to nothing,
+## and the ring is sized to leave it room (pack_wheel.RING_R; tests/lamp_test measures it never touches a slot).
+const ROW_H := 26.0                  # a stat row (20 px figures)
+const INFO_PAD := 12.0
+const INFO_W := 168.0                # a card of words
+const INFO_W_ROWS := 200.0           # a card with stat rows: label | figure | the ▲ / ▼
+const PX_INFO_TITLE := 22
+const PX_INFO_NOTE := 18
+const PX_INFO_WORD := 16
+const PX_INFO_BIG := 30
+const INFO_LINE_MIN := 15            # the smallest a line is ever shrunk to when even two lines will not hold it
 
 ## Which of an ItemCompare card's rows are worth a glance: the ones that differ from the weapon in hand first, then the usual three — at most `n`.
 static func pick_rows(rows: Array, n: int = 3) -> Array:
@@ -270,7 +345,7 @@ static func pick_rows(rows: Array, n: int = 3) -> Array:
 static func row(ci: CanvasItem, x: float, y: float, w: float, r: Dictionary, t: float = 1.0, label_w: float = 52.0, big: int = 15, row_h: float = ROW_H) -> void:
 	var base := y + row_h * 0.5 + float(big) * 0.33
 	var k := float(big) / 15.0
-	text(ci, "body", Vector2(x, base), String(r["label"]), int(round(float(big) * 0.72)), fade(SOFT, t), label_w)
+	text(ci, "body", Vector2(x, base), String(r["label"]), int(round(float(big) * 0.78)), fade(SOFT, t), label_w)
 	text(ci, "head", Vector2(x + label_w, base), String(r["text"]), big, fade(TEXT, t), 44.0 * k)
 	var d: String = String(r.get("delta", ""))
 	if d == "":
@@ -279,57 +354,103 @@ static func row(ci: CanvasItem, x: float, y: float, w: float, r: Dictionary, t: 
 	var col: Color = GREEN if tone > 0 else (RED if tone < 0 else DIM)
 	var f := font("head")
 	var num: String = d.substr(1).strip_edges()                    # "▲ +18" -> "+18"
-	var nw := f.get_string_size(num, HORIZONTAL_ALIGNMENT_LEFT, -1, big - 1).x
-	ci.draw_string(f, Vector2(x + w - nw, base), num, HORIZONTAL_ALIGNMENT_LEFT, nw + 2.0, big - 1, fade(col, t))
+	var nw := f.get_string_size(num, HORIZONTAL_ALIGNMENT_LEFT, -1, big - 2).x
+	ci.draw_string(f, Vector2(x + w - nw, base), num, HORIZONTAL_ALIGNMENT_LEFT, nw + 2.0, big - 2, fade(col, t))
 	arrow(ci, Vector2(x + w - nw - 3.0 - 3.5 * k, base - 4.0 * k - 1.0), d.begins_with("▲"), fade(col, t), 3.5 * k)
 
 
+## `s` set in `width`: at `px` on one line if it fits, else on two lines (split at the space that balances them) at `px`, else shrunk — never below INFO_LINE_MIN — to the width.
+## Returns {lines: PackedStringArray, px: int}. Pure (it reads the font's metrics only), so a card's size can be known before it is drawn.
+static func wrap_two(kind: String, s: String, px: int, width: float) -> Dictionary:
+	var f: Font = font(kind)
+	if f.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, px).x <= width:
+		return {"lines": PackedStringArray([s]), "px": px}
+	var best := -1
+	var best_w := 1.0e9
+	for i in range(s.length()):
+		if s[i] != " ":
+			continue
+		var w1 := f.get_string_size(s.substr(0, i), HORIZONTAL_ALIGNMENT_LEFT, -1, px).x
+		var w2 := f.get_string_size(s.substr(i + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, px).x
+		if maxf(w1, w2) < best_w:
+			best_w = maxf(w1, w2)
+			best = i
+	if best >= 0 and best_w <= width:
+		return {"lines": PackedStringArray([s.substr(0, best), s.substr(best + 1)]), "px": px}
+	var small := maxi(INFO_LINE_MIN, fit(f, s, px, width))
+	if best >= 0:
+		var two := wrap_two(kind, s, maxi(INFO_LINE_MIN, px - 2), width) if px - 2 >= INFO_LINE_MIN else {}
+		if not two.is_empty() and (two["lines"] as PackedStringArray).size() == 2:
+			return two
+	return {"lines": PackedStringArray([s]), "px": small}
+
+
+static func _line_h(px: int) -> float:
+	return float(px) * 1.2
+
+
 ## The info card in the middle of a ring (and the heart of any small readout). `info_size` is its size for `lines` (pure); `info` draws it, centred. `lines`:
-##   {"title": s, "col"?}   the item's name, the bright head face        {"word": s, "col"?}  one letter-spaced caption word (CRAFT, LOCKED…)
-##   {"big": s, "col"?}     one large word (DROP)                         {"note": s, "col"?}  a short plain line
+##   {"title": s, "col"?}   the item's name, the bright head face (two lines if long)       {"word": s, "col"?}  one letter-spaced caption word (CRAFT, LOCKED…)
+##   {"big": s, "col"?}     one large word (DROP)                                           {"note": s, "col"?}  a short plain line (two if long)
 ##   {"row": true, label, text, delta, tone}   a stat row
 ## Returns its rect. A card with a stat row is wider so the row has room.
-static func info_size(lines: Array) -> Vector2:
-	var has_rows := false
-	var h := 20.0
+static func _inner_w(lines: Array) -> float:
 	for l in lines:
 		if l.has("row"):
-			has_rows = true
+			return INFO_W_ROWS - 2.0 * INFO_PAD
+	return INFO_W - 2.0 * INFO_PAD
+
+
+static func _line_block(l: Dictionary, inner: float) -> Dictionary:
+	if l.has("title"):
+		var w := wrap_two("head", String(l["title"]), PX_INFO_TITLE, inner)
+		return {"kind": "head", "w": w, "col": l.get("col", TEXT), "gap": 4.0}
+	if l.has("note"):
+		var w2 := wrap_two("body", String(l["note"]), PX_INFO_NOTE, inner)
+		return {"kind": "body", "w": w2, "col": l.get("col", SOFT), "gap": 2.0}
+	return {}
+
+
+static func info_size(lines: Array) -> Vector2:
+	var inner := _inner_w(lines)
+	var h := 2.0 * INFO_PAD - 2.0
+	for l in lines:
+		if l.has("row"):
 			h += ROW_H
 		elif l.has("big"):
-			h += 28.0
-		elif l.has("title"):
-			h += 24.0
+			h += 38.0
 		elif l.has("word"):
-			h += 17.0
+			h += 24.0
 		else:
-			h += 16.0
-	return Vector2(140.0 if has_rows else 116.0, h)
+			var b := _line_block(l, inner)
+			h += _line_h(int(b["w"]["px"])) * float((b["w"]["lines"] as PackedStringArray).size()) + float(b["gap"])
+	return Vector2(INFO_W_ROWS if inner > INFO_W - 2.0 * INFO_PAD else INFO_W, maxf(h, 44.0))
 
 
 static func info(ci: CanvasItem, centre: Vector2, lines: Array, t: float = 1.0, accent: Color = BRASS) -> Rect2:
 	var sz := info_size(lines)
-	var w := sz.x
 	var rect := Rect2((centre - sz * 0.5).round(), sz)
 	panel(ci, rect, t, TL | BR, 11.0, accent, EDGE)
-	var y := rect.position.y + 10.0
-	var inner := w - 20.0
+	var inner := sz.x - 2.0 * INFO_PAD
+	var x := rect.position.x + INFO_PAD
+	var y := rect.position.y + INFO_PAD - 1.0
 	for l in lines:
 		if l.has("row"):
-			row(ci, rect.position.x + 10.0, y, inner, l, t, 42.0, 15)
+			row(ci, x, y, inner, l, t, 78.0, 20, ROW_H)
 			y += ROW_H
 		elif l.has("big"):
-			text(ci, "head", Vector2(rect.position.x + 10.0, y + 22.0), String(l["big"]), 26, fade(l.get("col", TEXT), t), inner, HORIZONTAL_ALIGNMENT_CENTER)
-			y += 28.0
-		elif l.has("title"):
-			text(ci, "head", Vector2(rect.position.x + 10.0, y + 18.0), String(l["title"]), 20, fade(l.get("col", TEXT), t), inner, HORIZONTAL_ALIGNMENT_CENTER)
-			y += 24.0
+			text(ci, "head", Vector2(x, y + 29.0), String(l["big"]), PX_INFO_BIG, fade(l.get("col", TEXT), t), inner, HORIZONTAL_ALIGNMENT_CENTER)
+			y += 38.0
 		elif l.has("word"):
-			text(ci, "label", Vector2(rect.position.x + 10.0, y + 12.0), String(l["word"]), 12, fade(l.get("col", LABEL), t), inner, HORIZONTAL_ALIGNMENT_CENTER)
-			y += 17.0
+			text(ci, "label", Vector2(x, y + 17.0), String(l["word"]), PX_INFO_WORD, fade(l.get("col", LABEL), t), inner, HORIZONTAL_ALIGNMENT_CENTER)
+			y += 24.0
 		else:
-			text(ci, "body", Vector2(rect.position.x + 10.0, y + 12.0), String(l["note"]), 12, fade(l.get("col", SOFT), t), inner, HORIZONTAL_ALIGNMENT_CENTER)
-			y += 16.0
+			var b := _line_block(l, inner)
+			var px: int = int(b["w"]["px"])
+			for ln in (b["w"]["lines"] as PackedStringArray):
+				text(ci, String(b["kind"]), Vector2(x, y + float(px) * 0.92), String(ln), px, fade(b["col"], t), inner, HORIZONTAL_ALIGNMENT_CENTER)
+				y += _line_h(px)
+			y += float(b["gap"])
 	return rect
 
 
@@ -344,13 +465,19 @@ static func menu(ci: CanvasItem, pos: Vector2, w: float, row_h: float, rows: Arr
 		if i == hot:
 			ci.draw_rect(Rect2(pos.x + 4.0, y, w - 8.0, row_h), RED if drop else BRASS)
 		var col: Color = (ON_BRASS if i == hot else (RED if drop else BODY))
-		text(ci, "label", Vector2(pos.x + 12.0, y + row_h - 6.0), String(rows[i][0]).to_upper(), 13, col, w - 24.0)
+		text(ci, "label", Vector2(pos.x + 12.0, y + row_h - 6.0), String(rows[i][0]).to_upper(), 17, col, w - 24.0)
 
 
 ## What the middle of a ring says about an item under the pointer: its name, then the few numbers that matter — a weapon's (set against the one in hand when it is another weapon:
 ## the rows that differ come first), a single short line for anything else, one word when it is broken. Both rings read this, so a thing reads the same on either.
 static func item_lines(inst) -> Array:
 	var tip: Dictionary = HUD.item_tip_content(inst)
+	var kt: String = String(tip.get("key_target", ""))
+	if kt != "":                                  # a key: its name, then WHERE it opens — floor and flat in full — or that nothing takes it any more
+		var kl: Array = [{"title": WorldState.key_name(kt)}, {"note": WorldState.key_where(kt)}]
+		if WorldState.key_is_dead(kt):
+			kl.append({"word": "NO CABINET", "col": RED})
+		return kl
 	var lines: Array = [{"title": String(tip["title"]), "col": BRASS_HI if bool(tip.get("legendary", false)) else TEXT}]
 	var cmp: Dictionary = ItemCompare.card(inst, ItemCompare.held_weapon())
 	if not cmp.is_empty():
@@ -373,7 +500,8 @@ static func item_lines(inst) -> Array:
 static func kind_word(d: Dictionary) -> String:
 	var wk: String = ItemCompare.weapon_kind(d)
 	if wk != "":
-		return wk.to_upper()
+		# "bat" is the combat table's name for the whole blunt family — a hammer is not a bat
+		return {"bat": "BLUNT", "knife": "BLADE", "sword": "BLADE", "gun": "GUN"}.get(wk, wk.to_upper())
 	for pair in [["is_key", "KEY"], ["is_ammo", "AMMO"], ["is_money", "CASH"], ["is_scrap", "SCRAP"], ["is_molotov", "FIRE"], ["is_throwable", "THROWN"],
 			["is_health_item", "MEDICAL"], ["is_speed_boost", "MEDICAL"], ["is_junk", "JUNK"], ["is_extinguisher", "TOOL"], ["is_tool", "TOOL"], ["is_fuse", "TOOL"]]:
 		if d.get(pair[0], false):
