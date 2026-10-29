@@ -25,9 +25,9 @@ simply loads.
 
 | run | light | what has happened to the building and the city |
 |---|---|---|
-| 1 MORNING | clear sky, a low sun, crows | the calm before it: some broken / boarded windows, lamps on, a few people at their windows, a garden with trees, a small black cat running across it — **no HELP sheet, no smoke, no fire anywhere** (owner round 36f) |
-| 2 AFTERNOON | violet → orange dusk, a big low sun | lamps on in the dusk, more glass broken, a SOS sheet too, a wrecked balcony, the doors barricaded with a chair and boards, one body on the lawn, a person running in fear across the garden, two towers burning, a wire sagging low |
-| 3 NIGHT | stars, a moon, a blood-orange horizon, **rain + lightning + thunder** | wires down, the doors boarded behind a fridge, a breach blown through the wall at floor 8, the parapet knocked off, bodies and blood across the garden and its path, burnt bushes and fires in the grounds, five towers burning, no crows |
+| 1 MORNING | a pewter overcast with a straw-coloured break low on the left (round 49), a plain pale sun, crows on the wire that take off | the calm before it: some broken / boarded windows, lamps on, a few people at their windows, a garden with trees, a small black cat running across it — **no HELP sheet, no smoke, no fire anywhere** (owner round 36f) |
+| 2 AFTERNOON | a smoke-dimmed day (round 49): khaki haze, dull slate overhead, smoke columns leaning one way, a small off-white sun — no violet, no pink | lamps on, more glass broken, a SOS sheet too, a wrecked balcony, the doors barricaded with a chair and boards, one body on the lawn, a person running in fear across the garden, two towers burning, a wire sagging low |
+| 3 NIGHT | no moon and no stars (round 49): a charcoal deck lit from underneath by the fires, black overhead, **rain + lightning + thunder** | wires down, the doors boarded behind a fridge, a breach blown through the wall at floor 8, the parapet knocked off, bodies and blood across the garden and its path, burnt bushes and fires in the grounds, five towers burning, no crows |
 
 It is the SAME tower in all three: each window's state comes from its own seeded draw and the thresholds only shift up with the run, so a
 window broken in the morning is still broken at dusk. (`opening_test` checks 99.5% of the face agrees across runs.)
@@ -46,9 +46,8 @@ glow and smoke, **CHARRED** 6-8 black windows with a last wisp. Which bays is se
 
 Native 288x162 shown at 4x (the 1152x648 screen), as parallax layers the game slides at different rates: `sky_<run>` 0.30,
 `far_<run>` 0.50 (pale skyline, a crane, a radio mast), `mid_<run>` 0.75, `scene_<run>` 1.00 (the 30-floor building, entrance, street),
-`fore_<run>` 1.30 (pole, wires), `clouds_<run>` (an atlas the game places and drifts), `burn.png` (shared), and `opening_meta_<run>.json`
-(layers, cloud placement, smoke points, lit windows, the window grid, beacons, street fires, the look's flags). The `LOOK` table holds each
-run's palettes, sun / moon, grade and how much damage it adds. The building's three sections echo the corridors inside it (hotel 21+,
+`fore_<run>` 1.30 (pole, wires), `clouds_<run>` (an atlas the game places and drifts), `burn.png` and `birds.png` (shared), and `opening_meta_<run>.json`
+(layers, cloud placement, smoke points, lit windows, the window grid, beacons, street fires, the look's flags). The sky, the clouds and the skyline are in `tools/art/opening_sky.py` / `opening_city.py` (round 49 — see the end); the birds in `opening_birds.py`; the `LOOK` table holds what the building and the street need per run (grade, damage, lit windows). The building's three sections echo the corridors inside it (hotel 21+,
 brick 11-20, concrete 1-10) and decay with depth; **floor 30 keeps one warm window** (where you wake).
 `python3 tools/art/opening.py --preview` writes `docs/art_reference/opening.png` (one row per run, five camera heights);
 `--check` is in the gate. Sounds: `tools/gen_opening_audio.py` → `assets/audio/opening/` (a low tonal hum loop — no noise — a far siren, a dark swell for the
@@ -119,3 +118,39 @@ the old build deviated by -98 luminance on the morning run (99 % of the solid le
 Locked by `opening_test` (`_test_timeline`: text first, the hand only once the words are up, neither fades back, the beat, all up before the roof; `_test_logo_title`: the three sprites in order, only pictures, the logo's own textures, one canvas, registered at rest, the fade-in in the real node, on screen + centred + the lowest drip clear of the roof's gear;
 `_test_overlay_flow`: both layers come fully up in the real cold open, words first), `tutorial_test`, `title_test` (menu font). The LOOK was judged from frames rendered under xvfb in all three runs (a montage of the fade-in included) — the owner's eye on a real monitor is the real test.
 
+
+
+## Round 49 — the opening stops looking generated (owner: "a lot of their background colours and details are remarkably similar to what you've been making")
+
+**What the owner saw.** Three phone screenshots of other Claude-made pixel games (a pixel sunset gradient with soft clouds and dot stars; a purple sunset
+platformer with a pale round sun and layered violet skylines; a navy / teal night with silhouettes) beside this opening — and they were right. Measured on the old art:
+one smooth vertical gradient per run, Bayer-dithered through 24 levels; **one set of disc-union puffball clouds recoloured three times**; a violet → peach "sunset"; a navy night with
+170 dot stars and a cratered round moon; a sun built from concentric glow rings; a skyline of random rectangles, each a tint of one hue, a random grid of windows and the same three roof props.
+
+**What replaced it** (each time of day is an *observed* sky, painted as weather):
+- **Skies** (`opening_sky.py`, deterministic integer-hashed value noise in plain numpy, so a regenerated file is byte-identical): MORNING a pewter overcast deck in perspective-lite (cloud rows
+  packed closer toward the horizon, torn, lit from the sun's side) with a straw break low on the left and a plain pale disc — no rings; AFTERNOON a smoke-dimmed day (khaki, slate, no violet or pink); NIGHT no
+  moon, no stars — a charcoal deck lit from underneath, hot where the fires stand (`NIGHT_GLOWS`), black overhead. Hard bands, no dither, no smooth gradient.
+- **Clouds**: noise-built, ragged, wind-sheared sprites, with their OWN kinds per run (sheared stratocumulus / torn strata / fragments by day; smoke plumes in the afternoon; fast low scud at night) —
+  the cells keep the same sizes in every run, so the game places them unchanged.
+- **The city** (`opening_city.py`): building TYPES a person can name, each drawn as itself in real materials — council **slabs** with deck galleries and stair cores, **towers** with mullions and a setback, **terraces** of
+  pitched-roof houses with chimney stacks, a **church** with a spire, a **gasholder** in its guide frame, a brick **stack**, a pair of **cooling towers**, and in the afternoon and night leaning **smoke columns** rooted on particular
+  roofs. ONE city for all three runs (the plan depends on the layer, never the run); only the light changes (`GRADE`, then the layer's haze) and the lit windows are drawn last. The building's own grade moved off the orange / navy filters.
+- Nothing about the building, the garden or the time card's wording changed except what is listed below.
+
+**Birds.** `opening_birds.py` draws `birds.png` pixel by pixel: NEAR crows (perched, crouch, a six-pose wing cycle up / raised / level / down, glide) and FAR birds (the same crow drawn smaller). The crows on the wire are no longer baked into
+the foreground (`meta.fore.perches`): `_WireBirds` sits them on the wire until `BIRDS_TAKE_OFF` (2.0 s, the held street just before the climb), then each flinches, drops off the wire and goes OUT across the sky, one a beat after another, and keeps its own
+course on the screen (`fore_y_at(t)` puts the takeoff exactly on the wire); a wing-flutter (`flutter.wav`) plays. The flock over the roof is `_Birds`: back-and-forth flight, flapping in bursts and gliding between, banking round at each end — not an ellipse of anti-aliased Vs.
+
+**The ground.** (1) The garden's standing and lying objects were painted category by category, so a tree behind a bush was painted OVER it and, at night, a body behind a poplar over the poplar: everything is now painted far to near by its base row
+(`draw_garden_objects`, the `later` list); `garden_depth_violations(run)` measures the pixels a farther object put over a nearer one and `--check` fails on any (mutation-checked: the old order gives 1 / 3 / 11). (2) **The runners** (`RUNNERS`, `plan_lane`): the cat and the fleeing person no longer
+run along the bottom edge — they come up out of the bottom of the screen and go DEEPER along a route planned by A* over free ground, shrinking with the path's own width law (`runner_scale`) and slowing with it; the cat slips into the dark doorway, the person reaches the barricaded door and stands hammering on it.
+`runner_clearance(run)` (in `--check`) fails if anything standing NEARER would cover the runner on the way (it is drawn over the garden). The garden is dense (big trees frame it), so the free lanes are the lawn's front corners and the path — which is why the routes climb the path.
+
+**The windows.** The HELP / SOS sheet (`hang_sheet`) is exactly a window frame wide plus a pixel each side, tied by its top corners to its own sill and falling over the window BELOW it whole (it was a 20 px rectangle over the piers and two neighbours' frames), with folds, a lit and a shaded edge, a ragged hem, a shadow, hand-painted letters (HELP on two lines).
+The **breach** is a wall broken open (`breach`): a ragged hole cut by noise, its rim the facing stone / concrete / brick in layers, rebar, a hanging slab, the flat in section (ceiling and floor slabs, wallpaper, a doorway, a wardrobe and bed head, a pendant lamp), spalling and cracks; `meta.scene.breach` lets the game put two flames, their glow and a smoke column in it. **People at windows**
+(`_Survivors`): real little figures (hair, head, torso, arms, legs) with nine behaviours — wave a cloth, pace, peer down, sway, hammer on the glass, shout, an adult with a child, a phone to the ear, slumped below the sill — and a shadow that walks behind the curtain of about a third of the OTHER lit windows. `tools/people_sheet.tscn` renders every behaviour at four moments.
+
+**Checked by:** `opening_test` (runner depth / route / ends, people repertoire and passers; mutation-checked: a bottom-edge route fails five checks), `opening.py --check` (art current, garden depth order, runner clearance), xvfb frames of all three runs.
+**Not checked / owner's eye:** the LOOK of the new skies and skyline on a real monitor (judged on composites and engine frames); the colours were chosen from observation, not matched to a photograph; the flutter was not listened to (numbers only, in the audio gate).
+`tools/opening_capture.tscn` gained `--step=` and `--jump=1` (start each frame's clock just before its time — a frame no longer needs the whole run ticked through) and **a pitfall**: `--notitle=1` is the short cut (it ends at ~13 s), so a `--times` beyond that spins for ever — use `--hidetitle=1` for the full-length timeline.

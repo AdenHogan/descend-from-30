@@ -404,6 +404,47 @@ func _test_survivors() -> void:
 	e._apply(0.0)
 	check(is_equal_approx(sv.clock, 6.0), "they animate off the opening's own clock")
 	e.queue_free()
+	# owner round 49 ("people at windows could be more animated"): a real repertoire, and shadows passing behind curtains
+	var known := ["wave", "pace", "peer", "sway", "pound", "shout", "huddle", "phone", "slump"]
+	var all_kinds := {}
+	var pass_ok := true
+	var n_pass := 0
+	for run in [2, 3]:
+		var e3 := _built("", run)
+		await get_tree().process_frame
+		var s3 = e3.survivors
+		if s3 == null:
+			check(false, "run %d: has people at windows" % run)
+			e3.queue_free()
+			continue
+		var lit3 := {}
+		var mans := {}
+		for w in e3.meta["scene"]["lit"]:
+			lit3["%d:%d" % [int(w["floor"]), int(w["bay"])]] = Vector2(float(w["x"]), float(w["y"]))
+		for p in s3.people:
+			all_kinds[String(p["kind"])] = true
+			check(known.has(String(p["kind"])), "run %d: a known behaviour (%s)" % [run, String(p["kind"])])
+			mans["%d:%d" % [int(p["floor"]), int(p["bay"])]] = true
+		print("  run %d: %d people, %d shadows passing" % [run, s3.people.size(), s3.passers.size()])
+		for q in s3.passers:
+			n_pass += 1
+			var at := Vector2(float(q["x"]), float(q["y"]))
+			var found := false
+			for key in lit3:
+				if (lit3[key] as Vector2) == at and not mans.has(key):
+					found = true
+			pass_ok = pass_ok and found
+		# a figure's pose is a pure function of the clock: the same time gives the same place, whatever came before
+		if not s3.people.is_empty():
+			s3.clock = 3.0
+			var a1: float = s3.person_x(s3.people[0])
+			s3.clock = 17.0
+			s3.clock = 3.0
+			check(is_equal_approx(a1, float(s3.person_x(s3.people[0]))), "run %d: a pose depends on the clock alone" % run)
+		e3.queue_free()
+		await get_tree().process_frame
+	check(all_kinds.size() >= 4, "between them the people do at least four different things %s" % str(all_kinds.keys()))
+	check(n_pass >= 3 and pass_ok, "shadows pass behind the curtains of OTHER lit windows (%d), never a window with someone at it" % n_pass)
 
 
 func _test_runner() -> void:
@@ -412,26 +453,61 @@ func _test_runner() -> void:
 		var e := _built("", run)
 		await get_tree().process_frame
 		var rn = e.runner
-		check(rn != null and rn.spec["kind"] == ("cat" if run == 1 else "human"), "run %d: %s is in the garden" % [run, "a cat" if run == 1 else "a person"])
+		var who := "a cat" if run == 1 else "a person"
+		check(rn != null and rn.spec["kind"] == ("cat" if run == 1 else "human"), "run %d: %s is in the garden" % [run, who])
 		if rn == null:
 			e.queue_free()
 			continue
+		var pts: Array = rn._pts
+		check(pts.size() >= 4, "run %d: it follows a planned route (%d waypoints)" % [run, pts.size()])
+		var first: Vector2 = pts[0]
+		check(first.x <= 0.0 or first.x >= 288.0 or first.y > 43.0, "run %d: it comes in from off the picture (x %d, row %d)" % [run, int(first.x), int(first.y)])
+		# DEPTH — owner round 49: "they always run from the very bottom of the screen, when they could be moving deeper into the scene"
+		var rows_min := 99.0
+		var rows_max := -99.0
+		var len_all := 0.0
+		var len_front := 0.0
+		for i in range(1, pts.size()):
+			var a: Vector2 = pts[i - 1]
+			var b: Vector2 = pts[i]
+			rows_min = minf(rows_min, minf(a.y, b.y))
+			rows_max = maxf(rows_max, maxf(a.y, b.y))
+			len_all += a.distance_to(b)
+			if a.y >= 40.0 and b.y >= 40.0 and a.y <= 43.0 and b.y <= 43.0:        # the strip along the picture's bottom edge (rows below 43 are off-screen)
+				len_front += a.distance_to(b)
+		check(rows_max - rows_min >= 30.0, "run %d: it travels deep into the scene (rows %d down to %d)" % [run, int(rows_max), int(rows_min)])
+		check(len_front < 0.45 * len_all, "run %d: no more than 45%% of the way is spent along the bottom edge (%d of %d px)" % [run, int(len_front), int(len_all)])
+		var last: Vector2 = pts[pts.size() - 1]
+		check(last.y <= 6.0, "run %d: and it ends at the building (row %d)" % [run, int(last.y)])
+		check(rn.scale_at(3.0) < 0.4 and is_equal_approx(rn.scale_at(43.0), 1.0), "run %d: it shrinks with the ground's own perspective (%.2f at the building, %.2f at the front)" % [run, rn.scale_at(3.0), rn.scale_at(43.0)])
+		# …and it slows as it recedes (a far figure covers fewer pixels a second)
+		var d_front: float = (pts[1] as Vector2).distance_to(pts[0]) / maxf(0.001, float(rn._t[1]) - float(rn._t[0]))
+		var k := pts.size() - 2
+		var d_deep: float = (pts[k + 1] as Vector2).distance_to(pts[k]) / maxf(0.001, float(rn._t[k + 1]) - float(rn._t[k]))
+		check(d_deep < 0.75 * d_front, "run %d: it is slower deep in the scene than at the front (%.0f vs %.0f px/s)" % [run, d_deep, d_front])
+		# the clock
 		var st: float = float(rn.spec["start"])
-		var du: float = float(rn.spec["dur"])
 		e.t = st - 0.5
 		e._apply(0.0)
 		check(not rn.active(), "run %d: not there before it sets off" % run)
-		e.t = st + du * 0.5
+		e.t = st + 0.3
 		e._apply(0.0)
-		var mid: float = rn.position_x()
-		e.t = st + du * 0.8
+		check(rn.active(), "run %d: running soon after" % run)
+		check(float(rn.pose()["dir"]) == (1.0 if run == 1 else -1.0), "run %d: it faces the way it runs (%s)" % [run, "right" if run == 1 else "left"])
+		var f0: Vector2 = rn.feet()
+		e.t = st + float(rn.total()) * 0.5
 		e._apply(0.0)
-		var later: float = rn.position_x()
-		var want_dir: float = float(rn.spec["dir"])
-		check(rn.active() and signf(later - mid) == want_dir, "run %d: it crosses the ground %s" % [run, "left to right" if want_dir > 0.0 else "right to left"])
-		e.t = st + du + 1.0
+		var f1: Vector2 = rn.feet()
+		e.t = st + float(rn.total()) - 0.05
 		e._apply(0.0)
-		check(not rn.active(), "run %d: and is gone off the far side" % run)
+		var f2: Vector2 = rn.feet()
+		check(f0.y > f1.y and f1.y > f2.y, "run %d: its feet go UP the picture the whole way (y %d → %d → %d)" % [run, int(f0.y), int(f1.y), int(f2.y)])
+		e.t = st + float(rn.total()) + 1.5
+		e._apply(0.0)
+		if run == 1:
+			check(not rn.active(), "run 1: the cat has gone into the doorway")
+		else:
+			check(rn.active() and bool(rn.pose()["done"]), "run 2: the person is still at the door, hammering on it")
 		e.queue_free()
 		await get_tree().process_frame
 	var night := _built("", 3)

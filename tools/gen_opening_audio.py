@@ -6,6 +6,9 @@ Mono 22050 Hz 16-bit PCM WAV.
                noise-band "wind" read as loud static as the building pans); loops exactly (every partial and swell fits the 8 s).
   siren.wav  — 7 s of a siren a long way off across the city: two slow wails, rolled off hard, with an echo; fades in and out.
   swell.wav  — 5 s of a low dark swell for the title: a minor drone that rises, and a soft boom as it lands.
+  flutter.wav — 1.6 s of crows leaving a wire (owner round 49: the birds that startle and fly off): three birds' wingbeats, each flap a soft
+               burst of band-limited pink noise (no hiss — nothing above ~3 kHz), the first at once, the others a beat late, the beats
+               slowing and the whole thing receding as they go.
 
 Run:  python3 tools/gen_opening_audio.py   (needs numpy)   ->  assets/audio/opening/
 """
@@ -87,7 +90,35 @@ def swell():
     return 0.7 * x / np.max(np.abs(x))
 
 
+def flutter():
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import audiolib as al
+    rng = np.random.default_rng(4721)
+    n = int(1.6 * SR)
+    x = np.zeros(n)
+    for bird, (t0, gain) in enumerate(((0.0, 1.0), (0.17, 0.8), (0.36, 0.65))):
+        t = t0
+        k = 0
+        while t < 1.45:
+            gap = 0.075 + 0.012 * k + rng.uniform(-0.006, 0.006)          # the beats slow down as the bird settles into its flight
+            dur = int(0.075 * SR)
+            burst = al.pink(dur, rng)
+            burst = al.bp(burst, SR, 260.0, 1900.0, order=2) if hasattr(al, "bp") else lowpass(burst, 1900)
+            env = np.minimum(1.0, np.arange(dur) / (0.009 * SR)) * np.exp(-np.arange(dur) / (0.022 * SR))
+            recede = np.exp(-t * 1.25)                                     # fainter as it goes
+            i = int(t * SR)
+            x[i:i + dur] += burst[:max(0, min(dur, n - i))] * env[:max(0, min(dur, n - i))] * gain * recede * rng.uniform(0.75, 1.0)
+            # the heavy body of each downstroke: a faint low thump
+            th = np.sin(2 * np.pi * 95.0 * np.arange(dur) / SR) * env
+            x[i:i + dur] += 0.22 * th[:max(0, min(dur, n - i))] * gain * recede
+            t += gap
+            k += 1
+    return al.polish(x, SR, hi=2900.0, lo=60.0, peak=0.5, ms_in=4.0, ms_out=120.0)
+
+
 if __name__ == "__main__":
     write("hum.wav", hum())
     write("siren.wav", siren())
     write("swell.wav", swell())
+    write("flutter.wav", flutter())

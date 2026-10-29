@@ -4,7 +4,7 @@ extends Node
 # looks and this playthrough's burning floors can be reviewed without waiting through the climb. Needs a rendering driver:
 #
 #   xvfb-run -a -s "-screen 0 1152x648x24" godot --rendering-driver opengl3 res://tools/opening_capture.tscn -- \
-#       --out=/tmp/open --run=3 --seed=5 --times=1.5,6,10,15 [--notitle=1] [--hidetitle=1]
+#       --out=/tmp/open --run=3 --seed=5 --times=1.5,6,10,15 [--notitle=1] [--hidetitle=1] [--step=0.25] [--jump=1]
 #
 # It picks a building with fire origins if --seed is not given (so the burnt floors show), sets WorldState.current_run, builds the
 # exterior, ticks its clock to each time and saves a PNG per time (open_<run>_<time>.png).
@@ -14,6 +14,8 @@ var run := 1
 var seed_ := 0
 var times: Array = [1.5, 6.0, 11.0, 15.0]
 var with_title := true
+var step := 0.05                 # the clock's step between frames (a bigger one renders faster; the animation is a function of t)
+var jump := false                # start each frame's clock just before its time instead of ticking all the way from 0 (the animation is a function of t)
 var hide_title := false          # build WITH the title (same timeline) but do not draw it: the plain frame to compare a title frame against
 
 
@@ -31,6 +33,10 @@ func _ready() -> void:
 				times.append(float(p))
 		elif a.begins_with("--notitle="):
 			with_title = a.substr(10) != "1"
+		elif a.begins_with("--jump="):
+			jump = a.substr(7) == "1"
+		elif a.begins_with("--step="):
+			step = maxf(0.01, float(a.substr(7)))
 		elif a.begins_with("--hidetitle="):
 			hide_title = a.substr(12) == "1"
 	DirAccess.make_dir_recursive_absolute(out_dir)
@@ -65,8 +71,10 @@ func _ready() -> void:
 	for tm in times:
 		# tick in small steps so the animation state (flicker, drift, lightning) evolves like play
 		var tt: float = float(tm)
+		if jump and ext.t < tt - 0.5:
+			ext.t = tt - 0.5
 		while ext.t < tt:
-			ext.tick(0.05)
+			ext.tick(step)
 			await get_tree().process_frame
 		await get_tree().process_frame
 		await get_tree().process_frame
