@@ -287,25 +287,29 @@ def cooling(c, rng, pl, x, ground, w=22, h=46):
 
 # ---------------------------------------------------------------------------------------------------------------- columns
 def column(img, x0, y0, height, lean, w0, run, seed):
-    """A column of smoke leaning one way, rooted on a roof at (x0, y0): a billowing, torn-edged mass from a density field (a core
-    that is dark and a rim that lifts as it ages), widening as it climbs, thinning to ragged wisps at the top."""
+    """A plume of smoke rising off a burning roof at (x0, y0) and BENT by the wind (owner round 49b: the first columns were narrow at the
+    root and widened upward — funnels, "tornadoes"): fat and dense where it leaves the roof, billowing, rising nearly straight and then
+    leaning downwind more and more, spreading into a broad torn smear that thins to wisps at the top. Density from noise, dark core,
+    lighter and more transparent with age; the old smoke breaks up in a checker rather than dithering."""
     import numpy as np
     pal = [hexc(h) for h in SMOKE[run]]
-    wmax = int(w0 * 4.2 + abs(lean) * height * 0.42 + 14)
+    drift = lean * height * 0.50                                   # how far downwind the top has been carried
+    wmax = int(w0 * 6.0 + abs(drift) + 16)
     xs0 = int(x0 - wmax)
-    width = wmax * 2 + 6
+    width = wmax * 2 + 8
     ys, xs = np.mgrid[0:height, 0:width].astype(np.float64)
-    k = (height - 1 - ys)                                                                 # rows above the root
+    k = (height - 1 - ys)                                          # rows above the root
     t = k / float(height)
-    cx = (x0 - xs0) + lean * k * 0.42 + (K.fbm(k * 0.05, np.zeros_like(k) + 4.0, seed, 3) - 0.5) * 9.0 * (0.3 + t)
-    half = w0 * (0.9 + 2.9 * t ** 0.72)
+    cx = (x0 - xs0) + drift * t ** 1.7 + (K.fbm(k * 0.045, np.zeros_like(k) + 4.0, seed, 3) - 0.5) * 7.0 * (0.25 + t)
+    half = w0 * (1.5 + 3.6 * t ** 0.62)                            # fat at the root, spreading as it climbs
     d = np.abs(xs - cx) / np.maximum(half, 0.5)
-    billow = K.fbm(xs * 0.11, k * 0.085, seed + 5, 4, 0.55)
-    dens = (1.0 - d) + (billow - 0.5) * (0.9 + 0.8 * t) - 0.22 * t
+    billow = K.fbm(xs * 0.10, k * 0.075, seed + 5, 4, 0.56)
+    puff = K.fbm(xs * 0.05 + 7.0, k * 0.04, seed + 9, 2, 0.5)      # big slow lobes
+    dens = (1.0 - d) + (billow - 0.5) * (1.0 + 0.8 * t) + (puff - 0.5) * 0.7 * (1.0 - t) - 0.20 * t ** 1.5
     inside = dens > 0.0
-    tone = np.clip(0.35 + (1.0 - np.clip(dens * 1.8, 0, 1)) * 1.7 + t * 1.2 - (billow - 0.5) * 0.8, 0, 3)
+    tone = np.clip(0.30 + (1.0 - np.clip(dens * 1.7, 0, 1)) * 1.7 + t * 1.3 - (billow - 0.5) * 0.9, 0, 3)
     idx = np.rint(tone).astype(int)
-    alpha = np.clip(252 - 150 * t ** 1.15, 0, 255).astype(int)
+    alpha = np.clip(252 - 160 * t ** 1.1, 0, 255).astype(int)
     px = img.load()
     for yy in range(height):
         y = y0 - (height - 1 - yy)
@@ -443,7 +447,7 @@ def skyline(layer, w, h, ground, run, lit_p, sun_gap=None, extras=False, columns
         rr = random.Random(77)
         rr.shuffle(roots)
         for i, (rx, ry, rh) in enumerate(roots[:columns]):
-            column(img, rx, ry, rr.randrange(96, 168), 1.0 if i % 3 else 0.7, 2.0 + rr.random() * 1.6, run, 40 + i * 13)
+            column(img, rx, ry, rr.randrange(90, 150), 1.0 if i % 3 else 0.7, 3.0 + rr.random() * 1.4, run, 40 + i * 13)
     g = GRADE[run]
     _grade(img, g)
     _haze(img, tuple(int(g[layer][0][i:i + 2], 16) for i in (0, 2, 4)), g[layer][1])

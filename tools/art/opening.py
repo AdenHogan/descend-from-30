@@ -1653,6 +1653,8 @@ def draw_scene(run=1):
                     c.px[x0, yy] = (0, 0, 0, 0)
     if L['grade'] is not None:
         grade_scene(c.img, L['grade'], meta['lit'], run)
+        if run == 3:
+            night_light(c.img)
         c.px = c.img.load()
     # the garden layer, on its own canvas
     cg = Canvas(W, SCENE_H, seed=505)
@@ -1683,6 +1685,71 @@ def base_shadow(cg, run):
         a = int((60, 70, 30)[run - 1] * (1.0 - yy / 10.0))
         for x in range(BX0 - 2, BX1 + 4):
             cg.put(x, GROUND_Y + yy, (0, 0, 0, a))
+
+
+def night_light(img):
+    """What the night's light does to the FACADE after the grade has flattened it to one dim brown (round 49b: the upper tower read as a
+    slab, the glass as holes). Three things, all from where the light really is:
+      * the street's fires light the FOOT of the tower and its left side (they stand left of it); the top, far from them, takes only the
+        dull cool sheen of the cloud deck — warm below, cool above, so the one tower has two colours of dark;
+      * big soft patches of lighter and darker wall (rain-wet stone, soot, uneven glow), posterised to four steps so it stays pixel art;
+      * the dark GLASS reflects the sky: warm toward the fires below, cool above, each pane its own strength, a third with a diagonal glint.
+    Lit windows (the lamps) and the transparent parapet gap are left alone."""
+    import numpy as np
+    px = img.load()
+    top, bot = PARAPET_Y, GROUND_Y
+    span = float(bot - top)
+    gy_, gx_ = np.mgrid[0:SCENE_H, 0:W].astype(np.float64)
+    patches = opening_sky.fbm(gx_ * 0.045 + 3.0, gy_ * 0.028 + 9.0, 71, 3, 0.5) - 0.5
+    patches = np.round(patches * 4.0) / 4.0 * 0.55                   # four steps, +-0.27
+    for y in range(top, bot):
+        t = (y - top) / span                                        # 0 at the cornice, 1 at the street
+        warm = t ** 1.7
+        cool = (1.0 - t) ** 1.2
+        for x in range(BX0 - 1, BX1 + 3):
+            r, g, b, a = px[x, y]
+            if not a or 0.30 * r + 0.59 * g + 0.11 * b > 84:
+                continue
+            side = 1.0 - 0.45 * (x - BX0) / float(BX1 - BX0)        # the fires stand to the left
+            m = 1.0 + float(patches[y, x])
+            r = r * m * (1.0 + 0.62 * warm * side - 0.30 * cool)
+            g = g * m * (1.0 + 0.30 * warm * side - 0.22 * cool)
+            b = b * m * (1.0 - 0.04 * warm - 0.10 * cool) + 2.0 * cool
+            px[x, y] = (max(0, min(255, int(r))), max(0, min(255, int(g))), max(0, min(255, int(b))), a)
+    fl = 0
+    y = TOP_Y
+    while y + FH <= LOBBY_Y:
+        t = (y + FH * 0.5 - top) / span
+        for bay in range(BAYS):
+            gx, gy = INNER_X0 + bay * BAY_W + 3, y + 3                 # the glass: 9 x 8 inside the 11 x 10 frame
+            reflect = 0.30 + 0.70 * _h01(bay, fl, 516)
+            glint = _h01(bay, fl, 517) < 0.34
+            warm = t ** 1.2
+            col = (mix_rgb((14, 18, 26), (50, 26, 11), warm))
+            for yy in range(8):
+                for xx in range(9):
+                    r, g, b, a = px[gx + xx, gy + yy]
+                    if not a or 0.30 * r + 0.59 * g + 0.11 * b > 40:
+                        continue
+                    k = reflect * (1.0 - 0.55 * yy / 7.0)               # the reflection fades toward the sill
+                    add = k
+                    if glint and (xx + yy) in (5, 6):
+                        add = k + 0.55
+                    px[gx + xx, gy + yy] = (min(255, int(r + col[0] * add)), min(255, int(g + col[1] * add)),
+                                            min(255, int(b + col[2] * add)), a)
+        y += FH
+        fl += 1
+
+
+def _h01(a, b, seed):
+    """A tiny integer hash in [0, 1) (the same on every machine)."""
+    h = (a * 374761393 + b * 668265263 + seed * 1274126177) & 0xFFFFFFFF
+    h = ((h ^ (h >> 13)) * 1274126177) & 0xFFFFFFFF
+    return ((h ^ (h >> 16)) & 0xFFFFFFFF) / 4294967296.0
+
+
+def mix_rgb(a, b, t):
+    return tuple(a[i] + (b[i] - a[i]) * t for i in range(3))
 
 
 def grade_scene(img, g, lit, run):

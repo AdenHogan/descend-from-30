@@ -159,7 +159,8 @@ def _night_glow(out, xs, ys, w, h, e, cov, dens, thr, fires, seed, p):
     # undersides catch it hardest: the shaded side of a cloud (low `dens` edge near a gap) is the one facing down
     under = smooth(dens, thr, thr + 0.12)
     rim = (1.0 - smooth(dens, thr + 0.10, thr + 0.30)) * 1.1    # a thin lit lower edge
-    tone = ncl - 1.4 - glow * 2.6 - rim * glow * 1.2 - under * 0.0
+    deep = smooth(dens, thr + 0.05, thr + 0.45)                 # the heart of a cloud is the darkest part; its thin edges scatter light
+    tone = ncl - 2.2 + deep * 1.1 - glow * 2.6 - rim * (glow + 0.35) * 1.3 - under * 0.0
     cloud_rgb = ramp_pick([rgb(c) for c in p['cloud']], np.clip(tone, 0, ncl - 1))
     gi = np.clip(glow * 2.2, 0, len(p['gap']) - 1)              # the gaps glow too, low down
     gap_rgb = ramp_pick([rgb(c) for c in p['gap']], gi)
@@ -194,20 +195,21 @@ def cloud_cell(w, h, seed, style, run):
     shear = {'bank': 0.30, 'frag': 0.22, 'strat': 0.0, 'plume': 0.9, 'puff': 0.6, 'streak': 0.2,
              'scud': 0.15, 'scud_s': 0.15, 'scud_w': 0.05}[style]
     sx = xs - (1.0 - ny) * shear * h                                          # the top leans downwind (right)
-    flat = style in ('strat', 'streak', 'scud', 'scud_s', 'scud_w')
+    flat = style in ('strat', 'streak', 'scud', 'scud_s', 'scud_w', 'plume', 'puff')
     amp0, amp1 = {'plume': (0.12, 0.30), 'puff': (0.14, 0.30)}.get(style, (0.30, 0.58))      # smoke humps are LOW (no pointed mounds)
     fx, fy = (0.045, 0.30) if flat else (0.075, 0.115)
-    n = fbm(sx * fx + 5.0, ys * fy + seed * 0.37, seed, 5, 0.55)
-    n2 = fbm(sx * fx * 2.3 + 90.0, ys * fy * 2.3, seed + 9, 3, 0.5)
+    n = fbm(sx * fx + 5.0, ys * fy + seed * 0.37, seed, 4, 0.52)
+    n2 = fbm(sx * fx * 2.3 + 90.0, ys * fy * 2.3, seed + 9, 2, 0.5)
     # the vertical profile: a thin bar for the flat kinds; a body that stands up from its base for the others (the base TORN, not ruled)
     base_y = 0.80 + (fbm(xs * 0.06, np.zeros_like(xs) + seed, seed + 3, 3) - 0.5) * 0.30
     if flat:
         rag = 0.55 + 0.9 * fbm(sx * 0.09, ys * 0.35 + seed, seed + 29, 3)        # ragged: the bar's thickness wanders along its length
-        prof = np.clip(1.0 - np.abs(ny - 0.5) / ((0.16 + 0.30 * envx ** 0.7) * rag), 0.0, 1.0)
+        ex = envx ** (0.38 if style in ('plume', 'puff') else 0.7)                 # smoke bars end bluntly and ragged, not in a lens's two points
+        prof = np.clip(1.0 - np.abs(ny - 0.5) / ((0.16 + 0.30 * ex) * rag), 0.0, 1.0)
     else:
         top = base_y - (amp0 + amp1 * envx) * (0.55 + 0.9 * (fbm(sx * 0.05, np.zeros_like(xs) + 2.0 + seed, seed + 17, 3) - 0.30))
         prof = np.clip((ny - top) / 0.18, 0.0, 1.0) * np.clip((base_y - ny) / 0.16 + 0.35, 0.0, 1.0)
-    dens = (n * 0.8 + n2 * 0.35) * (0.28 + 0.9 * envx) * prof * 1.9
+    dens = (n * 0.85 + n2 * 0.22) * (0.28 + 0.9 * envx) * prof * 1.9
     thr = 0.50
     solid = dens > thr
     veil = (dens > thr - 0.07) & ~solid

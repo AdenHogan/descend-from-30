@@ -425,7 +425,6 @@ func _test_survivors() -> void:
 			all_kinds[String(p["kind"])] = true
 			check(known.has(String(p["kind"])), "run %d: a known behaviour (%s)" % [run, String(p["kind"])])
 			mans["%d:%d" % [int(p["floor"]), int(p["bay"])]] = true
-		print("  run %d: %d people, %d shadows passing" % [run, s3.people.size(), s3.passers.size()])
 		for q in s3.passers:
 			n_pass += 1
 			var at := Vector2(float(q["x"]), float(q["y"]))
