@@ -66,6 +66,7 @@ var drag_active = false
 var drag_from = Vector2.ZERO
 var ghost: TextureRect = null
 var last_press_time = 0.0
+var _pv_press_time: float = -10.0            # the last click that landed on the PREVIEW tag (a double-click on it takes the item, like [interact])
 var _host: Control = null
 var _mouse_pos: Vector2 = Vector2.ZERO # the pointer as the last motion event reported it (a drag follows this — a touch drag has no cursor to poll)
 const RING_GAP := 24.0                 # clear space between the tag and the pack ring that opens beside it
@@ -112,6 +113,7 @@ func _build_ui() -> void:
 	pv_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_preview_layer.add_child(pv_host)
 	_preview = _make_tag(pv_host)
+	_preview["panel"].add_to_group("hud_widget_extra")       # a click on the standing tag is the tag's, never a world click (it would walk the player off / swing at the air)
 
 	# SEARCHING lives on a layer of its own, above this one.
 	_word_layer = CanvasLayer.new()
@@ -604,6 +606,7 @@ func _end_drag(take: bool) -> void:
 
 func _input(event: InputEvent) -> void:
 	if not visible:
+		_preview_input(event)                    # the live tag is closed: a click may still be on the tag standing beside a node already searched
 		return
 	if event is InputEventMouseMotion or (event is InputEventMouseButton and event.pressed):
 		_mouse_pos = event.position
@@ -656,6 +659,27 @@ func _input(event: InputEvent) -> void:
 				get_viewport().set_input_as_handled()
 			else:
 				drag_armed = false
+
+
+## A double-click on the preview tag (owner round 49f: "the player should be able to also double click this to add to inventory. Not just press E") takes the item the way a press of
+## [interact] on that node does — through the node itself, so a full pack leaves the live tag up saying MAKE ROOM and the ring / rounds rules all stay in `_take`. One click on the tag
+## does nothing but is claimed (it is the tag's click: no click-to-move, no swing).
+func _preview_input(event: InputEvent) -> void:
+	if _preview.is_empty() or not (event is InputEventMouseButton) or not event.pressed or event.button_index != MOUSE_BUTTON_LEFT:
+		return
+	var tag: PanelContainer = _preview["panel"]
+	if not tag.visible or not tag.get_global_rect().has_point(event.position):
+		return
+	get_viewport().set_input_as_handled()
+	var now: float = Time.get_ticks_msec() / 1000.0
+	if now - _pv_press_time < DOUBLE_CLICK_TIME:
+		_pv_press_time = -10.0
+		var n: Node = _preview_node
+		if n != null and is_instance_valid(n) and n.has_method("try_interact"):
+			WorldState.interaction_handled = false
+			n.try_interact()
+	else:
+		_pv_press_time = now
 
 
 ## Take the found item, first putting wedge `k` of the ring down if the bag is full (and `k` holds something). Used both ways:

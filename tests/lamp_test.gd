@@ -257,8 +257,37 @@ func _test_found_tag_in_the_world() -> void:
 	loot._process(0.016)
 	check(loot.preview_showing_for(anchor), "(a left-over node again)")
 	var before: int = WorldState.inventory.size()
-	loot.open("006", "anchor_pv", "9996", anchor)
-	check(WorldState.inventory.size() == before + 1 and not WorldState.loot_open and not loot.visible and WorldState.get_anchor_item("9996", "anchor_pv") == "", "[interact] while its tag is up takes it in ONE press")
+	# a double-click on the standing tag takes it too (owner round 49f); one click only claims the click
+	anchor.opener = func() -> void: loot.open("006", "anchor_pv", "9996", anchor)
+	var hit := tag.get_global_rect().get_center()
+	var ev := InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_LEFT
+	ev.pressed = true
+	ev.position = hit
+	loot._input(ev)
+	check(WorldState.inventory.size() == before and WorldState.get_anchor_item("9996", "anchor_pv") == "006" and not WorldState.loot_open, "one click on the standing tag takes nothing")
+	var off := InputEventMouseButton.new()
+	off.button_index = MOUSE_BUTTON_LEFT
+	off.pressed = true
+	off.position = tag.get_global_rect().end + Vector2(60.0, 60.0)
+	loot._pv_press_time = -10.0
+	loot._input(off)
+	loot._input(off)
+	check(WorldState.inventory.size() == before and WorldState.get_anchor_item("9996", "anchor_pv") == "006", "a double-click OFF the tag (in the world) takes nothing")
+	loot._pv_press_time = -10.0
+	loot._input(ev)
+	loot._input(ev)
+	check(WorldState.inventory.size() == before + 1 and not WorldState.loot_open and not loot.visible and WorldState.get_anchor_item("9996", "anchor_pv") == "", "a DOUBLE-click on the standing tag takes it, as [interact] does")
+	loot._process(0.016)
+	check(not tag.visible, "…and the tag goes with it")
+	check(tag.is_in_group("hud_widget_extra"), "the tag is a HUD widget: a click on it is never a click in the world")
+	# …and again for the press of [interact] (a hammer this time: bandages would stack onto the ones just taken and not add a slot)
+	WorldState.set_anchor_item("9996", "anchor_pv", "002")
+	WorldState.mark_anchor_searched("9996", "anchor_pv")
+	loot._process(0.016)
+	before = WorldState.inventory.size()
+	loot.open("002", "anchor_pv", "9996", anchor)
+	check(WorldState.inventory.size() == before + 1 and not WorldState.loot_open and not loot.visible and WorldState.get_anchor_item("9996", "anchor_pv") == "", "[interact] while its tag is up takes it in ONE press (inventory %d -> %d, loot_open %s, visible %s, item '%s')" % [before, WorldState.inventory.size(), str(WorldState.loot_open), str(loot.visible), WorldState.get_anchor_item("9996", "anchor_pv")])
 	loot._process(0.016)
 	check(not tag.visible, "…and the tag goes with it")
 	# a full pack: the same press leaves the tag up saying MAKE ROOM (as a second press always did)
