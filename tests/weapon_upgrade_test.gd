@@ -55,6 +55,8 @@ func _lv(w: ItemInstance, level: int, perks: Array) -> ItemInstance:
 		var base_max: int = w.get_max_durability()
 		w.perks.push_front(plain)
 		WorldState._apply_durability_headroom(w, base_max)
+	if level > 1 and w.get_max_durability() > 0:
+		w.current_durability = w.get_max_durability()        # a weapon the bench has just finished is whole
 	return w
 
 
@@ -156,16 +158,16 @@ func _test_costs_and_feed() -> void:
 		var max_before: int = w.get_max_durability()
 		check(WorldState.upgrade_weapon(0, "") == "" and w.level == 2 and WeaponUpgrades.auto_perk(id, 2) in w.perks, "%s: Lv2 Reinforced for 30" % w.get_data().get("name", id))
 		if WeaponUpgrades.kind_of(id) == "melee":
-			check(int(w.perk_add("damage")) == 1 and w.get_max_durability() == int(round(max_before * 1.5)), "…%s: +1 damage and ×1.5 durability (%d → %d)" % [id, max_before, w.get_max_durability()])
+			check(int(w.perk_add("damage")) == 0 and w.get_max_durability() == int(round(max_before * 1.15)) and w.get_max_durability() > max_before, "…%s: only +15%% durability, nothing else (%d → %d)" % [id, max_before, w.get_max_durability()])
 		else:
-			check(is_equal_approx(w.perk_add("headshot"), 0.05) and is_equal_approx(w.perk_add("body"), 0.05) and w.shots_per_mark() > 6, "…the gun: +5% to hit and it wears slower (a mark every %d)" % w.shots_per_mark())
+			check(is_equal_approx(w.perk_add("headshot"), 0.0) and w.shots_per_mark() == 6 and w.get_max_durability() == int(round(max_before * 1.15)) and w.get_max_durability() > max_before, "…the gun: only +15%% durability, no other change (%d → %d marks)" % [max_before, w.get_max_durability()])
 
 
 func _test_perk_effects() -> void:
 	print("[perks apply through the fold]")
 	WorldState.new_game()
 	var g := _gun(3, ["G_durable"])
-	check(g.shots_per_mark() == 18 and _gun().shots_per_mark() == 6 and _gun(2).shots_per_mark() == 9, "Durable Hand Cannon on a Reinforced gun: a mark every 18 shots (9 reinforced, 6 plain)")
+	check(g.shots_per_mark() == 12 and _gun().shots_per_mark() == 6 and _gun(2).shots_per_mark() == 6, "Durable Hand Cannon: a mark every 12 shots (a Reinforced or plain gun: 6)")
 	var door = load("res://scenes/door.tscn").instantiate()
 	add_child(door)
 	check(door._force_damages_gun(g, g.get_data()) and not g.is_damaged, "…and forcing a door never damages it")
@@ -174,7 +176,7 @@ func _test_perk_effects() -> void:
 	check(plain.is_damaged, "(a plain gun still takes the damage)")
 	door.queue_free()
 	var aim := _gun(3, ["G_aim"])
-	check(is_equal_approx(aim.perk_add("headshot"), 0.15) and is_equal_approx(aim.perk_add("body"), 0.15), "Aim Assist: +10% head / +10% body on top of Reinforced's +5%")
+	check(is_equal_approx(aim.perk_add("headshot"), 0.10) and is_equal_approx(aim.perk_add("body"), 0.10), "Aim Assist: +10% head / +10% body (Reinforced adds none)")
 	var P = load("res://scripts/player.gd")
 	var p = P.new()
 	check(p.gunshot_noise_radius(_gun(4, ["G_aim", "G_silencer"])) == WorldState.NOISE_RADIUS["walk"], "Silencer: a shot is heard like footsteps")
@@ -182,14 +184,14 @@ func _test_perk_effects() -> void:
 	p.free()
 	var h := _hammer(2)
 	WorldState.inventory = [h]
-	check(h.get_max_durability() == 15, "a Reinforced hammer lasts 15 uses, not 10 (%d)" % h.get_max_durability())
+	check(h.get_max_durability() == 12, "a Reinforced hammer lasts 12 uses, not 10: +15%% (%d)" % h.get_max_durability())
 	h.current_durability = 7
 	WorldState.scrap = 50
 	WorldState.upgrade_weapon(0, "H_reinforced")
-	check(h.get_max_durability() == 30, "Reinforced Handle on top: durability 15 → 30 (%d)" % h.get_max_durability())
-	check(h.current_durability == 22, "…and the new headroom is added at once (7 → 22)")
+	check(h.get_max_durability() == 26, "Reinforced Handle on top (and the level's own +15%%): durability 12 → 26 (%d)" % h.get_max_durability())
+	check(h.current_durability == 21, "…and the new headroom is added at once (7 → 21)")
 	h.repair_full()
-	check(h.current_durability == 30, "a toolbox repairs it to the new ceiling")
+	check(h.current_durability == 26, "a toolbox repairs it to the new ceiling")
 	check(_hammer(4, ["H_heavy", "H_doorbreaker"]).has_perk_flag("free_force"), "Door Breaker marks free forcing")
 
 
@@ -232,7 +234,7 @@ func _test_melee_perks() -> void:
 		return [50 - z.current_hp, 50 - z2.current_hp, WorldState.get_max_stamina() - WorldState.stamina]
 	var a: Array = swing.call(plain, false)
 	var b: Array = swing.call(heavy, false)
-	check(a[0] > 0 and b[0] == a[0] + 2, "Reinforced +1 and Heavy Head +1: +2 damage over a plain hammer (%d vs %d)" % [b[0], a[0]])
+	check(a[0] > 0 and b[0] == a[0] + 1, "Heavy Head +1 (Reinforced adds no damage): +1 damage over a plain hammer (%d vs %d)" % [b[0], a[0]])
 	check(is_equal_approx(b[2], a[2] * 0.6), "Featherweight: 40%% less stamina (%.1f vs %.1f)" % [b[2], a[2]])
 	var c: Array = swing.call(heavy, true)
 	check(c[0] > 0 and c[1] > 0, "Sweeping Blow: both enemies in reach take the hit (%d, %d)" % [c[0], c[1]])
@@ -409,7 +411,7 @@ func _test_gun_wear() -> void:
 	var d := _gun(3, ["G_durable"])
 	for i in 18:
 		d.register_shot()
-	check(d.current_durability == 7, "Durable Hand Cannon (Reinforced): 18 shots → only 1 mark")
+	check(d.current_durability == d.get_max_durability() - 1 and d.shots_since_mark == 6, "Durable Hand Cannon: 18 shots → only 1 mark (a mark every 12; the 6 over count toward the next)")
 	g.register_shot()
 	g.register_shot()
 	var back: ItemInstance = WorldState.instance_from_dict(WorldState.instance_to_dict(g))
@@ -455,37 +457,37 @@ func _test_gun_wear_in_play() -> void:
 
 
 func _test_salvage_values() -> void:
-	print("[salvage: junk is worth a little; weapons more; worn ones less (full yield: Tinkerer)]")
+	print("[salvage: junk is worth a little; weapons more; worn ones less (Tinkerer: yield 1.2)]")
 	WorldState.new_game()
-	WorldState.active_upgrades = ["U_tinker"]            # the Tinkerer merchant upgrade → full yield
+	WorldState.active_upgrades = ["U_tinker"]            # the Tinkerer merchant upgrade → yield 0.75 × 1.6 = 1.2
 	var junk := ItemInstance.new()
 	junk.setup("032")
-	check(Salvage.value_of(junk) == 6 and not Salvage.needs_confirm(junk), "a broken umbrella → 6 scrap, no confirm needed")
+	check(Salvage.value_of(junk) == 7 and not Salvage.needs_confirm(junk), "a broken umbrella → 6 × 1.2 = 7 scrap, no confirm needed")
 	var bottle := ItemInstance.new()
 	bottle.setup("024")
-	check(Salvage.value_of(bottle) == 3, "an empty bottle → 3")
+	check(Salvage.value_of(bottle) == 4, "an empty bottle → 3 × 1.2 = 4")
 	var h := _hammer()
-	check(Salvage.value_of(h) == 14, "a fresh hammer → 14")
+	check(Salvage.value_of(h) == 22, "a fresh hammer → 18 × 1.2 = 22")
 	h.current_durability = 5
-	check(Salvage.value_of(h) == 10, "half-worn → 14 × (0.4 + 0.6×0.5) = 10")
+	check(Salvage.value_of(h) == 16, "half-worn → 18 × (0.5 + 0.5×0.5) × 1.2 = 16")
 	h.current_durability = 0
 	h.is_depleted = true
-	check(Salvage.value_of(h) == 6, "broken → 40% = 6")
+	check(Salvage.value_of(h) == 11, "broken → half = 18 × 0.5 × 1.2 = 11")
 	var lv := _hammer(4, ["H_heavy", "H_sweep"])
-	check(Salvage.value_of(lv) == 14 + 64, "a Lv4 hammer returns 40% of the 160 scrap sunk in (+64)")
+	check(Salvage.value_of(lv) == 22 + 64, "a Lv4 hammer returns 40%% of the 160 scrap sunk in (+64), flat - the yield does not touch it (%d)" % Salvage.value_of(lv))
 	var gun := _gun()
 	gun.is_damaged = true
-	check(Salvage.value_of(gun) == 18, "a damaged gun → 25 × 0.7 ≈ 18")
+	check(Salvage.value_of(gun) == 27, "a damaged gun → 32 × 0.7 × 1.2 ≈ 27")
 	var fuses := ItemInstance.new()
 	fuses.setup("020")
 	fuses.count = 3
-	check(Salvage.value_of(fuses) == 12, "a stack counts every item (3 fuses → 12)")
-	print("[without the Tinkerer, dismantling pays rubbish (40%)]")
+	check(Salvage.value_of(fuses) == 18, "a stack counts every item (3 fuses → 5 × 3 × 1.2 = 18)")
+	print("[without the Tinkerer, dismantling pays three quarters (yield 0.75)]")
 	WorldState.active_upgrades = []
 	h.current_durability = 10
 	h.is_depleted = false
-	check(Salvage.value_of(junk) == 2 and Salvage.value_of(bottle) == 1, "umbrella 6 → 2, bottle 3 → 1")
-	check(Salvage.value_of(h) == 6 and Salvage.value_of(_gun()) == 10, "hammer 14 → 6, gun 25 → 10")
+	check(Salvage.value_of(junk) == 5 and Salvage.value_of(bottle) == 2, "umbrella 6 → 5, bottle 3 → 2")
+	check(Salvage.value_of(h) == 14 and Salvage.value_of(_gun()) == 24, "hammer 18 → 14, gun 32 → 24")
 	check(WorldState.UPGRADE_POOL.has("U_tinker"), "the Tinkerer is a merchant (every-five-floors) upgrade")
 	for id in ["006", "007", "016", "022", "033", "037", "008"]:
 		var it := ItemInstance.new()
@@ -495,8 +497,8 @@ func _test_salvage_values() -> void:
 	var loaded := _gun()
 	loaded.mag_count = 5
 	WorldState.inventory = [junk, loaded]
-	check(WorldState.salvage_item(0) == 2 and WorldState.scrap == 2 and WorldState.scrap_unlocked, "salvaging banks the scrap (and shows the counter)")
-	check(WorldState.salvage_item(0) == 10 and WorldState.get_ammo_total() == 5, "a loaded gun's rounds come back as bullets")
+	check(WorldState.salvage_item(0) == 5 and WorldState.scrap == 5 and WorldState.scrap_unlocked, "salvaging banks the scrap (and shows the counter)")
+	check(WorldState.salvage_item(0) == 24 and WorldState.get_ammo_total() == 5, "a loaded gun's rounds come back as bullets")
 	# A FULL gun in FULL pockets: bullets stack 40 to a slot now (round 48i), so its 18 rounds always fit in the slot the gun frees - nothing is refused, nothing is lost.
 	WorldState.new_game()
 	var full := _gun()
@@ -507,7 +509,7 @@ func _test_salvage_values() -> void:
 		j.setup("024")
 		WorldState.inventory.append(j)
 	check(WorldState.salvage_blocker(0) == "", "a loaded gun in full pockets is not refused: its rounds take the slot it frees (%s)" % WorldState.salvage_blocker(0))
-	check(WorldState.salvage_item(0) == 10 and WorldState.get_ammo_total() == 18 and WorldState.inventory.size() == WorldState.get_inventory_slots(),
+	check(WorldState.salvage_item(0) == 24 and WorldState.get_ammo_total() == 18 and WorldState.inventory.size() == WorldState.get_inventory_slots(),
 		"…it breaks down and all 18 rounds come back as ONE stack")
 	# …and the refusal itself still works for a magazine bigger than a stack (the rule is robustness rule 5: never destroy the player's things silently).
 	WorldState.new_game()
@@ -535,9 +537,9 @@ func _test_salvage_ui() -> void:
 	ui.open()
 	ui.show_tab("salvage")
 	check(ui._salvage_page.visible and not ui._upgrade_page.visible, "the tab swaps pages")
-	check(ui.salvage(0) == 1 and WorldState.inventory.size() == 2, "junk breaks down on one press")
+	check(ui.salvage(0) == 2 and WorldState.inventory.size() == 2, "junk breaks down on one press")
 	check(ui.salvage(1) == 0 and WorldState.inventory.size() == 2, "a hammer takes a second press…")
-	check(ui.salvage(1) == 6 and WorldState.inventory.size() == 1 and WorldState.scrap == 7, "…then it's scrap (7 total)")
+	check(ui.salvage(1) == 14 and WorldState.inventory.size() == 1 and WorldState.scrap == 16, "…then it's scrap (16 total)")
 	check(ui.salvage(0) == 0, "bandages can't be salvaged")
 	ui.close()
 	ui.queue_free()
@@ -589,16 +591,16 @@ func _test_tuning() -> void:
 	check(WorldState.tune_weapon(0, {"T_reach": 1, "T_temper": 1}) == "", "two points set: Reach + Temper")
 	check(WeaponUpgrades.points_free(h) == 0 and h.tuning == {"T_reach": 1, "T_temper": 1}, "spent")
 	check(is_equal_approx(h.perk_add("reach"), 6.0), "Reach: +6 px")
-	check(h.get_max_durability() == int(round(before_max * 1.25)) and h.current_durability == before_cur + (h.get_max_durability() - before_max),
-		"Temper: +25%% durability, headroom added at once (%d → %d)" % [before_max, h.get_max_durability()])
+	check(before_max == 13 and h.get_max_durability() == 17 and h.current_durability == before_cur + (h.get_max_durability() - before_max),
+		"Temper: durability ×1.25 on the perk side, headroom added at once (%d → %d)" % [before_max, h.get_max_durability()])
 	var t := _hammer(4, ["H_heavy", "H_sweep"])
 	t.tuning = {"T_balance": 3, "T_handling": 2, "T_weight": 1}
 	check(is_equal_approx(t.perk_mult("stamina"), 0.7) and is_equal_approx(t.perk_mult("cooldown"), 0.84), "Balance ×0.7 stamina, Handling ×0.84 swing time")
-	check(int(t.perk_add("damage")) == 3, "Weight stacks with Reinforced and Heavy Head (+3)")
+	check(int(t.perk_add("damage")) == 2, "Weight stacks with Heavy Head (+2; Reinforced adds none)")
 	var g := _gun(3, ["G_aim"])
 	g.tuning = {"T_drum": 2, "T_sights": 1, "T_oiled": 2, "T_handload": 1}
 	check(g.get_mag_cap() == ItemInstance.MAG_CAP + 4 + WorldState.get_gun_mag_bonus(), "Magazine +2 a rank")
-	check(is_equal_approx(g.perk_add("headshot"), 0.19) and g.shots_per_mark() == 14 and is_equal_approx(g.perk_add("free_shot"), 0.05),
+	check(is_equal_approx(g.perk_add("headshot"), 0.14) and g.shots_per_mark() == 9 and is_equal_approx(g.perk_add("free_shot"), 0.05),
 		"Sights / Oiled / Hand-loaded reach the gun")
 	var back: ItemInstance = WorldState.instance_from_dict(JSON.parse_string(JSON.stringify(WorldState.instance_to_dict(t))))
 	check(back.tuning == {"T_balance": 3, "T_handling": 2, "T_weight": 1} and typeof(back.tuning["T_balance"]) == TYPE_INT,

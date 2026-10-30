@@ -292,8 +292,8 @@ def bookcase_tall(c, ox, oy, p):
 
 # ================================================================================================================================ the notice board
 @piece('noticeboard', 40, 28, 'decor', rooms={'study': 8}, styles={'den': 9, 'office': 8, 'radio': 2}, tags=('notice', 'picture'), wall_y=(20, 34), limit=1,
-       variants={'home': {'a': ('CALL', 'MUM'), 'b': ('VET', 'TUE'), 'c': 'MILK'}, 'work': {'a': ('TAX', 'DUE'), 'b': ('OFF', 'MON'), 'c': 'RENT'}},
-       note='a cork board pinned over with a snapshot and notes that each say one thing: CALL MUM, VET TUE, MILK — or TAX DUE, OFF MON, RENT')
+       variants={'home': {'a': ('CALL', 'MUM'), 'b': ('VET', 'TUE'), 'c': 'MILK'}, 'work': {'a': ('TAX', 'DUE'), 'b': ('OFF', 'FRI'), 'c': 'RENT'}},
+       note='a cork board pinned over with a snapshot and notes that each say one thing: CALL MUM, VET TUE, MILK — or TAX DUE, OFF FRI, RENT')
 def noticeboard(c, ox, oy, p):
     import wall_art3d
     wall_art3d.noticeboard(c, ox, oy, p)

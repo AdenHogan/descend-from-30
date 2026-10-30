@@ -31,6 +31,8 @@ func _ready() -> void:
 	_test_legendary_hold()
 	_test_buy_flow()
 	_test_sell_flow()
+	_test_sell_by_level()
+	_test_bullets_for_sale()
 	_test_upgrades()
 	_test_save_load()
 	_test_scene_instantiation()
@@ -57,6 +59,7 @@ func _test_stock_structure() -> void:
 		for floor_num in WorldState.MERCHANT_FLOORS:
 			var stock = WorldState.get_merchant_stock(floor_num)
 			var commons = 0
+			var bullets = 0
 			var quality = 0
 			var legendary = 0
 			var ids = {}
@@ -69,6 +72,11 @@ func _test_stock_structure() -> void:
 						if entry["item_id"] == "036":
 							# Fire extinguisher: priced 35 normally / 55 in a fire crisis (not a SHOP_COMMON ware).
 							prices_ok = prices_ok and (entry["price"] == 35 or entry["price"] == 55)
+						elif entry["item_id"] == "016":
+							# The bullets: a bundle of N rounds at BULLET_BUY_PRICE a round.
+							var n: int = int(entry.get("amount", 0))
+							bullets += 1
+							prices_ok = prices_ok and n >= WorldState.BULLET_STOCK_RANGE.x and n <= WorldState.BULLET_STOCK_RANGE.y and entry["price"] == n * WorldState.BULLET_BUY_PRICE
 						else:
 							prices_ok = prices_ok and WorldState.SHOP_COMMON.get(entry["item_id"], -1) == entry["price"]
 					"quality":
@@ -80,6 +88,7 @@ func _test_stock_structure() -> void:
 			var label = "seed %d floor %d: " % [seed_value, floor_num]
 			check(stock.size() <= 6, label + "max 6 slots (got %d)" % stock.size())
 			check(commons >= 3 and commons <= 4, label + "3-4 commons (got %d)" % commons)
+			check(bullets == 1, label + "ALWAYS exactly one bundle of bullets for sale (got %d)" % bullets)
 			check(quality >= 1 and quality <= 2, label + "1-2 quality (got %d)" % quality)
 			check(legendary <= 1, label + "0-1 legendary (got %d)" % legendary)
 			check(ids.size() == stock.size(), label + "no duplicate wares")
@@ -169,6 +178,91 @@ func _test_sell_flow() -> void:
 	check(not WorldState.sell_item(0, 25), "fourth sale refused")
 	check(WorldState.get_sell_price("022") == 0, "keys are not sellable")
 	check(WorldState.inventory.size() == 1, "three items left the inventory")
+
+
+func _gun_at(level: int, rounds: int = 0) -> ItemInstance:
+	var g := ItemInstance.new()
+	g.setup("004")
+	g.level = level
+	g.current_durability = g.get_max_durability()
+	g.mag_count = rounds
+	return g
+
+
+func _test_sell_by_level() -> void:
+	print("[sell by level: a worked-on weapon is worth more, never more than a new one costs]")
+	_fresh_state(2025)
+	var lv1 := _gun_at(1)
+	var lv4 := _gun_at(4)
+	var lv8 := _gun_at(8)
+	var p1: int = WorldState.sell_price_of(lv1)
+	var p4: int = WorldState.sell_price_of(lv4)
+	var p8: int = WorldState.sell_price_of(lv8)
+	check(p4 > p1 and p8 > p4, "a Lv4 gun fetches more than a Lv1, and a Lv8 more than that (%d < %d < %d)" % [p1, p4, p8])
+	check(p1 == 72 and p4 == 106, "the numbers: Lv1 gun 72 (45%% of 160), Lv4 gun 106 (66%%) (%d, %d)" % [p1, p4])
+	check(p8 < WorldState.item_shop_value("004"), "even a Lv8 heirloom sells for less than a plain one is worth (%d < %d)" % [p8, WorldState.item_shop_value("004")])
+	for id in ["001", "002", "003", "004", "012", "013", "014", "017", "035", "019", "015", "020"]:
+		var it := ItemInstance.new()
+		it.setup(id)
+		var cost: int = WorldState.item_shop_value(id)
+		check(cost > 0 and WorldState.sell_price_of(it) < cost, "%s: sells for %d, below its %d" % [it.get_data().get("name", id), WorldState.sell_price_of(it), cost])
+	var worn := _gun_at(1)
+	worn.current_durability = 2
+	var broken := _gun_at(1)
+	broken.is_depleted = true
+	broken.current_durability = 0
+	check(WorldState.sell_price_of(broken) < WorldState.sell_price_of(worn) and WorldState.sell_price_of(worn) < p1, "wear lowers the price: new > worn > broken (%d, %d, %d)" % [p1, WorldState.sell_price_of(worn), WorldState.sell_price_of(broken)])
+	var junk := ItemInstance.new()
+	junk.setup("023")
+	check(WorldState.sell_price_of(junk) == WorldState.SELL_JUNK_PRICE and WorldState.SELL_JUNK_PRICE >= 6, "junk pays a few notes, not four (%d)" % WorldState.sell_price_of(junk))
+	check(WorldState.get_sell_price("004") > 10 and WorldState.get_sell_price("035") > 10 and WorldState.get_sell_price("002") > 10, "no weapon or tool is the old flat 10 any more")
+	# stacks pay for every unit and the shop's list agrees with what sell_item pays
+	WorldState.wallet_unlocked = true
+	WorldState.wallet_balance = 0
+	var band := ItemInstance.new()
+	band.setup("006")
+	band.count = 3
+	WorldState.inventory = [band]
+	var expect: int = WorldState.sell_price_of(band)
+	check(expect == WorldState.get_sell_price("006") * 3 and WorldState.sell_item(0, 25) and WorldState.wallet_balance == expect, "a stack of three bandages pays for all three, exactly what the list showed (%d)" % expect)
+	# the weapon sold pays by ITS level, and a loaded gun's rounds come home
+	WorldState.wallet_balance = 0
+	WorldState.inventory = [_gun_at(4, 7)]
+	var asked: int = WorldState.sell_price_of(WorldState.inventory[0])
+	check(WorldState.sell_item(0, 25) and WorldState.wallet_balance == asked and asked == p4, "a Lv4 gun sells for the Lv4 price (%d)" % asked)
+	check(WorldState.get_ammo_total() == 7 and WorldState.inventory.size() == 1, "…and its seven loaded rounds come back to the pack as bullets, not into the bin")
+	# no room for the rounds -> refused, nothing touched (robustness rule 5)
+	_fresh_state(2026)
+	var huge := _gun_at(1, WorldState.MAX_AMMO_PER_SLOT + 5)
+	WorldState.inventory = [huge]
+	for i in WorldState.get_inventory_slots() - 1:
+		var k := ItemInstance.new()
+		k.setup("024")
+		WorldState.inventory.append(k)
+	check(WorldState.sell_blocker(0).contains("Unload") and not WorldState.sell_item(0, 25) and WorldState.inventory[0] == huge, "a gun whose rounds will not fit the pack is not sold, and is kept (%s)" % WorldState.sell_blocker(0))
+
+
+func _test_bullets_for_sale() -> void:
+	print("[bullets are always for sale, a different number each visit]")
+	var counts := {}
+	for seed_value in range(1, 41):
+		_fresh_state(seed_value)
+		for floor_num in [25, 20, 15]:
+			var found := 0
+			for e in WorldState.get_merchant_stock(floor_num):
+				if e["item_id"] == "016":
+					found += 1
+					counts[int(e["amount"])] = true
+			check(found == 1, "seed %d floor %d: one bundle of bullets" % [seed_value, floor_num]) if found != 1 else null
+	check(counts.size() >= 6, "the bundle varies (%d different sizes over 120 visits)" % counts.size())
+	# buying it puts those rounds in the pack
+	_fresh_state(31)
+	WorldState.wallet_unlocked = true
+	WorldState.wallet_balance = 1000
+	WorldState.inventory.clear()
+	var entry: Dictionary = WorldState.get_merchant_stock(25)[0]
+	check(entry["item_id"] == "016" and int(entry["amount"]) >= 4, "the bullets lead the list")
+	check(WorldState.add_to_inventory("016", int(entry["amount"])) and WorldState.get_ammo_total() == int(entry["amount"]), "buying it adds exactly the rounds on the label (%d)" % int(entry["amount"]))
 
 
 func _test_upgrades() -> void:

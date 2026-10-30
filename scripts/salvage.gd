@@ -3,14 +3,16 @@ extends RefCounted
 
 # BREAKING ITEMS DOWN FOR SCRAP (docs/SCRAP_UPGRADES.md, "Salvage") — ONLY at a maintenance-room
 # workbench (owner: inventory must not be in-and-out easily, or the small pockets lose their
-# tension). Without help it pays RUBBISH scrap (YIELD_BASE); the "Tinkerer" merchant upgrade
-# (offered at the every-five-floors merchant pick) raises the yield. BASE is the value at FULL
-# yield. Every number lives here.
+# tension). Without help it pays most of BASE (YIELD_BASE); the "Tinkerer" merchant upgrade
+# (offered at the merchant's pick of three) lifts the yield above BASE. BASE is the value of a
+# whole, unworn item at yield 1.0. Every number lives here. (Owner round 49f: "it's almost not
+# worth breaking things down here because the rates are so low" - a screenshot had a gun at +10,
+# a crowbar +6 and a worn hammer +2; the yield and the table were raised.)
 #
-#   value = (BASE[id] × wear × (0.7 if a damaged gun) × stack count  + 40% of any workbench
-#            scrap the weapon had sunk into it) × yield,  rounded, at least 1.
-#   yield = YIELD_BASE × WorldState salvage_yield fold (Tinkerer ×2.5 → full).
-#   wear  = 0.4 + 0.6 × (durability left / max)  — a broken item still gives 40%.
+#   value = BASE[id] × wear × (0.7 if a damaged gun) × stack count × yield  + 40% of any workbench
+#           scrap the weapon had sunk into it (flat - not scaled by the yield),  rounded, at least 1.
+#   yield = YIELD_BASE × WorldState salvage_yield fold (Tinkerer ×1.6).
+#   wear  = 0.5 + 0.5 × (durability left / max)  — a broken item still gives half.
 # Not salvageable (value 0): healing items, clothes/rope, ammo, keys, money, the Scrap Bag.
 
 const BASE := {
@@ -26,27 +28,27 @@ const BASE := {
 	"031": 4,   # Empty Wallet — zip, clasp
 	"032": 6,   # Broken Umbrella — steel ribs
 	# Weapons
-	"001": 10,  # Knife
-	"002": 14,  # Hammer
-	"003": 20,  # Sword
-	"004": 25,  # Gun
-	"012": 12,  # Golf Club
-	"013": 8,   # Cricket Bat (wood)
-	"014": 8,   # Baseball Bat (wood)
-	"017": 16,  # Aluminium Baseball Bat
+	"001": 12,  # Knife
+	"002": 18,  # Hammer
+	"003": 26,  # Sword
+	"004": 32,  # Gun
+	"012": 14,  # Golf Club
+	"013": 10,  # Cricket Bat (wood)
+	"014": 10,  # Baseball Bat (wood)
+	"017": 20,  # Aluminium Baseball Bat
 	# Tools & bits
 	"005": 2,   # Canned Food (the tin)
-	"015": 8,   # Flashlight
-	"019": 16,  # Toolbox
-	"020": 4,   # Fuse
-	"021": 3,   # Battery
-	"034": 6,   # Screwdriver
-	"035": 14,  # Crowbar
-	"036": 12,  # Fire Extinguisher
+	"015": 10,  # Flashlight
+	"019": 20,  # Toolbox
+	"020": 5,   # Fuse
+	"021": 4,   # Battery
+	"034": 8,   # Screwdriver
+	"035": 18,  # Crowbar
+	"036": 14,  # Fire Extinguisher
 }
 
-const YIELD_BASE := 0.4            # rubbish scrap without the Tinkerer upgrade
-const WORN_FLOOR := 0.4             # what a broken / fully worn item is still worth
+const YIELD_BASE := 0.75           # of BASE without the Tinkerer upgrade (a Tinkerer lifts it to 1.2)
+const WORN_FLOOR := 0.5             # what a broken / fully worn item is still worth
 const DAMAGED_GUN := 0.7
 const INVESTED_REFUND := 0.4        # share of workbench scrap an upgraded weapon gives back
 
@@ -66,8 +68,10 @@ static func value_of(inst) -> int:
 	if inst.is_damaged:
 		v *= DAMAGED_GUN
 	v *= maxi(1, inst.count)
-	v += WeaponUpgrades.scrap_sunk(inst) * INVESTED_REFUND     # levels, heirloom tiers, instalments
-	return maxi(1, int(round(v * yield_mult())))
+	# The scrap the player sank into an upgraded weapon comes back at a flat share - it is THEIR scrap, so how well they strip
+	# things down (the yield) does not touch it (it used to be multiplied by the yield too: 40% of 40% = 16% back).
+	var refund: float = WeaponUpgrades.scrap_sunk(inst) * INVESTED_REFUND     # levels, heirloom tiers, instalments
+	return maxi(1, int(round(v * yield_mult() + refund)))
 
 
 # How well this character strips things down: YIELD_BASE, lifted by upgrades (Tinkerer).

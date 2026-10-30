@@ -49,6 +49,11 @@ const HEIRLOOM := {
 	8: {"crossings": 3, "scrap": 600},
 }
 
+# EVERY level-up toughens the weapon (owner round 49f: "make all upgrades improve the durability regardless"): each level
+# above Reinforced multiplies its durability by this, on top of whatever the level's pick and tuning give. Reinforced itself
+# is exactly this and nothing else (R_melee / R_gun: "+15% durability").
+const LEVEL_DURABILITY := 1.15
+
 const POINTS_PER_LEVEL := 2          # tuning points each level above REINFORCE_LEVEL grants (Lv3 = 2, Lv5 = 6, Lv8 = 12)
 
 # Which weapons the bench works on, and their stat sheet. "melee" / "gun".
@@ -120,10 +125,10 @@ const TREES := {
 # mods: stat → {"add": x} and/or {"mult": x}; flags: qualitative behaviours read by the combat code.
 const PERKS := {
 	# --- the first step, every weapon (Lv2): applied by the bench itself, never offered as a choice. No "title" key: it doesn't say what a legendary weapon is best at. ---
-	"R_melee": {"name": "Reinforced", "desc": "+1 damage and half as much durability again.",
-		"mods": {"damage": {"add": 1}, "durability": {"mult": 1.5}}},
-	"R_gun": {"name": "Reinforced", "desc": "+5% to hit (head and body), and it wears half as fast again.",
-		"mods": {"headshot": {"add": 0.05}, "body": {"add": 0.05}, "shots_per_mark": {"mult": 1.5}}},
+	"R_melee": {"name": "Reinforced", "desc": "+15% durability.",
+		"mods": {"durability": {"mult": 1.15}}},
+	"R_gun": {"name": "Reinforced", "desc": "+15% durability.",
+		"mods": {"durability": {"mult": 1.15}}},
 	# --- Gun (the doc's tree) ---
 	"G_aim": {"name": "Aim Assist", "desc": "Steadier aim: +10% headshot and +10% body-hit chance.",
 		"mods": {"headshot": {"add": 0.10}, "body": {"add": 0.10}}, "title": "T_sights"},
@@ -232,6 +237,11 @@ static func perk(id: String) -> Dictionary:
 
 static func is_mod(id: String) -> bool:
 	return MODS.has(id)
+
+
+# The durability multiplier a weapon's LEVEL gives (1.0 up to Reinforced - whose own perk carries the first 15%).
+static func level_durability_mult(level: int) -> float:
+	return pow(LEVEL_DURABILITY, float(maxi(0, level - REINFORCE_LEVEL)))
 
 
 # The perk the bench gives on its own when a weapon reaches `to_level` ("" = none: that level is a pick). Today only the first, plain step.
@@ -343,6 +353,7 @@ static func gives_text(inst) -> String:
 		return " · ".join(parts)
 	parts.append("a pick of two upgrades" if not next_choices(inst).is_empty() else "every stat can go one rank higher")
 	parts.append("%d tuning points to spend" % POINTS_PER_LEVEL)
+	parts.append("+15%% durability")
 	if to_level == LEGENDARY_LEVEL:
 		parts.append("a NAME: it becomes legendary")
 	return " · ".join(parts)

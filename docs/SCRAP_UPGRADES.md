@@ -38,15 +38,14 @@
 - **Salvage (built, owner's calls — "give junk a use"; round 3: bench-only + Tinkerer)** — the
   workbench's **Salvage** tab breaks any carried item down for scrap. **Only at a workbench** —
   never anywhere — so inventory can't go in and out easily and the small pockets keep their
-  tension. By default it pays **RUBBISH scrap** (`Salvage.YIELD_BASE` 0.4 × the values below);
-  the **Tinkerer** merchant upgrade (`U_tinker`, offered at the every-five-floors merchant pick;
-  can be kept forever via Descent Valour) raises the yield ×2.5 to the FULL values. There is no
+  tension. By default it pays **three quarters** of the values below (`Salvage.YIELD_BASE` 0.75; round 49f: *"it's almost not worth breaking things down here because the rates are so low"* — a gun was +10, a crowbar +6, a worn hammer +2; it was 0.4 and a worn floor of 0.4);
+  the **Tinkerer** merchant upgrade (`U_tinker`, in the merchant's pick of three;
+  can be kept forever via Descent Valour) raises the yield ×1.6 to 1.2× the values (was ×2.5 on a 0.4 base). There is no
   extra incentive for using the bench itself (benches come every 3 floors). Full-yield values (`Salvage` in `salvage.gd`, one table; action
   `WorldState.salvage_item`). Junk 2–6 each (metal-bearing junk — umbrella ribs, a remote's
-  board — the most); weapons/tools 4–25 (Gun 25, Sword 20, Aluminium Bat / Toolbox 16, Hammer /
-  Crowbar 14…). **Worn items give less:** × (0.4 + 0.6 × durability left) — a broken one still
-  gives 40%; a damaged gun ×0.7; a stack counts every item. An upgraded weapon also returns **40%
-  of the workbench scrap sunk into it**. A loaded gun's rounds come back as bullets. Junk breaks
+  board — the most); weapons/tools 5–32 (Gun 32, Sword 26, Aluminium Bat / Toolbox 20, Hammer / Crowbar 18…; round 49f raised the table with the yield). **Worn items give less:** × (0.5 + 0.5 × durability left) — a broken one still
+  gives half; a damaged gun ×0.7; a stack counts every item. An upgraded weapon also returns **40%
+  of the workbench scrap sunk into it** — a FLAT share since round 49f (it used to be multiplied by the yield too, so 40% of 40% came back). A loaded gun's rounds come back as bullets. Junk breaks
   down on one press; anything else asks to confirm. Not salvageable: healing items, clothes/rope,
   ammo, keys, money, the Scrap Bag.
   - **Supersedes the original spec's gated "tier-5 dismantle perk"** (owner): dismantling is
@@ -73,12 +72,13 @@ Owner, on the first bench: *"add a plain Lv2 that's a taste of upgrading — mor
 | Level | What it is | Cost | Gives |
 |---|---|---|---|
 | Lv1 | as found | | |
-| **Lv2 Reinforced** | the plain first step, every weapon | 30 scrap, no spare | melee: +1 damage, durability ×1.5 (`R_melee`); gun: +5 % to hit head and body, wears ×1.5 slower (`R_gun`). No pick, **no tuning points** |
+| **Lv2 Reinforced** | the plain first step, every weapon | 30 scrap, no spare | **+15 % durability and nothing else** (`R_melee` / `R_gun`; owner round 49f: *"this upgrade can just simply improve durability by 15%"* — it was +1 damage / +5 % to hit and ×1.5 durability, which read as "half as much durability again"). No pick, **no tuning points** |
 | Lv3 | pick of two (tree weapons) or two special mods | 50 scrap, no spare | + 2 tuning points |
 | Lv4 | pick of two | 80 scrap + a spare | + 2 points |
 | **Lv5 LEGENDARY** | a TITLE; renamable | 100 scrap + a spare of Lv4 | + 2 points (6 in all) |
 | Lv6 / 7 / 8 | Legendary + / ++ / +++ (heirloom) | 400 / 500 / 600 scrap, 1 / 2 / 3 lobby-door crossings | + 2 points each, caps +1 |
 
+- **Every level toughens the weapon** (round 49f: *"make all upgrades improve the durability regardless"*): `WeaponUpgrades.LEVEL_DURABILITY` 1.15 — each level ABOVE Reinforced multiplies the weapon's durability ceiling by 1.15 (`level_durability_mult`, read by `ItemInstance.get_max_durability`), on top of its picks / tuning, and the headroom is added to what is left at once (`_apply_durability_headroom`) — so a hammer (10 uses) reads 12 at Lv2, 13 at Lv3, 15 at Lv4 before any perk. The bench's "gives" line adds "+15% durability" to every step. A save from before this clamps a weapon's current durability to its new ceiling on load.
 - `WeaponUpgrades`: `MAX_LEVEL` 8, `LEGENDARY_LEVEL` 5, `REINFORCE_LEVEL` 2, `STEP_COST` keys 2-5, `HEIRLOOM` keys 6-8, `TREES` keyed Lv3-5 (the gun's Aim / Silencer / Lucky and the hammer's placeholders are the old Lv2-4 picks), `POINTS_PER_LEVEL` counts from `REINFORCE_LEVEL` (`points_earned = 2 × (level − 2)`), `auto_perk` / `is_plain_step` / `gives_text`. `Progression.DOOR_WORTH` has eight rows (Lv2 = 10: a taste).
 - **Save compatibility.** A weapon is saved with `wv` (`WORKBENCH_VERSION` 2). A version-1 weapon at level ≥ 2 is moved up one level on load (`WorldState.instance_from_dict`): same picks, same tuning, same legendary / heirloom standing, and it is given the Reinforced perk it never paid for. Forge instalments (`forge_paid`) carry over by weapon. A legendary title earned at old Lv4 is kept.
 - **The bench** (`workbench_ui.gd`): the Upgrade tab's next-level card says what that step GIVES (`gives_text` — the plain step shows its own bonus and "nothing to choose; tuning points start at Lv3"); the Tune tab opens with a plain-words explanation of what a tuning point is and where it comes from, shows "no tuning points yet" on a Lv1-2 weapon, and lays its stat rows out in fixed columns (name / pips / − / + / effect) with the effect text wrapping inside the card.

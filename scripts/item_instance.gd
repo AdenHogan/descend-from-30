@@ -91,12 +91,12 @@ func has_perk_flag(flag: String) -> bool:
 	return false
 
 
-# This weapon's durability ceiling: the item's base × its perks (Reinforced Handle doubles it).
+# This weapon's durability ceiling: the item's base × its perks (Reinforced Handle doubles it) × 15% per level above Reinforced.
 func get_max_durability() -> int:
 	var base := int(get_data().get("max_durability", -1))
 	if base <= 0:
 		return base
-	return int(round(base * perk_mult("durability")))
+	return int(round(base * perk_mult("durability") * WeaponUpgrades.level_durability_mult(level)))
 
 
 func setup(id: String) -> void:

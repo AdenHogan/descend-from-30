@@ -24101,7 +24101,7 @@
    "must_above": false,
    "near": [],
    "needs": null,
-   "note": "a cork board pinned over with a snapshot and notes that each say one thing: CALL MUM, VET TUE, MILK \u2014 or TAX DUE, OFF MON, RENT",
+   "note": "a cork board pinned over with a snapshot and notes that each say one thing: CALL MUM, VET TUE, MILK \u2014 or TAX DUE, OFF FRI, RENT",
    "on": [],
    "opens": null,
    "pair": null,
@@ -24165,7 +24165,7 @@
       ],
       "b": [
        "OFF",
-       "MON"
+       "FRI"
       ],
       "c": "RENT"
      },

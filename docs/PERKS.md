@@ -35,7 +35,7 @@ Edit the data in `scripts/world_state.gd` `UPGRADE_POOL` (the merchant's own upg
 | `U_scav_m` | Sticky Fingers | Upgrade | +15% scavenge find rate | 2 | 4 | 350 |
 | `U_quiet_s` | Soft Soles | Upgrade | -20% movement noise | 4 | 2 | 200 |
 | `U_quiet_m` | Ghost | Upgrade | -40% movement noise | 2 | 4 | 350 |
-| `U_tinker` | Tinkerer | Upgrade | Dismantling at a workbench yields 2.5x the scrap | 3 | 4 | 275 |
+| `U_tinker` | Tinkerer | Upgrade | Dismantling at a workbench yields 1.6x the scrap | 3 | 4 | 275 |
 | `U_nightvision` | Night Eyes | Upgrade | See much further in the dark (matters most at night) | 3 | 4 | 275 |
 | `U_fortune` | Fortune's Favour | Upgrade | Offers lean toward the perks worth keeping | 1 | 4 | 400 |
 | `U_db_slotstam` | Pack Mule | Upgrade (drawback) | +1 inventory slot, but -25% max stamina | 2 | 4 | 350 |

@@ -9,7 +9,7 @@ extends CanvasLayer
 const SCREEN_W = 1152.0
 const SCREEN_H = 648.0
 const PANEL_W = 1040.0
-const PANEL_H = 584.0
+const PANEL_H = 600.0
 const PAD := 36.0
 const STAMP_BEAT := 0.55                    # seconds a chosen card sits lit before the page moves on
 const WARES_W := 620.0                      # the wares column; the sell column takes the rest
@@ -133,10 +133,10 @@ func _build_ui() -> void:
 	shop_content.add_child(left)
 	rows_box = VBoxContainer.new()
 	rows_box.custom_minimum_size = Vector2(WARES_W, 0)
-	rows_box.add_theme_constant_override("separation", 4)
+	rows_box.add_theme_constant_override("separation", 3)
 	left.add_child(rows_box)
 	detail_label = Lamp.label("", "body", Lamp.PX_BODY, Lamp.BODY, true)          # the whole description of the ware under the pointer (the rows keep one line each)
-	detail_label.custom_minimum_size = Vector2(WARES_W, 72)
+	detail_label.custom_minimum_size = Vector2(WARES_W, 52)
 	left.add_child(detail_label)
 	sell_box = VBoxContainer.new()
 	sell_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -439,7 +439,7 @@ func _refresh() -> void:
 		text_box.alignment = BoxContainer.ALIGNMENT_CENTER
 		text_box.add_theme_constant_override("separation", -2)
 		row.add_child(text_box)
-		var name_label := Lamp.label(String(item_data.get("name", "???")), "head", Lamp.PX_NAME, ink)
+		var name_label := Lamp.label(ware_title(entry), "head", Lamp.PX_NAME, ink)
 		name_label.clip_text = true
 		text_box.add_child(name_label)
 		var desc_label := Lamp.label(String(item_data.get("description", "")), "body", Lamp.PX_LABEL, Lamp.SOFT)
@@ -476,6 +476,28 @@ func _refresh() -> void:
 	_update_money_label()
 
 
+## A ware's title: its name, what a bundle holds ("Bullets x9"), and - for a weapon - its level (the merchant sells plain ones: Lv1).
+func ware_title(entry: Dictionary) -> String:
+	var id: String = String(entry.get("item_id", ""))
+	var t: String = String(ItemData.get_item(id).get("name", "???"))
+	var n: int = int(entry.get("amount", 0))
+	if n > 1:
+		t += " x%d" % n
+	if WeaponUpgrades.can_upgrade(id):
+		t += "  ·  %s" % WeaponUpgrades.tier_name(1)
+	return t
+
+
+## A carried item's title in the SELL column: its name, its stack, and a weapon's level (Lv1 .. Legendary +++).
+func sell_title(inst) -> String:
+	var t: String = inst.get_display_name()
+	if WeaponUpgrades.can_upgrade(inst.item_id):
+		t += "  ·  %s" % WeaponUpgrades.tier_name(inst.level)
+	elif inst.count > 1:
+		t += " x%d" % inst.count
+	return t
+
+
 ## The whole description of ware `i` under the rows (each row shows one line of it).
 func _show_ware_detail(i: int) -> void:
 	if detail_label == null or i < 0 or i >= stock.size():
@@ -494,23 +516,21 @@ func _refresh_sell_section() -> void:
 	note.custom_minimum_size = Vector2(300, 0)
 	sell_box.add_child(note)
 	if remaining <= 0:
-		note.text = "\"Not in a position to buy more right now.\""
+		note.text = "He has bought all he will this visit."
 		return
-	note.text = "Takes %d more this visit." % remaining
+	note.text = "He buys up to %d things a visit. %d left." % [WorldState.SELL_LIMIT_PER_VISIT, remaining]
 
 	for i in range(WorldState.inventory.size()):
 		var instance = WorldState.get_instance_at(i)
-		var price = WorldState.get_sell_price(instance.item_id)
+		var price: int = WorldState.sell_price_of(instance)
 		if price <= 0:
 			sell_buttons.append(null)
 			continue
-		if ItemData.get_item(instance.item_id).get("is_ammo", false):
-			price *= instance.count
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 10)
 		row.custom_minimum_size = Vector2(0, SELL_ROW_H)
 		sell_box.add_child(row)
-		var name_label := Lamp.label(instance.get_display_name(), "head", Lamp.PX_BODY, Lamp.TEXT)
+		var name_label := Lamp.label(sell_title(instance), "head", Lamp.PX_BODY, Lamp.TEXT)
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		name_label.clip_text = true
@@ -537,7 +557,10 @@ func _on_sell_pressed(slot_index: int) -> void:
 			sell_buttons[slot_index].text = "SURE?"
 		return
 	pending_sell_confirm = -1
-	if WorldState.sell_item(slot_index, current_floor):
+	var why: String = WorldState.sell_blocker(slot_index)
+	if why != "":
+		HUD.show_feedback(why, true)
+	elif WorldState.sell_item(slot_index, current_floor):
 		HUD.show_feedback("Sold.")
 		Ledger.play("notes", -9.0)
 	_refresh_sell_section()
@@ -568,7 +591,7 @@ func _on_buy_pressed(index: int) -> void:
 		if buy_buttons[index].has_method("refuse"):
 			buy_buttons[index].refuse()
 		return
-	if not WorldState.add_to_inventory(entry["item_id"]):
+	if not WorldState.add_to_inventory(entry["item_id"], int(entry.get("amount", 0))):
 		HUD.show_feedback("Inventory full.", true)
 		buy_buttons[index].text = "BUY"
 		if buy_buttons[index].has_method("refuse"):
@@ -578,8 +601,7 @@ func _on_buy_pressed(index: int) -> void:
 	WorldState.spend_money(price)
 	WorldState.mark_shop_item_sold(current_floor, index)
 	HUD.refresh_inventory()
-	var item_data = ItemData.get_item(entry["item_id"])
-	HUD.show_feedback(item_data.get("name", "Item") + " purchased.")
+	HUD.show_feedback(ware_title(entry).split("  ·")[0] + " bought.")
 	Ledger.play("notes", -8.0)
 	_fresh_sold = index
 	_refresh()

@@ -905,7 +905,7 @@ const SHOP_LEGENDARY = {
 	"003": 400,  # Sword
 }
 
-var merchant_stock: Dictionary = {}  # "run:floor" -> Array of {item_id, price, band, sold}
+var merchant_stock: Dictionary = {}  # "run:floor" -> Array of {item_id, price, band, sold[, amount]} (amount = rounds in a bullet bundle)
 # Legendary hold: an unpurchased Legendary stays in stock for the next
 # LEGENDARY_HOLD_VISITS shop visits so a savings goal is always reachable.
 var legendary_hold: Dictionary = {}  # {"item_id": String, "visits_left": int} when active
@@ -2060,9 +2060,10 @@ func get_merchant_stock(floor_num: int) -> Array:
 	# Max 6 slots per visit: a legendary claims one, squeezing the commons.
 	var common_count = 3 if legendary_id != "" else 3 + (rng.randi() % 2)
 	var quality_count = 1 + (rng.randi() % 2)
-	if want_ext:
-		common_count = maxi(common_count - 1, 1)   # the extinguisher takes a common slot
-	stock.append_array(_roll_shop_band(SHOP_COMMON, common_count, "common", rng))
+	# ONE common slot is always a bundle of bullets (owner round 49f: "we should always have some bullets for sale. Varied
+	# number of bullets each time but it should be there"); the extinguisher takes another when he has one.
+	var ordinary_count: int = maxi(common_count - 1 - (1 if want_ext else 0), 1)
+	stock.append_array(_roll_shop_band(SHOP_COMMON, ordinary_count, "common", rng))
 	stock.append_array(_roll_shop_band(SHOP_QUALITY, quality_count, "quality", rng))
 	if legendary_id != "":
 		stock.append({
@@ -2073,6 +2074,8 @@ func get_merchant_stock(floor_num: int) -> Array:
 		})
 	if want_ext:
 		stock.append({"item_id": "036", "price": (55 if fire_crisis else 35), "band": "common", "sold": false})
+	var rounds: int = rng.randi_range(BULLET_STOCK_RANGE.x, BULLET_STOCK_RANGE.y)
+	stock.insert(0, {"item_id": "016", "price": rounds * BULLET_BUY_PRICE, "band": "common", "sold": false, "amount": rounds})
 
 	merchant_stock[key] = stock
 	return stock
@@ -2249,9 +2252,37 @@ func merge_medical_slots(from: int, to: int) -> int:
 
 
 # --- Selling to the merchant (max SELL_LIMIT_PER_VISIT items per visit) ---
+# Owner round 49f: "10 cash for each item is poor incentive to sell. We don't want to give more than they cost to
+# buy, but still we can improve those rates" and "one of those guns is a lvl 4. There's no way they should both be
+# equally 10". So: every item has a notional SHOP VALUE (what the merchant would charge for a plain one - the real
+# shop price where he stocks it, `ITEM_VALUE` where he does not), he pays a FRACTION of it, and for a weapon that
+# fraction climbs with the weapon's level (a worked-on weapon is worth more) and falls with wear - but never reaches
+# the shop value (`SELL_FRACTION_CAP` < 1), so selling and re-buying is never a profit.
 const SELL_LIMIT_PER_VISIT = 3
-const SELL_JUNK_PRICE = 4
+const SELL_JUNK_PRICE = 6
+const SELL_ROUND_PRICE = 2                  # per bullet
+const SELL_FRACTION = 0.45                  # of the shop value, for a plain one
+const SELL_FRACTION_PER_LEVEL = 0.07        # added per weapon level above 1
+const SELL_FRACTION_CAP = 0.85              # a Lv8 heirloom still sells for less than a new one costs
+const SELL_FALLBACK = 8                     # an item with no value on record
+const SELL_WORN_FLOOR = 0.5                 # a broken weapon still fetches this share of its worth
+const BULLET_BUY_PRICE = 5                  # per round, when the merchant sells them (he buys them back at 2)
+const BULLET_STOCK_RANGE := Vector2i(4, 14) # rounds in the bundle he has on offer this visit
 var merchant_sales: Dictionary = {}  # "run:floor" -> items sold this visit
+
+# What the merchant WOULD charge for a plain one of these - the base of what he pays. Items he stocks use their shop price.
+const ITEM_VALUE = {
+	"004": 160,   # Gun
+	"012": 60,    # Golf Club
+	"015": 40,    # Flashlight
+	"020": 45,    # Fuse
+	"034": 25,    # Screwdriver
+	"035": 45,    # Crowbar
+	"036": 35,    # Fire Extinguisher
+	"039": 30,    # Molotov
+	"008": 15,    # Clothes
+	"016": 5,     # a round
+}
 
 
 func get_sales_remaining(floor_num: int) -> int:
@@ -2259,23 +2290,73 @@ func get_sales_remaining(floor_num: int) -> int:
 	return SELL_LIMIT_PER_VISIT - int(merchant_sales.get(key, 0))
 
 
-func get_sell_price(item_id: String) -> int:
-	# Roughly 40% of shop value; junk has a floor price so clearing it out
-	# is worth the trip but never worth farming.
+## What the merchant would charge for a plain one of `item_id` (0 = he has no idea).
+func item_shop_value(item_id: String) -> int:
 	if SHOP_COMMON.has(item_id):
-		return max(int(SHOP_COMMON[item_id] * 0.4), 5)
+		return int(SHOP_COMMON[item_id])
 	if SHOP_QUALITY.has(item_id):
-		return int(SHOP_QUALITY[item_id] * 0.4)
+		return int(SHOP_QUALITY[item_id])
 	if SHOP_LEGENDARY.has(item_id):
-		return int(SHOP_LEGENDARY[item_id] * 0.4)
+		return int(SHOP_LEGENDARY[item_id])
+	return int(ITEM_VALUE.get(item_id, 0))
+
+
+## What he pays for ONE plain, whole `item_id` (a Lv1 weapon, a single bandage, a single round). 0 = not for sale.
+func get_sell_price(item_id: String) -> int:
 	var d = ItemData.get_item(item_id)
-	if d.get("is_junk", false):
-		return SELL_JUNK_PRICE
-	if d.get("is_ammo", false):
-		return 2  # per stack entry; stacks sell whole
 	if d.get("is_key", false) or d.get("is_money", false):
 		return 0  # not sellable
-	return 10
+	if d.get("is_ammo", false):
+		return SELL_ROUND_PRICE
+	if d.get("is_junk", false):
+		return SELL_JUNK_PRICE
+	var value: int = item_shop_value(item_id)
+	if value <= 0:
+		return SELL_FALLBACK
+	return maxi(int(round(value * SELL_FRACTION)), 5)
+
+
+## What he pays for THIS item as it is: a stack pays for every unit; a weapon pays by its LEVEL and by what is left of it.
+func sell_price_of(inst) -> int:
+	if inst == null:
+		return 0
+	var each: int = get_sell_price(inst.item_id)
+	if each <= 0:
+		return 0
+	var d: Dictionary = inst.get_data()
+	if d.get("is_ammo", false) or d.get("is_medical", false):
+		return each * maxi(1, inst.count)
+	if WeaponUpgrades.can_upgrade(inst.item_id):
+		var value: int = item_shop_value(inst.item_id)
+		if value <= 0:
+			return each
+		var frac: float = clampf(SELL_FRACTION + SELL_FRACTION_PER_LEVEL * float(maxi(0, inst.level - 1)), SELL_FRACTION, SELL_FRACTION_CAP)
+		var worn := 1.0
+		var max_d: int = inst.get_max_durability()
+		if max_d > 0:
+			var left: float = 0.0 if inst.is_depleted else clampf(float(inst.current_durability) / float(max_d), 0.0, 1.0)
+			worn = SELL_WORN_FLOOR + (1.0 - SELL_WORN_FLOOR) * left
+		return maxi(int(round(float(value) * frac * worn)), 5)
+	return each
+
+
+## Why `slot` can't be sold right now ("" = it can). A loaded gun's rounds go back into the pack first, so they must fit
+## (robustness rule 5: nothing the player owns is destroyed silently).
+func sell_blocker(slot_index: int) -> String:
+	if slot_index < 0 or slot_index >= inventory.size():
+		return "Nothing there."
+	var inst = inventory[slot_index]
+	if sell_price_of(inst) <= 0:
+		return "He won't buy that."
+	var rounds: int = inst.mag_count
+	if rounds > 0:
+		var room: int = (get_inventory_slots() - inventory.size() + 1) * MAX_AMMO_PER_SLOT
+		for other in inventory:
+			if other != inst and other.item_id == "016":
+				room += MAX_AMMO_PER_SLOT - other.count
+		if rounds > room:
+			return "Unload it first - no room for its %d rounds." % rounds
+	return ""
 
 
 func sell_item(slot_index: int, floor_num: int) -> bool:
@@ -2283,13 +2364,14 @@ func sell_item(slot_index: int, floor_num: int) -> bool:
 		return false
 	if get_sales_remaining(floor_num) <= 0:
 		return false
-	var instance = inventory[slot_index]
-	var price = get_sell_price(instance.item_id)
-	if price <= 0:
+	if sell_blocker(slot_index) != "":
 		return false
-	if ItemData.get_item(instance.item_id).get("is_ammo", false) or ItemData.get_item(instance.item_id).get("is_medical", false):
-		price *= instance.count
+	var instance = inventory[slot_index]
+	var price: int = sell_price_of(instance)
+	var rounds: int = instance.mag_count
 	inventory.remove_at(slot_index)
+	if rounds > 0:
+		add_to_inventory("016", rounds)
 	if HUD.selected_slot == slot_index:
 		HUD.selected_slot = -1
 	elif HUD.selected_slot > slot_index:
@@ -2350,7 +2432,7 @@ const UPGRADE_POOL = {
 	"U_scav_m": {"name": "Sticky Fingers", "desc": "+15% scavenge find rate", "w": 2, "d": 4, "drawback": false, "mods": {"scavenge_bonus": {"add": 0.15}}},
 	"U_quiet_s": {"name": "Soft Soles", "desc": "-20% movement noise", "w": 4, "d": 2, "drawback": false, "mods": {"noise_mult": {"mult": 0.8}}},
 	"U_quiet_m": {"name": "Ghost", "desc": "-40% movement noise", "w": 2, "d": 4, "drawback": false, "mods": {"noise_mult": {"mult": 0.6}}},
-	"U_tinker": {"name": "Tinkerer", "desc": "Dismantling at a workbench yields 2.5x the scrap", "w": 3, "d": 4, "drawback": false, "mods": {"salvage_yield": {"mult": 2.5}}},
+	"U_tinker": {"name": "Tinkerer", "desc": "Dismantling at a workbench yields 1.6x the scrap", "w": 3, "d": 4, "drawback": false, "mods": {"salvage_yield": {"mult": 1.6}}},
 	"U_nightvision": {"name": "Night Eyes", "desc": "See much further in the dark (matters most at night)", "w": 3, "d": 4, "drawback": false, "mods": {"night_vision": {"add": 1.0}}},
 	# The META perk (owner, round 6): the offers you meet lean toward the perks worth keeping (their
 	# `d` desirability) — merchant pairs, run boons and the end-of-game Valour offer alike.
@@ -6040,12 +6122,15 @@ func load_game() -> String:
 	for k in data.get("merchant_stock", {}):
 		var entries: Array = []
 		for e in data["merchant_stock"][k]:
-			entries.append({
+			var entry := {
 				"item_id": str(e["item_id"]),
 				"price": int(e["price"]),
 				"band": str(e["band"]),
 				"sold": bool(e["sold"]),
-			})
+			}
+			if e.has("amount"):
+				entry["amount"] = int(e["amount"])      # a bundle (the bullets): how many it holds
+			entries.append(entry)
 		merchant_stock[k] = entries
 	legendary_hold = data.get("legendary_hold", {})
 	if not legendary_hold.is_empty():
@@ -6126,6 +6211,9 @@ func instance_from_dict(entry: Dictionary) -> ItemInstance:
 	instance.shots_since_mark = int(entry.get("shots_since_mark", 0))
 	# Guns had no durability before they wore (-1 = "runs on ammo"): an old save's gun is as new.
 	if instance.current_durability < 0 and instance.get_max_durability() > 0:
+		instance.current_durability = instance.get_max_durability()
+	# A weapon never holds more than its ceiling (round 49f made Reinforced +15%, was x1.5: a save from before it could be over).
+	if instance.get_max_durability() > 0 and instance.current_durability > instance.get_max_durability():
 		instance.current_durability = instance.get_max_durability()
 	return instance
 
