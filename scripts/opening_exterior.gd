@@ -75,6 +75,31 @@ void fragment() {
 	COLOR = vec4(0.02, 0.012, 0.035, clamp(tight * strength + wide * halo, 0.0, 0.85) * (1.0 - body));
 }
 "
+# THE GROWTH WRITHES (owner round 49d: "those vines on the night exterior… make them sort of wriggle, as if they are trying to consume the building"). The sick
+# lower floors' ivy / flesh is its own transparent picture (`growth_<run>.png`, laid over the facade and under everything the game puts on it) and this shader
+# moves it — in WHOLE TEXELS, so it stays pixel art: every output texel takes the texel `d` away, where `d` is a travelling wave (it crawls UP the building, a
+# swell that rolls up through the vines) and a writhe that is out of step from one vine to the next. Sideways for the stems, up and down for the runners
+# across the sills; the foot of the building (the Nest) heaves harder than the top of the ivy. `wt` is the timeline's own clock (a pure function of t).
+const WRITHE_SHADER_CODE := "shader_type canvas_item;
+uniform vec2 tex_px = vec2(288.0, 526.0);
+uniform float wt = 0.0;
+uniform float amp = 1.7;
+uniform float top = 292.0;
+uniform float foot = 482.0;
+void fragment() {
+	vec2 q = floor(UV * tex_px);
+	float depth = clamp((q.y - top) / max(foot - top, 1.0), 0.0, 1.0);
+	float a = amp * (0.6 + 0.8 * depth);
+	float swell = 0.65 + 0.35 * sin(q.y * 0.045 - wt * 0.9);
+	float p1 = q.y * 0.36 + q.x * 0.23 + wt * 2.3;
+	float p2 = q.x * 0.41 - q.y * 0.17 - wt * 1.9;
+	float dx = (sin(p1) + 0.45 * sin(p1 * 2.1 + q.x * 0.6)) * a * swell;
+	float dy = sin(p2) * a * 0.7 * swell;
+	vec2 s = q + floor(vec2(dx, dy) + 0.5);
+	COLOR = texture(TEXTURE, (s + 0.5) / tex_px);
+}
+"
+const WRITHE_AMP := {2: 0.9, 3: 1.7}     # texels of travel at the thickest, by run: the afternoon's ivy only stirs, the night's growth heaves (0 = still)
 const GLASS_DARK := Color(0.24, 0.26, 0.32)
 const BIRDS_TAKE_OFF := 2.0              # the crows on the wire go this far into the opening (the held street, just before the climb sets off)
 
@@ -107,6 +132,7 @@ var burning: Array = []                 # burn_plan() as laid on the building
 var birds: Node2D = null                # the flock wheeling over the roof (day)
 var wire_birds: Node2D = null           # the crows on the telephone wire, which startle and fly off
 var runner: Node2D = null               # the one thing crossing the garden (a black cat in the morning, a person fleeing in the afternoon)
+var growth: Sprite2D = null             # the vines / flesh up the lower floors (its own picture, writhing), above the facade and under everything laid on it
 var survivors: Node2D = null            # the little people at lit windows (meta "survivors"), animated off `t`
 var fliers: Node2D = null               # the NIGHT's flying horrors wheeling over the roof (shadow silhouettes — they replace the day's birds)
 var fliers_sky: Node2D = null           # …and the far ones crossing the sky as the camera climbs
@@ -260,6 +286,8 @@ static func art_present(for_run: int = 1) -> bool:
 	for f in ["sky", "far", "mid", "scene", "garden", "fore", "clouds"]:
 		if not ResourceLoader.exists("%s%s_%d.png" % [DIR, f, for_run]):
 			return false
+	if for_run >= 2 and not ResourceLoader.exists("%sgrowth_%d.png" % [DIR, for_run]):
+		return false                                    # the lower floors' vines are no longer part of the facade picture: without them the building is bare
 	if for_run == 3 and not ResourceLoader.exists(DIR + "monsters.png"):
 		return false
 	return ResourceLoader.exists(DIR + "burn.png") and ResourceLoader.exists(DIR + "birds.png") and ResourceLoader.exists(DIR + "figures.png") and FileAccess.file_exists("%sopening_meta_%d.json" % [DIR, for_run]) \
@@ -533,9 +561,35 @@ func _add_beacon(parent: Node, at: Vector2) -> void:
 	beacons.append({"node": r, "phase": _rng.randf() * 3.0})
 
 
+## The growth layer, directly over the facade (so the people, the flames and the failing lamps laid on the scene afterwards stay over it, as when it was baked in).
+func _lay_growth(node: Node2D) -> void:
+	if run < 2 or not ResourceLoader.exists("%sgrowth_%d.png" % [DIR, run]):     # the first morning's building is still bare: no layer to load
+		return
+	var tex := _tex("growth_%d.png" % run)
+	if tex == null:
+		return
+	var g: Dictionary = meta.get("scene", {}).get("growth", {})
+	var sp := Sprite2D.new()
+	sp.name = "Growth"
+	sp.centered = false
+	sp.texture = tex
+	var mat := ShaderMaterial.new()
+	var code := Shader.new()
+	code.code = WRITHE_SHADER_CODE
+	mat.shader = code
+	mat.set_shader_parameter("tex_px", Vector2(float(tex.get_width()), float(tex.get_height())))
+	mat.set_shader_parameter("amp", float(WRITHE_AMP.get(run, 0.0)))
+	mat.set_shader_parameter("top", float(g.get("top", 292)))
+	mat.set_shader_parameter("foot", float(g.get("foot", 482)))
+	sp.material = mat
+	node.add_child(sp)
+	growth = sp
+
+
 func _decorate_scene() -> void:
 	var node: Node2D = layers["scene"]["node"]
 	var m: Dictionary = meta.get("scene", {})
+	_lay_growth(node)
 	for b in m.get("beacon", []):
 		if b is Dictionary:
 			var r := ColorRect.new()
@@ -860,6 +914,8 @@ func _apply(dt: float) -> void:
 	if rain != null:
 		var gy: float = (float(layers["garden"]["node"].position.y) + 482.0) * PIXEL
 		rain.set("ground_y", gy if gy < 648.0 else -1.0)
+	if growth != null:
+		(growth.material as ShaderMaterial).set_shader_parameter("wt", t)
 	shade.color.a = black_alpha(t, with_title)
 	title.modulate.a = title_visible(t, with_title)
 	var wa := text_alpha(t, with_title)

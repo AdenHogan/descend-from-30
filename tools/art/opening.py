@@ -1334,13 +1334,22 @@ def draw_scene(run=1):
             night_light(c.img)
         c.px = c.img.load()
     keep = [(hp['x'] - 1, hp['y'] - 2, hp['x'] + hp['w'] + 1, hp['y'] + hp['h'] + 2) for hp in meta['helps']]
-    saved = [(r, c.img.crop(r)) for r in keep]
-    opening_facade.growth(c, run, floor_y, dim={1: 1.0, 2: 0.9, 3: 0.66}[run])      # the sick lower floors, laid over the graded wall (nothing above floor 12)
-    for (r, patch) in saved:                                      # …but a HELP sheet is the point of its window: no vine grows over it
-        c.img.paste(patch, r[:2])
+    opening_facade.mould(c, run, floor_y)                         # the Green's stains: on the wall, still
     c.px = c.img.load()
     meta['passers'] = choose_passers(meta, run)
     meta['_over'] = window_overlays(c.img, meta)          # the frames of the people's windows, cut from the FINISHED (graded) picture: the game lays them back over its figures
+    # the sick lower floors' growth (nothing above floor 12) is its OWN transparent layer, drawn the way the night is lit and laid by the game over the
+    # facade (and under everything the game adds to it) — so the game can make it WRITHE (owner round 49d: "make them sort of wriggle, as if they are
+    # trying to consume the building"). Laid flat it is exactly what used to be baked into the wall.
+    cgr = Canvas(W, SCENE_H, seed=606)
+    opening_facade.growth(cgr, run, floor_y, dim={1: 1.0, 2: 0.9, 3: 0.66}[run])
+    for r in keep:                                                # …but a HELP sheet is the point of its window: no vine grows over it
+        cgr.img.paste((0, 0, 0, 0), r)
+    cgr.px = cgr.img.load()
+    if cgr.img.getbbox() is not None:
+        top, foot = opening_facade.growth_rows(floor_y)
+        meta['_growth'] = cgr.img
+        meta['growth'] = {'top': top, 'foot': foot}
     # the garden layer, on its own canvas
     cg = Canvas(W, SCENE_H, seed=505)
     gmeta = {'fires': []}
@@ -1662,6 +1671,9 @@ def build(run):
     over = scene_meta.pop('_over', None)
     if over is not None:
         out['winover_%d.png' % run] = over
+    growth_img = scene_meta.pop('_growth', None)
+    if growth_img is not None:
+        out['growth_%d.png' % run] = growth_img
     out['garden_%d.png' % run] = garden
     if run == 2:                                                  # the afternoon's fog (owner round 36j)
         out['fog_2.png'] = draw_fog(2, 'mid')
@@ -1759,6 +1771,8 @@ def compose(files, meta, cam, run):
             img.alpha_composite(spr, (cl['x'], y))
     top = VIEW_H - L['scene']['h'] + int(round(L['scene']['p'] * cam))
     img.alpha_composite(files['scene_%d.png' % run], (0, top))
+    if ('growth_%d.png' % run) in files:                          # the vines, laid flat (the game wriggles them)
+        img.alpha_composite(files['growth_%d.png' % run], (0, top))
     for key, f in (('fog', 'fog_%d.png'), ('garden', 'garden_%d.png'), ('fogf', 'fogf_%d.png')):
         if (f % run) in files:
             top = VIEW_H - L[key]['h'] + int(round(L[key]['p'] * cam))

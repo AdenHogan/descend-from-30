@@ -343,9 +343,10 @@ def _leaf(c, x, y, pal, flip=1):
 
 
 def growth(c, run, floor_y_fn, dim=1.0, rng_seed=4021):
-    """Draw the sick lower floors for this run. A pure function of the run: which piers carry a vine, how it wanders, and how high it WOULD
-    climb are fixed; the run only decides how far each has got — so run 2's vines are run 3's, shorter. `dim` darkens every colour (it is
-    drawn after the grade, so the growth is lit the way the night is)."""
+    """Draw the sick lower floors' GROWTH for this run — ivy and flesh up the piers, runners across the sills, the Nest's membranes and drips, the
+    fringe at the foot — onto `c`, which is a TRANSPARENT layer of its own (round 49d: the game wriggles it; it is no longer baked into the facade).
+    Every pixel is opaque. A pure function of the run: which piers carry a vine, how it wanders, and how high it WOULD climb are fixed; the run only
+    decides how far each has got — so run 2's vines are run 3's, shorter. `dim` darkens every colour (the layer is lit the way the night is)."""
     k = GROWTH_BY_RUN.get(run, 0.0)
     if k <= 0.0:
         return
@@ -428,19 +429,6 @@ def growth(c, run, floor_y_fn, dim=1.0, rng_seed=4021):
                     c.put(mx, y + 12 + d, flesh[0])
                 c.put(mx, y + 12 + ln, wet)
                 c.put(mx + 1, y + 12 + ln - 1, flesh[1])
-    # ---- the Green's mould: a dark stain running down from some sills (floors 12-6)
-    for n in range(LOW_GROWTH_TOP, NEST_TOP, -1):
-        y = floor_y_fn(n)
-        depth = (LOW_GROWTH_TOP - n + 1) / float(LOW_GROWTH_TOP)
-        for b in range(G.BAYS):
-            fr = random.Random(n * 7001 + b * 131 + 3)
-            if fr.random() < (0.10 + 0.25 * depth) * k:
-                fx = G.INNER_X0 + b * G.BAY_W + 2
-                mx = fx + fr.randrange(1, 10)
-                for d in range(fr.randrange(3, 8)):
-                    c.put(mx, y + 12 + d, (30, 52, 30, int(120 * (1.0 - d / 8.0))))
-                    if d < 3:
-                        c.put(mx + 1, y + 12 + d, (30, 52, 30, int(70 * (1.0 - d / 3.0))))
     # ---- the base: a fringe of flesh along the foot of the lobby, short and thick, wet at the tips (the night's)
     for x in range(G.BX0 + 2, G.BX1 - 2, 3):
         if door0 <= x <= door1 or run != 3:
@@ -453,6 +441,31 @@ def growth(c, run, floor_y_fn, dim=1.0, rng_seed=4021):
                 if d % 3 == 1:
                     c.put(x + 1, foot - d, flesh[0])
             c.put(x, foot - h, wet if fr.random() < 0.5 else flesh[2])
+
+
+def mould(c, run, floor_y_fn):
+    """The Green's mould: a dark stain running down from some sills (floors 12-6). A STAIN ON THE WALL — it is drawn into the facade itself and never
+    moves (round 49d split it from `growth`, which is its own layer so it can wriggle). Semi-transparent, so it must be drawn over the wall."""
+    k = GROWTH_BY_RUN.get(run, 0.0)
+    if k <= 0.0:
+        return
+    for n in range(LOW_GROWTH_TOP, NEST_TOP, -1):
+        y = floor_y_fn(n)
+        depth = (LOW_GROWTH_TOP - n + 1) / float(LOW_GROWTH_TOP)
+        for b in range(G.BAYS):
+            fr = random.Random(n * 7001 + b * 131 + 3)
+            if fr.random() < (0.10 + 0.25 * depth) * k:
+                fx = G.INNER_X0 + b * G.BAY_W + 2
+                mx = fx + fr.randrange(1, 10)
+                for d in range(fr.randrange(3, 8)):
+                    c.put(mx, y + 12 + d, (30, 52, 30, int(120 * (1.0 - d / 8.0))))
+                    if d < 3:
+                        c.put(mx + 1, y + 12 + d, (30, 52, 30, int(70 * (1.0 - d / 3.0))))
+
+
+def growth_rows(floor_y_fn):
+    """The rows the growth spans, for the game's wriggle: (top, foot) = the highest row a vine can reach (floor 12's) and the building's foot."""
+    return floor_y_fn(LOW_GROWTH_TOP), G.GROUND_Y - 1
 
 
 def _mass(c, gx, gy, fr, flesh, pale, wet):

@@ -37,6 +37,7 @@ func _ready() -> void:
 	await _test_layers()
 	await _test_logo_title()
 	await _test_survivors()
+	await _test_growth()
 	await _test_runner()
 	await _test_night_storm()
 	_test_help_sheets()
@@ -456,6 +457,69 @@ func _test_survivors() -> void:
 
 ## Owner round 49c ("the people seem to be clipping the window frame… looking half outside"): every figure is a bust inside ONE pane and the window's own
 ## frame (jamb, lintel, mullion, sill — copied from the FINISHED picture) is laid back over it, so a figure stands behind them.
+func _test_growth() -> void:
+	# Owner round 49d: "those vines on the night exterior… make them sort of wriggle, as if they are trying to consume the building". The lower floors' ivy /
+	# flesh is no longer baked into the facade: it is its own transparent picture, laid directly over the facade and moved by a texel-snapped shader.
+	print("[the lower floors' growth: its own picture, over the facade, writhing]")
+	check(not ResourceLoader.exists(Ext.DIR + "growth_1.png"), "the first morning is clean: no growth picture")
+	for run in [2, 3]:
+		var tex := load("%sgrowth_%d.png" % [Ext.DIR, run]) as Texture2D
+		check(tex != null and tex.get_width() == 288 and tex.get_height() == 526, "run %d: a growth picture the scene's size" % run)
+		if tex == null:
+			continue
+		var gm: Dictionary = _meta(run)["scene"]["growth"]
+		var img: Image = tex.get_image()
+		var n := 0
+		var semi := 0
+		var above := 0
+		for y in range(img.get_height()):
+			for x in range(img.get_width()):
+				var a: float = img.get_pixel(x, y).a
+				if a > 0.0:
+					n += 1
+					if a < 0.99:
+						semi += 1
+					if y < int(gm["top"]):
+						above += 1
+		check(n > 800, "run %d: there is growth to move (%d px)" % [run, n])
+		check(semi == 0, "run %d: every growth pixel is opaque (a moving stain would smear: the mould stays on the wall) (%d)" % [run, semi])
+		check(above == 0, "run %d: nothing grows above floor 12's row %d (%d px)" % [run, int(gm["top"]), above])
+		var helped := true
+		for hp in _meta(run)["scene"]["helps"]:
+			for yy in range(int(hp["h"])):
+				for xx in range(int(hp["w"])):
+					if img.get_pixel(int(hp["x"]) + xx, int(hp["y"]) + yy).a > 0.0:
+						helped = false
+		check(helped, "run %d: no vine grows over a HELP sheet" % run)
+		var e := _built("DESCEND FROM 30", run)
+		await get_tree().process_frame
+		check(e.load_ok and e.growth != null, "run %d: the exterior lays the growth" % run)
+		if e.growth != null:
+			var scene_node: Node2D = e.layers["scene"]["node"]
+			check(e.growth.get_parent() == scene_node and e.growth.get_index() == 1, "run %d: it sits directly over the facade (child %d of the scene layer)" % [run, e.growth.get_index()])
+			if e.survivors != null:
+				check(e.survivors.get_index() > e.growth.get_index(), "run %d: …and under the people at the windows, as when it was baked in" % run)
+			var mat := e.growth.material as ShaderMaterial
+			check(mat != null and is_equal_approx(float(mat.get_shader_parameter("amp")), float(Ext.WRITHE_AMP[run])), "run %d: it writhes by this run's amount (%s)" % [run, str(Ext.WRITHE_AMP[run])])
+			e.t = 3.0
+			e._apply(0.0)
+			var w1: float = float(mat.get_shader_parameter("wt"))
+			e.t = 4.5
+			e._apply(0.0)
+			var w2: float = float(mat.get_shader_parameter("wt"))
+			check(is_equal_approx(w1, 3.0) and is_equal_approx(w2, 4.5), "run %d: its clock is the timeline's (a pure function of t: %.1f, %.1f)" % [run, w1, w2])
+		e.queue_free()
+		await get_tree().process_frame
+	var e1 := _built("DESCEND FROM 30", 1)
+	await get_tree().process_frame
+	check(e1.load_ok and e1.growth == null, "run 1: no growth layer is built")
+	e1.queue_free()
+	await get_tree().process_frame
+	check(float(Ext.WRITHE_AMP[3]) > float(Ext.WRITHE_AMP[2]) and float(Ext.WRITHE_AMP[2]) > 0.0, "the night heaves harder than the afternoon's ivy stirs")
+	# the shader moves whole texels (round() of the offset, sampled at texel centres): pixel art stays crisp. (The look itself is checked under xvfb only.)
+	check(Ext.WRITHE_SHADER_CODE.contains("floor(vec2(dx, dy) + 0.5)") and Ext.WRITHE_SHADER_CODE.contains("+ 0.5) / tex_px"), "the writhe snaps to whole texels")
+
+
 func _test_window_frames() -> void:
 	for run in [1, 2]:
 		var m: Dictionary = _meta(run)["scene"]
