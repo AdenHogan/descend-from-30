@@ -125,13 +125,14 @@ func _census() -> void:
 # --- loot -------------------------------------------------------------------------------------
 
 func _loot() -> void:
-	print("\n[BULLETS in the real apartments — Johnny asks for 10, then 20 more]")
+	print("\n[LOOT in the real apartments - what a descent's flats hold (guns, bullets, and the tools that stand in for them)]")
+	var cols := ["items", "guns", "bullet_nodes", "bullets", "crowbars", "hammers", "knives", "other_melee", "weapons"]
+	var bands := {"top (floors 24-29)": [26, 24], "upper (17-23)": [21, 18], "middle (10-16)": [16, 13, 11], "low (4-9)": [9, 7, 4]}
 	for run in [1, 2, 3]:
 		var flats := 0
-		var nodes_with_item := 0
-		var bullets := 0
-		var bullet_nodes := 0
-		var guns := 0
+		var tot := {}
+		for c in cols:
+			tot[c] = 0
 		var per_flat: Array = []
 		for s in range(1, 9):
 			_fresh_world(s, run)
@@ -142,22 +143,23 @@ func _loot() -> void:
 					var apt := "%d%02d" % [f, col]
 					var r := await _flat_loot(apt, f)
 					flats += 1
-					nodes_with_item += int(r["items"])
-					bullet_nodes += int(r["bullet_nodes"])
-					bullets += int(r["bullets"])
-					guns += int(r["guns"])
+					for c in cols:
+						tot[c] += int(r[c])
 					per_flat.append(int(r["bullets"]))
 		per_flat.sort()
 		var zero := 0
 		for b in per_flat:
 			if b == 0:
 				zero += 1
+		var n := float(flats)
 		print("  run %d: %d flats  items/flat %.1f  guns/flat %.2f  bullet nodes/flat %.2f  BULLETS/flat %.2f  (flats with none: %d%%, best flat %d)" %
-			[run, flats, nodes_with_item / float(flats), guns / float(flats), bullet_nodes / float(flats), bullets / float(flats),
-			int(100.0 * zero / float(flats)), per_flat[per_flat.size() - 1]])
-		var per10 := bullets / float(flats) * 10.0
-		print("         → searching 10 flats yields ~%.1f bullets; Johnny wants 10 (then 20) = ~%.0f flats (then ~%.0f)" %
-			[per10, 10.0 / maxf(bullets / float(flats), 0.001), 30.0 / maxf(bullets / float(flats), 0.001)])
+			[run, flats, tot["items"] / n, tot["guns"] / n, tot["bullet_nodes"] / n, tot["bullets"] / n, int(100.0 * zero / n), per_flat[per_flat.size() - 1]])
+		print("         crowbars/flat %.2f  hammers/flat %.2f  knives/flat %.2f  other melee/flat %.2f  (any weapon incl. gun: %.2f)" %
+			[tot["crowbars"] / n, tot["hammers"] / n, tot["knives"] / n, tot["other_melee"] / n, tot["weapons"] / n])
+		var per10: float = tot["bullets"] / n * 10.0
+		print("         -> searching 10 flats yields ~%.1f bullets; Johnny wants 10 (then 20) = ~%.0f flats (then ~%.0f)" %
+			[per10, 10.0 / maxf(tot["bullets"] / n, 0.001), 30.0 / maxf(tot["bullets"] / n, 0.001)])
+		print("         -> a gun every ~%.0f flats; a crowbar every ~%.0f" % [n / maxf(tot["guns"], 0.001), n / maxf(tot["crowbars"], 0.001)])
 
 
 func _flat_loot(apt: String, floor_num: int) -> Dictionary:
@@ -167,8 +169,9 @@ func _flat_loot(apt: String, floor_num: int) -> Dictionary:
 	var room = load("res://scenes/room.tscn").instantiate()
 	add_child(room)
 	await get_tree().process_frame
-	var r := {"items": 0, "bullets": 0, "bullet_nodes": 0, "guns": 0}
+	var r := {"items": 0, "bullets": 0, "bullet_nodes": 0, "guns": 0, "crowbars": 0, "hammers": 0, "knives": 0, "other_melee": 0, "weapons": 0}
 	var prefix := apt + ":"
+	var loot_ui = load("res://scripts/loot_ui.gd")
 	for key in WorldState.anchor_items.keys():
 		if not String(key).begins_with(prefix):
 			continue
@@ -176,32 +179,24 @@ func _flat_loot(apt: String, floor_num: int) -> Dictionary:
 		if item == "":
 			continue
 		r["items"] += 1
-		if item == "004":
-			r["guns"] += 1
+		match item:
+			"004": r["guns"] += 1
+			"035": r["crowbars"] += 1
+			"002": r["hammers"] += 1
+			"001": r["knives"] += 1
+			"003", "012", "013", "014", "017": r["other_melee"] += 1
+		if ItemData.get_item(item).get("is_weapon", false):
+			r["weapons"] += 1
 		if item == "016":
 			r["bullet_nodes"] += 1
 			var amount: int = WorldState.get_anchor_amount(apt, String(key).substr(prefix.length()))
 			if amount <= 0:
-				amount = _ammo_bundle(apt, String(key).substr(prefix.length()))
+				amount = loot_ui.ammo_bundle_for(apt, String(key).substr(prefix.length()))     # the game's own roll
 			r["bullets"] += amount
 	room.queue_free()
 	await get_tree().process_frame
 	await get_tree().process_frame
 	return r
-
-
-## loot_ui._roll_ammo_bundle, verbatim.
-func _ammo_bundle(apt: String, anchor: String) -> int:
-	var rng = RandomNumberGenerator.new()
-	rng.seed = hash(str(WorldState.master_seed) + "ammobundle" + apt + anchor)
-	var weights = [30, 22, 16, 12, 9, 7, 4]
-	var roll = rng.randi() % 100
-	var acc = 0
-	for i in range(weights.size()):
-		acc += weights[i]
-		if roll < acc:
-			return i + 2
-	return 2
 
 
 # --- fights -----------------------------------------------------------------------------------

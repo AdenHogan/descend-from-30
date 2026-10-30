@@ -2158,6 +2158,9 @@ func _tut_set_club_durability() -> void:
 			return
 
 
+const GUN_BULLET_PAIR_CHANCE := 0.55     # a flat holding a gun turns one of its junk finds into bullets this often (round 49f: was 0.40 - "hardly any bullets")
+
+
 func _pair_bullets_with_gun(apt_id: String) -> void:
 	var has_gun = false
 	var junk_keys: Array = []
@@ -2173,7 +2176,7 @@ func _pair_bullets_with_gun(apt_id: String) -> void:
 		return
 	var rng = RandomNumberGenerator.new()
 	rng.seed = hash(str(WorldState.master_seed) + "gunpair" + apt_id)
-	if rng.randf() < 0.40:
+	if rng.randf() < GUN_BULLET_PAIR_CHANCE:
 		var target_key = junk_keys[rng.randi() % junk_keys.size()]
 		# Only convert anchors the player hasn't already resolved.
 		var parts = target_key.split(":")

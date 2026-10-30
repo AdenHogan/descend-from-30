@@ -316,7 +316,7 @@
   "ROOM_SPAWN_POOLS": {
     "Knife": {
       "bedroom": 1,
-      "kitchen": 2,
+      "kitchen": 3,
       "bathroom": 0,
       "study": 0,
       "living_room": 0,
@@ -324,7 +324,7 @@
     },
     "Hammer": {
       "bedroom": 1,
-      "kitchen": 1,
+      "kitchen": 2,
       "bathroom": 0,
       "study": 1,
       "living_room": 2,
@@ -339,11 +339,11 @@
       "dining_room": 0
     },
     "Gun": {
-      "bedroom": 1,
+      "bedroom": 0,
       "kitchen": 0,
       "bathroom": 0,
       "study": 1,
-      "living_room": 1,
+      "living_room": 0.5,
       "dining_room": 0
     },
     "Canned Food": {
@@ -436,10 +436,10 @@
     },
     "Bullets": {
       "bedroom": 1,
-      "kitchen": 0,
+      "kitchen": 1,
       "bathroom": 0,
-      "study": 1,
-      "living_room": 1,
+      "study": 2,
+      "living_room": 2,
       "dining_room": 1
     },
     "Aluminium Baseball Bat": {
@@ -579,11 +579,11 @@
       "dining_room": 1
     },
     "Crowbar": {
-      "bedroom": 1,
+      "bedroom": 0,
       "kitchen": 1,
       "bathroom": 0,
       "study": 1,
-      "living_room": 1,
+      "living_room": 0,
       "dining_room": 1
     },
     "Fire Extinguisher": {

@@ -90,3 +90,18 @@ I have **not** measured how often that will happen in play, so these are the lev
 - **Side effect worth knowing:** a haven on floor *F* also empties the staircase between *F+1* and *F*, i.e. floor *F+1*'s down shaft.
 - Not covered: waiters and ordinary hiders do not make havens; a haven floor can still burn (fire is independent).
 
+
+## Round 49f - loot rebalance: fewer guns, real bullets (owner: "by floor 23 on run 1 I've found 4 guns including a level 4 gun in a cabinet. But hardly any bullets… 4 crowbars, one hammer and one knife")
+
+Measured with `tools/npc_balance_report.tscn -- --only=loot` (8 seeds x 10 floors x 3 flats = 240 flats a run, the real rooms, the game's own bundle roll `LootUI.ammo_bundle_for`). Before -> after (run 1 / run 2 / run 3):
+
+| per flat | before | after |
+|---|---|---|
+| guns | 0.14 / 0.10 / 0.11 (one per 7-10 flats) | 0.04 / 0.05 / 0.07 (one per 13-24) |
+| bullets | 0.72 / 0.75 / 0.55 (84% of flats had none) | 2.28 / 2.08 / 1.15 (68% none) |
+| crowbars | 0.13 / 0.15 / 0.11 | 0.10 / 0.08 / 0.07 |
+| hammers | 0.24 / 0.20 / 0.15 | 0.27 / 0.25 / 0.20 |
+| knives | 0.24 / 0.21 / 0.20 | 0.27 / 0.23 / 0.20 |
+
+What changed (all data, one place each): `data/Items.json` pools - Gun study 1 / living 0.5 (the bedroom lost it; was 1/1/1), Bullets bedroom 1 / kitchen 1 / study 2 / living 2 / dining 1 (was 1/0/1/1/1), Crowbar kitchen / study / dining only (was five rooms), Hammer kitchen 2, Knife kitchen 3; the bundle is 3-10 rounds (avg 5.6, was 2-8, avg 3.9: `LootUI.AMMO_BUNDLE_*`); a flat that holds a gun turns one junk find into bullets 55% of the time (`Room.GUN_BULLET_PAIR_CHANCE`, was 40%).
+The reading: the owner's four crowbars were mostly luck (0.13 a flat is ~4 in 30 flats) but the crowbar was exempt from the depth scaling that thins hammers and guns up top, so it was the one tool that did not thin; it is now rarer everywhere. Guns ARE a third of the way to scarce: with the cabinets (one a floor in four at most), Johnny's reward and the defenders' guns they are still not rare, just not a thing every third flat holds. A gun now arrives with ~40 rounds' worth of flats behind it (about two magazines), not 8. Dials if it feels wrong: the Gun weights, `AMMO_BUNDLE_WEIGHTS`, `GUN_BULLET_PAIR_CHANCE`. Johnny's 10 + 20 bullets are now ~4 then ~13 flats' worth (was ~14 and ~41). NOT re-measured: the descent bot's depth with the new pools.

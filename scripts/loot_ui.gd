@@ -945,17 +945,26 @@ func _is_cabinet_weapon() -> bool:
 		and WorldState.gun_cabinet_state(current_apartment_id) in ["open", "smashed"]
 
 
-func _roll_ammo_bundle() -> int:
+## The rounds in a found bundle: a size rolled from these weights, seeded per node (so a node always holds the same count). Sizes start at AMMO_BUNDLE_MIN.
+## (Round 49f: "hardly any bullets" - the bundle was 2-8 rounds, 3.9 on average; it is 3-10, 5.6 on average. See also the pools in data/Items.json.)
+const AMMO_BUNDLE_MIN := 3
+const AMMO_BUNDLE_WEIGHTS := [16, 20, 18, 15, 12, 9, 6, 4]
+
+
+static func ammo_bundle_for(apartment_id: String, anchor_name: String) -> int:
 	var rng = RandomNumberGenerator.new()
-	rng.seed = hash(str(WorldState.master_seed) + "ammobundle" + current_apartment_id + current_anchor_name)
-	var weights = [30, 22, 16, 12, 9, 7, 4]  # sizes 2..8
+	rng.seed = hash(str(WorldState.master_seed) + "ammobundle" + apartment_id + anchor_name)
 	var roll = rng.randi() % 100
 	var acc = 0
-	for i in range(weights.size()):
-		acc += weights[i]
+	for i in range(AMMO_BUNDLE_WEIGHTS.size()):
+		acc += AMMO_BUNDLE_WEIGHTS[i]
 		if roll < acc:
-			return i + 2
-	return 2
+			return i + AMMO_BUNDLE_MIN
+	return AMMO_BUNDLE_MIN
+
+
+func _roll_ammo_bundle() -> int:
+	return ammo_bundle_for(current_apartment_id, current_anchor_name)
 
 
 func _close(item_taken: bool) -> void:
