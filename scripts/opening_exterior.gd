@@ -108,18 +108,22 @@ var birds: Node2D = null                # the flock wheeling over the roof (day)
 var wire_birds: Node2D = null           # the crows on the telephone wire, which startle and fly off
 var runner: Node2D = null               # the one thing crossing the garden (a black cat in the morning, a person fleeing in the afternoon)
 var survivors: Node2D = null            # the little people at lit windows (meta "survivors"), animated off `t`
+var fliers: Node2D = null               # the NIGHT's flying horrors wheeling over the roof (shadow silhouettes — they replace the day's birds)
+var fliers_sky: Node2D = null           # …and the far ones crossing the sky as the camera climbs
+var sky_bolts: Node2D = null            # forked bolts striking down BEHIND the city, and sheet lightning in the cloud deck (night)
+var _strikes: Array = []                # the night's storm, planned once (a pure function of the opening's clock): [{t, kind, x, seed, y0, y1, re, delay, db}]
+var _strike_i := 0
+var _booms: Array = []                  # thunder waiting for its light to cross the sky: [{at, db}]
 var _rng := RandomNumberGenerator.new()
 var _hum: AudioStreamPlayer = null
 var _siren: AudioStreamPlayer = null
 var _swell: AudioStreamPlayer = null
-var _thunder: AudioStreamPlayer = null
 var _siren_played := false
 var _flutter: AudioStreamPlayer = null
 var _flutter_played := false
 var _swell_played := false
 var _bolt_in: float = 5.0               # seconds to the next lightning (night)
 var _flicker_in: float = -1.0
-var _boom_in: float = -1.0              # seconds to its thunder
 var _glow_tex: Texture2D = null
 
 
@@ -256,7 +260,9 @@ static func art_present(for_run: int = 1) -> bool:
 	for f in ["sky", "far", "mid", "scene", "garden", "fore", "clouds"]:
 		if not ResourceLoader.exists("%s%s_%d.png" % [DIR, f, for_run]):
 			return false
-	return ResourceLoader.exists(DIR + "burn.png") and ResourceLoader.exists(DIR + "birds.png") and FileAccess.file_exists("%sopening_meta_%d.json" % [DIR, for_run]) \
+	if for_run == 3 and not ResourceLoader.exists(DIR + "monsters.png"):
+		return false
+	return ResourceLoader.exists(DIR + "burn.png") and ResourceLoader.exists(DIR + "birds.png") and ResourceLoader.exists(DIR + "figures.png") and FileAccess.file_exists("%sopening_meta_%d.json" % [DIR, for_run]) \
 		and ResourceLoader.exists(LOGO_HAND) and ResourceLoader.exists(LOGO_TEXT)
 
 
@@ -300,6 +306,7 @@ func _build() -> bool:
 	for key in ["sky", "far", "mid"]:
 		_add_layer(key, spec)
 	_add_clouds()                                   # in the sky, behind the towers
+	_decorate_sky()                                 # the night's storm and the things in it, in the sky layer (behind the city)
 	_decorate_city("far")
 	_decorate_city("mid")
 	_add_layer("scene", spec)
@@ -548,25 +555,17 @@ func _decorate_scene() -> void:
 		_flame(node, Vector2(bx - 7.0, bf - 1.0), 1.1, 1.7)
 		_flame(node, Vector2(bx + 6.0, bf - 1.0), 0.85, 1.5)
 		_smoke_sprite(node, Vector2(bx - 1.0, bf - 12.0), 1.2, Color(1, 1, 1, 0.9))
-	# survivors at some of the lit windows: a wave, pacing, peering out, swaying
+	# people at some of the lit windows (a bust in one pane: a wave, pacing, peering out, swaying…) and a shadow passing behind the curtain of a few
+	# others — both chosen by the art tool (meta), so the art and the game agree on which windows; the window's own frame is laid back over them
 	var sv: Array = m.get("survivors", [])
-	if not sv.is_empty():
+	var ps: Array = m.get("passers", [])
+	if not sv.is_empty() or not ps.is_empty():
 		survivors = _Survivors.new()
 		survivors.name = "Survivors"
 		survivors.people = sv
+		survivors.passers = ps
 		survivors.run = run
-		# in some of the OTHER lit windows a shadow passes behind the curtain now and then
-		var taken := {}
-		for pp in sv:
-			taken["%d:%d" % [int(pp.get("floor", 0)), int(pp.get("bay", 0))]] = true
-		for w in m.get("lit", []):
-			var key := "%d:%d" % [int(w.get("floor", 0)), int(w.get("bay", 0))]
-			if taken.has(key) or int(w.get("floor", 0)) == 30:
-				continue
-			var fl := int(w.get("floor", 0))
-			var bay := int(w.get("bay", 0))
-			if (fl * 13 + bay * 7 + run * 5) % 3 == 0:                      # about a third of them, the same ones every time
-				survivors.passers.append({"x": float(w["x"]), "y": float(w["y"]), "phase": fposmod(float(fl) * 0.37 + float(bay) * 0.19, 1.0), "period": 7.0 + float((fl * 3 + bay) % 7)})
+		survivors.over_tex = _tex("winover_%d.png" % run)
 		node.add_child(survivors)
 	# a failing lamp or two: a dark pane that comes and goes over a lit window (the floor-30 window you wake in stays steady)
 	var lit: Array = m.get("lit", [])
@@ -584,7 +583,9 @@ func _decorate_scene() -> void:
 		r.modulate.a = 0.0
 		node.add_child(r)
 		flickers.append({"rect": r, "next": 0.6 + _rng.randf() * 3.0, "off": false})
-	# birds wheeling over the roof, flapping (not at night — they have gone)
+	# birds wheeling over the roof by day, flapping; at NIGHT they have gone, and what wheels over the roof is something else (owner round 49c)
+	var bld: Dictionary = meta.get("building", {})
+	var roof_mid := (float(bld.get("x0", 78)) + float(bld.get("x1", 209))) * 0.5
 	if run < 3:
 		var art := _bird_art()
 		if art != null:
@@ -592,9 +593,70 @@ func _decorate_scene() -> void:
 			birds.name = "Birds"
 			birds.art = art
 			birds.tint = Color(0.82, 0.80, 0.80) if run == 2 else Color(1, 1, 1)
-			var bld: Dictionary = meta.get("building", {})
-			birds.position = Vector2((float(bld.get("x0", 78)) + float(bld.get("x1", 209))) * 0.5, -26.0)
+			birds.position = Vector2(roof_mid, -26.0)
 			node.add_child(birds)
+	else:
+		var mart := _monster_art()
+		if mart != null:
+			fliers = _Fliers.new()
+			fliers.name = "Fliers"
+			fliers.art = mart
+			fliers.flock = _Fliers.ROOF_FLOCK
+			node.add_child(fliers)
+
+
+## The night's sky: the storm (forked bolts and sheet lightning, in the sky layer so they strike BEHIND the skyline) and the far fliers.
+func _decorate_sky() -> void:
+	if run != 3:
+		return
+	var node: Node2D = layers["sky"]["node"]
+	_strikes = _plan_strikes()
+	sky_bolts = _SkyBolts.new()
+	sky_bolts.name = "SkyBolts"
+	var mat := CanvasItemMaterial.new()
+	mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	sky_bolts.material = mat
+	sky_bolts.strikes = _strikes
+	node.add_child(sky_bolts)
+	var mart := _monster_art()
+	if mart != null:
+		fliers_sky = _Fliers.new()
+		fliers_sky.name = "SkyFliers"
+		fliers_sky.art = mart
+		fliers_sky.flock = _Fliers.SKY_FLOCK
+		node.add_child(fliers_sky)
+
+
+## The storm, planned once: a strike every second or two with some clustered (a bolt and its neighbour), most of them forked bolts striking
+## down behind the city and the rest sheet lightning in the cloud deck. Each is placed for the camera of ITS moment (`pan_u` is a pure
+## function of the clock), so the bolt always comes in from the top of what is on screen and ends behind the skyline or low in the sky.
+func _plan_strikes() -> Array:
+	var r := RandomNumberGenerator.new()
+	r.seed = 4417
+	var l: Dictionary = layers["sky"]
+	var out: Array = []
+	var tt := 1.1
+	while tt < 40.0:
+		var group := 1 + (1 if r.randf() < 0.3 else 0)
+		var tg := tt
+		for g in group:
+			var kind := "bolt" if r.randf() < 0.68 else "sheet"
+			var c_k := scroll * pan_u(tg, with_title)
+			var top := (float(l["h"]) - VIEW_H) - float(l["lift"]) - float(l["p"]) * c_k      # the sky layer's row at the top of the screen
+			var y1 := minf(top + VIEW_H * r.randf_range(0.6, 0.95), float(l["h"]) - 6.0)
+			out.append({"t": tg, "kind": kind, "x": r.randf_range(10.0, 278.0), "seed": r.randi(), "y0": top - 6.0, "y1": y1,
+				"re": r.randf() < 0.6, "delay": r.randf_range(0.6, 2.3), "db": r.randf_range(-15.0, -8.0)})
+			tg += r.randf_range(0.2, 0.45)
+		tt = tg + r.randf_range(0.9, 2.6)
+	return out
+
+
+## The sheet of flying horrors (assets/opening/monsters.png), or null if it is missing.
+func _monster_art() -> _MonsterArt:
+	var tex := _tex("monsters.png")
+	if tex == null:
+		return null
+	return _MonsterArt.make(tex, meta.get("monsters", {}))
 
 
 ## The sheet of birds (assets/opening/birds.png), or null if it is missing.
@@ -644,6 +706,9 @@ func _decorate_garden() -> void:
 	if String(rn.get("kind", "")) != "":
 		runner = _Runner.new()
 		runner.name = "Runner"
+		var ftex := _tex("figures.png")
+		if ftex != null:
+			runner.art = _FigureArt.make(ftex, meta.get("figures", {}))
 		runner.setup(rn)
 		node.add_child(runner)
 
@@ -735,7 +800,6 @@ func _build_audio() -> void:
 	_hum = _player(AUDIO_DIR + "hum.wav", true, -80.0)
 	_siren = _player(AUDIO_DIR + "siren.wav", false, -17.0 if run == 1 else -13.0)
 	_swell = _player(AUDIO_DIR + "swell.wav", false, -8.0)
-	_thunder = _player(THUNDER[0], false, -6.0)
 	_flutter = _player(AUDIO_DIR + "flutter.wav", false, -9.0)
 	if _hum.stream != null:
 		_hum.play()
@@ -825,6 +889,15 @@ func _apply(dt: float) -> void:
 	if wire_birds != null:
 		wire_birds.clock = t
 		wire_birds.queue_redraw()
+	if fliers != null:
+		fliers.clock = t
+		fliers.queue_redraw()
+	if fliers_sky != null:
+		fliers_sky.clock = t
+		fliers_sky.queue_redraw()
+	if sky_bolts != null:
+		sky_bolts.clock = t
+		sky_bolts.queue_redraw()
 	if survivors != null:
 		survivors.clock = t
 		survivors.queue_redraw()
@@ -848,7 +921,9 @@ func _apply(dt: float) -> void:
 		_swell.play()
 
 
-## Night: a flash that lights the whole picture, then the thunder a beat behind it.
+## Night: the storm. Three kinds of light — the NEAR strike (a bolt in front of everything and a flash over the whole picture, the double
+## flicker, thunder at once), the planned forked bolts striking down BEHIND the city (they flash the picture a little and the thunder
+## arrives later, softer, by how far off they were) and sheet lightning in the clouds. The thunder is queued per strike and may overlap.
 func _lightning(dt: float) -> void:
 	if run != 3 or flash == null:
 		return
@@ -857,21 +932,39 @@ func _lightning(dt: float) -> void:
 		if _flicker_in < 0.0:
 			flash.modulate.a = maxf(flash.modulate.a, 0.28)
 	flash.modulate.a = maxf(0.0, flash.modulate.a - dt * 2.6)
+	while _strike_i < _strikes.size() and float(_strikes[_strike_i]["t"]) <= t:                 # the planned storm, as the clock reaches each strike
+		var s: Dictionary = _strikes[_strike_i]
+		_strike_i += 1
+		var bolt_kind := String(s["kind"]) == "bolt"
+		flash.modulate.a = maxf(flash.modulate.a, 0.15 if bolt_kind else 0.07)
+		if bolt_kind:
+			_booms.append({"at": t + float(s["delay"]), "db": float(s["db"])})
 	_bolt_in -= dt
 	if _bolt_in <= 0.0:
 		flash.modulate.a = 0.5
 		_flicker_in = 0.11
 		if bolt != null:
 			bolt.strike(_rng, _rng.randf() < 0.5)
-		_bolt_in = 4.5 + _rng.randf() * 6.0
-		_boom_in = 0.5 + _rng.randf() * 1.0
-	if _boom_in >= 0.0:
-		_boom_in -= dt
-		if _boom_in < 0.0 and _thunder != null:
-			var s = load(THUNDER[_rng.randi() % THUNDER.size()])
-			if s is AudioStream:
-				_thunder.stream = s
-				_thunder.play()
+		_bolt_in = 5.0 + _rng.randf() * 6.0
+		_booms.append({"at": t + 0.15 + _rng.randf() * 0.3, "db": -3.0})
+	var i := _booms.size() - 1
+	while i >= 0:
+		if float(_booms[i]["at"]) <= t:
+			_thunder_play(float(_booms[i]["db"]))
+			_booms.remove_at(i)
+		i -= 1
+
+
+func _thunder_play(db: float) -> void:
+	var s = load(THUNDER[_rng.randi() % THUNDER.size()])
+	if not (s is AudioStream):
+		return
+	var p := AudioStreamPlayer.new()
+	p.stream = s
+	p.volume_db = db
+	add_child(p)
+	p.finished.connect(p.queue_free)
+	p.play()
 
 
 func _snap(v: float) -> float:
@@ -879,7 +972,7 @@ func _snap(v: float) -> float:
 
 
 func _stop_audio() -> void:
-	for p in [_hum, _siren, _swell, _thunder, _flutter]:
+	for p in [_hum, _siren, _swell, _flutter]:
 		if p != null:
 			p.stop()
 
@@ -1030,21 +1123,236 @@ class _WireBirds:
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
+# ---- the night's flying horrors ----------------------------------------------------------------------------------------------
+# Owner round 49c: "instead of those birds we had for the nice day version above the building, we can have flying monsters. Just shadow
+# silhouettes, but that would show how bad it has gotten". One sheet (assets/opening/monsters.png, tools/art/opening_birds.py
+# `draw_monsters`): three sizes (L / M / S) x five wing poses, seen from the front, black against the fire-lit cloud deck. Like the
+# birds, every pose is a pure function of the opening's clock.
+class _MonsterArt:
+	var tex: Texture2D = null
+	var rects: Dictionary = {}      # "L/up" -> Rect2 on the sheet
+
+	static func make(texture: Texture2D, m: Dictionary) -> _MonsterArt:
+		var a := _MonsterArt.new()
+		a.tex = texture
+		for size in m:
+			for e in m[size]:
+				a.rects["%s/%s" % [String(size), String(e["name"])]] = Rect2(float(e["x"]), float(e["y"]), float(e["w"]), float(e["h"]))
+		return a
+
+	## The wing cycle: `phase` counts whole beats. A slow heavy stroke (up, raised, level, down, level, raised).
+	static func beat(phase: float) -> String:
+		var cyc := ["up", "raised", "level", "down", "level", "raised"]
+		return cyc[int(floor(fposmod(phase, 1.0) * 6.0)) % 6]
+
+
+## Wheeling over the roof (ROOF_FLOCK: slow ellipses round the building's top, in the scene layer's pixels, about `home_x`) or crossing the far sky
+## (SKY_FLOCK: drifting one way across the sky layer, behind the whole city). Each one flaps in bursts and glides between.
+class _Fliers:
+	extends Node2D
+
+	const ROOF_FLOCK := [
+		{"s": "L", "cx": -30.0, "cy": -52.0, "rx": 58.0, "ry": 11.0, "per": 19.0, "ph": 0.00, "rate": 1.5, "g": 5.2},
+		{"s": "L", "cx": 34.0, "cy": -70.0, "rx": 64.0, "ry": 9.0, "per": 23.0, "ph": 0.46, "rate": 1.3, "g": 6.4},
+		{"s": "M", "cx": 0.0, "cy": -36.0, "rx": 74.0, "ry": 8.0, "per": 15.0, "ph": 0.71, "rate": 1.9, "g": 4.4},
+		{"s": "M", "cx": -48.0, "cy": -84.0, "rx": 44.0, "ry": 7.0, "per": 17.0, "ph": 0.22, "rate": 1.7, "g": 5.7},
+		{"s": "S", "cx": 52.0, "cy": -44.0, "rx": 40.0, "ry": 6.0, "per": 13.0, "ph": 0.88, "rate": 2.3, "g": 4.9},
+		{"s": "S", "cx": 6.0, "cy": -96.0, "rx": 70.0, "ry": 6.0, "per": 21.0, "ph": 0.57, "rate": 2.1, "g": 6.0},
+	]
+	const SKY_FLOCK := [
+		{"s": "M", "y": 92.0, "v": 9.0, "x0": 30.0, "bob": 4.0, "rate": 1.6, "g": 5.0},
+		{"s": "S", "y": 128.0, "v": -11.0, "x0": 210.0, "bob": 3.0, "rate": 2.2, "g": 4.2},
+		{"s": "S", "y": 160.0, "v": 7.0, "x0": 120.0, "bob": 3.0, "rate": 2.0, "g": 5.6},
+		{"s": "M", "y": 196.0, "v": -8.0, "x0": 60.0, "bob": 4.0, "rate": 1.7, "g": 6.2},
+		{"s": "S", "y": 232.0, "v": 12.0, "x0": 250.0, "bob": 2.0, "rate": 2.4, "g": 4.6},
+		{"s": "S", "y": 262.0, "v": -6.0, "x0": 170.0, "bob": 2.0, "rate": 2.1, "g": 5.3},
+	]
+	const SKY_SPAN := 288.0 + 2.0 * 40.0
+	var art: _MonsterArt = null
+	var flock: Array = []
+	var clock := 0.0
+	var home_x := 143.0                                   # the roof flock circles the building's middle
+
+	## {size, pos (the sprite's centre, in the parent's pixels), frame}: where flier `i` is at time `t` and what its wings are doing.
+	func pose(i: int, t: float) -> Dictionary:
+		var p: Dictionary = flock[i % flock.size()]
+		var pos: Vector2
+		if p.has("rx"):                                  # an ellipse round the roof
+			var a := TAU * (t / float(p["per"]) + float(p["ph"]))
+			pos = Vector2(home_x + float(p["cx"]) + float(p["rx"]) * cos(a), float(p["cy"]) + float(p["ry"]) * sin(a))
+		else:                                            # a drift across the sky, wrapping off both edges
+			var x := fposmod(float(p["x0"]) + float(p["v"]) * t + 40.0, SKY_SPAN) - 40.0
+			pos = Vector2(x, float(p["y"]) + float(p["bob"]) * sin(t * 0.45 + float(i) * 1.7))
+		var per: float = float(p["g"])                   # one glide in each `g` seconds
+		var cyc := fposmod(t + float(i) * 1.3, per) / per
+		var frame := "glide"
+		if cyc < 0.7:
+			frame = _MonsterArt.beat(t * float(p["rate"]) + float(i) * 0.37)
+			pos.y += (1.0 if frame == "up" else (-1.0 if frame == "down" else 0.0))      # the body lifts on the downstroke
+		return {"size": String(p["s"]), "pos": Vector2(roundf(pos.x), roundf(pos.y)), "frame": frame}
+
+	func _draw() -> void:
+		if art == null:
+			return
+		for i in flock.size():
+			var q := pose(i, clock)
+			var r: Rect2 = art.rects.get("%s/%s" % [q["size"], q["frame"]], Rect2())
+			if r.size == Vector2.ZERO:
+				continue
+			var at: Vector2 = q["pos"]
+			draw_texture_rect_region(art.tex, Rect2(at.x - floorf(r.size.x * 0.5), at.y - floorf(r.size.y * 0.5), r.size.x, r.size.y), r)
+
+
+# ---- lightning striking down behind the city (night) --------------------------------------------------------------------------
+# Owner round 49c: "more lightning, especially actual lightning bolts in the background striking down". The strikes are PLANNED
+# (`_plan_strikes`: a time, a place in the sky layer's pixels, a seed) and drawn here from the clock alone, in the SKY layer — behind the
+# far and mid skylines and the tower — additively, so a bolt lights the cloud deck it comes out of and the roofs are cut out against it.
+# A bolt is a seeded jagged main channel with forks leaning away from it; it is struck down in a few frames (the leader), flashes (the return
+# stroke), and may restrike once. A "sheet" strike is no bolt at all: the deck itself lights from inside.
+class _SkyBolts:
+	extends Node2D
+
+	const LIFE := 0.75
+	const CORE := Color(0.95, 0.97, 1.0)
+	const GLOW := Color(0.55, 0.64, 1.0)
+	var strikes: Array = []
+	var clock := 0.0
+	var _paths: Dictionary = {}                      # strike index -> {"main": PackedVector2Array, "forks": Array of PackedVector2Array}
+
+	## 0..1: how bright a strike is `u` seconds after it began — a first stroke that peaks quickly and dies away, and (if `re`) a weaker restrike.
+	static func level(u: float, re: bool) -> float:
+		if u < 0.0 or u > LIFE:
+			return 0.0
+		var a := 0.0
+		if u < 0.05:
+			a = 0.35 + 0.65 * (u / 0.05)
+		else:
+			a = exp(-(u - 0.05) / 0.07)
+		if re and u > 0.2:                                       # the restrike: a quick rise to 0.23 s and the same slow fall
+			var rs := 0.8 * (exp(-(0.23 - u) / 0.04) if u < 0.23 else exp(-(u - 0.23) / 0.07))
+			a = maxf(a, rs)
+		return clampf(a, 0.0, 1.0)
+
+	## The shape of one bolt, a pure function of its seed: [main channel, forks…], each a run of whole-pixel points walking down the sky.
+	static func shape(s: Dictionary) -> Dictionary:
+		var r := RandomNumberGenerator.new()
+		r.seed = int(s["seed"])
+		var main := PackedVector2Array()
+		var x := float(s["x"])
+		var y := float(s["y0"])
+		var y1 := float(s["y1"])
+		var slope := r.randf_range(-0.8, 0.8)
+		var run := 0
+		while y < y1:
+			if run <= 0:
+				slope = clampf(slope * 0.4 + r.randf_range(-1.1, 1.1), -1.3, 1.3)
+				run = r.randi_range(4, 11)
+			run -= 1
+			x += slope
+			y += 1.0
+			main.append(Vector2(roundf(x), roundf(y)))
+		var forks: Array = []
+		if main.size() > 40:
+			var n := r.randi_range(2, 4)
+			for k in n:
+				var at := r.randi_range(int(main.size() * 0.2), int(main.size() * 0.8))
+				var from: Vector2 = main[at]
+				var dir := -1.0 if r.randf() < 0.5 else 1.0
+				var f := PackedVector2Array()
+				var fx := from.x
+				var fy := from.y
+				var steep := r.randf_range(0.5, 1.3)              # px sideways per px down
+				for j in r.randi_range(10, 34):
+					fx += dir * steep + r.randf_range(-0.5, 0.5)
+					fy += 1.0
+					f.append(Vector2(roundf(fx), roundf(fy)))
+				forks.append(f)
+		return {"main": main, "forks": forks}
+
+	func _rect(x: float, y: float, w: float, col: Color) -> void:
+		draw_rect(Rect2(x, y, w, 1.0), col)
+
+	func _draw() -> void:
+		for i in strikes.size():
+			var s: Dictionary = strikes[i]
+			var u := clock - float(s["t"])
+			if u < 0.0 or u > LIFE:
+				continue
+			var lv := level(u, bool(s["re"]))
+			if lv < 0.03:
+				continue
+			if String(s["kind"]) == "sheet":
+				_draw_sheet(s, lv)
+				continue
+			if not _paths.has(i):
+				_paths[i] = shape(s)
+			var sh: Dictionary = _paths[i]
+			var main: PackedVector2Array = sh["main"]
+			var reveal := clampf(u / 0.05, 0.0, 1.0)             # the leader runs down the channel in a few frames
+			var n := int(ceil(float(main.size()) * reveal))
+			# a faint wash of the cloud deck round the channel, then the glow, then the core
+			draw_rect(Rect2(float(s["x"]) - 40.0, float(s["y0"]), 80.0, minf(70.0, float(s["y1"]) - float(s["y0"]))), Color(GLOW.r, GLOW.g, GLOW.b, 0.035 * lv))
+			for k in n:
+				var p: Vector2 = main[k]
+				_rect(p.x - 2.0, p.y, 5.0, Color(GLOW.r, GLOW.g, GLOW.b, 0.07 * lv))
+				_rect(p.x - 1.0, p.y, 3.0, Color(GLOW.r, GLOW.g, GLOW.b, 0.20 * lv))
+				_rect(p.x, p.y, 1.0, Color(CORE.r, CORE.g, CORE.b, lv))
+			for f in sh["forks"]:
+				var fp: PackedVector2Array = f
+				for k in fp.size():
+					if fp[k].y > main[mini(n, main.size()) - 1].y:       # a fork only lights once the leader has passed the point it leaves from
+						break
+					var q: Vector2 = fp[k]
+					var fade := 1.0 - float(k) / float(fp.size() + 4)    # thinning toward the tip
+					_rect(q.x - 1.0, q.y, 3.0, Color(GLOW.r, GLOW.g, GLOW.b, 0.14 * lv * fade))
+					_rect(q.x, q.y, 1.0, Color(CORE.r, CORE.g, CORE.b, 0.85 * lv * fade))
+
+	## Sheet lightning: the deck lit from inside — a few nested ellipses of the cold light, additive, stepping brighter toward the middle.
+	func _draw_sheet(s: Dictionary, lv: float) -> void:
+		var cx := float(s["x"])
+		var cy := lerpf(float(s["y0"]), float(s["y1"]), 0.42)
+		for layer in 4:
+			var rx := 74.0 - 15.0 * float(layer)
+			var ry := 28.0 - 5.5 * float(layer)
+			for row in range(-int(ry), int(ry) + 1):
+				var w := rx * sqrt(maxf(0.0, 1.0 - pow(float(row) / ry, 2.0)))
+				if w >= 1.0:
+					_rect(cx - w, cy + float(row), 2.0 * w, Color(GLOW.r, GLOW.g, GLOW.b, 0.045 * lv))
+
+
 # ---- the runner in the garden --------------------------------------------------------------------------------------------------
 # One small figure crosses the lawn while the camera is still near the ground: a black cat (morning), a person running in fear (afternoon).
 # It does NOT run along the bottom edge: it comes in from the front and goes DEEPER into the scene along a route planned over free ground
-# (tools/art/opening.py `RUNNERS` / `plan_lane` — the art tool checks that nothing standing nearer ever covers it), shrinking with the
-# perspective the path's own width follows (`scale_at`) and slowing with it. The cat slips into the dark doorway; the person reaches the
-# barricaded door and stands hammering on it. A pure function of the opening's clock, drawn from integer rects so it needs no art.
+# (tools/art/opening.py `RUNNERS` / `plan_lane` — the art tool checks that nothing standing nearer ever covers it). It is drawn from HAND-DRAWN
+# sprites (assets/opening/figures.png, tools/art/opening_figures.py) in one of THREE sizes picked by the ground row it stands on — never a
+# drawing rescaled to a fractional size (owner round 49c: "he gets weirdly smaller… strange body pixel proportions") — and goes a little slower
+# the deeper it is. The cat slips into the dark doorway; the person reaches the barricaded door and stands there hammering on it.
+# A pure function of the opening's clock.
+class _FigureArt:
+	var tex: Texture2D = null
+	var rects: Dictionary = {}      # "person_L_a" -> Rect2 on the sheet
+
+	static func make(texture: Texture2D, m: Dictionary) -> _FigureArt:
+		var a := _FigureArt.new()
+		a.tex = texture
+		for k in m:
+			var e: Dictionary = m[k]
+			a.rects[String(k)] = Rect2(float(e["x"]), float(e["y"]), float(e["w"]), float(e["h"]))
+		return a
+
+
 class _Runner:
 	extends Node2D
 
+	const RUN_FRAMES := ["a", "p1", "b", "p2"]     # a person's run: contact, passing, contact (other leg), passing
+	const RUN_HZ := 9.0                 # run frames a second (a stride is two contacts)
+	const GALLOP_HZ := 6.0              # a cat's gallop frames (stretched, gathered) a second
 	var spec: Dictionary = {}
+	var art: _FigureArt = null
 	var clock := 0.0
 	var _pts: Array = []            # [Vector2(x, row)] — row 0 is the building's foot, 43 the viewer's edge
 	var _t: Array = []              # the time (s, from the start) at each waypoint
 	var _dirs: Array = []           # facing of the leg that ENDS at each waypoint (+1 right / -1 left)
-	var _skin := Color(0.78, 0.6, 0.48)
 
 	func setup(sp: Dictionary) -> void:
 		spec = sp
@@ -1057,13 +1365,21 @@ class _Runner:
 		for i in range(1, _pts.size()):
 			var a: Vector2 = _pts[i - 1]
 			var b: Vector2 = _pts[i]
-			var sc := 0.5 * (scale_at(a.y) + scale_at(b.y))
+			var sc := 0.5 * (pace_at(a.y) + pace_at(b.y))
 			_t.append(float(_t[i - 1]) + a.distance_to(b) / maxf(1.0, v0 * sc))
 			_dirs.append(signf(b.x - a.x) if absf(b.x - a.x) > 0.01 else float(_dirs[i - 1]))
 
-	func scale_at(row: float) -> float:
-		var sc: Array = spec.get("scale", [16.0, 0.82, 43.0])
-		return (float(sc[0]) + float(sc[1]) * row) / (float(sc[0]) + float(sc[1]) * float(sc[2]))
+	## How fast it goes on ground row `row`, 1.0 at the front edge: a little slower the deeper it is (tools/art/opening.py `runner_pace`).
+	func pace_at(row: float) -> float:
+		return 0.62 + 0.38 * clampf(row / 43.0, 0.0, 1.0)
+
+	## Which of the three hand-drawn sizes a figure on `row` uses: "L" / "M" / "S" (the sheet's own rows, `spec.tiers`).
+	func tier_at(row: float) -> String:
+		var tiers: Dictionary = spec.get("tiers", {"L": 28, "M": 14, "S": 0})
+		for name in ["L", "M"]:
+			if row >= float(tiers.get(name, 0)):
+				return name
+		return "S"
 
 	func total() -> float:
 		return float(_t[_t.size() - 1]) if not _t.is_empty() else 0.0
@@ -1093,243 +1409,178 @@ class _Runner:
 		var p: Vector2 = q["pos"]
 		return Vector2(floorf(p.x + 0.5), floorf(float(spec.get("y0", 482.0)) + p.y + 0.5))
 
-	func _r(x: float, y: float, w: float, h: float, col: Color, sc: float) -> void:
-		# a rect of the figure's own full-size drawing, scaled to the row it stands on and snapped to whole pixels (never thinner than one)
-		var x0 := roundf(x * sc)
-		var y0 := roundf(y * sc)
-		var x1 := maxf(x0 + 1.0, roundf((x + w) * sc))
-		var y1 := maxf(y0 + 1.0, roundf((y + h) * sc))
-		draw_rect(Rect2(x0, y0, x1 - x0, y1 - y0), col)
-
-	func _draw() -> void:
-		if not active():
-			return
+	## The sprite it is drawn from right now: its name on the sheet.
+	func sprite_name() -> String:
 		var q := pose()
 		var p: Vector2 = q["pos"]
-		var sc := scale_at(p.y)
-		var f := feet()
+		var kind := "cat" if String(spec.get("kind", "")) == "cat" else "person"
+		var fr: String
+		if kind == "cat":
+			fr = "a" if int(floor(clock * GALLOP_HZ)) % 2 == 0 else "b"
+		else:
+			fr = String(RUN_FRAMES[int(floor(clock * RUN_HZ)) % RUN_FRAMES.size()])
+		if kind == "person" and bool(q["done"]) and String(spec.get("end", "")) == "pound":
+			return "person_S_pound_" + ("a" if int(floor(clock * 4.0)) % 2 == 0 else "b")
+		return "%s_%s_%s" % [kind, tier_at(p.y), fr]
+
+	func _draw() -> void:
+		if art == null or not active():
+			return
+		var q := pose()
 		var kind := String(spec.get("kind", ""))
+		var name := sprite_name()
+		var r: Rect2 = art.rects.get(name, Rect2())
+		if r.size == Vector2.ZERO:
+			return
+		var f := feet()
 		var dir: float = q["dir"]
 		var alpha := 1.0
 		if bool(q["done"]) and kind == "cat":
 			alpha = clampf(1.0 - (local_time() - total()) / 0.5, 0.0, 1.0)         # gone into the dark doorway
-		draw_set_transform(f, 0.0, Vector2(dir, 1.0))                       # facing +x, mirrored for a leftward runner
-		for i in range(-5, 6):                                               # a soft shadow on the grass
-			_r(float(i), 0.0, 1.0, 1.0, Color(0, 0, 0, 0.26 * (1.0 - absf(float(i)) / 6.0) * alpha), sc)
-		if kind == "cat":
-			_draw_cat(sc, alpha)
-		elif bool(q["done"]) and String(spec.get("end", "")) == "pound":
-			draw_set_transform(f, 0.0, Vector2.ONE)
-			_draw_pounding(sc)
-		else:
-			_draw_person(sc)
+		var pound := name.contains("pound")
+		draw_set_transform(f, 0.0, Vector2(1.0 if pound else dir, 1.0))                 # facing +x, mirrored for a leftward runner; the figure at the door is seen from behind
+		var half := floorf(r.size.x * 0.5)
+		for i in range(-int(half) - 1, int(r.size.x - half) + 1):                       # a soft shadow on the grass, as wide as the figure
+			draw_rect(Rect2(float(i), 0.0, 1.0, 1.0), Color(0, 0, 0, 0.26 * alpha))
+		draw_texture_rect_region(art.tex, Rect2(-half, -r.size.y, r.size.x, r.size.y), r, Color(1, 1, 1, alpha))
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-
-	func _draw_cat(sc: float, a: float) -> void:
-		var k := Color(0.05, 0.05, 0.07, a)
-		var ph := int(clock * 13.0) % 2                                      # two gallop frames
-		var bob := -1.0 if ph == 0 else 0.0
-		_r(-3.0, -4.0 + bob, 6.0, 3.0, k, sc)                                # body
-		_r(3.0, -5.0 + bob, 3.0, 3.0, k, sc)                                 # head
-		_r(3.0, -6.0 + bob, 1.0, 1.0, k, sc)                                 # ears
-		_r(5.0, -6.0 + bob, 1.0, 1.0, k, sc)
-		_r(5.0, -4.0 + bob, 1.0, 1.0, Color(0.78, 0.86, 0.3, a), sc)         # an eye
-		_r(-4.0, -5.0 + bob, 1.0, 2.0, k, sc)                                # the tail, up and curling
-		_r(-5.0, -6.0 + bob - float(ph), 1.0, 2.0, k, sc)
-		if ph == 0:                                                          # legs reaching / pushing off
-			_r(3.0, -1.0, 2.0, 1.0, k, sc)
-			_r(-4.0, -1.0, 2.0, 1.0, k, sc)
-			_r(0.0, -1.0, 1.0, 1.0, k, sc)
-		else:
-			_r(1.0, -1.0, 1.0, 1.0, k, sc)
-			_r(-2.0, -1.0, 1.0, 1.0, k, sc)
-			_r(4.0, -1.0, 1.0, 1.0, k, sc)
-			_r(-3.0, -1.0, 1.0, 1.0, k, sc)
-
-	func _draw_person(sc: float) -> void:
-		var shirt := Color(0.8, 0.28, 0.24)
-		var legs := Color(0.16, 0.18, 0.28)
-		var ph := int(clock * 9.0) % 2
-		var bob := -1.0 if ph == 0 else 0.0
-		var lean := 1.0                                                      # leaning into the run
-		if ph == 0:                                                          # legs mid-stride, alternating
-			_r(-1.0, -4.0, 1.0, 4.0, legs, sc)
-			_r(2.0, -3.0, 2.0, 1.0, legs, sc)
-			_r(3.0, -2.0, 1.0, 2.0, legs, sc)
-		else:
-			_r(1.0, -4.0, 1.0, 4.0, legs, sc)
-			_r(-3.0, -3.0, 2.0, 1.0, legs, sc)
-			_r(-3.0, -2.0, 1.0, 2.0, legs, sc)
-		_r(-1.0 + lean, -8.0 + bob, 3.0, 4.0, shirt, sc)                     # torso
-		_r(0.0 + lean, -10.0 + bob, 2.0, 2.0, _skin, sc)                     # head
-		_r(0.0 + lean, -11.0 + bob, 2.0, 1.0, Color(0.18, 0.12, 0.1), sc)
-		_r(-2.0 + lean, -10.0 + bob - float(ph), 1.0, 3.0, _skin, sc)         # arms flung up and back in terror, flailing
-		_r(3.0 + lean, -9.0 + bob + float(ph), 1.0, 3.0, _skin, sc)
-		if ph == 0:                                                          # a puff of dust at the heels
-			_r(-5.0, -1.0, 1.0, 1.0, Color(0.85, 0.8, 0.7, 0.5), sc)
-			_r(-7.0, -2.0, 1.0, 1.0, Color(0.85, 0.8, 0.7, 0.3), sc)
-
-	## At the door: seen from behind, both fists going at the boards in turn.
-	func _draw_pounding(sc: float) -> void:
-		var shirt := Color(0.8, 0.28, 0.24)
-		var legs := Color(0.16, 0.18, 0.28)
-		var beat := int(clock * 4.0) % 2
-		_r(-2.0, -4.0, 2.0, 4.0, legs, sc)
-		_r(1.0, -4.0, 2.0, 4.0, legs, sc)
-		_r(-2.0, -9.0, 5.0, 5.0, shirt, sc)                                  # the back
-		_r(-1.0, -12.0, 3.0, 3.0, Color(0.18, 0.12, 0.1), sc)                # the head, seen from behind: hair
-		_r(-4.0, -12.0 - float(beat), 1.0, 4.0, _skin, sc)                   # one arm up on the boards, then the other
-		_r(4.0, -12.0 - float(1 - beat), 1.0, 4.0, _skin, sc)
 
 
 # ---- people at the windows ---------------------------------------------------------------------------------------------------
-# Tiny pixel people in the glass of some lit windows (9 x 8 px of glass, a figure ~5 wide and 7 tall) — owner round 49: "people at windows
-# could be more animated". Each is a little figure (hair, head, torso, arms, legs) doing one thing, a pure function of the clock:
-#   wave   — an arm up, waving a pale cloth;       pace   — walking from side to side;         peer — standing at the glass, now and
-#   then leaning in to look down;                  sway   — rocking on the spot, arms wrapped round themselves;
-#   pound  — both fists on the glass in turn;      shout  — hands cupped at the mouth, head thrown back now and then;
-#   huddle — an adult with a child held in;        phone  — a phone to the ear, turning away, its screen a pale dot;
-#   slump  — only the head and shoulders above the sill, rocking, now and then looking up.
+# Little pixel people in the glass of a few lit windows. A window's glass is 9 x 8 px: a jamb in shadow down its left column, a lintel's
+# shadow across the top two rows, a mullion down the middle and the sill along the bottom — so a figure is a BUST (head and shoulders, 4 px
+# wide and 5 tall) standing at the sill in ONE pane, never a body crossing the frame (owner round 49c: "the people seem to be clipping the
+# window frame looking half outside… a size inconsistency with the people and the windows"). Every rect is clipped to the glass, and the
+# window's own frame pixels (copied from the finished picture into assets/opening/winover_<run>.png) are laid back OVER the figure, so a
+# person pacing across passes BEHIND the mullion and the jamb and lintel shadow fall on them like on the room.
+#   wave  — both arms thrown up in turn, hands high;    pace  — walking from pane to pane behind the mullion;
+#   peer  — standing at the glass, now and then leaning in to look down;     sway — rocking on the spot, arms folded;
+#   pound — both fists on the glass in turn;            slump — only head and shoulders above the sill, rocking, now and then looking up.
 # And in OTHER lit windows (`passers`) a dim shadow walks across behind the curtain every so often.
 class _Survivors:
 	extends Node2D
 
 	const SKINS := [Color(0.76, 0.58, 0.46), Color(0.62, 0.45, 0.34), Color(0.88, 0.7, 0.58)]
 	const HAIRS := [Color(0.10, 0.07, 0.06), Color(0.30, 0.18, 0.10), Color(0.78, 0.66, 0.38), Color(0.5, 0.5, 0.52)]
-	var people: Array = []
-	var passers: Array = []                           # lit windows with nobody at them: [{x, y, w, h, phase, period}]
+	const GW := 9.0                                    # the glass
+	const GH := 8.0
+	const BUST_W := 4.0
+	var people: Array = []                            # [{x, y, kind, phase, shirt, over}]
+	var passers: Array = []                           # lit windows with nobody at them: [{x, y, w, h, phase, period, over}]
+	var over_tex: Texture2D = null                    # the window frames, one 9 x 8 tile each (`over` = its row of tiles)
 	var clock := 0.0
 	var run := 1
 
-	## Where the figure's centre column is, in the glass (0..8).
+	## Which pane's bust column the figure's body starts at (0 = the left pane, 5 = the right), by its seeded phase.
+	func pane_of(p: Dictionary) -> float:
+		return 0.0 if int(float(p.get("phase", 0.0)) * 10.0) % 2 == 0 else 5.0
+
+	## Where the bust's left column is, in the glass (0..5): a pacer walks the whole width, everyone else holds their pane.
 	func person_x(p: Dictionary) -> float:
 		var ph: float = float(p.get("phase", 0.0))
 		match String(p.get("kind", "peer")):
 			"pace":
-				return 4.0 + 2.0 * sin(clock * 0.55 + ph)
-			"wave", "shout":
-				return 4.0
-			"sway", "huddle":
-				return 4.0 + 0.6 * sin(clock * 0.7 + ph)
-			"phone":
-				return 4.0 + 1.2 * sin(clock * 0.45 + ph)
-		return 3.0 + float(int(ph * 10.0) % 3)
+				return 2.5 + 2.5 * sin(clock * 0.55 + ph)
+			"sway":                                                                       # rocking toward the middle of the window and back, never out of its pane
+				var inward := 1.0 if pane_of(p) == 0.0 else -1.0
+				return pane_of(p) + inward * (1.0 if sin(clock * 1.1 + ph) > 0.2 else 0.0)
+		return pane_of(p)
 
 	func _shade(c: Color, dim: float) -> Color:
 		return Color(c.r * dim, c.g * dim, c.b * dim, c.a)
 
+	## A rect in glass pixels, clipped to the glass (a part of a figure never lands on the frame, the jamb outside it, or the next window).
 	func _r(gx: float, gy: float, x: float, y: float, w: float, h: float, col: Color) -> void:
-		draw_rect(Rect2(gx + x, gy + y, w, h), col)
+		var x0 := maxf(x, 0.0)
+		var y0 := maxf(y, 0.0)
+		var x1 := minf(x + w, GW)
+		var y1 := minf(y + h, GH)
+		if x1 <= x0 or y1 <= y0:
+			return
+		draw_rect(Rect2(gx + x0, gy + y0, x1 - x0, y1 - y0), col)
+
+	func _frame_over(gx: float, gy: float, idx: int) -> void:
+		if over_tex == null or idx < 0:
+			return
+		draw_texture_rect_region(over_tex, Rect2(gx, gy, GW, GH), Rect2(0.0, float(idx) * GH, GW, GH))
 
 	func _draw() -> void:
 		var dim := 1.0 if run == 1 else (0.82 if run == 2 else 0.7)
 		for p in people:
 			_draw_person(p, dim)
+			_frame_over(float(p["x"]), float(p["y"]), int(p.get("over", -1)))
 		for q in passers:
 			_draw_passer(q)
+			_frame_over(float(q["x"]), float(q["y"]), int(q.get("over", -1)))
 
 	func _draw_person(p: Dictionary, dim: float) -> void:
 		var gx: float = float(p["x"])
 		var gy: float = float(p["y"])
 		var ph: float = float(p.get("phase", 0.0))
 		var kind := String(p.get("kind", "peer"))
-		var cx := roundf(person_x(p))
-		var face := 1.0
-		if kind == "pace":
-			face = 1.0 if cos(clock * 0.55 + ph) >= 0.0 else -1.0
+		var bx := roundf(person_x(p))
 		var k := int(ph * 100.0)
 		var skin := _shade(SKINS[k % SKINS.size()], dim)
 		var hair := _shade(HAIRS[(k / 3) % HAIRS.size()], dim)
 		var shirt0 := Color.from_string("#" + String(p.get("shirt", "c9605a")), Color(0.8, 0.4, 0.35))
-		var shirt := _shade(Color(shirt0.r * 0.8, shirt0.g * 0.8, shirt0.b * 0.8), dim)
-		var legs := _shade(Color(0.14, 0.13, 0.18), dim)
-		var cloth := _shade(Color(0.92, 0.9, 0.84), dim)
-		var by := 0.0                                                       # the whole body's drop (leaning in)
+		var shirt := _shade(Color(shirt0.r * 0.85, shirt0.g * 0.85, shirt0.b * 0.85), dim)
+		var arm := _shade(Color(shirt0.r * 0.68, shirt0.g * 0.68, shirt0.b * 0.68), dim)
 		var t := clock + ph
+		var face := 1.0                                                      # +1 looking right, -1 left
+		if kind == "pace":
+			face = 1.0 if cos(clock * 0.55 + ph) >= 0.0 else -1.0
+		elif fposmod(t, 7.0) < 2.2:
+			face = -1.0 if int(ph * 10.0) % 3 != 0 else 1.0                  # now and then they turn their head away
+		var drop := 0.0                                                      # how far the whole bust sits below the sill-standing pose (rows)
 		match kind:
 			"peer":
 				if fposmod(t, 3.2) < 0.45:
-					by = 1.0
+					drop = 1.0
 			"slump":
-				by = 4.0 + (1.0 if sin(t * 0.9) > 0.5 else 0.0)
-			"pound":
-				by = 1.0
-		# legs and torso (a slump shows only the head and shoulders)
-		if kind != "slump":
-			var step := 0.0
-			if kind == "pace" and int(clock * 3.0) % 2 == 0:
-				step = 1.0
-			_r(gx, gy, cx - 1.0, 6.0, 1.0, 2.0, legs)
-			_r(gx, gy, cx + 1.0 - step, 6.0, 1.0, 2.0 - step, legs)
-			_r(gx, gy, cx - 1.0, 3.0 + by, 3.0, 3.0 - by, shirt)
-		else:
-			_r(gx, gy, cx - 2.0, 5.0 + by, 5.0, 8.0 - 5.0 - by, shirt)
-		# head: hair over a face (looking the way it faces)
-		var hx := cx - 1.0 + (1.0 if face > 0.0 else 0.0)
-		var hy := 1.0 + by
-		if kind == "shout" and fposmod(t, 2.6) < 0.7:
-			hy -= 1.0                                                        # head thrown back
-		_r(gx, gy, hx, hy, 2.0, 2.0, skin)
+				drop = 3.0 + (1.0 if sin(t * 0.9) > 0.5 else 0.0)
+		var hy := 2.0 + drop                                                 # the head: a row of hair over a row of face
+		var by := 4.0 + drop                                                 # the shoulders
+		# the body: shoulders and chest (rows by..6), arms as the outer columns a shade darker
+		_r(gx, gy, bx, by, BUST_W, 3.0 - drop, shirt)
+		if drop < 3.0:
+			_r(gx, gy, bx, by, 1.0, 3.0 - drop, arm)
+			_r(gx, gy, bx + 3.0, by, 1.0, 3.0 - drop, arm)
+		# the head (2 x 2): hair over a face; looking sideways shows the back of the head on one side
+		var hx := bx + 1.0
 		_r(gx, gy, hx, hy, 2.0, 1.0, hair)
-		# arms
+		_r(gx, gy, hx, hy + 1.0, 2.0, 1.0, skin)
+		_r(gx, gy, hx + (0.0 if face > 0.0 else 1.0), hy + 1.0, 1.0, 1.0, hair)
+		# the arms and hands
 		match kind:
 			"wave":
-				var up := sin(clock * 8.0 + ph) > 0.0
-				var ay := 0.0 if up else 1.0
-				_r(gx, gy, cx + 2.0, 1.0 + ay, 1.0, 3.0, skin)
-				_r(gx, gy, cx + 2.0, ay, 2.0, 1.0, cloth)                    # the cloth in the hand
-				_r(gx, gy, cx - 2.0, 4.0, 1.0, 2.0, shirt)
+				var up := sin(clock * 7.0 + ph) > 0.0                         # the arms go up in turn
+				_r(gx, gy, bx - 0.0, 2.0 if up else 4.0, 1.0, 1.0, skin)
+				_r(gx, gy, bx - 0.0, 3.0 if up else 5.0, 1.0, 2.0 if up else 1.0, arm)
+				_r(gx, gy, bx + 3.0, 4.0 if up else 2.0, 1.0, 1.0, skin)
+				_r(gx, gy, bx + 3.0, 5.0 if up else 3.0, 1.0, 1.0 if up else 2.0, arm)
 			"pound":
-				var beat := int(clock * 6.0) % 2
-				_r(gx, gy, cx - 2.0, 2.0 + float(beat), 1.0, 2.0, skin)
-				_r(gx, gy, cx + 2.0, 2.0 + float(1 - beat), 1.0, 2.0, skin)
-				if fposmod(clock * 6.0, 1.0) < 0.2:                           # the knock lands: a flash on the glass
-					_r(gx, gy, cx - 3.0 + 5.0 * float(beat), 3.0, 1.0, 1.0, Color(1, 1, 1, 0.5))
-			"shout":
-				_r(gx, gy, cx - 2.0, 2.0, 1.0, 2.0, skin)
-				_r(gx, gy, cx + 2.0, 2.0, 1.0, 2.0, skin)
-				if fposmod(t, 2.6) < 0.7:
-					_r(gx, gy, hx + 0.0, hy + 1.0, 1.0, 1.0, _shade(Color(0.25, 0.08, 0.08), dim))    # the mouth open
-			"phone":
-				_r(gx, gy, cx + 2.0, 2.0, 1.0, 2.0, skin)
-				_r(gx, gy, cx + 1.0, 2.0, 1.0, 1.0, skin)
-				_r(gx, gy, cx + 2.0, 1.0, 1.0, 1.0, Color(0.7, 0.85, 1.0, 0.95))          # the screen's pale dot
-				_r(gx, gy, cx - 2.0, 4.0, 1.0, 2.0, shirt)
+				var beat := int(floor(clock * 6.0)) % 2
+				_r(gx, gy, bx, 3.0 + float(beat), 1.0, 1.0, skin)
+				_r(gx, gy, bx + 3.0, 3.0 + float(1 - beat), 1.0, 1.0, skin)
+				_r(gx, gy, bx, 4.0 + float(beat), 1.0, 1.0, arm)
+				_r(gx, gy, bx + 3.0, 4.0 + float(1 - beat), 1.0, 1.0, arm)
+				if fposmod(clock * 6.0, 1.0) < 0.2:                           # the knock lands: a pale flash on the glass by the fist
+					_r(gx, gy, bx - 1.0 + 6.0 * float(1 - beat), 3.0, 1.0, 1.0, Color(1, 1, 1, 0.55))
 			"sway":
-				_r(gx, gy, cx - 2.0, 4.0, 1.0, 1.0, shirt)                   # arms folded across the chest
-				_r(gx, gy, cx + 2.0, 4.0, 1.0, 1.0, shirt)
-				_r(gx, gy, cx - 1.0, 4.0, 3.0, 1.0, shade_of(shirt, 0.85))
-			"huddle":
-				_r(gx, gy, cx - 2.0, 4.0, 1.0, 2.0, shirt)
-				# the child, held in at the adult's side
-				var child := _shade(Color(0.9, 0.75, 0.3), dim)
-				_r(gx, gy, cx + 2.0, 4.0, 2.0, 3.0, child)
-				_r(gx, gy, cx + 2.0, 3.0, 2.0, 1.0, skin)
-				_r(gx, gy, cx + 1.0, 4.0, 1.0, 1.0, skin)                    # the adult's arm round them
-			"slump":
-				pass
-			_:
-				_r(gx, gy, cx - 2.0, 4.0, 1.0, 2.0, shirt)
-				_r(gx, gy, cx + 2.0, 4.0, 1.0, 2.0, shirt)
-
-	func shade_of(c: Color, f: float) -> Color:
-		return Color(c.r * f, c.g * f, c.b * f, c.a)
+				_r(gx, gy, bx, 5.0, BUST_W, 1.0, _shade(arm, 0.9))              # arms folded across the chest
 
 	## A dim figure crossing behind the curtain of a lit window, once a period; nothing the rest of the time.
 	func _draw_passer(q: Dictionary) -> void:
-		var period: float = float(q.get("period", 9.0))
-		var u := fposmod(clock + float(q.get("phase", 0.0)) * period, period) / 2.4        # 0..1 while it crosses
+		var period: float = float(q.get("period", 11.0))
+		var u := fposmod(clock + float(q.get("phase", 0.0)) * period, period) / 3.2        # 0..1 while it crosses
 		if u < 0.0 or u > 1.0:
 			return
 		var gx: float = float(q["x"])
 		var gy: float = float(q["y"])
-		var x := roundf(lerpf(-1.0, 9.0, u))
-		var step := 1.0 if int(u * 7.0) % 2 == 0 else 0.0
-		var col := Color(0.12, 0.08, 0.07, 0.62)
-		draw_rect(Rect2(gx + x, gy + 1.0, 2.0, 2.0), col)                                 # head
-		draw_rect(Rect2(gx + x - 0.5 + 0.5, gy + 3.0, 2.0, 3.0), col)                     # body
-		draw_rect(Rect2(gx + x, gy + 6.0, 1.0, 2.0 - step), col)                          # legs
-		draw_rect(Rect2(gx + x + 1.0, gy + 6.0, 1.0, 1.0 + step), col)
+		var x := roundf(lerpf(-3.0, 8.0, u))
+		var col := Color(0.12, 0.08, 0.07, 0.6)
+		_r(gx, gy, x + 1.0, 2.0, 2.0, 2.0, col)                                          # head
+		_r(gx, gy, x, 4.0, 4.0, 3.0, col)                                                # shoulders and chest
 
 
 # ---- rain over the whole picture (night) --------------------------------------------------------------------------------

@@ -44,6 +44,8 @@ from pixlib import Canvas, hexc, mix, shade  # noqa: E402
 import opening_sky  # noqa: E402
 import opening_city  # noqa: E402
 import opening_birds  # noqa: E402
+import opening_facade  # noqa: E402
+import opening_figures  # noqa: E402
 
 RUNS = (1, 2, 3)
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
@@ -69,6 +71,9 @@ SKY_H, FAR_H, MID_H, FORE_H = 330, 230, 300, 200
 GARDEN_P = 1.18                    # the garden layer slides this much per px of camera climb (the building 1.00): the 2.5D separation
 STREET_FROM_BOTTOM = 44            # the ground line sits this far above each city layer's bottom
 
+INNER_X0 = BX0 + 6                 # (restated here so the facade module can be bound before the helper functions are defined)
+opening_facade.bind(globals())
+
 
 def floor_y(n):
     """Top row of floor n's band (30 = the top floor)."""
@@ -76,17 +81,12 @@ def floor_y(n):
 
 
 def section(n):
-    return 'hotel' if n >= 21 else 'brick' if n >= 11 else 'concrete'
+    """The tower is ONE material from the pavement to the parapet (owner round 49c: "the building goes from red brick to white structure
+    halfway up… one colour only would be best")."""
+    return 'brick'
 
 
-PAL = {
-    'hotel': dict(wall=hexc('e0d0a8'), lit=hexc('ece0bd'), dark=hexc('bba988'), trim=hexc('46777d'), frame=hexc('6a4a36'),
-                  band=hexc('f0e6c8'), mortar=None),
-    'brick': dict(wall=hexc('a85e44'), lit=hexc('b96d50'), dark=hexc('864a38'), trim=hexc('d9c19c'), frame=hexc('e3dcc8'),
-                  band=hexc('cdb48f'), mortar=hexc('8a5040')),
-    'concrete': dict(wall=hexc('a09a8a'), lit=hexc('b4ae9c'), dark=hexc('807a6d'), trim=hexc('cfc9b8'), frame=hexc('3e4654'),
-                     band=hexc('857f72'), mortar=None),
-}
+PAL = {'brick': opening_facade.BRICK}                     # one palette: brick, stone trim, cream-painted frames
 
 BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]
 
@@ -108,11 +108,11 @@ def lerp_stops(stops, t):
 # gradient, one set of puffballs recoloured three times, rectangles with random windows). What stays here is what the BUILDING and the
 # street need per time of day.
 LOOK = {
-    1: dict(grade=None, wear=0.0, lit_p=0.07, helps=0, city_fires=0, city_smokes=(0, 0), survivors=0.22, city_lit=(0.04, 0.07), columns=(0, 0)),
+    1: dict(grade=None, wear=0.0, lit_p=0.07, helps=0, city_fires=0, city_smokes=(0, 0), survivors=0.22, passers=0.30, city_lit=(0.04, 0.07), columns=(0, 0)),
     2: dict(grade=dict(sat=0.88, mul=(1.00, 0.91, 0.76), add=(5, 0, -4)), wear=0.07, lit_p=0.16, helps=2, city_fires=2, city_smokes=(3, 2),
-            survivors=0.15, city_lit=(0.08, 0.12), columns=(2, 0)),
+            survivors=0.12, passers=0.25, city_lit=(0.08, 0.12), columns=(2, 0)),
     3: dict(grade=dict(sat=0.60, mul=(0.27, 0.23, 0.21), add=(6, 2, 0)), wear=0.13, lit_p=0.05, helps=3, city_fires=5, city_smokes=(4, 3),
-            survivors=0.55, city_lit=(0.06, 0.10), columns=(3, 0)),
+            survivors=0.10, passers=0.10, city_lit=(0.06, 0.10), columns=(3, 0)),
 }
 NIGHT_GLOWS = [(58, 304, 1.5), (118, 312, 1.1), (204, 306, 1.6), (262, 300, 1.2)]      # where the fires stand, under the night's cloud deck
 
@@ -143,7 +143,7 @@ def draw_clouds(run):
 # ============================================================================================================= CITY
 def draw_far(run):
     L = LOOK[run]
-    return opening_city.skyline('far', W, FAR_H, FAR_H - STREET_FROM_BOTTOM, run, L['city_lit'][0], sun_gap=(34, 100, 30), extras=True,
+    return opening_city.skyline('far', W, FAR_H, FAR_H - STREET_FROM_BOTTOM, run, L['city_lit'][0], sun_gap=(34, 100, 30),
                                 columns=L['columns'][0], low=[(0, 60, 56)])
 
 
@@ -174,252 +174,15 @@ def text3(c, x, y, word, col):
         x += 4
 
 
-GLASS_TOP, GLASS_BOT = hexc('9cc3e2'), hexc('6d97bd')
 DARK_IN = hexc('3e4256')
-CURTAINS = [hexc('d9c9a2'), hexc('b8665c'), hexc('7e9a8a'), hexc('d6d2c4'), hexc('c79a6a'), hexc('8d7fa5')]
-# every window is its own: a glass tint, an interior tone, a way of being dressed (owner round 36f: "many of the windows look too much
-# like copy and pasted… improvements can be made to colouring"). All of it comes from the window's OWN seeded rng, so it is the same in
-# every run (the tower doesn't change — only the light and the damage do).
-GLASS_TINTS = [hexc('b4c8dc'), hexc('9cb8cc'), hexc('a8c0b0'), hexc('c4c0d8'), hexc('8fb0c8'), hexc('b8c8b8')]
-INTERIORS = [hexc('3a4a58'), hexc('46404e'), hexc('2e3a46'), hexc('4a4640'), hexc('3c4a44'), hexc('50424a')]
-LIT_KINDS = ('warm', 'warm', 'amber', 'tv', 'white', 'rose')
-LIT_COLS = {'warm': (hexc('ffd37c'), hexc('ffeaa8'), hexc('d99a48')),
-            'amber': (hexc('ffb85c'), hexc('ffd890'), hexc('c4742c')),
-            'tv': (hexc('9cc4f0'), hexc('d8ecff'), hexc('5a7cae')),
-            'white': (hexc('f2efe0'), hexc('ffffff'), hexc('a8a698')),
-            'rose': (hexc('f2a890'), hexc('ffd2c0'), hexc('b86a58'))}
-SHIRTS = [hexc('c9605a'), hexc('4f7ab0'), hexc('d8c25a'), hexc('5aa070'), hexc('b58ad0'), hexc('e8e4d8'), hexc('d8884a')]
 
 
 def bay_x(b):
     return INNER_X0 + b * BAY_W
 
 
-def draw_window(c, bx, y, state, sec, rng, meta, floor, bay, survivor=0.0):
-    """bx = the bay's left x, y = the floor band's top. Frame 11x10 at (bx+2, y+2), glass 9x8 inside it.
-    `survivor` = the chance (0..1) that a LIT window has someone at it (the game animates them: meta['survivors'])."""
-    P = PAL[sec]
-    fx, fy = bx + 2, y + 2
-    c.rect(fx, fy, fx + 10, fy + 9, P['frame'])
-    gx, gy = fx + 1, fy + 1
-    gtop = mix(GLASS_TOP, rng.choice(GLASS_TINTS), 0.45)
-    gbot = mix(GLASS_BOT, rng.choice(GLASS_TINTS), 0.35)
-    dark_in = mix(DARK_IN, rng.choice(INTERIORS), 0.55)
-    glint = rng.choice((0, 0, 1, 2, 3))                                # which reflection (3 = none)
-    style = rng.choice(('drapes', 'sheer', 'blinds', 'half', 'tied'))
-    lit_kind = rng.choice(LIT_KINDS)
-    dark_kind = rng.choice(('plain', 'plain', 'plant', 'shelf', 'lamp', 'frame'))
-    # the glass
-    for yy in range(8):
-        for xx in range(9):
-            t = yy / 7.0
-            col = mix(gtop, gbot, t)
-            if state in ('dark', 'curtain', 'open', 'lit', 'broken', 'boarded', 'burnt'):
-                col = mix(dark_in, hexc('59647a'), 0.25 * (1 - t))
-            c.put(gx + xx, gy + yy, col)
-    if state in ('dark', 'curtain', 'open') and glint < 3:
-        # the sky's reflection: a pale diagonal glint across the glass
-        if glint == 0:
-            for k in range(4):
-                c.put(gx + 1 + k, gy + 3 - k, hexc('b4d2ea'))
-            for k in range(3):
-                c.put(gx + 4 + k, gy + 5 - k, hexc('88acc8'))
-        elif glint == 1:
-            for k in range(5):
-                c.put(gx + 3 + k, gy + 5 - k, hexc('b4d2ea'))
-            c.put(gx + 2, gy + 6, hexc('88acc8'))
-        else:
-            for k in range(3):
-                c.put(gx + 1 + k, gy + 2 - k + 1, hexc('b4d2ea'))
-            c.put(gx + 7, gy + 1, hexc('88acc8'))
-            c.put(gx + 6, gy + 2, hexc('88acc8'))
-    if state == 'dark':
-        if dark_kind == 'plant':                                     # a plant on the inside sill
-            c.rect(gx + 6, gy + 6, gx + 7, gy + 7, hexc('8a5a3c'))
-            c.rect(gx + 5, gy + 3, gx + 8, gy + 5, hexc('3f6a3c'))
-            c.put(gx + 6, gy + 2, hexc('4f8a4a'))
-        elif dark_kind == 'shelf':
-            c.hline(gx + 1, gx + 7, gy + 3, hexc('2a2430'))
-            for k in range(0, 6, 2):
-                c.vline(gx + 2 + k, gy + 1, gy + 2, rng.choice((hexc('7a4a3a'), hexc('3a5a6a'), hexc('8a7a50'))))
-        elif dark_kind == 'lamp':                                    # a standard lamp, off
-            c.vline(gx + 7, gy + 3, gy + 7, hexc('2a2430'))
-            c.rect(gx + 6, gy + 1, gx + 8, gy + 3, hexc('5a5448'))
-        elif dark_kind == 'frame':
-            c.rect(gx + 5, gy + 1, gx + 7, gy + 3, hexc('5a4a3a'))
-            c.rect(gx + 6, gy + 2, gx + 6, gy + 2, hexc('7a8a7a'))
-    if state == 'curtain':
-        col = rng.choice(CURTAINS)
-        dk = shade(col, 0.78)
-        wd = rng.choice((2, 3))
-        if style == 'drapes':
-            for yy in range(8):
-                for xx in range(wd):
-                    c.put(gx + xx, gy + yy, col if (yy + xx) % 3 else dk)
-                    c.put(gx + 8 - xx, gy + yy, col if (yy + xx) % 3 else dk)
-            if rng.random() < 0.35:                                 # drawn right across
-                for yy in range(8):
-                    for xx in range(wd, 9 - wd):
-                        c.put(gx + xx, gy + yy, col if (yy * 2 + xx) % 4 else dk)
-        elif style == 'sheer':                                      # a pale net across the whole pane, a fold or two
-            for yy in range(8):
-                for xx in range(9):
-                    base = c.px[gx + xx, gy + yy]
-                    c.put(gx + xx, gy + yy, mix(base, hexc('e8e4d8'), 0.55 if (xx + yy // 2) % 3 else 0.4))
-        elif style == 'blinds':                                     # venetian slats, lowered part way
-            drop = rng.choice((3, 5, 7))
-            for yy in range(drop):
-                for xx in range(9):
-                    c.put(gx + xx, gy + yy, shade(col, 0.95) if yy % 2 == 0 else dk)
-            c.put(gx + 4, gy + drop, hexc('c4bca8'))
-        elif style == 'half':                                       # one side only, drawn back
-            side = rng.choice((0, 1))
-            for yy in range(8):
-                for xx in range(wd + 1):
-                    x_ = gx + xx if side == 0 else gx + 8 - xx
-                    c.put(x_, gy + yy, col if (yy + xx) % 3 else dk)
-        else:                                                       # tied back at the middle height, a pinch of colour
-            for yy in range(8):
-                pinch = 1 if 3 <= yy <= 4 else wd
-                for xx in range(pinch):
-                    c.put(gx + xx, gy + yy, col if (yy + xx) % 3 else dk)
-                    c.put(gx + 8 - xx, gy + yy, col if (yy + xx) % 3 else dk)
-            c.put(gx + 1, gy + 3, hexc('d8c070'))
-            c.put(gx + 7, gy + 3, hexc('d8c070'))
-    elif state == 'lit':
-        glow, core, sill = LIT_COLS[lit_kind]
-        if survivor > 0.0 and rng.random() < survivor:
-            glow, core, sill = LIT_COLS['warm']                      # someone at the window: a plain warm room so they read against it
-            lit_kind = 'warm'
-            has_person = True
-        else:
-            has_person = False
-        for yy in range(8):
-            for xx in range(9):
-                if lit_kind == 'tv':                                 # a cool flicker of a screen, the rest of the room dim
-                    f = (xx * 3 + yy * 5) % 7
-                    c.put(gx + xx, gy + yy, mix(glow, hexc('2e3a52'), 0.15 + 0.5 * (abs(xx - 4) / 5.0)) if f else core)
-                elif lit_kind == 'amber' and (xx < 2 or xx > 6):     # a lamp's pool: the corners stay dim
-                    c.put(gx + xx, gy + yy, mix(glow, dark_in, 0.45))
-                else:
-                    c.put(gx + xx, gy + yy, glow if (xx + yy) % 5 else core)
-        c.hline(gx, gx + 8, gy + 7, sill)
-        wd = rng.choice((1, 2))
-        col = rng.choice(CURTAINS)
-        for yy in range(8):
-            for xx in range(wd):
-                c.put(gx + xx, gy + yy, shade(col, 0.95))
-                c.put(gx + 8 - xx, gy + yy, shade(col, 0.95))
-        if has_person:
-            kinds = ('wave', 'pace', 'peer', 'sway', 'pound', 'shout', 'huddle', 'phone', 'slump')
-            meta['survivors'].append({'x': gx, 'y': gy, 'w': 9, 'h': 8, 'floor': floor, 'bay': bay,
-                                      'kind': rng.choice(kinds), 'shirt': '%02x%02x%02x' % tuple(rng.choice(SHIRTS)[:3]),
-                                      'phase': round(rng.random() * 6.28, 2)})
-        meta['lit'].append({'x': gx, 'y': gy, 'w': 9, 'h': 8, 'floor': floor, 'bay': bay})
-    elif state == 'open':
-        # a casement thrown open (its pane edge-on), the curtain blown out over the sill
-        c.vline(gx + 6, gy, gy + 7, hexc('d8d8d0'))
-        c.vline(gx + 7, gy + 1, gy + 7, hexc('9aa0a8'))
-        col = rng.choice(CURTAINS)
-        for k in range(6):
-            c.put(gx + 1 + (k % 3), gy + k, col)
-            c.put(gx + 2 + (k % 2), gy + k, shade(col, 0.82))
-        for k in range(4):
-            c.put(fx + 10 + (k % 2), fy + 2 + k, col)
-    elif state == 'broken':
-        for (x1, y1, x2, y2) in ((4, 0, 4, 3), (4, 3, 1, 5), (4, 3, 7, 6), (7, 6, 8, 7), (1, 5, 0, 7)):
-            n = max(abs(x2 - x1), abs(y2 - y1), 1)
-            for i in range(n + 1):
-                c.put(gx + x1 + (x2 - x1) * i // n, gy + y1 + (y2 - y1) * i // n, hexc('dfe9f0'))
-        c.rect(gx + 5, gy + 4, gx + 8, gy + 7, hexc('1c1e2a'))
-    elif state == 'boarded':
-        wood = rng.choice((hexc('9a7650'), hexc('8a6a48'), hexc('a88458')))
-        dk = shade(wood, 0.72)
-        for k, yy in enumerate((1, 4)):
-            c.rect(gx - 1, gy + yy, gx + 9, gy + yy + 1, wood)
-            c.hline(gx - 1, gx + 9, gy + yy + 1, dk)
-            c.put(gx + 1, gy + yy, dk)
-            c.put(gx + 7, gy + yy, dk)
-    elif state == 'burnt':
-        c.rect(gx, gy, gx + 8, gy + 7, hexc('171418'))
-        for _ in range(5):
-            c.put(gx + rng.randrange(1, 8), gy + rng.randrange(3, 8), hexc('c4552a'))
-        # sooty frame and a black plume licking up the wall above
-        for xx in range(11):
-            c.put(fx + xx, fy, hexc('2b231f'))
-            c.put(fx + xx, fy + 9, hexc('2b231f'))
-        for yy in range(10):
-            c.put(fx, fy + yy, hexc('2b231f'))
-            c.put(fx + 10, fy + yy, hexc('2b231f'))
-        for k in range(1, 15):
-            a = int(185 * (1.0 - k / 15.0))
-            half = 3 + k // 3
-            for xx in range(-half, half + 1):
-                if rng.random() < 0.85 - k * 0.04:
-                    c.put(fx + 5 + xx + int(math.sin(k * 0.8) * 1.5), fy - k, (30, 24, 24, max(0, a - abs(xx) * 12)))
-        meta['smoke'].append({'x': fx + 5, 'y': fy - 2, 'floor': floor, 'bay': bay})
-    # the opening is a RECESS in a thick wall: its left jamb and head cast a shadow onto the glass, the sill throws light back up
-    if state in ('dark', 'curtain', 'lit', 'open', 'broken'):
-        for yy in range(8):
-            c.put(gx, gy + yy, (10, 8, 16, 62))
-        for xx in range(9):
-            c.put(gx + xx, gy, (10, 8, 16, 78))
-            c.put(gx + xx, gy + 1, (10, 8, 16, 26))
-        for xx in range(1, 9):
-            c.put(gx + xx, gy + 7, (255, 255, 255, 22))
-    # a mullion; hotel windows get a transom
-    if state in ('dark', 'curtain', 'lit', 'open'):
-        c.vline(gx + 4, gy, gy + 7, P['frame'])
-        if sec == 'hotel':
-            c.hline(gx, gx + 8, gy + 2, P['frame'])
-    # the sill with its shadow below it, and a lintel
-    c.hline(fx - 1, fx + 11, fy + 10, shade(P['trim'], 1.1))
-    c.hline(fx - 1, fx + 11, fy + 11, shade(P['dark'], 0.82))
-    c.hline(fx - 1, fx + 11, fy - 1, P['trim'])
-
-
-def draw_balcony_bay(c, bx, y, sec, rng, meta, floor, bay):
-    P = PAL[sec]
-    fx, fy = bx + 2, y + 2
-    c.rect(fx, fy, fx + 10, fy + 9, P['frame'])
-    gx, gy = fx + 1, fy + 1
-    for yy in range(8):
-        for xx in range(9):
-            c.put(gx + xx, gy + yy, mix(DARK_IN, hexc('59647a'), 0.25 * (1 - yy / 7.0)))
-    for k in range(4):
-        c.put(gx + 1 + k, gy + 3 - k, hexc('b4d2ea'))
-    c.vline(gx + 4, gy, gy + 7, P['frame'])
-    # the slab (2 rows, 1 px proud each side) and a railing over the lower part of the door
-    c.hline(bx, bx + 14, y + 12, shade(P['trim'], 1.12))
-    c.hline(bx, bx + 14, y + 13, shade(P['dark'], 0.7))
-    c.hline(fx - 1, fx + 11, y + 8, shade(P['trim'], 1.05))
-    for xx in range(fx - 1, fx + 12):
-        if (xx - fx) % 2 == 0:
-            c.vline(xx, y + 9, y + 11, shade(P['frame'], 0.85) if sec != 'concrete' else hexc('2c3440'))
-    # what's out on it
-    r = rng.random()
-    if r < 0.30:                                                     # a potted plant, alive or not
-        px = fx + rng.randrange(0, 8)
-        c.rect(px, y + 6, px + 2, y + 7, hexc('9b5a3c'))
-        green = rng.choice((hexc('4f8a4a'), hexc('6f9a3c'), hexc('8a8450')))
-        c.rect(px - 1, y + 3, px + 3, y + 5, green)
-        c.put(px + 1, y + 2, green)
-    elif r < 0.50:                                                   # washing on a line
-        col = rng.choice(CURTAINS + [hexc('e8e8e0'), hexc('c9605a')])
-        for k in range(3):
-            c.rect(fx + 1 + k * 3, y + 4, fx + 2 + k * 3, y + 7, shade(col, 0.9 + 0.1 * (k % 2)))
-        c.hline(fx, fx + 10, y + 4, hexc('2c2c2c'))
-    elif r < 0.62:                                                   # a chair
-        c.vline(fx + 6, y + 5, y + 7, hexc('4a4038'))
-        c.hline(fx + 4, fx + 7, y + 6, hexc('4a4038'))
-        c.vline(fx + 4, y + 7, y + 7, hexc('4a4038'))
-    elif r < 0.70:                                                   # a satellite dish on the rail
-        c.ellipse(fx + 8, y + 6, 2.2, 1.6, hexc('d6d6d0'))
-        c.put(fx + 8, y + 6, hexc('8a8a86'))
-
-
 def draw_facade(c, rng, meta, run=1):
-    """The tower's 30 floors, the sectional palette, sills, balconies, windows in all their states."""
+    """The tower's 30 floors in one material, windows in all their states (drawn by `opening_facade`, a small strict grammar — owner round 49c)."""
     # The SAME building in all three runs: every window's choices come from its own seeded draw, so a window that was broken in the
     # morning is still broken at dusk and the damage only ever GROWS (the thresholds below shift with the run). The burnt floors are
     # not here — the game lays those from the playthrough's real fire.
@@ -427,44 +190,22 @@ def draw_facade(c, rng, meta, run=1):
     wear_shift = L['wear']
     lit_p = L['lit_p']
     balcony_bays = {1, 4, 6}
+    P = PAL['brick']
     for n in range(30, 0, -1):
-        sec = section(n)
-        P = PAL[sec]
         y = floor_y(n)
-        # wall
-        c.rect(BX0, y, BX1, y + FH - 1, P['wall'])
-        if sec == 'brick':
-            for yy in range(y, y + FH):
-                if (yy - y) % 3 == 2:
-                    c.hline(BX0, BX1, yy, P['mortar'])
-                else:
-                    off = ((yy - y) // 3 % 2) * 3
-                    for xx in range(BX0 + off, BX1 + 1, 6):
-                        c.put(xx, yy, P['mortar'])
-            for _ in range(10):
-                c.put(rng.randrange(BX0, BX1), y + rng.randrange(0, FH), shade(P['wall'], rng.choice((0.9, 1.08))))
-        elif sec == 'hotel':
-            for xx in range(BX0, BX1 + 1, 2):                          # a faint stone coursing
-                c.put(xx, y + 6, shade(P['wall'], 0.94))
-            c.hline(BX0, BX1, y + FH - 1, shade(P['wall'], 0.9))
-        else:
-            c.hline(BX0, BX1, y + 6, shade(P['wall'], 0.92))
-            for xx in range(BX0 + 8, BX1, 24):
-                c.vline(xx, y, y + FH - 1, shade(P['wall'], 0.94))
-        # pilasters
-        for (px0, px1) in ((BX0, BX0 + 5), (BX1 - 5, BX1)):
-            c.rect(px0, y, px1, y + FH - 1, P['lit'] if px0 == BX0 else P['dark'])
-            c.vline(px0 if px0 == BX0 else px1, y, y + FH - 1, shade(P['lit'] if px0 == BX0 else P['dark'], 0.86))
-        # windows
+        opening_facade.brick_wall(c, BX0, BX1, y, FH, P)
+        opening_facade.pilasters(c, y, FH, P)
         for b in range(BAYS):
             bx = bay_x(b)
             wr = random.Random(n * 1013 + b * 17 + 404)               # this window's own details
             sr = random.Random(n * 131 + b * 7 + 9)
             r = sr.random()
             r2 = sr.random()
+            r3 = sr.random()
             if b in balcony_bays and (n + b) % 2 == 0 and n != 30:
-                draw_balcony_bay(c, bx, y, sec, wr, meta, n, b)
+                opening_facade.balcony_bay(c, bx, y, wr, meta, n, b, P)
                 continue
+            sick = False
             if n == 30 and b == 2:
                 state = 'lit'                                         # where you wake
             else:
@@ -480,7 +221,9 @@ def draw_facade(c, rng, meta, run=1):
                     state = 'curtain'
                 else:
                     state = 'dark'
-            draw_window(c, bx, y, state, sec, wr, meta, n, b, L['survivors'] if (n != 30 or b != 2) else 0.0)
+                if run == 3 and n <= opening_facade.LOW_GROWTH_TOP and state in ('dark', 'curtain') and r3 < 0.04 + 0.006 * (opening_facade.LOW_GROWTH_TOP - n):
+                    state, sick = 'lit', True                         # the sick floors: a window lit a bile-yellow green
+            opening_facade.window(c, bx, y, state, wr, meta, n, b, L['survivors'] if (n != 30 or b != 2) else 0.0, sick, P)
         # the piers between the bays are slightly proud of the glass: a lit edge on the left, a shaded one on the right
         for b in range(BAYS):
             bx = bay_x(b)
@@ -492,33 +235,11 @@ def draw_facade(c, rng, meta, run=1):
             for yy in range(y, y + FH):
                 c.put(px0 + 1, yy, (255, 255, 255, 30))
                 c.put(px1 - 1, yy, (10, 8, 14, 52))
-        # section ledges: a cornice at the top floor and where a section begins
-        if n in (30, 21, 11):
-            c.hline(BX0 - 1, BX1 + 1, y, shade(P['band'], 1.1))
-            c.hline(BX0 - 1, BX1 + 1, y + 1, P['band'])
-            c.hline(BX0 - 2, BX1 + 2, y + 2, shade(P['band'], 0.8))
-            for k_, a_ in enumerate((88, 56, 30)):                    # the ledge juts out: its shadow falls on the wall (and window heads) below
-                for xx in range(BX0, BX1 + 1):
-                    c.put(xx, y + 3 + k_, (8, 6, 12, a_))
-        if n == 1:
-            c.hline(BX0 - 1, BX1 + 1, y + FH - 1, shade(PAL['concrete']['band'], 0.8))
+        if n == 1:                                                    # the plinth course over the lobby
+            c.hline(BX0 - 1, BX1 + 1, y + FH - 1, shade(P['trim_lo'], 0.85))
     # sheets hung out of windows with a word on them (more of them as it gets worse)
     for (hf, hbay, word) in [(24, 5, 'HELP'), (13, 1, 'SOS'), (6, 3, 'HELP')][:L['helps']]:
         hang_sheet(c, bay_x(hbay), floor_y(hf), word, hf * 7 + hbay, meta)
-    # grime: rain streaks below sills, darker toward the street; and a lit left / shaded right
-    for n in range(30, 0, -1):
-        y = floor_y(n)
-        wear = (30 - n) / 29.0
-        for b in range(BAYS):
-            bx = bay_x(b)
-            if rng.random() < 0.25 + 0.35 * wear:
-                sx = bx + rng.randrange(2, 12)
-                ln = rng.randrange(3, 9)
-                for k in range(ln):
-                    px = c.px[sx, y + 12 + k] if 0 <= sx < c.w and y + 12 + k < c.h else None
-                    if px and px[3]:
-                        a = int(70 * (1 - k / ln))
-                        c.put(sx, y + 12 + k, (40, 34, 30, a))
     # the lit / shaded sides of the whole block, so it has a form against the sun
     for x in range(BX0, BX1 + 1):
         t = (x - BX0) / float(BX1 - BX0)
@@ -528,8 +249,8 @@ def draw_facade(c, rng, meta, run=1):
             if a:
                 c.px[x, y] = (min(255, int(r * k)), min(255, int(g * k)), min(255, int(b * k)), a)
     # the right-hand edge in shadow, the left in light
-    c.vline(BX0 - 1, TOP_Y, GROUND_Y - 1, hexc('f3ead0'))
-    c.vline(BX1 + 1, TOP_Y, GROUND_Y - 1, hexc('5a4c44'))
+    c.vline(BX0 - 1, TOP_Y, GROUND_Y - 1, P['trim_hi'])
+    c.vline(BX1 + 1, TOP_Y, GROUND_Y - 1, shade(P['trim_lo'], 0.7))
     if run == 2:
         wreck_balcony(c, bay_x(4), floor_y(14))
     if run == 3:
@@ -544,10 +265,16 @@ def hang_sheet(c, bx, y, word, seed, meta):
     window, so it ran over the piers and the frames of the windows either side. This one is exactly as wide as a window frame plus a pixel
     each side (13), is tied by its top corners to its own sill and falls over the window BELOW it — whole, never half over a neighbour —
     with folds, a lit edge and a shaded one, a ragged hem, a shadow on the wall, and letters painted by hand (each a pixel off the last,
-    one running). HELP is set on two lines (HE / LP) so it fits a window's width; SOS fits on one."""
+    one running).
+
+    Owner round 49c ("the letters should be under one another like that, it's difficult to read and bad art. HELP should be together, not two
+    letters above two below"): a word is ALWAYS one line. SOS (11 px of 3x5 letters) fits the 13 px sheet; HELP (15 px) needs a 17 px one, which
+    hangs from the same two knots at the frame's edges but belly out three pixels past each side — over the piers (4 px of brick between two
+    frames), never over a neighbour's frame."""
     rr = random.Random(seed * 31 + 7)
     fx = bx + 2                                                   # the window frame's left edge (the frame is 11 wide)
-    x0, x1 = fx - 1, fx + 11                                      # 13 wide: a pixel proud of the frame each side, clear of the piers
+    wide = len(word) > 3
+    x0, x1 = (fx - 3, fx + 13) if wide else (fx - 1, fx + 11)     # 13 wide (SOS): a pixel proud of the frame each side; 17 wide (HELP): three, over the piers but clear of the neighbours' frames
     top = y + 12                                                  # the window's own sill row
     bot = y + 25                                                  # the lower window's frame ends here; the hem sits at its foot
     base, lit, shd, fold = hexc('ece6d6'), hexc('f6f1e4'), hexc('c9c2b0'), hexc('d9d2c0')
@@ -569,23 +296,20 @@ def hang_sheet(c, bx, y, word, seed, meta):
         c.put(xx, hem[xx], shd)
         c.put(xx, top, mix(base, shd, 0.5))
     knot = hexc('4a4038')
-    for kx in (x0, x1):                                           # tied to the sill at both top corners, the ends hanging
+    for kx, side in ((fx, 1), (fx + 10, -1)):                     # tied to the sill at the frame's two top corners, the cloth belled out past them
         c.put(kx, top, knot)
         c.put(kx, top - 1, knot)
-        c.put(kx + (1 if kx == x0 else -1), top + 1, mix(knot, base, 0.4))
+        c.put(kx + side, top + 1, mix(knot, base, 0.4))
     red = hexc('b3231c')
-    lines = ['HE', 'LP'] if word == 'HELP' else [word]
-    lh = 6 if len(lines) == 2 else 0
-    ty = top + 3 if len(lines) == 2 else top + 6
-    for li, ln in enumerate(lines):
-        tw = len(ln) * 4 - 1
-        tx = x0 + (x1 - x0 + 1 - tw) // 2
-        for k, ch in enumerate(ln):
-            jy = rr.choice((0, 0, 1))                             # painted by hand: each letter a little off the line
-            text3(c, tx + k * 4, ty + li * lh + jy, ch, red)
-            if rr.random() < 0.34:                                # and the paint ran on one
-                for d in range(1, rr.choice((2, 3))):
-                    c.put(tx + k * 4 + rr.choice((0, 1, 2)), ty + li * lh + jy + 5 + d - 1, mix(red, base, 0.25 + 0.2 * d))
+    tw = len(word) * 4 - 1                                        # the word on ONE line: 3 px letters, a pixel between
+    tx = x0 + (x1 - x0 + 1 - tw) // 2
+    ty = top + 4
+    for k, ch in enumerate(word):
+        jy = rr.choice((0, 0, 1))                                 # painted by hand: each letter a little off the line
+        text3(c, tx + k * 4, ty + jy, ch, red)
+        if rr.random() < 0.34:                                    # and the paint ran on one
+            for d in range(1, rr.choice((2, 3))):
+                c.put(tx + k * 4 + rr.choice((0, 1, 2)), ty + jy + 5 + d - 1, mix(red, base, 0.25 + 0.2 * d))
     meta['helps'].append({'x': x0, 'y': top, 'w': x1 - x0 + 1, 'h': bot - top + 1, 'word': word})
 
 
@@ -714,54 +438,8 @@ def breach(c, x, y, meta=None):
 
 
 def draw_roof(c, rng, meta):
-    P = PAL['hotel']
-    # parapet: a cap, a face, and the shadow of the cornice below
-    c.rect(BX0 - 1, PARAPET_Y, BX1 + 1, TOP_Y - 1, P['wall'])
-    c.hline(BX0 - 2, BX1 + 2, PARAPET_Y, hexc('f3ead0'))
-    c.hline(BX0 - 2, BX1 + 2, PARAPET_Y + 1, P['band'])
-    for xx in range(BX0 + 2, BX1, 6):
-        c.rect(xx, PARAPET_Y + 3, xx + 2, TOP_Y - 3, shade(P['wall'], 0.92))
-    c.hline(BX0 - 1, BX1 + 1, TOP_Y - 1, shade(P['dark'], 0.8))
-    c.vline(BX0 - 2, PARAPET_Y, TOP_Y, hexc('f3ead0'))
-    c.vline(BX1 + 2, PARAPET_Y, TOP_Y, hexc('4a4440'))
-    # the stair / lift head: a box with a door, louvres and a ladder
-    mx0, mx1 = 128, 164
-    my0 = PARAPET_Y - 15
-    c.rect(mx0, my0, mx1, PARAPET_Y - 1, hexc('c9bd9c'))
-    c.rect(mx1 - 4, my0, mx1, PARAPET_Y - 1, hexc('9d9378'))
-    c.hline(mx0 - 1, mx1 + 1, my0 - 1, hexc('efe6c8'))
-    c.hline(mx0 - 1, mx1 + 1, my0, hexc('7a7160'))
-    c.rect(mx0 + 4, my0 + 5, mx0 + 9, PARAPET_Y - 1, hexc('4a3a2e'))      # the door
-    c.put(mx0 + 8, my0 + 9, hexc('d9b56a'))
-    for k in range(4):
-        c.hline(mx0 + 14, mx0 + 24, my0 + 4 + k * 2, hexc('6a634f'))     # louvres
-    # a water tank on legs
-    tx0, tx1 = 92, 112
-    c.rect(tx0, PARAPET_Y - 12, tx1, PARAPET_Y - 5, hexc('9a6a4a'))
-    for k in range(0, 21, 4):
-        c.vline(tx0 + k, PARAPET_Y - 12, PARAPET_Y - 5, hexc('6a4630'))
-    c.hline(tx0 - 1, tx1 + 1, PARAPET_Y - 13, hexc('553a28'))
-    c.rect(tx0 + 4, PARAPET_Y - 15, tx1 - 4, PARAPET_Y - 13, hexc('7a5238'))     # lid
-    for lx in (tx0 + 1, tx1 - 1):
-        c.vline(lx, PARAPET_Y - 4, PARAPET_Y - 1, hexc('4a3a2e'))
-    c.hline(tx0, tx1, PARAPET_Y - 4, hexc('4a3a2e'))
-    # air-con boxes and a vent stack
-    for ax in (176, 188):
-        c.rect(ax, PARAPET_Y - 6, ax + 8, PARAPET_Y - 1, hexc('b9b6ac'))
-        c.hline(ax, ax + 8, PARAPET_Y - 6, hexc('e8e6dc'))
-        c.rect(ax + 2, PARAPET_Y - 5, ax + 6, PARAPET_Y - 2, hexc('55575e'))
-    c.rect(118, PARAPET_Y - 9, 120, PARAPET_Y - 1, hexc('8a8f96'))
-    c.hline(117, 121, PARAPET_Y - 10, hexc('5a5f66'))
-    # an antenna mast with a red beacon on top of the head; a dish
-    ax = 146
-    c.vline(ax, 0, my0 - 2, hexc('3a3f48'))
-    c.hline(ax - 3, ax + 3, 6, hexc('3a3f48'))
-    c.hline(ax - 2, ax + 2, 11, hexc('3a3f48'))
-    c.rect(ax - 1, 0, ax + 1, 1, hexc('8a1e1e'))
-    meta['beacon'] = [{'x': ax, 'y': 0}]
-    c.ellipse(182, PARAPET_Y - 11, 3.4, 2.4, hexc('d9d6cc'))
-    c.put(182, PARAPET_Y - 11, hexc('7a7770'))
-    c.vline(182, PARAPET_Y - 9, PARAPET_Y - 7, hexc('4a4a4a'))
+    """The roof and parapet (opening_facade.roof): a stair head, a water tank on a frame, chimney stacks, condensers, a lattice mast."""
+    opening_facade.roof(c, meta, PAL['brick'])
 
 
 def draw_entrance(c, rng, meta):
@@ -1407,27 +1085,28 @@ def garden_runner(meta, run):
     in the afternoon, nothing at night. See `RUNNERS`."""
     rn = dict(RUNNERS.get(run, {'kind': ''}))
     rn['y0'] = GROUND_Y                                           # the row the building stands on: a path point (x, r) is drawn at y = y0 + r
-    rn['scale'] = [PATH_A, PATH_B, 43.0]                          # size on row r: (A + B r) / (A + B 43) — the path's own width law
+    rn['tiers'] = dict(opening_figures.TIERS)                     # which hand-drawn size a figure on row r uses (assets/opening/figures.png): L from row 28, M from 14, S below
     meta['runner'] = rn
 
 
 # Where the runner goes, in the garden layer's own pixels (y is the row it stands on: GROUND_Y = the foot of the building, +43 = the
 # viewer's edge). It does NOT run along the bottom edge any more (owner round 49): it comes in from the front and goes DEEPER into the scene,
-# shrinking with the same perspective the path's width has (`runner_scale`), and `runner_clearance(run)` checks that nothing standing
+# drawn in one of three hand-drawn sizes by the row it stands on (`opening_figures.TIERS`), and `runner_clearance(run)` checks that nothing standing
 # NEARER than it covers it on the way (it is drawn over the garden, so the path has to stay clear of every nearer object).
 RUNNERS = {
     # the black cat comes up out of the bottom of the screen at the front-left, cuts across the lawn's front corner, then climbs the path to
     # the open door and is gone in the dark
-    1: {'kind': 'cat', 'speed': 46.0, 'start': 0.5, 'end': 'vanish', 'path': [[60, 47], [67, 40], [108, 40], [111, 37], [111, 34], [142, 3]]},
+    1: {'kind': 'cat', 'speed': 46.0, 'start': 0.5, 'end': 'vanish', 'path': [[60, 47], [67, 40], [110, 40], [113, 37], [113, 33], [117, 29], [117, 28], [142, 3]]},
     # a person comes up from the front-right and runs for the barricaded door — and stands there, hammering on it (the camera leaves them)
-    2: {'kind': 'human', 'speed': 52.0, 'start': 0.3, 'end': 'pound', 'path': [[230, 47], [225, 42], [201, 42], [199, 40], [188, 40], [187, 39], [184, 39], [178, 33], [167, 33], [165, 31], [165, 28], [169, 24], [149, 4], [142, 4]]},
+    2: {'kind': 'human', 'speed': 52.0, 'start': 0.3, 'end': 'pound', 'path': [[230, 47], [225, 42], [200, 42], [198, 40], [186, 40], [185, 39], [182, 39], [176, 33], [165, 33], [163, 31], [163, 30], [167, 26], [169, 26], [171, 24], [151, 4], [142, 4]]},
     3: {'kind': ''},
 }
 
 
-def runner_scale(yy):
-    """How big a thing standing on row `yy` (0 = the building's foot, 43 = the front edge) is drawn, 1.0 at the front: the path's own width law."""
-    return (PATH_A + PATH_B * yy) / (PATH_A + PATH_B * 43.0)
+def runner_pace(yy):
+    """How fast a runner goes on row `yy`, 1.0 at the front edge: a little slower the deeper it is (the ground row's own perspective, kept mild —
+    the DRAWING no longer shrinks continuously; it swaps between three hand-drawn sizes, `opening_figures`)."""
+    return 0.62 + 0.38 * min(1.0, max(0.0, yy / 43.0))
 
 
 GARDEN_OBJECTS = ('planter', 'bush', 'bench', 'tree', 'lamp_post', 'litter', 'body_lying')
@@ -1488,8 +1167,7 @@ def garden_depth_violations(run):
     return sorted(bad, reverse=True)
 
 
-# The runner's footprint at full size (the front edge): width x height in garden pixels, tail / arms included.
-RUNNER_SIZE = {'cat': (11, 8), 'human': (9, 14)}
+RUNNER_PAD = 1                                 # a figure's footprint is its drawing plus a pixel either side (arms swing, a tail flicks, dust)
 RUNNER_X_MIN, RUNNER_X_MAX = -16, 304          # the lane runs a little past both screen edges (the runner enters and leaves off-screen)
 RUNNER_ROW_MAX = 47                            # …and a few rows below the picture's front edge (row 43): it can come up out of the bottom of the screen
 
@@ -1497,9 +1175,8 @@ RUNNER_ROW_MAX = 47                            # …and a few rows below the pic
 def _runner_blocked(log, kind, x, yy):
     """Would a runner of this kind, standing at (x, row yy), be covered by — or stand inside — something? Objects NEARER than it
     (base row at or below its own: the ones it would have to pass in front of) and the path walls (its feet may not stand on them)."""
-    w, h = RUNNER_SIZE[kind]
-    s = runner_scale(yy)
-    fw, fh = max(2, int(round(w * s))), max(3, int(round(h * s)))
+    fw, fh = opening_figures.size_of('cat' if kind == 'cat' else 'person', yy)
+    fw += 2 * RUNNER_PAD
     y = GROUND_Y + yy
     x0, x1 = int(x) - fw // 2, int(x) - fw // 2 + fw
     if x0 < 0 or x1 > W:
@@ -1656,6 +1333,14 @@ def draw_scene(run=1):
         if run == 3:
             night_light(c.img)
         c.px = c.img.load()
+    keep = [(hp['x'] - 1, hp['y'] - 2, hp['x'] + hp['w'] + 1, hp['y'] + hp['h'] + 2) for hp in meta['helps']]
+    saved = [(r, c.img.crop(r)) for r in keep]
+    opening_facade.growth(c, run, floor_y, dim={1: 1.0, 2: 0.9, 3: 0.66}[run])      # the sick lower floors, laid over the graded wall (nothing above floor 12)
+    for (r, patch) in saved:                                      # …but a HELP sheet is the point of its window: no vine grows over it
+        c.img.paste(patch, r[:2])
+    c.px = c.img.load()
+    meta['passers'] = choose_passers(meta, run)
+    meta['_over'] = window_overlays(c.img, meta)          # the frames of the people's windows, cut from the FINISHED (graded) picture: the game lays them back over its figures
     # the garden layer, on its own canvas
     cg = Canvas(W, SCENE_H, seed=505)
     gmeta = {'fires': []}
@@ -1665,6 +1350,47 @@ def draw_scene(run=1):
     if L['grade'] is not None:
         grade_scene(cg.img, L['grade'], [], run)
     return c.img, meta, cg.img, gmeta
+
+
+# People at windows (owner round 49c: "the people seem to be clipping the window frame… a size inconsistency"). The glass is 9 x 8: col 0 = the
+# jamb's shadow, rows 0-1 = the lintel's shadow, col 4 = the mullion, row 7 = the sill. A figure is a bust inside ONE pane, clipped to the glass, and the
+# game draws the window's own frame pixels back OVER it so it stands BEHIND the mullion / jamb / lintel like a real person behind a real window.
+OVER_ROWS = (0, 1, 7)                                          # lintel (two rows) and sill: always over a figure
+OVER_COLS_PERSON = (0, 4)                                      # jamb + mullion
+OVER_COLS_PASSER = (0, 1, 4, 7, 8)                             # …and the curtains drawn back to either side of a window with nobody at it
+
+
+def choose_passers(meta, run):
+    """Lit windows with nobody at them in which a shadow now and then walks across behind the curtain: a seeded share of the rest."""
+    pr = random.Random(6100 + run)
+    taken = {(w['floor'], w['bay']) for w in meta['survivors']}
+    out = []
+    for w in meta['lit']:
+        if w['floor'] == 30 or (w['floor'], w['bay']) in taken or w['tint']:
+            continue
+        if pr.random() < LOOK[run]['passers']:
+            out.append({'x': w['x'], 'y': w['y'], 'w': 9, 'h': 8, 'floor': w['floor'], 'bay': w['bay'],
+                        'phase': round(pr.random(), 3), 'period': 9 + pr.randrange(0, 8)})
+    return out
+
+
+def window_overlays(img, meta):
+    """A strip of 9 x 8 tiles, one per window that has a figure in it (the people first, then the passers; each entry's 'over' = its tile),
+    holding ONLY that window's frame pixels, copied from the finished picture. None when no window has anyone."""
+    wins = [(w, OVER_COLS_PERSON) for w in meta['survivors']] + [(w, OVER_COLS_PASSER) for w in meta['passers']]
+    if not wins:
+        return None
+    strip = Image.new('RGBA', (9, 8 * len(wins)), (0, 0, 0, 0))
+    src = img.load()
+    dst = strip.load()
+    for i, (w, cols) in enumerate(wins):
+        w['over'] = i
+        for yy in range(8):
+            for xx in range(9):
+                if yy in OVER_ROWS or xx in cols:
+                    dst[xx, i * 8 + yy] = src[w['x'] + xx, w['y'] + yy]
+    return strip
+
 
 
 def edge_light(c, run):
@@ -1702,6 +1428,11 @@ def night_light(img):
     gy_, gx_ = np.mgrid[0:SCENE_H, 0:W].astype(np.float64)
     patches = opening_sky.fbm(gx_ * 0.045 + 3.0, gy_ * 0.028 + 9.0, 71, 3, 0.5) - 0.5
     patches = np.round(patches * 4.0) / 4.0 * 0.55                   # four steps, +-0.27
+    for y in range(0, top):                                          # the roof's furniture: lifted so it reads against the glowing deck (it is lit from the city below)
+        for x in range(BX0 - 2, BX1 + 3):
+            r, g, b, a = px[x, y]
+            if a and 0.30 * r + 0.59 * g + 0.11 * b < 160:
+                px[x, y] = (min(255, int(r * 2.2 + 8)), min(255, int(g * 2.0 + 4)), min(255, int(b * 1.8 + 4)), a)
     for y in range(top, bot):
         t = (y - top) / span                                        # 0 at the cornice, 1 at the street
         warm = t ** 1.7
@@ -1780,13 +1511,18 @@ def grade_scene(img, g, lit, run):
                 elif run == 3:
                     r, gg, b, a = px[xx, yy]
                     if a:
-                        px[xx, yy] = (min(255, r + 26), min(255, gg + 16), min(255, b + 4), a)
+                        add = (12, 24, 6) if w.get('tint') else (26, 16, 4)             # a sick window throws a sick light
+                        px[xx, yy] = (min(255, r + add[0]), min(255, gg + add[1]), min(255, b + add[2]), a)
 
 
 # =============================================================================================================== FORE
 def draw_fore(run=1):
     rng = random.Random(9)
     c = Canvas(W, FORE_H, seed=9)
+    if run == 3:
+        # By night there is NOTHING in the foreground (owner round 49c: "those weird telephone poles… I don't know what they are"): the pole and its wires
+        # exist for the crows (runs 1 and 2); at night the birds are gone and a snapped wire hanging down the face of the tower only read as a black rod.
+        return c.img, {'perches': []}
     dark = hexc('26262c')
     px = 14
     c.rect(px, 0, px + 4, FORE_H - 1, hexc('4a3a2e'))
@@ -1923,6 +1659,9 @@ def build(run):
     out['mid_%d.png' % run] = mid
     scene, scene_meta, garden, garden_meta = draw_scene(run)
     out['scene_%d.png' % run] = scene
+    over = scene_meta.pop('_over', None)
+    if over is not None:
+        out['winover_%d.png' % run] = over
     out['garden_%d.png' % run] = garden
     if run == 2:                                                  # the afternoon's fog (owner round 36j)
         out['fog_2.png'] = draw_fog(2, 'mid')
@@ -1981,9 +1720,15 @@ def build_all():
     files['burn.png'] = burn
     birds, birds_meta = opening_birds.draw_birds()
     files['birds.png'] = birds
+    monsters, monsters_meta = opening_birds.draw_monsters()
+    files['monsters.png'] = monsters
+    figures, figures_meta = opening_figures.draw_sheet()
+    files['figures.png'] = figures
     for m in metas.values():
         m['burn'] = cells
         m['birds'] = birds_meta
+        m['monsters'] = monsters_meta
+        m['figures'] = figures_meta
     return files, metas
 
 

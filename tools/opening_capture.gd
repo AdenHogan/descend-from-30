@@ -67,6 +67,11 @@ func _ready() -> void:
 		return
 	if hide_title and ext.title != null:
 		ext.title.visible = false
+	if run == 3:
+		var ks: Array = []
+		for q in ext._strikes:
+			ks.append("%.2f %s x%d" % [float(q["t"]), String(q["kind"]), int(q["x"])])
+		print("night strikes (time kind x): ", ", ".join(ks))
 	var last := 0.0
 	for tm in times:
 		# tick in small steps so the animation state (flicker, drift, lightning) evolves like play

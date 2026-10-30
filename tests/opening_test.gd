@@ -38,6 +38,8 @@ func _ready() -> void:
 	await _test_logo_title()
 	await _test_survivors()
 	await _test_runner()
+	await _test_night_storm()
+	_test_help_sheets()
 	_test_garden_plan()
 	await _test_depth_and_weather()
 	await _test_runs()
@@ -382,7 +384,7 @@ func _test_survivors() -> void:
 		inside = inside and lit.has("%d:%d" % [int(p["floor"]), int(p["bay"])])
 	check(inside, "…every one at a LIT window (a silhouette against the light)")
 	check(kinds.size() >= 2, "…not all doing the same thing %s" % str(kinds.keys()))
-	# a pacer actually walks; everyone stays inside the 9 px of glass
+	# a pacer actually walks; everyone is a 4 px bust inside the 9 px of glass
 	var moved := false
 	var within := true
 	for p in sv.people:
@@ -397,18 +399,19 @@ func _test_survivors() -> void:
 			hi = maxf(hi, xx)
 		if String(p["kind"]) == "pace" and hi - lo > 2.0:
 			moved = true
-		within = within and roundf(lo) >= 2.0 and roundf(hi) <= 6.0
+		within = within and roundf(lo) >= 0.0 and roundf(hi) <= 5.0
 	check(moved or not kinds.has("pace"), "a pacer crosses its window")
-	check(within, "…and nobody steps out of the glass")
+	check(within, "…and a bust (4 px wide) stays inside the 9 px of glass")
 	e.t = 6.0
 	e._apply(0.0)
 	check(is_equal_approx(sv.clock, 6.0), "they animate off the opening's own clock")
 	e.queue_free()
 	# owner round 49 ("people at windows could be more animated"): a real repertoire, and shadows passing behind curtains
-	var known := ["wave", "pace", "peer", "sway", "pound", "shout", "huddle", "phone", "slump"]
+	var known := ["wave", "pace", "peer", "sway", "pound", "slump"]
 	var all_kinds := {}
 	var pass_ok := true
 	var n_pass := 0
+	var night_people := 0
 	for run in [2, 3]:
 		var e3 := _built("", run)
 		await get_tree().process_frame
@@ -426,13 +429,16 @@ func _test_survivors() -> void:
 			check(known.has(String(p["kind"])), "run %d: a known behaviour (%s)" % [run, String(p["kind"])])
 			mans["%d:%d" % [int(p["floor"]), int(p["bay"])]] = true
 		for q in s3.passers:
-			n_pass += 1
+			if run == 2:
+				n_pass += 1
 			var at := Vector2(float(q["x"]), float(q["y"]))
 			var found := false
 			for key in lit3:
 				if (lit3[key] as Vector2) == at and not mans.has(key):
 					found = true
 			pass_ok = pass_ok and found
+		if run == 3:
+			night_people = s3.people.size() + s3.passers.size()
 		# a figure's pose is a pure function of the clock: the same time gives the same place, whatever came before
 		if not s3.people.is_empty():
 			s3.clock = 3.0
@@ -442,8 +448,43 @@ func _test_survivors() -> void:
 			check(is_equal_approx(a1, float(s3.person_x(s3.people[0]))), "run %d: a pose depends on the clock alone" % run)
 		e3.queue_free()
 		await get_tree().process_frame
-	check(all_kinds.size() >= 4, "between them the people do at least four different things %s" % str(all_kinds.keys()))
+	check(all_kinds.size() >= 3, "between them the people do at least three different things %s" % str(all_kinds.keys()))
 	check(n_pass >= 3 and pass_ok, "shadows pass behind the curtains of OTHER lit windows (%d), never a window with someone at it" % n_pass)
+	check(night_people >= 1 and night_people <= 4, "the night has few people at its windows (%d)" % night_people)
+	_test_window_frames()
+
+
+## Owner round 49c ("the people seem to be clipping the window frame… looking half outside"): every figure is a bust inside ONE pane and the window's own
+## frame (jamb, lintel, mullion, sill — copied from the FINISHED picture) is laid back over it, so a figure stands behind them.
+func _test_window_frames() -> void:
+	for run in [1, 2]:
+		var m: Dictionary = _meta(run)["scene"]
+		var wins: Array = []
+		wins.append_array(m["survivors"])
+		wins.append_array(m["passers"])
+		check(not wins.is_empty(), "run %d: windows with people have their frames kept (%d)" % [run, wins.size()])
+		var tex := load("%swinover_%d.png" % [Ext.DIR, run]) as Texture2D
+		check(tex != null and tex.get_width() == 9 and tex.get_height() == 8 * wins.size(), "run %d: one 9 x 8 frame tile per window (%d)" % [run, wins.size()])
+		if tex == null:
+			continue
+		var img: Image = tex.get_image()
+		var scene: Image = (load("%sscene_%d.png" % [Ext.DIR, run]) as Texture2D).get_image()
+		var ok := true
+		var why := ""
+		for w in wins:
+			var i := int(w["over"])
+			for xx in range(9):
+				for yy in range(8):
+					var pc := img.get_pixel(xx, i * 8 + yy)
+					var sc := scene.get_pixel(int(w["x"]) + xx, int(w["y"]) + yy)
+					var must := yy in [0, 1, 7] or xx in [0, 4]
+					if must and (pc.a < 0.99 or pc.is_equal_approx(sc) == false):
+						ok = false
+						why = "tile %d (%d,%d) is not the picture's own pixel" % [i, xx, yy]
+					if not must and not (xx in [1, 7, 8]) and pc.a > 0.01:
+						ok = false
+						why = "tile %d (%d,%d) covers open glass" % [i, xx, yy]
+		check(ok, "run %d: the tiles hold ONLY the frame (lintel, sill, jamb, mullion), pixel for pixel from the finished picture %s" % [run, why])
 
 
 func _test_runner() -> void:
@@ -478,12 +519,26 @@ func _test_runner() -> void:
 		check(len_front < 0.45 * len_all, "run %d: no more than 45%% of the way is spent along the bottom edge (%d of %d px)" % [run, int(len_front), int(len_all)])
 		var last: Vector2 = pts[pts.size() - 1]
 		check(last.y <= 6.0, "run %d: and it ends at the building (row %d)" % [run, int(last.y)])
-		check(rn.scale_at(3.0) < 0.4 and is_equal_approx(rn.scale_at(43.0), 1.0), "run %d: it shrinks with the ground's own perspective (%.2f at the building, %.2f at the front)" % [run, rn.scale_at(3.0), rn.scale_at(43.0)])
-		# …and it slows as it recedes (a far figure covers fewer pixels a second)
-		var d_front: float = (pts[1] as Vector2).distance_to(pts[0]) / maxf(0.001, float(rn._t[1]) - float(rn._t[0]))
-		var k := pts.size() - 2
-		var d_deep: float = (pts[k + 1] as Vector2).distance_to(pts[k]) / maxf(0.001, float(rn._t[k + 1]) - float(rn._t[k]))
-		check(d_deep < 0.75 * d_front, "run %d: it is slower deep in the scene than at the front (%.0f vs %.0f px/s)" % [run, d_deep, d_front])
+		# owner round 49c ("he gets weirdly smaller… strange body pixel proportions"): hand-drawn figures in THREE sizes picked by the ground row — never a
+		# drawing rescaled to a fractional size, never smaller than a person at the building's own plane (10 px)
+		check(rn.art != null and rn.tier_at(3.0) == "S" and rn.tier_at(20.0) == "M" and rn.tier_at(43.0) == "L", "run %d: one of three hand-drawn sizes by the row it stands on (%s / %s / %s)" % [run, rn.tier_at(3.0), rn.tier_at(20.0), rn.tier_at(43.0)])
+		var fig_ok := rn.art != null
+		var h_min := 99.0
+		if rn.art != null:
+			for k in rn.art.rects:
+				if String(k).begins_with("person_") and not String(k).contains("pound"):
+					h_min = minf(h_min, (rn.art.rects[k] as Rect2).size.y)
+			for t_name in ["L", "M", "S"]:
+				for f_name in ["a", "p1", "b", "p2"] if run == 2 else ["a", "b"]:
+					fig_ok = fig_ok and rn.art.rects.has("%s_%s_%s" % ["person" if run == 2 else "cat", t_name, f_name])
+		check(fig_ok, "run %d: every size has every frame of its run on the sheet" % run)
+		if run == 2:
+			check(h_min >= 10.0, "…and the smallest person is %d px tall (a figure at the building is still a person, not a speck)" % int(h_min))
+		var names_seen := {}
+		for i in range(24):
+			rn.clock = float(rn.spec["start"]) + 0.05 * float(i) + 0.3
+			names_seen[rn.sprite_name()] = true
+		check(names_seen.size() >= 2, "run %d: its gait cycles through frames (%s)" % [run, str(names_seen.keys())])
 		# the clock
 		var st: float = float(rn.spec["start"])
 		e.t = st - 0.5
@@ -515,6 +570,178 @@ func _test_runner() -> void:
 	night.queue_free()
 
 
+## THE NIGHT'S STORM + ITS FLYING HORRORS (owner round 49c: "more lightning, especially actual lightning bolts in the background striking down";
+## "instead of those birds… flying monsters. Just shadow silhouettes… not humanish in form. Lovecraftian").
+func _test_night_storm() -> void:
+	print("[the night: bolts behind the city, flying horrors]")
+	var e := _built("", 3)
+	await get_tree().process_frame
+	check(e.load_ok and e.sky_bolts != null and e.fliers != null and e.fliers_sky != null, "night: the storm layer and both flocks are built")
+	if not e.load_ok or e.sky_bolts == null:
+		e.queue_free()
+		return
+	check(e.sky_bolts.get_parent() == e.layers["sky"]["node"], "the bolts live IN THE SKY LAYER, behind the far and mid skylines and the tower")
+	check(e.sky_bolts.material is CanvasItemMaterial and (e.sky_bolts.material as CanvasItemMaterial).blend_mode == CanvasItemMaterial.BLEND_MODE_ADD, "…drawn additively, so a bolt lights the cloud deck")
+	var st: Array = e._strikes
+	var bolts := 0
+	for q in st:
+		if String(q["kind"]) == "bolt":
+			bolts += 1
+	check(st.size() >= 12 and bolts >= int(0.5 * st.size()), "a strike every second or two, most of them real forked bolts (%d, %d bolts)" % [st.size(), bolts])
+	var last_t := -1.0
+	var gaps_ok := true
+	for q in st:
+		gaps_ok = gaps_ok and float(q["t"]) > last_t
+		last_t = float(q["t"])
+	check(gaps_ok, "the strikes are in time order")
+	# a bolt is a connected channel from the top of what is on screen down into the sky, with forks leaving it
+	var q0: Dictionary = {}
+	for q in st:
+		if String(q["kind"]) == "bolt":
+			q0 = q
+			break
+	var shp: Dictionary = e.sky_bolts.shape(q0)
+	var main: PackedVector2Array = shp["main"]
+	var connected := main.size() > 40
+	for i in range(1, main.size()):
+		connected = connected and absf(main[i].y - main[i - 1].y) == 1.0 and absf(main[i].x - main[i - 1].x) <= 2.0
+	check(connected, "a bolt is ONE connected jagged channel (%d px long, a step of at most 2 px sideways per row)" % main.size())
+	check(absf(main[0].y - float(q0["y0"])) <= 1.5 and absf(main[main.size() - 1].y - float(q0["y1"])) <= 1.5, "…running from its top to its end")
+	var forks: Array = shp["forks"]
+	var from_main := not forks.is_empty()
+	for f in forks:
+		var fp: PackedVector2Array = f
+		var touches := false
+		for pt in main:
+			if absf(pt.y - (fp[0].y - 1.0)) < 0.5 and absf(pt.x - fp[0].x) <= 3.0:
+				touches = true
+		from_main = from_main and touches
+	check(from_main, "…with forks that leave it (%d)" % forks.size())
+	check(e.sky_bolts.shape(q0)["main"] == main, "the same strike is always the same shape")
+	# the flash: a fast rise, a fall, a restrike; nothing before it or after its life
+	check(e.sky_bolts.level(-0.1, true) == 0.0 and e.sky_bolts.level(0.9, true) == 0.0, "no light before a strike or after its life")
+	var peak := 0.0
+	for i in range(0, 80):
+		peak = maxf(peak, e.sky_bolts.level(float(i) * 0.01, false))
+	check(peak >= 0.95 and e.sky_bolts.level(0.06, false) > e.sky_bolts.level(0.35, false), "it peaks within a tenth of a second and dies away (%.2f)" % peak)
+	check(e.sky_bolts.level(0.23, true) > e.sky_bolts.level(0.23, false) + 0.3, "a restrike lights it a second time")
+	# the clock plays them: the flash and the thunder queue (thunder arrives AFTER the light)
+	var first: Dictionary = st[0]
+	e.t = float(first["t"]) + 0.02
+	e._strike_i = 0
+	e._booms.clear()
+	e.flash.modulate.a = 0.0
+	e._lightning(0.016)
+	check(e.flash.modulate.a >= 0.05, "the picture flashes as the strike lands")
+	if String(first["kind"]) == "bolt":
+		check(e._booms.size() == 1 and float(e._booms[0]["at"]) > e.t + 0.5, "…and its thunder comes later, softer, by how far off it was")
+	e.queue_free()
+	await get_tree().process_frame
+	# the fliers: a sheet of shadow silhouettes that are NOT a bat, a bird or a person
+	var tex := load(Ext.DIR + "monsters.png") as Texture2D
+	check(tex != null, "the flying horrors have their sheet")
+	if tex != null:
+		var img: Image = tex.get_image()
+		var meta3: Dictionary = _meta(3)["monsters"]
+		var all := 0
+		var asym_ok := true
+		var dark_ok := true
+		var worst := 1.0
+		for size in ["L", "M", "S"]:
+			for e2 in meta3[size]:
+				all += 1
+				var rx: int = int(e2["x"])
+				var ry: int = int(e2["y"])
+				var w: int = int(e2["w"])
+				var h: int = int(e2["h"])
+				var diff := 0
+				var solid := 0
+				for yy in range(h):
+					for xx in range(w):
+						var a := img.get_pixel(rx + xx, ry + yy)
+						var b := img.get_pixel(rx + (w - 1 - xx), ry + yy)
+						if a.a > 0.5:
+							solid += 1
+							if a.r + a.g + a.b > 0.6:
+								dark_ok = false
+						if (a.a > 0.5) != (b.a > 0.5):
+							diff += 1
+				var frac := float(diff) / maxf(1.0, float(solid))
+				worst = minf(worst, frac)
+				asym_ok = asym_ok and frac >= 0.12
+		check(all == 15, "three sizes x five wing poses (%d)" % all)
+		check(dark_ok, "they are SHADOWS: every solid pixel is near black")
+		check(asym_ok, "not mirror-symmetric — a Lovecraftian thing, not a bird or a bat with a body down the middle (least asymmetric: %.0f %% of its pixels differ)" % (worst * 100.0))
+	# the flocks are pure functions of the clock; the roof flock wheels over the roof, the far one crosses the sky and wraps
+	var e4 := _built("", 3)
+	await get_tree().process_frame
+	var fl = e4.fliers
+	fl.clock = 5.0
+	var p1: Dictionary = fl.pose(0, 5.0)
+	var p2: Dictionary = fl.pose(0, 5.0)
+	check(p1 == p2 and String(p1["frame"]) != "", "a flier's pose depends on the clock alone")
+	var near_roof := true
+	for i in fl.flock.size():
+		for tt in [0.0, 3.0, 9.0, 17.0, 31.0]:
+			var q: Dictionary = fl.pose(i, tt)
+			near_roof = near_roof and absf((q["pos"] as Vector2).x - fl.home_x) <= 140.0 and (q["pos"] as Vector2).y < 0.0
+	check(near_roof, "the roof flock wheels over the roof, above its parapet")
+	var sky = e4.fliers_sky
+	var wrap_ok := true
+	for i in sky.flock.size():
+		for tt in range(0, 120, 7):
+			var xq: float = (sky.pose(i, float(tt))["pos"] as Vector2).x
+			wrap_ok = wrap_ok and xq >= -42.0 and xq <= 330.0
+	check(wrap_ok, "the far flock crosses the sky and wraps round off both edges")
+	var frames := {}
+	for i in range(0, 60):
+		frames[String(fl.pose(2, float(i) * 0.2)["frame"])] = true
+	check(frames.size() >= 3, "they beat their wings and glide (%s)" % str(frames.keys()))
+	e4.queue_free()
+	await get_tree().process_frame
+
+
+## Owner round 49c: "the help sign… the letters should be under one another like that, it's difficult to read… HELP should be together, not two letters
+## above two below". A word is ONE line: its red letters fill a band at most a few rows tall and a word's width across.
+func _test_help_sheets() -> void:
+	print("[HELP is one line]")
+	for run in [2, 3]:
+		var m: Dictionary = _meta(run)["scene"]
+		var img: Image = (load("%sscene_%d.png" % [Ext.DIR, run]) as Texture2D).get_image()
+		var n_help := 0
+		var all_one_line := true
+		var why := ""
+		for hp in m["helps"]:
+			var x0 := int(hp["x"])
+			var y0 := int(hp["y"])
+			var w := int(hp["w"])
+			var h := int(hp["h"])
+			var minx := 999
+			var maxx := -1
+			var miny := 999
+			var maxy := -1
+			for yy in range(h):
+				for xx in range(w):
+					var c := img.get_pixel(x0 + xx, y0 + yy)
+					if c.r > 0.10 and c.r > c.g * 3.0 and c.r > c.b * 3.0:                  # the paint's red, however dark the hour grades it
+						minx = mini(minx, xx)
+						maxx = maxi(maxx, xx)
+						miny = mini(miny, yy)
+						maxy = maxi(maxy, yy)
+			var word := String(hp["word"])
+			if word == "HELP":
+				n_help += 1
+				check(w == 17, "run %d: a HELP sheet is 17 px wide, over the piers but not over a neighbour's frame (%d)" % [run, w])
+			var span := maxx - minx + 1
+			var band := maxy - miny + 1
+			var want_w := 4 * word.length() - 1
+			if maxx < 0 or span < want_w - 1 or band > 9:
+				all_one_line = false
+				why += " %s: letters span %d x %d" % [word, span, band]
+		check(all_one_line, "run %d: every sheet's letters sit on ONE line, side by side%s" % [run, why])
+		check(run != 2 or n_help >= 1, "run %d has a HELP sheet to look at" % run)
+
+
 func _test_runs() -> void:
 	print("[each run builds its own look]")
 	for run in [1, 2, 3]:
@@ -534,7 +761,13 @@ func _test_runs() -> void:
 				"run 1: no smoke, flame or burnt window anywhere (%d sprites) — fire only arrives with the afternoon" % smokes.size())
 		else:
 			check(smokes.size() >= 3 + run, "run %d: the smoke / flame sprites are animating (%d)" % [run, smokes.size()])
-		check(e.survivors != null and e.survivors.people.size() >= 1, "run %d: someone is at a window (%d)" % [run, e.survivors.people.size() if e.survivors != null else 0])
+		var seen_people: int = (e.survivors.people.size() + e.survivors.passers.size()) if e.survivors != null else 0
+		if run < 3:
+			check(e.survivors != null and e.survivors.people.size() >= 1, "run %d: someone is at a window (%d)" % [run, seen_people])
+		else:
+			check(e.survivors != null and seen_people >= 1 and seen_people <= 4, "night: only a few people at the windows, not a crowd (%d)" % seen_people)
+		check((e.fliers != null) == (run == 3) and (e.fliers_sky != null) == (run == 3) and (e.sky_bolts != null) == (run == 3),
+			"run %d: the night's flying horrors and the storm behind the city are there only at night" % run)
 		# the night lightning flashes the picture and settles
 		if run == 3:
 			e._bolt_in = 0.0

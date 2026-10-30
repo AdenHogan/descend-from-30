@@ -146,11 +146,16 @@ def tower(c, rng, pl, x, ground, w, h, mat, lit_p, tier=True):
         c.rect(x + 2, top2 - 3, x + 6, top2 - 1, shade(col, 0.86))
         c.rect(x + w - 8, top2 - 2, x + w - 4, top2 - 1, shade(col, 0.78))
         c.vline(x + w - 6, top2 - 6, top2 - 3, shade(lo, 0.9))
-    else:                                                                                   # a mast
-        ax = x + w // 2
-        c.vline(ax, top2 - 12, top2 - 1, lo)
-        c.hline(ax - 1, ax + 1, top2 - 9, lo)
-        pl.beacon.append((ax, top2 - 12))
+    else:                                                                                   # a lift overrun with a small tank beside it
+        ox = x + max(2, w // 2 - 3)
+        c.rect(ox, top2 - 5, ox + 5, top2 - 1, shade(col, 0.9))
+        c.hline(ox, ox + 5, top2 - 5, shade(col, 1.14))
+        c.vline(ox, top2 - 5, top2 - 1, hi)
+        c.rect(ox + 7, top2 - 4, ox + 9, top2 - 2, shade(lo, 1.1))
+        c.hline(ox + 6, ox + 10, top2 - 1, shade(lo, 0.9))
+    if h >= 100:                                                                            # a red aircraft light on the roof edge of the tall ones
+        c.put(x + 1, top2 - 1, hexc('b8302a'))
+        pl.beacon.append((x + 1, top2 - 2))
     pl.fire.append((x + w // 2, top2 + 1))
     pl.smoke.append((x + w // 2, top2))
     pl.roots.append((x + w // 2, top2, h))
@@ -327,6 +332,26 @@ def column(img, x0, y0, height, lean, w0, run, seed):
 
 
 # ----------------------------------------------------------------------------------------------------------------- layers
+def _plan_back(layer):
+    """The BACK row of a layer (owner round 49c: "populate the area behind with more city buildings that obviously go away the further the
+    camera climbs"): narrower, taller blocks standing behind the layer's main row, overlapping a little, hazier — a city with depth. Seeded
+    per layer, never per run."""
+    rng = random.Random({'far': 23, 'mid': 29}[layer])
+    out = []
+    x = -rng.randrange(0, 10)
+    while x < 292:
+        k = rng.choice(('tower', 'tower', 'tower', 'slab'))
+        if layer == 'far':
+            w = rng.randrange(10, 20) if k == 'tower' else rng.randrange(26, 44)
+            h = rng.randrange(80, 176) if k == 'tower' else rng.randrange(60, 110)
+        else:
+            w = rng.randrange(14, 24) if k == 'tower' else rng.randrange(30, 48)
+            h = rng.randrange(74, 166) if k == 'tower' else rng.randrange(52, 96)
+        out.append((k, x, {'w': w, 'h': h, 'mat': rng.choice(('glass', 'grey', 'concrete', 'glass'))}))
+        x += w + rng.randrange(-4, 3)
+    return out
+
+
 def _plan_layer(layer):
     """The city's layout for one layer: an ordered list of (kind, x, params), a pure function of the layer alone. Landmarks stand at fixed
     places (what the owner sees beside the tower: the flanks 0..78 and 209..288); the streets between them are seeded."""
@@ -408,13 +433,13 @@ def _haze(img, colour, k):
                 px[x, y] = (int(r + (colour[0] - r) * k), int(g + (colour[1] - g) * k), int(b + (colour[2] - b) * k), a)
 
 
-def skyline(layer, w, h, ground, run, lit_p, sun_gap=None, extras=False, columns=0, low=None):
-    """One layer of the city for one run. Returns (image, meta) in the shape the game already reads (`smoke`, `beacon`, `fire`)."""
-    rng = random.Random({'far': 105, 'mid': 211}[layer])
+def _row(layer, plan, w, h, ground, run, lit_p, zones, seed, columns=0, back=False):
+    """Draw one row of the city and take it through the run's grade, the layer's haze (more of it for the back row) and its lamps."""
+    rng = random.Random(seed)
     c = Canvas(w, h, seed=7)
     pl = Plan()
-    for (kind, x, p) in _plan_layer(layer):
-        for zone in ([sun_gap] if sun_gap is not None else []) + (low or []):
+    for (kind, x, p) in plan:
+        for zone in zones:
             if kind in ('slab', 'tower') and x + p['w'] > zone[0] and x < zone[1]:
                 p = dict(p)
                 p['h'] = min(p['h'], zone[2])
@@ -432,8 +457,6 @@ def skyline(layer, w, h, ground, run, lit_p, sun_gap=None, extras=False, columns
             stack(c, rng, pl, x, ground, p['h'])
         elif kind == 'cooling':
             cooling(c, rng, pl, x, ground, p['w'], p['h'])
-    if extras:
-        _crane_and_mast(c, pl, ground)
     img = c.img
     base = img.load()
     for xx in range(w):                                                                     # the body runs down to the layer's foot
@@ -450,7 +473,7 @@ def skyline(layer, w, h, ground, run, lit_p, sun_gap=None, extras=False, columns
             column(img, rx, ry, rr.randrange(90, 150), 1.0 if i % 3 else 0.7, 3.0 + rr.random() * 1.4, run, 40 + i * 13)
     g = GRADE[run]
     _grade(img, g)
-    _haze(img, tuple(int(g[layer][0][i:i + 2], 16) for i in (0, 2, 4)), g[layer][1])
+    _haze(img, tuple(int(g[layer][0][i:i + 2], 16) for i in (0, 2, 4)), min(0.88, g[layer][1] + (0.30 if back else 0.0)))
     px = img.load()
     lc = LIT[run]
     for (lx, ly, lw, lh) in pl.lit:
@@ -458,29 +481,19 @@ def skyline(layer, w, h, ground, run, lit_p, sun_gap=None, extras=False, columns
             for xx in range(lx, lx + lw):
                 if 0 <= xx < w and 0 <= yy < h:
                     px[xx, yy] = hexc(lc[0] if (xx + yy) % 5 else lc[1])
+    return img, pl
+
+
+def skyline(layer, w, h, ground, run, lit_p, sun_gap=None, extras=False, columns=0, low=None):
+    """One layer of the city for one run: a hazy BACK row of tall narrow blocks, then the layer's main row over it. Returns (image, meta) in
+    the shape the game already reads (`smoke`, `beacon`, `fire`) — from the main row only. (`extras` is gone: the lattice crane and mast
+    that stood in the far layer read as pylons, owner round 49c.)"""
+    zones = ([sun_gap] if sun_gap is not None else []) + (low or [])
+    back, _ = _row(layer, _plan_back(layer), w, h, ground, run, lit_p * 0.6, zones, {'far': 303, 'mid': 313}[layer], back=True)
+    img, pl = _row(layer, _plan_layer(layer), w, h, ground, run, lit_p, zones, {'far': 105, 'mid': 211}[layer], columns=columns)
+    out = back.copy()
+    out.alpha_composite(img)
     meta = {'smoke': [list(p) for p in pl.smoke], 'beacon': [list(p) for p in pl.beacon], 'fire': [list(p) for p in pl.fire]}
-    return img, meta
+    return out, meta
 
 
-def _crane_and_mast(c, pl, ground):
-    lo = hexc('3a3d44')
-    cx = 214
-    top = ground - 188
-    c.vline(cx, top, ground, lo)
-    c.vline(cx + 1, top, ground, lo)
-    for yy in range(top, ground, 4):
-        c.put(cx - 1 if (yy // 4) % 2 else cx + 2, yy, lo)
-    c.hline(cx - 26, cx + 16, top, lo)
-    c.hline(cx - 26, cx + 16, top + 1, lo)
-    c.vline(cx - 26, top, top + 12, lo)
-    c.rect(cx - 27, top + 12, cx - 25, top + 13, lo)
-    c.hline(cx + 4, cx + 15, top - 3, lo)
-    c.vline(cx + 1, top - 7, top - 1, lo)
-    pl.beacon.append((cx + 1, top - 7))
-    mx = 66
-    mtop = ground - 205
-    c.vline(mx, mtop, ground, lo)
-    for k in range(1, 14):
-        hw = int(k * 0.55)
-        c.hline(mx - hw, mx + hw, mtop + k * 6, lo)
-    pl.beacon.append((mx, mtop))
