@@ -89,8 +89,8 @@ _BASINS = {
 
 @_fixture('basin', 46, 40, rooms={'bathroom': 8}, styles={'tub': 8, 'pink': 8, 'wetroom': 8, 'avocado': 0.01, 'gilded': 0.01},
           tags=('basin', 'wet'), variants={k: {'t': k, 'for': v['forr']} for k, v in _BASINS.items()},
-          anchors=({'name': 'basin', 'dx': 6, 'dy': -41, 'if': {'t': 'pedestal'}}, {'name': 'wall_sink', 'dx': 21, 'dy': -40, 'if': {'t': 'pedestal'}},
-                   {'name': 'basin', 'dx': 7, 'dy': -41, 'if': {'t': 'pink'}}, {'name': 'wall_sink', 'dx': 24, 'dy': -38, 'if': {'t': 'pink'}},
+          anchors=({'name': 'basin', 'dx': 9, 'dy': -46, 'if': {'t': 'pedestal'}}, {'name': 'wall_sink', 'dx': 21, 'dy': -40, 'if': {'t': 'pedestal'}},
+                   {'name': 'basin', 'dx': 9, 'dy': -46, 'if': {'t': 'pink'}}, {'name': 'wall_sink', 'dx': 24, 'dy': -38, 'if': {'t': 'pink'}},
                    {'name': 'wall_sink', 'dx': 23, 'dy': -44, 'if': {'t': 'bracket'}}),
           note='a basin standing out from the wall, drawn in perspective so we look down into the bowl: a white pedestal basin with a tumbler of toothbrushes and a pump bottle on the rim, a pink one, or a small basin on iron brackets with a waste pipe, a drip and grime')
 def basin(c, ox, oy, p):
@@ -102,12 +102,11 @@ def basin(c, ox, oy, p):
         BR.basin3d(c, cx, **spec['kw'])
         BR.grime_patch(c, cx - 19, 69, cx - 1, 72, hexc('8a7a5a'), seed=31, cover=0.55)             # grime in the basin
         return
-    BR.basin3d(c, cx, **spec['kw'])
     if p['t'] == 'pedestal':
-        BR.rim_things(c, cx - 21, 75)
+        BR.basin3d(c, cx, things={}, **spec['kw'])                                                    # the tumbler and bottle stand on the basin's own back deck (owner round 49f)
         c.ellipse(cx - 2, 76, 2, 1, BLOOD)
     else:
-        BR.rim_things(c, cx - 21, 75, mug=spec['mug'], bottle=spec['bottle'])
+        BR.basin3d(c, cx, things=dict(mug=spec['mug'], bottle=spec['bottle']), **spec['kw'])
 
 
 # ================================================================================================================================ the vanity and the washstand
@@ -156,7 +155,7 @@ def bath(c, ox, oy, p):
         c.rect(186 + d, 50, 187 + d, 70, CHROME_DK)                                                  # the riser + hand shower, its hose hanging to the tap end
         c.rect(184 + d, 48, 189 + d, 50, CHROME)
         c.line(187 + d, 71, 182 + d, 80, CHROME_DK)
-        wx0, wx1, _opening = BR.clawfoot3d(c, cx, 64, 80, PORC, PORC_LT, PORC_DK, PORC_OUT, IRON, hexc('4d5a52'), water=hexc('6a7b5e'))
+        wx0, wx1, _opening = BR.clawfoot3d(c, cx, 64, 80, PORC, PORC_LT, PORC_DK, PORC_OUT, IRON, hexc('4d5a52'), water=BR.WATER_BLUE, ripple=('r', 12), seed=11)
         tp = _P3(wx1 - 3, 80, 13)                                                                    # standing taps at the right end
         c.rect(tp[0] - 1, tp[1] - 6, tp[0] + 1, tp[1] - 1, CHROME)
         c.line(tp[0], tp[1] - 6, tp[0] - 4, tp[1] - 3, CHROME)
@@ -167,7 +166,7 @@ def bath(c, ox, oy, p):
         c.hline(e0[0] - 1, e0[0] + 8, e0[1] - 2, shade(TOWELS[3], 1.15))
         c.line(152 + d, 102, 154 + d, 112, BLOOD)
     elif k == 'gold':
-        wx0, wx1, _o = BR.clawfoot3d(c, cx, 62, 82, GOLD, GOLD_LT, GOLD_DK, GOLD_OUT, GOLD_DK, hexc('6a5418'), water=hexc('d9e0c8'))
+        wx0, wx1, _o = BR.clawfoot3d(c, cx, 62, 82, GOLD, GOLD_LT, GOLD_DK, GOLD_OUT, GOLD_DK, hexc('6a5418'), water=mix(BR.WATER_BLUE, hexc('d8e8f4'), 0.35), ripple=('r', 14), seed=12)
         for (bx, bd) in ((wx0 + 12, 8), (wx0 + 20, 12), (wx0 + 28, 7), (wx0 + 36, 13), (wx0 + 44, 9), (wx1 - 12, 11)):   # bubbles heaped up
             q = S3.P(bx, 81, bd)
             c.ellipse(q[0], q[1] - 1, 3, 2, hexc('f4f2ec'))
@@ -177,7 +176,7 @@ def bath(c, ox, oy, p):
     elif k == 'panel':
         x0, x1, rim = cx - 48, cx + 48, 78
         tx = int(round(S3.wall_x(x0, 20)))
-        wx0, wx1, f = BR.bath3d(c, x0, x1, rim, body=AVO, lit=AVO_LT, dk=AVO_DK, out=AVO_OUT, inside=hexc('5f6a34'))
+        wx0, wx1, f = BR.bath3d(c, x0, x1, rim, body=AVO, lit=AVO_LT, dk=AVO_DK, out=AVO_OUT, inside=hexc('5f6a34'), water=BR.WATER_BLUE, ripple=('l', 11), seed=13)
         c.rect(tx + 4, rim - 7, tx + 6, rim - 1, CHROME)                                             # taps on the wall at the left end
         c.rect(tx + 10, rim - 7, tx + 12, rim - 1, CHROME)
         c.hline(tx + 3, tx + 13, rim - 7, CHROME_DK)
@@ -199,7 +198,7 @@ def bath(c, ox, oy, p):
         c.line(s0[0] + 4, s1[1] - 8, s0[0] + 12, s0[1] + 8, hexc('dde6e6'))
     elif k == 'curtain':
         x0, x1, rim = cx - 45, cx + 45, 80
-        wx0, wx1, f = BR.bath3d(c, x0, x1, rim, inside=hexc('8a8a70'))
+        wx0, wx1, f = BR.bath3d(c, x0, x1, rim, inside=hexc('8a8a70'), water=BR.WATER_BLUE, ripple=('l', 14), seed=14)
         d_r, rail_y = 11, 13
         BR.shower_rail(_Stay(c), wx0, wx1, rail_y, d_r)
         xa, xb, top, hem = BR.curtain_in_tub(c, wx0, wx1, rim, d_r, rail_y, hexc('c9c48a'), wx0 + 13, wx1, wx0 + 13)
@@ -217,7 +216,7 @@ def bath(c, ox, oy, p):
         c.line(cx - 5, fl[1] + 8, cx - 3, fl[1] + 18, BLOOD)
     else:                                                                                            # tiled
         x0, x1, rim = cx - 44, cx + 44, 80
-        wx0, wx1, f = BR.bath3d(c, x0, x1, rim, body=PINK, lit=PINK_LT, dk=shade(PINK, 0.8), out=PINK_OUT, inside=hexc('b07a86'))
+        wx0, wx1, f = BR.bath3d(c, x0, x1, rim, body=PINK, lit=PINK_LT, dk=shade(PINK, 0.8), out=PINK_OUT, inside=hexc('b07a86'), water=BR.WATER_BLUE, ripple=('l', 10), seed=15)
         tx = int(round(wx0))
         c.rect(tx + 4, rim - 8, tx + 6, rim - 1, CHROME)                                             # taps on the wall
         c.rect(tx + 10, rim - 8, tx + 12, rim - 1, CHROME)

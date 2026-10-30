@@ -25,7 +25,7 @@ texture = ExtResource("1_art")
 centered = false
 
 [node name="anchor_basin_rim" type="Marker2D" parent="."]
-position = Vector2(13, 73)
+position = Vector2(6, 68)
 
 [node name="anchor_wall_sink" type="Marker2D" parent="."]
 position = Vector2(27, 74)

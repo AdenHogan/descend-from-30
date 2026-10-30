@@ -33,7 +33,7 @@
  "bathroom_e_nest_corpse_r": {"flies": [[246, 131]], "bodies": [[251, 133]], "dead": [[218, 127, 283, 141, 140]]},
  "bathroom_e_nest_door_l": {"flies": [], "bodies": []},
  "bathroom_e_nest_door_r": {"flies": [], "bodies": []},
- "bathroom_e_nest_doorkill_l": {"flies": [[56, 131], [4, 103]], "bodies": [[52, 130]], "dead": [[19, 121, 84, 141, 140]]},
+ "bathroom_e_nest_doorkill_l": {"flies": [[56, 131], [12, 123]], "bodies": [[52, 130]], "dead": [[19, 121, 84, 141, 140]]},
  "bathroom_e_nest_doorkill_r": {"flies": [[270, 131], [314, 102]], "bodies": [[273, 133]], "dead": [[238, 127, 307, 141, 140]]},
  "bathroom_e_nest_kill_l": {"flies": [[260, 131], [171, 119]], "bodies": [[256, 130]], "dead": [[223, 121, 288, 141, 140]]},
  "bathroom_e_nest_kill_r": {"flies": [[261, 131], [311, 103]], "bodies": [[265, 132]], "dead": [[231, 125, 298, 141, 140]]},
