@@ -36,6 +36,7 @@ func _ready() -> void:
 	_test_logic_table()
 	_test_home_logic()
 	_test_designers_eye()
+	_test_study_bin()
 	_test_plans_obey_the_rules()
 	_test_rules_can_fail()
 	_test_variety_and_determinism()
@@ -569,6 +570,42 @@ func _test_needs() -> void:
 			if has_chair and not has_desk:
 				lone_chairs += 1
 	check(lone_chairs == 0 and bool(FurniturePlanner.piece("chair_office").get("companion_only", false)), "an office chair is only ever put beside a desk (%d lone chairs)" % lone_chairs)
+
+
+# ------------------------------------------------------------------------------------------------------------------------------------ the study's waste bin
+## Owner round 49f, on a study with a lone bin in the middle of the floor: a waste basket is only ever put at a desk, within a couple of pixels of it.
+func _test_study_bin() -> void:
+	print("[the study's waste bin stands at its desk]")
+	var rec := FurniturePlanner.piece("waste_bin")
+	check(bool(rec.get("companion_only", false)) and FurniturePlanner.piece("desk_study").get("needs", null) != null and String(FurniturePlanner.piece("desk_study")["needs"].get("tag", "")) in rec["tags"], "the bin is a desk's companion, never dealt on its own")
+	var bins := 0
+	var far := 0
+	var worst := 0
+	for style in STUDY_STYLES:
+		for k in range(60):
+			var pl := FurniturePlanner.plan("study", style, 21000 + k, {"window": "left"})
+			var desk = null
+			var bin = null
+			for it in pl["items"]:
+				if String(it["id"]) == "desk_study":
+					desk = it
+				if String(it["id"]) == "waste_bin":
+					bin = it
+			if bin == null:
+				continue
+			bins += 1
+			var gap := 9999
+			if desk != null:
+				var dx0 := int(desk["x"])
+				var dx1: int = dx0 + int(FurniturePlanner.piece("desk_study")["w"])
+				var bx0 := int(bin["x"])
+				var bx1: int = bx0 + int(rec["w"])
+				gap = maxi(0, maxi(dx0 - bx1, bx0 - dx1))
+			worst = maxi(worst, gap)
+			if gap > 6:
+				far += 1
+	check(bins >= 10, "bins do appear (%d of 300 studies)" % bins)
+	check(far == 0, "…and every one stands within 6 px of its desk (%d further away, the worst %d px)" % [far, worst])
 
 
 # ------------------------------------------------------------------------------------------------------------------------------------ every node can be reached

@@ -58,16 +58,44 @@ def toaster(c, ox, oy, p):
 
 
 @piece('bread_bin', 14, 11, 'top', rooms={'kitchen': 4}, styles=None, tags=('small', 'food'), on=('worktop',),
-       variants={'cream': {'col': 'e0d8bc', 'for': ['classic', 'hoarder', 'country']}, 'red': {'col': 'b8362e', 'for': ['retro', 'student']}},
-       note='an enamel bread bin with a roll-front lid and BREAD on it')
+       variants={'cream': {'col': 'e0d8bc', 'trim': 'b8362e', 'for': ['classic', 'hoarder', 'country']}, 'red': {'col': 'b8362e', 'trim': 'ece4cc', 'for': ['retro', 'student']}},
+       note='an enamel bread bin, its ribbed roll-top slid half back and a loaf standing in the gap (owner round 49f: the BR on the old one told nothing)')
 def bread_bin(c, ox, oy, p):
+    """An enamel bread bin, told by its SHAPE and not by a word (owner: "this thing here just says BR, I don't know what it's meant to be, a toaster?"): a low box with a painted stripe, a
+    roll-top lid of ribbed slats slid back over the left half (with a brass pull-knob), and a crusty, scored loaf standing up out of the open half."""
     col = hexc(p['col'])
-    _shadow(c, ox + 7, oy + 0.5, 7.0)
+    trim = hexc(p['trim'])
+    _shadow(c, ox + 7, oy + 0.5, 7.2)
     L = K.Layer(c)
     lc = L.c
-    K.slab(lc, ox + 1, oy - 8, ox + 12, oy - 1, col, d=2, inset=1)
-    lc.rect(ox + 1, oy - 10, ox + 12, oy - 9, shade(col, 0.85)); lc.hline(ox + 1, ox + 12, oy - 10, shade(col, 1.3))
-    F.text3(lc, ox + 2, oy - 7, 'BR', hexc('3a3a3a') if p['col'] != 'b8362e' else hexc('f4ecd8'))
+    K.slab(lc, ox + 1, oy - 5, ox + 13, oy - 1, col, d=2, inset=1)                                  # the enamel box, a little from above
+    lc.hline(ox + 2, ox + 12, oy - 3, trim); lc.hline(ox + 2, ox + 12, oy - 2, shade(trim, 0.78))    # the painted stripe round it
+    # ---- the loaf, standing up out of the open half (row spans, so every edge is a clean step)
+    hi, mid, lo, dk, cut = hexc('e2ab5e'), hexc('bd813f'), hexc('94602c'), hexc('6a3f1e'), hexc('f6dfa8')
+    spans = {oy - 10: (9, 11), oy - 9: (8, 12), oy - 8: (7, 13), oy - 7: (7, 13), oy - 6: (7, 13)}
+    for y, (a_, b_) in spans.items():
+        for x in range(ox + a_, ox + b_ + 1):
+            top = y == oy - 10 or (y == oy - 9 and x <= ox + 10)
+            if y == oy - 6 or x == ox + 13 or (y == oy - 7 and x >= ox + 12):
+                t = dk if y == oy - 6 else lo
+            elif top or (x <= ox + 9 and y <= oy - 8):
+                t = hi
+            elif x >= ox + 11 and y >= oy - 8:
+                t = lo
+            else:
+                t = mid
+            lc.put(x, y, t)
+    for (sx, sy) in ((8, -8), (9, -7), (10, -9), (11, -8)):                                  # the scoring: pale slashes slanting across the crust
+        lc.put(ox + sx, oy + sy, cut)
+    # ---- the roll-top: a drum of slats across the left half, lit from above, with a brass pull
+    rows = [oy - 10 + k for k in range(5)]
+    fs = (1.28, 1.08, 0.84, 1.0, 0.76)                                                                 # lit crown, slat, joint, slat, shaded lip
+    for k, y in enumerate(rows):
+        x0 = ox + 1 + (1 if k == 0 else 0)
+        x1 = ox + 7 - (1 if k == 0 else 0)
+        lc.hline(x0, x1, y, shade(col, fs[k]))
+    lc.vline(ox + 7, rows[1], rows[4], shade(col, 0.55))                                               # the drum's end
+    lc.put(ox + 5, rows[2], hexc('d8b25a')); lc.put(ox + 6, rows[2], hexc('8a6a28'))                   # the pull-knob
     L.flush()
 
 
@@ -114,15 +142,23 @@ def fruit_bowl(c, ox, oy, p):
 
 @piece('canisters', 15, 11, 'top', rooms={'kitchen': 4}, styles=None, tags=('small', 'food'), on=('worktop',),
        variants={'a': {'cols': ('c8483a', 'e0d8bc', '3f6aa8'), 'for': ['classic', 'retro', 'country']}, 'b': {'cols': ('b4bcc0', 'b4bcc0', 'b4bcc0'), 'for': ['student', 'hoarder']}},
-       note='three storage tins labelled TEA, SUGAR and COFFEE')
+       note='a nest of three lidded storage tins of graduated heights, each with a pale label strip round its middle (owner round 49f: the single letters on them were clipped and told nothing)')
 def canisters(c, ox, oy, p):
     _shadow(c, ox + 7.5, oy + 0.5, 7.8)
     L = K.Layer(c)
     lc = L.c
-    for i, (hx, tag, h) in enumerate(zip(p['cols'], ('T', 'S', 'C'), (9, 8, 10))):
+    for i, (hx, h) in enumerate(zip(p['cols'], (9, 8, 10))):
+        col = hexc(hx)
         cx = ox + 2.6 + i * 5.2
-        K.cyl(lc, cx, oy - h, oy - 2, 2.4, hexc(hx), ry=1.0, cap=True, gloss=True)
-        F.text3(lc, int(cx) - 1, oy - h + 3, tag, hexc('f4ecd8') if p['cols'][0] != 'b4bcc0' else hexc('3a3a3a'))
+        K.cyl(lc, cx, oy - h, oy - 2, 2.4, col, ry=1.0, cap=True, cap_col=shade(col, 1.18), gloss=True)
+        lc.hline(int(cx) - 1, int(cx) + 1, oy - h - 1, shade(col, 0.55))                              # the lid's knob
+        label = hexc('f0e6c8')
+        ly = oy - h + 3
+        for k, (dx, f) in enumerate(((-2, 1.0), (-1, 0.98), (0, 0.9), (1, 0.8))):                       # a label strip wrapped round the tin, lit on the left
+            for yy in (ly, ly + 1, ly + 2):
+                lc.put(int(cx) + dx, yy, shade(label, f))
+        lc.hline(int(cx) - 2, int(cx) + 1, ly - 1, shade(col, 0.6))
+        lc.hline(int(cx) - 2, int(cx) + 1, ly + 3, shade(col, 0.6))
     L.flush()
 
 

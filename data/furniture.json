@@ -8928,7 +8928,7 @@
    "must_above": false,
    "near": [],
    "needs": null,
-   "note": "an enamel bread bin with a roll-front lid and BREAD on it",
+   "note": "an enamel bread bin, its ribbed roll-top slid half back and a loaf standing in the gap (owner round 49f: the BR on the old one told nothing)",
    "on": [
     "worktop"
    ],
@@ -8957,7 +8957,8 @@
        "classic",
        "hoarder",
        "country"
-      ]
+      ],
+      "trim": "b8362e"
      },
      "slots": [],
      "sprites": [
@@ -8967,12 +8968,12 @@
        "file": "bread_bin_cream",
        "h": 15,
        "l": -1,
-       "r": 14,
+       "r": 15,
        "rx": 1,
        "ry": 12,
        "sb": 0,
        "t": -12,
-       "w": 16
+       "w": 17
       }
      ]
     },
@@ -8985,7 +8986,8 @@
       "for": [
        "retro",
        "student"
-      ]
+      ],
+      "trim": "ece4cc"
      },
      "slots": [],
      "sprites": [
@@ -8995,12 +8997,12 @@
        "file": "bread_bin_red",
        "h": 15,
        "l": -1,
-       "r": 14,
+       "r": 15,
        "rx": 1,
        "ry": 12,
        "sb": 0,
        "t": -12,
-       "w": 16
+       "w": 17
       }
      ]
     }
@@ -9471,7 +9473,7 @@
    "must_above": false,
    "near": [],
    "needs": null,
-   "note": "three storage tins labelled TEA, SUGAR and COFFEE",
+   "note": "a nest of three lidded storage tins of graduated heights, each with a pale label strip round its middle (owner round 49f: the single letters on them were clipped and told nothing)",
    "on": [
     "worktop"
    ],
@@ -9517,7 +9519,7 @@
        "r": 16,
        "rx": 2,
        "ry": 13,
-       "sb": 0,
+       "sb": -1,
        "t": -13,
        "w": 19
       }
@@ -9549,7 +9551,7 @@
        "r": 16,
        "rx": 2,
        "ry": 13,
-       "sb": 0,
+       "sb": -1,
        "t": -13,
        "w": 19
       }
@@ -14794,7 +14796,19 @@
    "limit": 1,
    "must_above": false,
    "near": [],
-   "needs": null,
+   "needs": {
+    "chance": 0.6,
+    "dx": [
+     70,
+     73
+    ],
+    "dx_left": [
+     -17,
+     -14
+    ],
+    "optional": true,
+    "tag": "bin_desk"
+   },
    "note": "the study's desk with its chair behind it: a mahogany partners desk with a green leather top and a swivel leather chair (den), a grey steel desk with a laminate top and an office chair (office), a small walnut writing desk (library), a steel trestle for the transmitters (radio), a long splashed bench (studio)",
    "on": [],
    "opens": {
@@ -24087,7 +24101,7 @@
    "must_above": false,
    "near": [],
    "needs": null,
-   "note": "a cork board pinned over with snapshots and notes in a hand: CALL MOM, VET \u2014 or TAX DUE!, PAY, CALL BACK MON",
+   "note": "a cork board pinned over with a snapshot and notes that each say one thing: CALL MUM, VET TUE, MILK \u2014 or TAX DUE, OFF MON, RENT",
    "on": [],
    "opens": null,
    "pair": null,
@@ -24113,9 +24127,15 @@
      "anims": [],
      "lights": [],
      "params": {
-      "a": "CALL",
-      "b": "MOM",
-      "c": "VET"
+      "a": [
+       "CALL",
+       "MUM"
+      ],
+      "b": [
+       "VET",
+       "TUE"
+      ],
+      "c": "MILK"
      },
      "slots": [],
      "sprites": [
@@ -24139,9 +24159,15 @@
      "anims": [],
      "lights": [],
      "params": {
-      "a": "TAX",
-      "b": "DUE!",
-      "c": "PAY"
+      "a": [
+       "TAX",
+       "DUE"
+      ],
+      "b": [
+       "OFF",
+       "MON"
+      ],
+      "c": "RENT"
      },
      "slots": [],
      "sprites": [
@@ -43707,10 +43733,10 @@
    "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
-   "companion_only": false,
+   "companion_only": true,
    "feet": [
-    108,
-    121
+    110,
+    116
    ],
    "h": 16,
    "keep": "rubbish",
@@ -43719,18 +43745,14 @@
    "lean": false,
    "limit": 1,
    "must_above": false,
-   "near": [
-    "work"
-   ],
+   "near": [],
    "needs": null,
-   "note": "a waste basket: black wire mesh or dented steel, crumpled paper heaped over the rim",
+   "note": "a waste basket beside the desk: black wire mesh or dented steel, crumpled paper heaped over the rim (owner round 49f: it stood alone in the middle of the room \u2014 it is only ever put at a desk now)",
    "on": [],
    "opens": null,
    "pair": null,
    "plane": "floor",
    "rooms": {
-    "bathroom": 3,
-    "living_room": 1,
     "study": 6
    },
    "sound": null,
@@ -43748,7 +43770,8 @@
    },
    "tags": [
     "clutter",
-    "rubbish"
+    "rubbish",
+    "bin_desk"
    ],
    "under": [],
    "under_window": false,

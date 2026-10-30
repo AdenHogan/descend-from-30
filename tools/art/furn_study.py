@@ -30,6 +30,7 @@ def _desk_variants():
 
 
 @piece('desk_study', 68, 40, 'front', rooms={'study': 10}, styles=None, tags=('work', 'storage', 'desk'), variants=_desk_variants(), limit=1, feet=(110, 114),
+       needs={'tag': 'bin_desk', 'dx': [70, 73], 'dx_left': [-17, -14], 'chance': 0.6, 'optional': True},
        slots=({'id': 'top', 'dx0': 6, 'dx1': 62, 'dy': -27, 'top': True, 'kinds': ('desk', 'small', 'lamp')},),
        anchors=({'name': 'desk', 'dx': 34, 'dy': -24, 'top': True}, {'name': 'desk_drawer', 'dx': 12, 'dy': -12}), opens={'kind': 'drawer', 'frames': 3, 'anchor': 'desk_drawer'},
        note='the study\'s desk with its chair behind it: a mahogany partners desk with a green leather top and a swivel leather chair (den), a grey steel desk with a laminate top and an office chair (office), a small walnut writing desk (library), a steel trestle for the transmitters (radio), a long splashed bench (studio)')
@@ -291,8 +292,8 @@ def bookcase_tall(c, ox, oy, p):
 
 # ================================================================================================================================ the notice board
 @piece('noticeboard', 40, 28, 'decor', rooms={'study': 8}, styles={'den': 9, 'office': 8, 'radio': 2}, tags=('notice', 'picture'), wall_y=(20, 34), limit=1,
-       variants={'home': {'a': 'CALL', 'b': 'MOM', 'c': 'VET'}, 'work': {'a': 'TAX', 'b': 'DUE!', 'c': 'PAY'}},
-       note='a cork board pinned over with snapshots and notes in a hand: CALL MOM, VET — or TAX DUE!, PAY, CALL BACK MON')
+       variants={'home': {'a': ('CALL', 'MUM'), 'b': ('VET', 'TUE'), 'c': 'MILK'}, 'work': {'a': ('TAX', 'DUE'), 'b': ('OFF', 'MON'), 'c': 'RENT'}},
+       note='a cork board pinned over with a snapshot and notes that each say one thing: CALL MUM, VET TUE, MILK — or TAX DUE, OFF MON, RENT')
 def noticeboard(c, ox, oy, p):
     import wall_art3d
     wall_art3d.noticeboard(c, ox, oy, p)
@@ -445,10 +446,10 @@ def printer_stand(c, ox, oy, p):
     L.flush()
 
 
-@piece('waste_bin', 14, 16, 'floor', keep='rubbish', rooms={'study': 6, 'bathroom': 3, 'living_room': 1}, styles={'office': 8, 'den': 4, 'library': 2, 'studio': 3, 'radio': 1}, tags=('clutter', 'rubbish'), limit=1,
+@piece('waste_bin', 14, 16, 'floor', keep='rubbish', rooms={'study': 6}, styles={'office': 8, 'den': 4, 'library': 2, 'studio': 3, 'radio': 1}, tags=('clutter', 'rubbish', 'bin_desk'), limit=1, companion_only=True,
        variants={'wire': {'col': '4a4e54', 'wire': True}, 'steel': {'col': '8a9098'}},
-       feet=(108, 121), near=('work',), anchors=({'name': 'trashcan', 'dx': 7, 'dy': -8},),
-       note='a waste basket: black wire mesh or dented steel, crumpled paper heaped over the rim')
+       feet=(110, 116), anchors=({'name': 'trashcan', 'dx': 7, 'dy': -8},),
+       note='a waste basket beside the desk: black wire mesh or dented steel, crumpled paper heaped over the rim (owner round 49f: it stood alone in the middle of the room — it is only ever put at a desk now)')
 def waste_bin(c, ox, oy, p):
     col = hexc(p['col'])
     K.contact_shadow(c, ox + 7, oy + 0.5, 7, 1.2, 95)

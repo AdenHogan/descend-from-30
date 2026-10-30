@@ -74,7 +74,7 @@ those rooms (its `rooms` weights); registration refuses a piece outside the boun
 | `pouf` | living_room, bedroom | a pouf is a living-room / bedroom seat | `pouf` (L) |
 | `radiator` | any room | every room is heated | `radiator` (BTSLD) |
 | `reading` | any room | a book, a magazine, a paper is left anywhere | `book_pile` (BSL), `magazines` (TSLD), `newspaper_stacks` (KSLD) |
-| `rubbish` | any room | every room has a bin or a bag of rubbish somewhere | `bin_bags` (KLD), `pedal_bin` (K), `waste_bin` (TSL) |
+| `rubbish` | any room | every room has a bin or a bag of rubbish somewhere | `bin_bags` (KLD), `pedal_bin` (K), `waste_bin` (S) |
 | `rug` | bedroom, living_room, dining_room, study | a rug lies in a living space (a bathroom has a mat, a kitchen a lino floor) | `rug_large` (SLD), `rug_oblong` (BSLD) |
 | `sanitaryware` | bathroom | a toilet, basin, bath or shower is in a bathroom, and nowhere else | `basin` (T), `bath` (T), `shower_walkin` (T), `toilet` (T), `vanity` (T), `washstand` (T) |
 | `shelf` | any room | a wall shelf can be in any room | `wall_shelf` (BTKSLD) |
@@ -186,7 +186,7 @@ A piece tagged `small` is never kept on the floor. A thing on a SURFACE is at mo
 | `toy_chest` | storage | 30 | sleeping | bedroom, living_room |
 | `trainers` | footwear | 7 | sleeping, work | bedroom, living_room |
 | `trolley_drinks` | stand | 34 | table, storage | dining_room, living_room |
-| `waste_bin` | rubbish | 16 | work | bathroom, living_room, study |
+| `waste_bin` | rubbish | 16 | — | study |
 | `wheelchair` | seat | 36 | sleeping | bathroom, bedroom, living_room |
 
 ## 3a. One of a kind: a room is not doubled up

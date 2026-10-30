@@ -356,11 +356,17 @@ def noticeboard(c, ox, oy, p):
         for y in range(y0 + 2, y1 - 1):
             W.px(c, x, y, shade(c.px[x, y][:3] + (255,), 0.9))
     import furn as F
-    for k, (x, y, w, h, col, word) in enumerate(((ox + 3, oy + 3, 14, 11, 'f0ece0', p['a']), (ox + 20, oy + 4, 16, 9, 'f4e07a', p['b']), (ox + 5, oy + 16, 12, 8, 'f0a8b8', p['c']))):
+    # three notes, each a sheet wide enough for its longest word in the 3x5 capitals (the smallest type there is: round 49f — "the text clips off to the side"), a word on a line, centred;
+    # each one says ONE thing (CALL / MUM, not CALL on one sheet and MOM on the next)
+    for k, (x, y, w, h, col, lines) in enumerate(((ox + 3, oy + 3, 18, 13, 'f0ece0', p['a']), (ox + 22, oy + 3, 15, 13, 'f4e07a', p['b']), (ox + 3, oy + 17, 19, 9, 'f0a8b8', p['c']))):
         W.sheet(c, x, y, x + w - 1, y + h - 1, hexc(col), seed=2 + k, fold=None, curl='br' if k % 2 == 0 else 'bl', grain=0.04)
         pin(c, x + w // 2 - 1, y, hexc(['d8483a', '3a6ab0', '4a9a5a'][k]))
-        F.text3(c, x + 1, y + 3, word, hexc('3a2a22'))
-    sx0, sy0, sx1, sy1 = ox + 22, oy + 16, ox + 34, oy + 24                            # a snapshot: a white border, a picture of a garden with a red door
+        lines = [lines] if isinstance(lines, str) else list(lines)
+        ty = y + (h - (6 * len(lines) - 1)) // 2 + 1
+        for i, word in enumerate(lines):
+            assert F.text3_width(word) <= w - 2, 'noticeboard: %r does not fit a sheet %d wide (owner round 49f: the text clipped off the side)' % (word, w)
+            F.text3(c, x + (w - F.text3_width(word)) // 2, ty + 6 * i, word, hexc('3a2a22'))
+    sx0, sy0, sx1, sy1 = ox + 24, oy + 17, ox + 36, oy + 25                            # a snapshot: a white border, a picture of a garden with a red door
     W.sheet(c, sx0, sy0, sx1, sy1, hexc('f4f0e4'), seed=9, curl=None, grain=0.0)
     W.prect(c, sx0 + 1, sy0 + 1, sx1 - 1, sy1 - 2, hexc('9ac4e0'))
     W.prect(c, sx0 + 1, sy1 - 4, sx1 - 1, sy1 - 2, hexc('5a8a4a'))
