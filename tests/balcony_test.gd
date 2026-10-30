@@ -397,7 +397,7 @@ func _test_standing_prompt() -> void:
 		await get_tree().create_timer(2.6).timeout
 		var pill2 = HUD.world_prompt_panel(zone2)
 		check(pill2 != null and pill2.visible, "out on the dead end a pill is up too")
-		check(zone2.plane_prompt_text(p2).contains("No way down"), "…and it says there is no way down (%s)" % zone2.plane_prompt_text(p2))
+		check(zone2.plane_prompt_text(p2).begins_with("I can see a balcony upstairs, but nothing below."), "…and it says it is the bottom of a pair (%s)" % zone2.plane_prompt_text(p2))
 	room2.free()
 	await get_tree().process_frame
 

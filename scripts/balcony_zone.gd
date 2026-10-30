@@ -97,7 +97,7 @@ func plane_prompt_text(player: Node) -> String:
 	if player == null or not bool(player.get("on_balcony_plane")):
 		return ""
 	if not WorldState.is_balcony_descendable(apartment_id, slot):
-		return "No way down from here · [%s] back inside" % TutorialManager.key("move_down")
+		return "I can see a balcony upstairs, but nothing below. · [%s] back inside" % TutorialManager.key("move_down")
 	var up := TutorialManager.key("move_up")
 	if WorldState.is_balcony_roped(apartment_id, slot) or WorldState.has_descent_rope():
 		return "[%s] Climb down" % up
