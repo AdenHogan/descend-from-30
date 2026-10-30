@@ -22,6 +22,7 @@ const EMPTY_REVEAL_FACTOR = 0.5        # a search that turns up nothing takes ha
 const RingGeo := preload("res://scripts/ring_geo.gd")
 const DRAG_THRESHOLD = 8.0
 const DOUBLE_CLICK_TIME = 0.35
+const CLICK_NODE_SLOP := 64.0              # screen px: a click this close to a node's orb is a click ON it
 const PANEL_W = 300.0
 const PAD := 14.0                      # the glass's margin round its contents
 const ICON_BOX := 68.0                 # the 56-px icon at exactly 1x on a dark well
@@ -66,6 +67,7 @@ var drag_active = false
 var drag_from = Vector2.ZERO
 var ghost: TextureRect = null
 var last_press_time = 0.0
+var _dismissed: Dictionary = {}               # instance id -> true: nodes whose tag the player put away; they show no preview until the player leaves their reach and comes back
 var _pv_press_time: float = -10.0            # the last click that landed on the PREVIEW tag (a double-click on it takes the item, like [interact])
 var _host: Control = null
 var _mouse_pos: Vector2 = Vector2.ZERO # the pointer as the last motion event reported it (a drag follows this — a touch drag has no cursor to poll)
@@ -252,6 +254,8 @@ func _place_tag(tag: PanelContainer, node: Node) -> void:
 func open(item_id: String, anchor_name: String, apartment_id: String, node: Node = null) -> void:
 	# Pressed on a node whose tag was ALREADY standing beside it: the tag said "[E] TAKE", so that one press takes it.
 	var quick: bool = node != null and is_instance_valid(node) and preview_showing_for(node)
+	if _preview_node != null and is_instance_valid(_preview_node) and _preview_node != node:
+		dismiss_node(_preview_node)            # the player has moved on to another node: the first one's tag does not come back behind it
 	WorldState.loot_open = true
 	is_revealing = false
 	has_item = false
@@ -505,7 +509,7 @@ func preview_target() -> Node:
 	for a in get_tree().get_nodes_in_group("scavenge_anchor"):
 		if not is_instance_valid(a) or not a.visible or not bool(a.get("is_in_range")) or a.has_meta("ruin_scrap"):
 			continue
-		if not holds_takeable(a):
+		if _dismissed.has(a.get_instance_id()) or not holds_takeable(a):
 			continue
 		var d: float = a.global_position.distance_to(player.global_position)
 		if d < best_d:
@@ -531,6 +535,7 @@ static func holds_takeable(a: Node) -> bool:
 
 
 func _update_preview() -> void:
+	_purge_dismissed()
 	var want: Node = preview_target()
 	if want == null:
 		_hide_preview()
@@ -564,6 +569,29 @@ func _hide_preview() -> void:
 	_preview["panel"].visible = false
 	_preview_node = null
 	_preview_sig = ""
+
+
+## Put a node's tag away: it shows no preview until the player has left its reach and come back (owner round 49f: a tag that would not go sat on top of the next node's prompt).
+func dismiss_node(node: Node) -> void:
+	if node == null or not is_instance_valid(node):
+		return
+	_dismissed[node.get_instance_id()] = true
+	if node == _preview_node:
+		_hide_preview()
+
+
+## Put away the tag standing beside its node right now (Esc, a right-click, a click away from it).
+func dismiss_preview() -> void:
+	if _preview_node != null and is_instance_valid(_preview_node):
+		dismiss_node(_preview_node)
+
+
+## A node leaves the dismissed set once the player is out of its reach (or it is gone): coming back, its tag shows again.
+func _purge_dismissed() -> void:
+	for id in _dismissed.keys():
+		var n = instance_from_id(int(id))
+		if n == null or not is_instance_valid(n) or not bool(n.get("is_in_range")):
+			_dismissed.erase(id)
 
 
 ## Is the preview standing beside a node right now? (tests / the interactable)
@@ -661,14 +689,37 @@ func _input(event: InputEvent) -> void:
 				drag_armed = false
 
 
+## Is a click at screen `pos` on the node the standing tag belongs to (its orb)? Such a click searches / takes it, so it must not put its tag away first.
+func _click_on_preview_node(pos: Vector2) -> bool:
+	if _preview_node == null or not is_instance_valid(_preview_node) or not (_preview_node is Node2D):
+		return false
+	var screen: Vector2 = get_viewport().get_canvas_transform() * (_preview_node as Node2D).global_position
+	return screen.distance_to(pos) <= CLICK_NODE_SLOP
+
+
 ## A double-click on the preview tag (owner round 49f: "the player should be able to also double click this to add to inventory. Not just press E") takes the item the way a press of
 ## [interact] on that node does — through the node itself, so a full pack leaves the live tag up saying MAKE ROOM and the ring / rounds rules all stay in `_take`. One click on the tag
 ## does nothing but is claimed (it is the tag's click: no click-to-move, no swing).
 func _preview_input(event: InputEvent) -> void:
-	if _preview.is_empty() or not (event is InputEventMouseButton) or not event.pressed or event.button_index != MOUSE_BUTTON_LEFT:
+	if _preview.is_empty():
 		return
 	var tag: PanelContainer = _preview["panel"]
-	if not tag.visible or not tag.get_global_rect().has_point(event.position):
+	if not tag.visible:
+		return
+	# Putting the tag away (never consumed: the key / click still does what it always did): Esc / Back, a right-click, or a left-click in the world away from the node it stands by.
+	if event.is_action_pressed("ui_cancel"):
+		dismiss_preview()
+		return
+	if not (event is InputEventMouseButton) or not event.pressed:
+		return
+	if event.button_index == MOUSE_BUTTON_RIGHT:
+		dismiss_preview()
+		return
+	if event.button_index != MOUSE_BUTTON_LEFT:
+		return
+	if not tag.get_global_rect().has_point(event.position):
+		if not HUD.pointer_over_widget(event.position) and not _click_on_preview_node(event.position):
+			dismiss_preview()
 		return
 	get_viewport().set_input_as_handled()
 	var now: float = Time.get_ticks_msec() / 1000.0
@@ -830,6 +881,8 @@ func _close(item_taken: bool) -> void:
 	visible = false
 	WorldState.loot_open = false
 	_notify_anchor_closed(item_taken)
+	if not item_taken and anchor_node != null and is_instance_valid(anchor_node):
+		dismiss_node(anchor_node)              # put away (a click off it, Esc, walking off): it stays away until the player leaves this node's reach and returns
 	anchor_node = null
 	current_key_target = ""
 	var player = get_tree().get_first_node_in_group("player")

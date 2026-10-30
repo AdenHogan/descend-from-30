@@ -34,6 +34,7 @@ func _ready() -> void:
 	await _test_search_word()
 	await _test_loot_panel()
 	await _test_found_tag_in_the_world()
+	await _test_tag_dismissal()
 	await _test_rings()
 	await _test_workbench()
 	await _test_shop()
@@ -205,6 +206,120 @@ func _test_loot_panel() -> void:
 	await _frames(2)
 
 
+## A tag the player puts away stays away (owner round 49f: "Clicking away or pressing the usual buttons to get rid of the box should be a thing, and the box only returns if player leaves the
+## area and comes back"): Esc, a right-click, a click away from it, opening another node, or the live tag closed without taking — and walking out of reach and back brings it again.
+func _test_tag_dismissal() -> void:
+	print("[putting a found-item tag away]")
+	WorldState.new_game()
+	WorldState.is_scavenge_mode = true
+	WorldState.inventory.clear()
+	HUD.selected_slot = -1
+	var loot = load("res://scripts/loot_ui.gd").new()
+	add_child(loot)
+	var player = load("res://scenes/player.tscn").instantiate()
+	add_child(player)
+	var a := StubScript.new()
+	a.name = "anchor_dm_a"
+	a.apartment_id = "9995"
+	a.add_to_group("scavenge_anchor")
+	add_child(a)
+	a.global_position = Vector2(300.0, 220.0)
+	a.is_in_range = true
+	var b := StubScript.new()
+	b.name = "anchor_dm_b"
+	b.apartment_id = "9995"
+	b.add_to_group("scavenge_anchor")
+	add_child(b)
+	b.global_position = Vector2(700.0, 220.0)
+	b.is_in_range = false
+	await _frames(3)
+	var tag: PanelContainer = loot._preview["panel"]
+	for nm in ["anchor_dm_a", "anchor_dm_b"]:
+		WorldState.set_anchor_item("9995", nm, "006")
+		WorldState.mark_anchor_searched("9995", nm)
+	loot._process(0.016)
+	check(loot.preview_showing_for(a), "a searched node in reach shows its tag")
+	# Esc
+	var esc := InputEventAction.new()
+	esc.action = "ui_cancel"
+	esc.pressed = true
+	loot._input(esc)
+	check(not tag.visible and not loot.preview_showing_for(a), "Esc puts the tag away")
+	loot._process(0.016)
+	loot._process(0.016)
+	check(not tag.visible, "…and it does not come back while the player stands there")
+	a.is_in_range = false
+	loot._process(0.016)
+	a.is_in_range = true
+	loot._process(0.016)
+	check(loot.preview_showing_for(a), "…until the player has left its reach and returned")
+	# a right-click
+	var rc := InputEventMouseButton.new()
+	rc.button_index = MOUSE_BUTTON_RIGHT
+	rc.pressed = true
+	rc.position = Vector2(900.0, 500.0)
+	loot._input(rc)
+	loot._process(0.016)
+	check(not tag.visible, "a right-click puts it away")
+	a.is_in_range = false
+	loot._process(0.016)
+	a.is_in_range = true
+	loot._process(0.016)
+	# a left-click in the world away from the node
+	var lc := InputEventMouseButton.new()
+	lc.button_index = MOUSE_BUTTON_LEFT
+	lc.pressed = true
+	lc.position = Vector2(900.0, 500.0)
+	check(loot.preview_showing_for(a), "(back again)")
+	loot._input(lc)
+	loot._process(0.016)
+	check(not tag.visible, "a click away from the node puts it away")
+	a.is_in_range = false
+	loot._process(0.016)
+	a.is_in_range = true
+	loot._process(0.016)
+	# a click ON the node is its own business: it must not put the tag away first (the click takes the item in one go)
+	var on := InputEventMouseButton.new()
+	on.button_index = MOUSE_BUTTON_LEFT
+	on.pressed = true
+	on.position = get_viewport().get_canvas_transform() * a.global_position
+	loot._input(on)
+	check(loot.preview_showing_for(a), "a click on the node itself leaves its tag up")
+	# the live tag closed without taking: it stays away
+	WorldState.inventory.clear()
+	while WorldState.inventory.size() < WorldState.get_inventory_slots():
+		WorldState.add_to_inventory("002")
+	loot.open("006", "anchor_dm_a", "9995", a)
+	check(loot.visible and loot.name_label.text == "Inventory full", "a full pack refuses: the live tag stays up")
+	loot.leave()
+	loot._process(0.016)
+	loot._process(0.016)
+	check(not loot.visible and not tag.visible and not loot.preview_showing_for(a), "put away (Esc / a click off it), the tag does not come straight back on top of the next node")
+	# the next node's tag shows while the first stays away
+	b.is_in_range = true
+	loot._process(0.016)
+	check(loot.preview_showing_for(b) and not loot.preview_showing_for(a), "…and the next node in reach gets its tag")
+	# opening another node puts the standing tag away
+	a.is_in_range = false
+	loot._process(0.016)
+	a.is_in_range = true
+	loot._process(0.016)
+	b.is_in_range = false
+	loot._process(0.016)
+	check(loot.preview_showing_for(a), "(the first again)")
+	WorldState.set_anchor_item("9995", "anchor_dm_b", "011")
+	loot.open("011", "anchor_dm_b", "9995", b)
+	loot.leave()
+	loot._process(0.016)
+	check(not loot.preview_showing_for(a), "opening another node puts the first one's tag away too")
+	WorldState.inventory.clear()
+	player.queue_free()
+	a.queue_free()
+	b.queue_free()
+	loot.queue_free()
+	await _frames(2)
+
+
 ## The found-item tag stands IN THE WORLD beside its node (owner round 48l: "put the box in the game world too, smaller, beside the node"), and shows by itself when the player walks back up
 ## to a node they searched but did not empty; [interact] then takes it in one press.
 func _test_found_tag_in_the_world() -> void:
@@ -274,6 +389,12 @@ func _test_found_tag_in_the_world() -> void:
 	loot._input(off)
 	loot._input(off)
 	check(WorldState.inventory.size() == before and WorldState.get_anchor_item("9996", "anchor_pv") == "006", "a double-click OFF the tag (in the world) takes nothing")
+	check(not tag.visible, "…it puts the tag away (a click away from it)")
+	anchor.is_in_range = false                                                         # out of reach and back: the tag comes again
+	loot._process(0.016)
+	anchor.is_in_range = true
+	loot._process(0.016)
+	check(loot.preview_showing_for(anchor), "(walked off and back: its tag again)")
 	loot._pv_press_time = -10.0
 	loot._input(ev)
 	loot._input(ev)
