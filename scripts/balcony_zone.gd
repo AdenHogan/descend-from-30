@@ -5,6 +5,9 @@ extends Area2D
 # side-on game, so this is one of the few places pressing UP does something.
 # Press W to lash a rope and climb down into the apartment directly below; press
 # R first to listen to what's down there. Mirrors the stairwell's arrow/prompt.
+# ONCE OUT on the balcony the way down is a standing pill beside the player for as long as they stand there
+# (owner round 49c: "I am not getting any prompts to jump this one") — the old one-off toast faded after two
+# seconds and a landing from above showed nothing at all, so nobody was ever told W goes over the rail.
 # room.gd instantiates one per revealed balcony and sets apartment_id + slot.
 
 var apartment_id: String = ""
@@ -13,7 +16,10 @@ var slot: int = 0
 const ARROW_FONT = preload("res://assets/fonts/PixelOperator8.ttf")
 const ARROW_BASE_Y = -85.0
 
+const PLANE_PROMPT_RISE := 46.0          # the pill floats this far above the player's origin
+
 var player_nearby := false
+var _plane_prompt_up := false
 var bounce_time := 0.0
 var arrow: Label = null
 var prompt: Label = null
@@ -72,6 +78,43 @@ func _on_body_exited(body: Node2D) -> void:
 		arrow.visible = false
 		prompt.visible = false
 		listen_label.visible = false
+		_hide_plane_prompt()
+
+
+func _exit_tree() -> void:
+	_hide_plane_prompt()
+
+
+func _hide_plane_prompt() -> void:
+	if _plane_prompt_up:
+		HUD.hide_world_prompt(self)
+	_plane_prompt_up = false
+
+
+## What the pill beside a player standing out on this balcony says, "" for nothing. Pure of the world: a top balcony names its way
+## down (a line to climb, or the jump, and after the first press the second one that commits it); the dead-end bottom of a pair says so.
+func plane_prompt_text(player: Node) -> String:
+	if player == null or not bool(player.get("on_balcony_plane")):
+		return ""
+	if not WorldState.is_balcony_descendable(apartment_id, slot):
+		return "No way down from here · [%s] back inside" % TutorialManager.key("move_down")
+	var up := TutorialManager.key("move_up")
+	if WorldState.is_balcony_roped(apartment_id, slot) or WorldState.has_descent_rope():
+		return "[%s] Climb down" % up
+	if player.has_method("balcony_jump_armed") and player.balcony_jump_armed():
+		return "[%s] again to jump" % up
+	return "[%s] Jump down" % up
+
+
+func _update_plane_prompt(player: Node) -> void:
+	var busy: bool = player == null or bool(player.get("is_dead")) or bool(player.get("is_dying")) or bool(player.get("is_cutscene")) \
+		or bool(player.get("is_lashing")) or bool(player.get("is_listening"))
+	var text := "" if busy else plane_prompt_text(player)
+	if text == "":
+		_hide_plane_prompt()
+		return
+	HUD.show_world_prompt(self, text, player.global_position + Vector2(0.0, -PLANE_PROMPT_RISE))
+	_plane_prompt_up = true
 
 
 func _refresh() -> void:
@@ -99,6 +142,7 @@ func _process(delta: float) -> void:
 	if player == null:
 		return
 	_refresh()   # live prompt: stepping out / back in changes the options
+	_update_plane_prompt(player)
 	var descendable := WorldState.is_balcony_descendable(apartment_id, slot)
 	if Input.is_action_just_pressed("move_up"):
 		if not player.get("on_balcony_plane"):

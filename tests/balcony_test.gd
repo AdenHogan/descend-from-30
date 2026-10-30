@@ -27,6 +27,7 @@ func _ready() -> void:
 	_test_jump_warning_once()
 	await _test_passive_room()
 	await _test_bottom_balcony_access()
+	await _test_standing_prompt()
 	_test_pan_gating()
 	await _test_balcony_plane_restore()
 	await _test_balcony_geometry()
@@ -311,6 +312,93 @@ func _test_bottom_balcony_access() -> void:
 			zones += 1
 	check(zones >= 1, "bottom balcony still spawns a step-out zone (%d)" % zones)
 	room.queue_free()
+	await get_tree().process_frame
+
+
+func _zone_of(room: Node) -> Node:
+	for c in room.get_children():
+		if c.get_script() == load("res://scripts/balcony_zone.gd"):
+			return c
+	return null
+
+
+## Out on the balcony the way down is a STANDING pill (owner round 49c: "I am not getting any prompts to jump this one"): the one-off toast
+## that used to carry it faded after two seconds, and a landing from above showed nothing at all. It is shown for as long as the player stands
+## out there, says what W does (climb with a line, jump without, the second press that commits the jump) — and on the dead-end bottom of a
+## pair says there is no way down — and goes the moment they step back in.
+func _test_standing_prompt() -> void:
+	print("[the way down is a standing prompt]")
+	var found := _find_top()
+	check(not found.is_empty(), "found a top balcony to stand on")
+	if found.is_empty():
+		return
+	WorldState.new_game()
+	WorldState.is_first_run = false
+	WorldState.master_seed = int(found["seed"])
+	WorldState.apartment_layouts.clear()
+	var top := _apt(int(found["floor"]), int(found["col"]))
+	var bottom := WorldState.balcony_below(top)
+	var room := _plane_room(top)
+	for i in range(6):
+		await get_tree().physics_frame
+	var zone = _zone_of(room)
+	var p = room.get_node_or_null("Player")
+	check(zone != null and p != null, "the live balcony flat has its zone and its player")
+	if zone == null or p == null:
+		room.free()
+		return
+	p.global_position = Vector2(zone.global_position.x, BalconyGeo.LANE_FEET - BalconyGeo.PLAYER_FEET_OFF)
+	for i in range(6):
+		await get_tree().physics_frame
+	check(zone.player_nearby, "the player is in the balcony's zone")
+	var pill = HUD.world_prompt_panel(zone)
+	check(pill == null or not pill.visible, "standing inside, nothing says anything yet")
+	# W steps out (the zone's own press), and the pill is up well after the old two-second toast would have gone
+	Input.action_press("move_up")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	Input.action_release("move_up")
+	await get_tree().create_timer(2.8).timeout
+	check(p.on_balcony_plane, "W stepped the player out onto the balcony")
+	pill = HUD.world_prompt_panel(zone)
+	check(pill != null and pill.visible, "…and a pill is still up beside them 2.8 s later")
+	var said: String = zone.plane_prompt_text(p)
+	check(said.contains("Jump") and said.contains(TutorialManager.key("move_up")), "no rope: it names the jump and the key (%s)" % said)
+	if pill != null:
+		check(String(pill.get_child(0).text if pill.get_child_count() > 0 and pill.get_child(0) is Label else said).contains("Jump"), "…and it is that text on the pill")
+	# the first press arms the jump: the pill asks for the second
+	p._jump_confirm_time = Time.get_ticks_msec() / 1000.0
+	check(zone.plane_prompt_text(p).contains("again"), "after the first press the pill asks for the second")
+	p._jump_confirm_time = 0.0
+	WorldState.inventory.clear()
+	WorldState.roped_balconies[WorldState.balcony_key(top, int(found["slot"]))] = true
+	check(zone.plane_prompt_text(p).contains("Climb"), "a line already tied here: it says climb")
+	WorldState.roped_balconies.clear()
+	# S steps back in: the pill goes
+	p.exit_balcony_plane()
+	await get_tree().create_timer(1.0).timeout
+	pill = HUD.world_prompt_panel(zone)
+	check(not p.on_balcony_plane and (pill == null or not pill.visible), "stepping back in takes the pill away")
+	room.free()
+	await get_tree().process_frame
+	# the dead-end partner below: it says there is no way down (instead of saying nothing and leaving the player guessing)
+	WorldState.apartment_layouts.clear()
+	var room2 := _plane_room(bottom)
+	for i in range(6):
+		await get_tree().physics_frame
+	var zone2 = _zone_of(room2)
+	var p2 = room2.get_node_or_null("Player")
+	check(zone2 != null and p2 != null, "the landing balcony below has its zone too")
+	if zone2 != null and p2 != null:
+		p2.global_position = Vector2(zone2.global_position.x, BalconyGeo.LANE_FEET - BalconyGeo.PLAYER_FEET_OFF)
+		for i in range(6):
+			await get_tree().physics_frame
+		await p2.enter_balcony_plane(zone2.global_position.x, "", int(found["slot"]))
+		await get_tree().create_timer(2.6).timeout
+		var pill2 = HUD.world_prompt_panel(zone2)
+		check(pill2 != null and pill2.visible, "out on the dead end a pill is up too")
+		check(zone2.plane_prompt_text(p2).contains("No way down"), "…and it says there is no way down (%s)" % zone2.plane_prompt_text(p2))
+	room2.free()
 	await get_tree().process_frame
 
 

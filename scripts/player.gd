@@ -2266,6 +2266,11 @@ func begin_balcony_descent(apartment_id: String, slot: int, _from_global: Vector
 		_do_balcony_descent(apartment_id, slot, true)     # confirmed — jump
 
 
+## True while a first press at the rail has asked "press again to jump" and the window to confirm it is still open.
+func balcony_jump_armed() -> bool:
+	return _jump_confirm_time > 0.0 and Time.get_ticks_msec() / 1000.0 - _jump_confirm_time <= BALCONY_JUMP_CONFIRM_WINDOW
+
+
 func _lash_and_descend(apartment_id: String, slot: int) -> void:
 	# Silent, timed — you stand still and can be interrupted by a hit. Materials
 	# (a Rope, or 3 Clothes knotted on the spot) are spent only on completion.
