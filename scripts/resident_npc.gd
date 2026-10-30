@@ -33,6 +33,9 @@ const WALK := 40.0
 const RUN := 95.0
 const STANDOFF := 72.0             # a hostile resident squares up this far from you
 const TRADER_KEEP := 92.0          # a trader keeps you this far off
+const ZONE_HALF := 120.0           # a resident lives where it was found (owner round 49f: "we don't need NPCs walking fully left to right of their entire apartment"):
+                                   # it backs off, paces, keeps away and cowers within this of its home spot
+const ZONE_HALF_VIOLENT := 260.0   # one that has turned on you may come this far after you
 const KEEP_AWAY := 150.0           # a scared one runs if you come nearer than this
 const TOO_CLOSE := 44.0
 const REACH := 30.0
@@ -93,6 +96,7 @@ var _push_v: float = 0.0
 var _enter_t: float = ENTER_DELAY
 var offer: Dictionary = {}          # {"give": {id, amount}, "get": ItemInstance} while a swap is on the table
 var _pace_phase: float = 0.0
+var _home_x: float = -1.0          # where it was first found: its zone is centred here (saved in the record, so a resident that fled and was left stays put next visit)
 var _met_before: int = 0
 var script_lines: Array = []        # the owner's scripted beats [enter, 1st search, 2nd search] — see say_script
 const SCRIPT_KEEPS := ["hurt", "death"]   # the only pool moments a scripted resident still speaks
@@ -128,6 +132,10 @@ func _ready() -> void:
 	current_hp = int(rec.get("hp", WorldState.RESIDENT_HP.get(temper, 3)))
 	violent = bool(rec.get("violent", false))
 	_pace_phase = float(rec.get("spot", 0.0)) * TAU
+	_home_x = float(rec.get("home_x", position.x))
+	if not rec.has("home_x"):
+		rec["home_x"] = _home_x
+		WorldState.update_resident(apartment_id, {"home_x": _home_x})
 	var cs := CollisionShape2D.new()
 	cs.name = "CollisionShape2D"
 	var shape := RectangleShape2D.new()
@@ -237,6 +245,7 @@ func _build_bubble() -> void:
 	_bubble.visible = false
 	_bubble_layer.add_child(_bubble)
 	_bubble.add_to_group("hud_widget_extra")        # HUD.pointer_over_widget: a click on it isn't a swing / a walk
+	_bubble.add_to_group("speech_bubble")            # HUD._position_dialogue: the player's own bubble steps clear of it
 
 
 # --- speech ------------------------------------------------------------------------------------
@@ -318,6 +327,17 @@ func _bounds() -> Vector2:
 	return Vector2(lo, hi)
 
 
+## The stretch of the flat this resident moves in: its zone round home (wider once it has turned on you), inside the room.
+func _leash() -> Vector2:
+	var b := _bounds()
+	var half := ZONE_HALF_VIOLENT if violent else ZONE_HALF
+	var lo := maxf(b.x, _home_x - half)
+	var hi := minf(b.y, _home_x + half)
+	if hi - lo < 60.0:
+		return b                       # a home too near an end wall to leave room: the old whole-room clamp, never a zero-width pen
+	return Vector2(lo, hi)
+
+
 func _process(delta: float) -> void:
 	_update_bubble(delta)
 
@@ -340,6 +360,8 @@ func _physics_process(delta: float) -> void:
 	var dist := absf(dx)
 	var p_ok: bool = _player_reachable(p)
 	_face(signf(dx))
+	if state != "cower":
+		_stand_pose()
 	if _push_v != 0.0:
 		_move_by(_push_v * delta)
 		_push_v = move_toward(_push_v, 0.0, 600.0 * delta)
@@ -440,7 +462,7 @@ func _hostile_tick(dx: float, dist: float, delta: float) -> void:
 
 
 func _scared_tick(dx: float, dist: float, delta: float) -> void:
-	var b := _bounds()
+	var b := _leash()
 	if state == "dash":
 		# Bolting PAST you to the other side of the room (it passes through — never blocks).
 		_play("Walk")
@@ -468,9 +490,7 @@ func _scared_tick(dx: float, dist: float, delta: float) -> void:
 		return
 	# Backed against the wall.
 	_set_state("cower")
-	_play("Hurt")
-	animated_sprite.frame = 1
-	animated_sprite.pause()
+	_cower_pose()
 	if dist < TOO_CLOSE * 1.6:
 		_corner_t += delta
 		if not _said_corner:
@@ -825,13 +845,13 @@ func _face(dir: float) -> void:
 
 
 func _move_by(step: float) -> void:
-	var b := _bounds()
+	var b := _leash()
 	global_position.x = clampf(global_position.x + step, b.x, b.y)
 
 
 ## Walks toward x (clamped to the room). True once there.
 func _walk_to(x: float, speed: float, delta: float) -> bool:
-	var b := _bounds()
+	var b := _leash()
 	var tx := clampf(x, b.x, b.y)
 	var d := tx - global_position.x
 	if absf(d) < 2.0:
@@ -840,6 +860,20 @@ func _walk_to(x: float, speed: float, delta: float) -> bool:
 	_move_by(signf(d) * minf(absf(d), speed * delta))
 	_play("Walk")
 	return false
+
+
+## Cornered: hunched and shaking on the ordinary standing frame. (It used to freeze on the Hurt animation's second frame - a solid red flash - for as long as it stayed
+## cornered: the owner saw an NPC "turn red for a period of time" at a wall. The Hurt frames are for being HIT, a few tenths of a second.)
+func _cower_pose() -> void:
+	_play("Idle")
+	animated_sprite.scale = Vector2(SPRITE_SCALE, SPRITE_SCALE * 0.9)
+	animated_sprite.position.x = sin(_t * 41.0) * 0.9
+
+
+func _stand_pose() -> void:
+	if animated_sprite.scale.y != SPRITE_SCALE or animated_sprite.position.x != 0.0:
+		animated_sprite.scale = Vector2(SPRITE_SCALE, SPRITE_SCALE)
+		animated_sprite.position.x = 0.0
 
 
 func _show_weapon(on: bool, angle: float) -> void:

@@ -210,9 +210,14 @@ func _test_hostile() -> void:
 	var p = get_tree().get_first_node_in_group("player")
 	check(absf(npc.position.y - NPC.FEET_Y) < 0.5 and absf(npc.position.y - (p.position.y + 33.0)) < 1.5,
 		"feet on the flat's walking line, level with the player's (%.0f vs %.0f)" % [npc.position.y, p.position.y + 33.0])
-	p.global_position.x = npc.global_position.x + (-300.0 if npc.global_position.x > 600.0 else 300.0)
+	var home: float = float(npc.rec.get("home_x", npc.global_position.x))
+	var far_side: float = -1.0 if npc.global_position.x > 600.0 else 1.0
+	p.global_position.x = npc.global_position.x + far_side * 300.0
 	await _frames(40)
 	check(npc.last_moment == "enter", "it shouts as you come in ('%s')" % npc.last_line)
+	await _frames(100)
+	check(absf(npc.global_position.x - home) <= NPC.ZONE_HALF + 0.5, "with you across the flat it holds its own ground: it does not cross the flat to you (%.0f from home %.0f)" % [npc.global_position.x, home])
+	p.global_position.x = npc.global_position.x - far_side * 170.0         # you come into its part of the flat (further in, toward its home)
 	var d0: float = absf(p.global_position.x - npc.global_position.x)
 	await _frames(150)
 	var d1: float = absf(p.global_position.x - npc.global_position.x)
@@ -275,7 +280,8 @@ func _test_scared() -> void:
 		await _close(room)
 		return
 	var p = get_tree().get_first_node_in_group("player")
-	var bounds: Vector2 = npc._bounds()
+	var bounds: Vector2 = npc._leash()
+	check(bounds.y - bounds.x <= 2.0 * NPC.ZONE_HALF + 0.5 and bounds.x <= npc.global_position.x and npc.global_position.x <= bounds.y, "it lives in a zone round its home, not the whole flat (%.0f..%.0f, home %.0f)" % [bounds.x, bounds.y, npc.global_position.x])
 	# Stand between them and the middle of the room; they bolt for the far wall.
 	var away := 1.0 if npc.global_position.x > (bounds.x + bounds.y) * 0.5 else -1.0
 	p.global_position.x = npc.global_position.x - away * 70.0
@@ -289,6 +295,19 @@ func _test_scared() -> void:
 	p.global_position.x = wall - away * 30.0
 	await _frames(20)
 	check(npc.state == "cower" and npc.last_moment == "cornered", "backed into a corner it cowers ('%s')" % npc.last_line)
+	check(npc.animated_sprite.animation != "Hurt", "…and the cower is the standing frame, shaking - NOT the red Hurt flash held for as long as it is cornered (%s)" % npc.animated_sprite.animation)
+	# chase it up and down the flat: it never leaves its zone
+	var lo := 1.0e9
+	var hi := -1.0e9
+	for k in 10:
+		p.global_position.x = bounds.x - 30.0 + float(k % 2) * (bounds.y - bounds.x + 60.0)
+		for f in 25:
+			await get_tree().physics_frame
+			lo = minf(lo, npc.global_position.x)
+			hi = maxf(hi, npc.global_position.x)
+	check(lo >= bounds.x - 0.5 and hi <= bounds.y + 0.5, "chased from end to end it stays in its zone (%.0f..%.0f of %.0f..%.0f)" % [lo, hi, bounds.x, bounds.y])
+	p.global_position.x = wall - away * 30.0
+	npc.global_position.x = wall
 	# Through the real loot panel: opening a search, then taking what's in it.
 	var lui = room.find_child("LootUI", true, false)
 	lui.open("025", "test_anchor", apt)

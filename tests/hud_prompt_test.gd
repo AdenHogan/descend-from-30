@@ -99,5 +99,68 @@ func _ready() -> void:
 	for o in [owner_a, owner_b, o3, o4]:
 		HUD.hide_world_prompt(o)
 
+	await _test_dialogue_bubble()
 	print("=== %s (%d failures) ===" % ["ALL PASSED" if fails == 0 else "FAILED", fails])
 	get_tree().quit(1 if fails > 0 else 0)
+
+
+# Owner round 49f: the player's lines are a speech bubble over their head (like the residents'), not a banner at the top of the screen, and they never
+# sit on top of an [E] Talk pill or another speech bubble.
+func _test_dialogue_bubble() -> void:
+	print("[the player's lines: a bubble over the head]")
+	var stand := Node2D.new()
+	stand.add_to_group("player")
+	stand.global_position = Vector2(600, 330)
+	add_child(stand)
+	var cam: Camera2D = get_viewport().get_camera_2d()
+	HUD.show_dialogue("Mrs Delacroix? Are you all right?", "", false, 4.0)
+	await get_tree().process_frame
+	var panel: PanelContainer = HUD.dialogue_panel
+	var head: Vector2 = get_viewport().get_canvas_transform() * (stand.global_position + Vector2(0, HUD.DIALOGUE_HEAD_DY))
+	var r := Rect2(panel.position, panel.size)
+	chk(panel.visible and r.position.x >= 0.0 and r.end.x <= HUD.SCREEN_W + 0.5 and r.position.y >= 0.0 and r.end.y <= HUD.SCREEN_H + 0.5, "the bubble is on screen (%s)" % str(r))
+	chk(absf(r.get_center().x - head.x) < 2.0 and r.end.y <= head.y + 1.0, "…centred over the player's head, its foot at the head (%s, head %s)" % [str(r), str(head)])
+	chk(r.size.x < 340.0, "…a bubble, not a banner across the screen (%.0f px wide)" % r.size.x)
+	# it follows the player
+	stand.global_position = Vector2(560, 330)
+	HUD._position_dialogue()
+	chk(panel.position.x < r.position.x - 4.0, "it follows the player when they walk (x %.0f -> %.0f)" % [r.position.x, panel.position.x])
+	# an [E] Talk pill where the bubble would stand: the bubble rises above it
+	var talk := Node.new()
+	add_child(talk)
+	var y_free: float = panel.position.y
+	var on_bubble := Rect2(panel.position, panel.size).get_center()           # a pill planted right where the bubble hangs
+	var pill_world: Vector2 = get_viewport().get_canvas_transform().affine_inverse() * (on_bubble + Vector2(0, 14))
+	HUD.show_world_prompt(talk, "[{interact}] Talk", pill_world)
+	HUD._update_world_prompt()
+	var pill := Rect2(HUD.world_prompt_panel(talk).position, HUD.world_prompt_panel(talk).size)
+	chk(Rect2(panel.position, panel.size).intersects(pill), "(the pill really is on the bubble's spot: %s vs %s)" % [str(Rect2(panel.position, panel.size)), str(pill)])
+	HUD._position_dialogue()
+	var rb := Rect2(panel.position, panel.size)
+	chk(not rb.intersects(pill) and panel.position.y < y_free - 1.0, "a [E] Talk pill is never covered by the bubble: it rises above (bubble %s, pill %s)" % [str(rb), str(pill)])
+	HUD.hide_world_prompt(talk)
+	# another speech bubble (a resident's) on the same spot: same
+	var other := PanelContainer.new()
+	other.custom_minimum_size = Vector2(250, 40)
+	other.add_to_group("speech_bubble")
+	HUD.get_node("Control").add_child(other)
+	other.position = panel.position
+	other.size = Vector2(250, 40)
+	HUD._position_dialogue()
+	chk(not Rect2(panel.position, panel.size).intersects(other.get_global_rect()), "…nor another speech bubble")
+	other.queue_free()
+	# a paused teaching beat keeps its hint inside the bubble
+	HUD.show_dialogue("Find a weapon.", "[any key]", true)
+	await get_tree().process_frame
+	chk(HUD.dialogue_hint.visible and panel.get_global_rect().encloses(HUD.dialogue_hint.get_global_rect()), "a teaching beat's hint lives inside the bubble")
+	HUD.hide_dialogue()
+	# no player at all (between scenes): the old top-centre fallback, never off screen
+	stand.remove_from_group("player")
+	HUD.show_dialogue("A line with nobody to say it.", "", false, 2.0)
+	await get_tree().process_frame
+	var f := Rect2(panel.position, panel.size)
+	chk(f.position.x >= 0.0 and f.end.x <= HUD.SCREEN_W + 0.5 and absf(f.get_center().x - HUD.SCREEN_W * 0.5) < 2.0, "with nobody to say it, the line falls back to the top-centre (%s)" % str(f))
+	HUD.hide_dialogue()
+	stand.queue_free()
+	if cam != null:
+		cam.zoom = Vector2(3.3, 3.3)

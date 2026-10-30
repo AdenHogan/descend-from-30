@@ -51,6 +51,8 @@ var name_label: Label = null
 var kind_label: Label = null           # one word: what sort of thing it is
 var fact_label: Label = null           # one line of fact under the name: where a key opens, how many rounds — empty for most things
 var hint_label: Label = null           # the keys: "[E] TAKE"
+var _choice_box: VBoxContainer = null  # "which gun?": one row a gun with room in its magazine, under the keys (found bullets, two or more guns)
+var _choice_guns: Array = []           # the guns the rows stand for, in order
 var compare_label: LampRows = null     # a found weapon's numbers that DIFFER from the one in hand (ItemCompare), at most two rows
 var icon_row: HBoxContainer = null
 var search_word: SearchWord = null     # SEARCHING, lit S to G while a search runs
@@ -105,6 +107,11 @@ func _build_ui() -> void:
 	fact_label = parts["fact"]
 	compare_label = parts["compare"]
 	hint_label = parts["hint"]
+	_choice_box = VBoxContainer.new()
+	_choice_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_choice_box.add_theme_constant_override("separation", 2)
+	_choice_box.visible = false
+	hint_label.get_parent().add_child(_choice_box)
 
 	# The PREVIEW tag: the same parts on a layer of its own, so it can stand beside a node while this layer is closed.
 	_preview_layer = CanvasLayer.new()
@@ -328,7 +335,7 @@ func _reveal_item() -> void:
 	var parts := _tag_parts()
 	_fill_tag(parts, current_item_id, current_key_target, current_apartment_id, current_anchor_name)
 	if _is_rounds() and not WorldState.guns_with_room().is_empty():
-		hint_label.text = SettingsManager.localize("[{interact}]  TAKE      [{item_use}]  LOAD")
+		hint_label.text = SettingsManager.localize(_rounds_hint())
 	_show_panel(true)
 	visible = true
 	_land("tick")
@@ -652,9 +659,32 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		_take()
 		return
-	# The use key loads a carried gun straight from found bullets (owner round 48h: "drag or press my buttons to autoload the gun").
+	# "Which gun?" is open: a number key or a click on a row loads THAT gun; the use key / cancel puts the question away (the keys line comes back).
+	if _choice_box != null and _choice_box.visible:
+		if event is InputEventKey and event.pressed and not event.echo:
+			var n: int = int(event.keycode) - int(KEY_1)
+			if n >= 0 and n < _choice_guns.size():
+				get_viewport().set_input_as_handled()
+				_choose_gun(n)
+				return
+		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			var row: int = _choice_row_at(event.position)
+			if row >= 0:
+				get_viewport().set_input_as_handled()
+				_choose_gun(row)
+				return
+		if event.is_action_pressed("item_use") or event.is_action_pressed("ui_cancel"):
+			get_viewport().set_input_as_handled()
+			_close_choice()
+			return
+	# The use key loads a carried gun straight from found bullets (owner round 48h: "drag or press my buttons to autoload the gun"); with TWO guns that could take
+	# them it asks which (owner round 49f: "when you take to load, you have the choice available of which gun to load").
 	if event.is_action_pressed("item_use") and _is_rounds():
 		var guns: Array = WorldState.guns_with_room()
+		if guns.size() >= 2:
+			get_viewport().set_input_as_handled()
+			_open_choice(guns)
+			return
 		if not guns.is_empty():
 			get_viewport().set_input_as_handled()
 			load_gun(guns[0])
@@ -804,6 +834,55 @@ func _is_rounds() -> bool:
 	return has_item and current_key_target == "" and current_item_id != "" and ItemData.get_item(current_item_id).get("is_ammo", false)
 
 
+func _rounds_hint() -> String:
+	return "[{interact}]  TAKE      [{item_use}]  LOAD"
+
+
+## "Which gun?": a row for each gun with room in its magazine, keyed 1, 2, 3 - the number key or a click loads it. The one in hand is first.
+func _open_choice(guns: Array) -> void:
+	_choice_guns = guns.duplicate()
+	for c in _choice_box.get_children():
+		c.queue_free()
+	for i in range(_choice_guns.size()):
+		var g = _choice_guns[i]
+		var tier: String = g.tier_tag()
+		var row := _lamp_label("%d   %s%s   %d / %d" % [i + 1, g.get_display_name(), ("  " + tier) if tier != "" else "", g.mag_count, g.get_mag_cap()], "body", Lamp.PX_BODY, Lamp.TEXT)
+		row.name = "Gun%d" % (i + 1)
+		_choice_box.add_child(row)
+	hint_label.text = "WHICH GUN?"
+	_choice_box.visible = true
+	_show_panel(true)                           # the tag grew: stand it beside its node again
+	Ledger.play("tick", -14.0)
+
+
+func _choice_row_at(pos: Vector2) -> int:
+	for i in range(_choice_box.get_child_count()):
+		var c = _choice_box.get_child(i)
+		if c is Control and c.get_global_rect().grow(3.0).has_point(pos):
+			return i
+	return -1
+
+
+func _choose_gun(i: int) -> void:
+	if i < 0 or i >= _choice_guns.size():
+		return
+	var gun = _choice_guns[i]
+	_close_choice()
+	if is_instance_valid(gun) and WorldState.inventory.has(gun):
+		load_gun(gun)
+
+
+func _close_choice() -> void:
+	_choice_guns.clear()
+	if _choice_box != null:
+		_choice_box.visible = false
+		for c in _choice_box.get_children():
+			c.queue_free()
+	if has_item and _is_rounds():
+		hint_label.text = SettingsManager.localize(_rounds_hint()) if not WorldState.guns_with_room().is_empty() else SettingsManager.localize("[{interact}]  TAKE")
+		_show_panel(true)
+
+
 ## How many bullets this node holds: the amount the room recorded, else the bundle its seed rolls.
 func _rounds_here() -> int:
 	var amount: int = WorldState.get_anchor_amount(current_apartment_id, current_anchor_name)
@@ -812,7 +891,14 @@ func _rounds_here() -> int:
 
 ## Found bullets: into the pockets if they all fit, else into the magazine of a gun carried (owner round 48h); what fits nowhere stays on the node.
 func _take_rounds() -> bool:
-	var res: Dictionary = WorldState.take_found_ammo(current_item_id, _rounds_here())
+	# The pockets cannot take them and TWO guns could: that is the player's choice, not ours (the first gun used to take them without asking).
+	var here: int = _rounds_here()
+	if WorldState.ammo_pack_room(current_item_id) < here:
+		var guns: Array = WorldState.guns_with_room()
+		if guns.size() >= 2:
+			_open_choice(guns)
+			return false
+	var res: Dictionary = WorldState.take_found_ammo(current_item_id, here)
 	if int(res["left"]) <= 0:
 		if str(res["msg"]) != "":
 			HUD.show_feedback(str(res["msg"]))
@@ -849,7 +935,7 @@ func _rounds_left(left: int, msg: String) -> void:
 	HUD.refresh_inventory()
 	name_label.text = "%s x%d" % [ItemData.get_item(current_item_id).get("name", "Bullets"), left]
 	Ledger.play("tick", -14.0)
-	hint_label.text = "MAKE ROOM"
+	hint_label.text = "MAKE ROOM" if WorldState.guns_with_room().is_empty() else SettingsManager.localize("MAKE ROOM      [{item_use}]  LOAD")
 
 
 # The anchor is an opened gun cabinet still holding its weapon.
@@ -874,6 +960,9 @@ func _roll_ammo_bundle() -> int:
 
 func _close(item_taken: bool) -> void:
 	_end_drag(false)
+	if _choice_box != null:
+		_choice_box.visible = false
+		_choice_guns.clear()
 	if not search_word.resolving:
 		search_word.cancel()                 # a search walked away from: the word goes at once (one that finished is allowed its beat)
 	is_revealing = false

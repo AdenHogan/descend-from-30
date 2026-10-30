@@ -340,6 +340,7 @@ func _build_bubble() -> void:
 	_bubble.visible = false
 	_bubble_layer.add_child(_bubble)
 	_bubble.add_to_group("hud_widget_extra")          # HUD.pointer_over_widget: a click on a choice is not also a swing / a walk
+	_bubble.add_to_group("speech_bubble")            # HUD._position_dialogue: the player's own bubble steps clear of it
 
 
 # --- speech --------------------------------------------------------------------------------------

@@ -1557,6 +1557,15 @@ func add_to_inventory(item_id: String, amount: int = 0) -> bool:
 	return ok
 
 
+## How many rounds of `item_id` the pockets can still take: the free slots (a stack to a slot) plus the room left in the stacks already carried.
+func ammo_pack_room(item_id: String) -> int:
+	var capacity: int = (get_inventory_slots() - inventory.size()) * MAX_AMMO_PER_SLOT
+	for instance in inventory:
+		if instance.item_id == item_id:
+			capacity += MAX_AMMO_PER_SLOT - instance.count
+	return maxi(capacity, 0)
+
+
 func _add_to_inventory(item_id: String, amount: int = 0) -> bool:
 	# Bank Notes stack: all money shares ONE slot ("Bank Notes xN"). An existing
 	# stack absorbs pickups without consuming a slot. `amount` <= 0 rolls a small
@@ -1604,11 +1613,7 @@ func _add_to_inventory(item_id: String, amount: int = 0) -> bool:
 	# fit is refused, so no bullets silently vanish.
 	if ItemData.get_item(item_id).get("is_ammo", false):
 		var add_amount = max(amount, 1)
-		var capacity = (get_inventory_slots() - inventory.size()) * MAX_AMMO_PER_SLOT
-		for instance in inventory:
-			if instance.item_id == item_id:
-				capacity += MAX_AMMO_PER_SLOT - instance.count
-		if capacity < add_amount:
+		if ammo_pack_room(item_id) < add_amount:
 			return false
 		for instance in inventory:
 			if add_amount <= 0:

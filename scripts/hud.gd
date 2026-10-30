@@ -547,6 +547,15 @@ func world_prompt_panel(prompt_owner: Node) -> Panel:
 	var e = _world_prompts.get(prompt_owner.get_instance_id())
 	return e["panel"] if e != null else null
 
+## The player's lines are a SPEECH BUBBLE over their own head, like the residents' and survivors' (owner round 49f: "when player says things, the text should
+## not be at the top of the screen… it should be one of those text bubbles like NPCs have. This is a necessary change please" - and it used to sit over the
+## [E] Talk pill). The same dark bordered bubble, the same pixel face; `_position_dialogue` pins it above the head and steps it clear of any pill or other bubble.
+const DIALOGUE_FONT := preload("res://assets/fonts/PixelOperator8.ttf")
+const DIALOGUE_W := 260.0               # the bubble's text column (a resident's is 250)
+const DIALOGUE_HEAD_DY := -64.0         # world px above the player's origin where the bubble's foot sits
+const DIALOGUE_GAP := 6.0
+
+
 func _create_dialogue_panel() -> void:
 	dialogue_panel = PanelContainer.new()
 	# Renders while the tree is paused (teaching beats pause the game); a
@@ -555,15 +564,14 @@ func _create_dialogue_panel() -> void:
 	# Pure display — must NEVER swallow world clicks (click-to-move).
 	dialogue_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.06, 0.06, 0.08, 0.92)
-	style.border_color = Color(0.75, 0.75, 0.8, 0.9)
+	style.bg_color = Color(0.05, 0.05, 0.06, 0.88)
+	style.border_color = Color(0.78, 0.82, 0.92)           # the player's: pale steel-blue (a resident's border is its temper's colour)
 	style.set_border_width_all(2)
-	style.set_corner_radius_all(6)
-	style.set_content_margin_all(14)
+	style.set_corner_radius_all(5)
+	style.set_content_margin_all(8)
 	dialogue_panel.add_theme_stylebox_override("panel", style)
-	var box_w = 640.0
-	dialogue_panel.position = Vector2((SCREEN_W - box_w) / 2, 96)
-	dialogue_panel.custom_minimum_size = Vector2(box_w, 0)
+	dialogue_panel.position = Vector2((SCREEN_W - DIALOGUE_W) / 2, 96)
+	dialogue_panel.custom_minimum_size = Vector2(DIALOGUE_W + 16.0, 0)
 	dialogue_panel.visible = false
 
 	var vbox = VBoxContainer.new()
@@ -574,22 +582,61 @@ func _create_dialogue_panel() -> void:
 
 	dialogue_label = Label.new()
 	dialogue_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	dialogue_label.add_theme_font_size_override("font_size", 20)
-	dialogue_label.add_theme_color_override("font_color", Color(0.95, 0.95, 1.0, 1.0))
+	dialogue_label.add_theme_font_override("font", DIALOGUE_FONT)
+	dialogue_label.add_theme_font_size_override("font_size", 14)
+	dialogue_label.add_theme_color_override("font_color", Color(0.96, 0.94, 0.88))
 	dialogue_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	dialogue_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	dialogue_label.custom_minimum_size = Vector2(box_w - 28, 0)
+	dialogue_label.custom_minimum_size = Vector2(DIALOGUE_W, 0)
 	vbox.add_child(dialogue_label)
 
 	dialogue_hint = Label.new()
 	dialogue_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	dialogue_hint.add_theme_font_size_override("font_size", 14)
+	dialogue_hint.add_theme_font_override("font", DIALOGUE_FONT)
+	dialogue_hint.add_theme_font_size_override("font_size", 12)
 	dialogue_hint.add_theme_color_override("font_color", Color(1.0, 0.9, 0.35, 1.0))
 	dialogue_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	dialogue_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dialogue_hint.custom_minimum_size = Vector2(DIALOGUE_W, 0)
 	dialogue_hint.visible = false
 	vbox.add_child(dialogue_hint)
 
 	$Control.add_child(dialogue_panel)
+
+
+## Pin the bubble over the player's head, inside the screen, and clear of every world pill ([E] Talk, a door's prompt) and every other speech bubble: when
+## it would land on one it rises above it. With no player (a cut-scene between scenes) it falls back to the top-centre of the screen.
+func _position_dialogue() -> void:
+	if dialogue_panel == null or not dialogue_panel.visible:
+		return
+	dialogue_panel.reset_size()
+	var sz: Vector2 = dialogue_panel.size
+	var pos := Vector2((SCREEN_W - sz.x) * 0.5, 96.0)
+	var player = get_tree().get_first_node_in_group("player")
+	if player != null and is_instance_valid(player):
+		var head: Vector2 = get_viewport().get_canvas_transform() * (player.global_position + Vector2(0, DIALOGUE_HEAD_DY))
+		pos = Vector2(head.x - sz.x * 0.5, head.y - sz.y)
+	pos = Vector2(clampf(pos.x, 8.0, SCREEN_W - sz.x - 8.0), clampf(pos.y, 8.0, SCREEN_H - sz.y - 8.0))
+	var r := Rect2(pos, sz)
+	var others: Array = []
+	for id in _world_prompts.keys():
+		var e = _world_prompts[id]
+		if e["panel"].visible:
+			others.append(Rect2(e["panel"].position, e["panel"].size))
+	for b in get_tree().get_nodes_in_group("speech_bubble"):
+		if b is Control and b.is_visible_in_tree() and b != dialogue_panel:
+			others.append(b.get_global_rect())
+	for pass_i in range(4):                                  # a few steps up is always enough; never loop for ever
+		var hit := -1
+		for i in range(others.size()):
+			if r.grow(DIALOGUE_GAP * 0.5).intersects(others[i]):
+				hit = i
+				break
+		if hit < 0:
+			break
+		r.position.y = others[hit].position.y - r.size.y - DIALOGUE_GAP
+	r.position.y = clampf(r.position.y, 8.0, SCREEN_H - sz.y - 8.0)
+	dialogue_panel.position = r.position
 
 
 func show_dialogue(text: String, hint: String = "", persist: bool = false, seconds: float = 5.0) -> void:
@@ -605,6 +652,8 @@ func show_dialogue(text: String, hint: String = "", persist: bool = false, secon
 		dialogue_hint.visible = false
 	dialogue_panel.visible = true
 	dialogue_timer = 0.0 if persist else seconds
+	_position_dialogue()
+	call_deferred("_position_dialogue")        # the label's wrapped height settles a frame later (and a paused beat has no _process to fix it)
 
 
 ## The personal-quest banner (scripts/quest_banner.gd; docs/CHARACTER_STORIES.md): a kicker, the quest's title, the objective.
@@ -874,6 +923,7 @@ func _process(delta: float) -> void:
 		if feedback_timer <= 0:
 			feedback_pill.visible = false
 
+	_position_dialogue()
 	# Transient dialogue auto-hide (persistent prompt lines keep timer at 0).
 	if dialogue_timer > 0:
 		dialogue_timer -= delta

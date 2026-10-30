@@ -25,6 +25,7 @@ func _ready() -> void:
 	_test_medical_everywhere()
 	_test_found_ammo()
 	await _test_loot_panel_rounds()
+	await _test_gun_choice()
 	await _test_world_drop_rounds()
 	await _test_drop_direction()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
@@ -371,6 +372,71 @@ func _test_loot_panel_rounds() -> void:
 	var drops_before: int = WorldState.world_drops.size()
 	loot.swap_in(HUD.pack_wheel, 0, true)
 	check(WorldState.inventory[0] == gun and WorldState.world_drops.size() == drops_before and loot.visible, "onto a full magazine: 'Magazine full' - the gun is NOT dropped to make room")
+	loot.leave()
+	loot.queue_free()
+
+
+# Owner round 49f: "I found bullets and took. I was not given an option on which gun to load the rounds into. It just auto loaded to the gun on the right. That is my low
+# level gun... when you take to load, you have the choice available of which gun to load."
+func _test_gun_choice() -> void:
+	print("[found bullets with two guns: the player chooses which one]")
+	_fresh()
+	WorldState.is_scavenge_mode = true
+	WorldState.current_apartment_id = "t1"
+	var low := _gun(10)                       # the low-level gun, first in the pack
+	var high := _gun(6)
+	high.level = 3
+	WorldState.inventory.append(low)
+	WorldState.inventory.append(high)
+	_fill_pack()
+	var loot = load("res://scenes/loot_ui.tscn").instantiate()
+	add_child(loot)
+	await get_tree().process_frame
+	var low_before: int = low.mag_count
+	var high_before: int = high.mag_count
+	_open_rounds(loot, "t1", "g1", 5)
+	check(not loot._take(), "a full pack and two guns that could take them: [interact] does NOT load one for you")
+	check(low.mag_count == low_before and high.mag_count == high_before and WorldState.get_anchor_amount("t1", "g1") in [0, 5], "…nothing is loaded and nothing is lost (%d, %d)" % [low.mag_count, high.mag_count])
+	check(loot._choice_box.visible and loot._choice_box.get_child_count() == 2 and loot.hint_label.text.contains("WHICH"), "…the tag asks WHICH GUN, one row each (%s)" % loot.hint_label.text)
+	var row1: String = String(loot._choice_box.get_child(1).text)
+	check(row1.begins_with("2") and row1.contains("Lv3") and row1.contains("%d / %d" % [high_before, high.get_mag_cap()]), "…each row says which gun it is and its magazine (%s)" % row1)
+	# a click on the second row, then the number key
+	var k := InputEventKey.new()
+	k.keycode = KEY_2
+	k.pressed = true
+	loot._input(k)
+	check(high.mag_count == high_before + 5 and low.mag_count == low_before, "key 2 loads the SECOND gun (the Lv3), not the first (low %d -> %d, high %d -> %d)" % [low_before, low.mag_count, high_before, high.mag_count])
+	check(not loot._choice_box.visible and not loot.visible, "…the question is put away and the bundle is spent (it all fitted)")
+	# the use key asks too, and cancelling puts the keys back
+	WorldState.inventory = WorldState.inventory.filter(func(i): return i.item_id != "025")        # pockets with room
+	low.mag_count = low.get_mag_cap() - 4
+	high.mag_count = high.get_mag_cap() - 4
+	_open_rounds(loot, "t1", "g2", 4)
+	var use := InputEventAction.new()
+	use.action = "item_use"
+	use.pressed = true
+	loot._input(use)
+	check(loot._choice_box.visible and low.mag_count == low.get_mag_cap() - 4 and high.mag_count == high.get_mag_cap() - 4, "[item_use] with two guns asks which (nothing loaded yet)")
+	loot._input(use)
+	check(not loot._choice_box.visible and loot.hint_label.text.to_lower().contains("load") and loot.has_item, "…the use key again puts the question away and the keys come back (%s)" % loot.hint_label.text)
+	loot._open_choice(WorldState.guns_with_room())
+	var click := InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.pressed = true
+	click.position = loot._choice_box.get_child(0).get_global_rect().get_center()
+	loot._input(click)
+	check(low.mag_count == low.get_mag_cap() and high.mag_count == high.get_mag_cap() - 4, "a click on the first row loads the first gun (and only it)")
+	# ONE gun: no question, as before
+	WorldState.inventory = WorldState.inventory.filter(func(i): return i != high)
+	low.mag_count = low.get_mag_cap() - 4
+	_open_rounds(loot, "t1", "g3", 4)
+	loot._input(use)
+	check(not loot._choice_box.visible and low.mag_count == low.get_mag_cap(), "with one gun there is nothing to choose: it just loads")
+	# a gun that is full is not on the list
+	WorldState.inventory.append(high)
+	high.mag_count = high.get_mag_cap()
+	low.mag_count = low.get_mag_cap() - 2
+	check(WorldState.guns_with_room() == [low], "a full magazine is not offered")
 	loot.leave()
 	loot.queue_free()
 

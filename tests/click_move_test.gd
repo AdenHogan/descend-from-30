@@ -68,7 +68,8 @@ func _test_hallway_click() -> void:
 	player._clear_move_target()
 	HUD.show_dialogue("A fairly long tutorial line that fills the whole dialogue panel width so a click lands on it.")
 	await get_tree().process_frame
-	_click(Vector2(576, 128))  # over the dialogue panel
+	await get_tree().process_frame
+	_click(HUD.dialogue_panel.get_global_rect().get_center())  # over the dialogue bubble (it hangs over the player's head now, not at the top)
 	check(player.has_move_target, "LMB works even clicking ON the dialogue panel")
 	HUD.hide_dialogue()
 	hallway.queue_free()
