@@ -640,13 +640,13 @@ func _process(delta: float) -> void:
 	# across unscathed, so the player chooses — sprint the gauntlet, or walk and take the hits
 	# (owner's call). Walking / standing in it burns.
 	var _running_thru: bool = ("is_running" in player) and player.is_running
-	if _fire_field != null and player.has_method("receive_hit"):
+	if _fire_field != null and player.has_method("receive_burn"):
 		_fire_line_cd = maxf(_fire_line_cd - delta, 0.0)
 		if not _running_thru and _fire_field.fire_hot_at(player.global_position.x):
 			_fire_dmg_acc += delta
-			if _fire_dmg_acc >= FIRE_DMG_INTERVAL:
+			if _fire_dmg_acc >= WorldState.FIRE_BURN_INTERVAL:
 				_fire_dmg_acc = 0.0
-				player.receive_hit(1)                     # the HUD portrait shows the health drop
+				player.receive_burn()                     # half a health stage a tick (WorldState "FIRE DAMAGE")
 				_say_fire_line()
 		else:
 			_fire_dmg_acc = 0.0
@@ -673,7 +673,7 @@ func _process(delta: float) -> void:
 				if ("on_fire" in z) and z.on_fire:
 					z.on_fire = false
 				continue
-			var z_inflame: bool = _fire_field.is_burning_at(z.global_position.x)
+			var z_inflame: bool = _fire_field.fire_hot_at(z.global_position.x)
 			if "on_fire" in z:
 				z.on_fire = z_inflame
 			# Fire damages enemies too — stand one in the flames and it burns down and
@@ -824,7 +824,6 @@ var _fire_save_acc: float = 0.0        # throttles the periodic fire-memory snap
 var _sight_acc: float = 0.0            # …and the map's memory of who stands in the corridor
 const SIGHT_EVERY := 2.0
 var _fire_was_burning: bool = false    # to catch the moment the floor's fire goes out
-const FIRE_DMG_INTERVAL := 1.1         # a health hit this often while standing in flame
 # Throttle the player's fire voice lines so they don't spam every damage tick.
 var _fire_line_cd: float = 0.0
 const FIRE_LINE_COOLDOWN := 3.5

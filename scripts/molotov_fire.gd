@@ -9,8 +9,9 @@ extends Node2D
 # It plays by the SAME rules as the floor fire:
 #   • an enemy standing in it CATCHES (WeaponAffliction.ignite — the burning enemy hits twice as hard and burns down, exactly what a
 #     fire weapon does, and the same mechanism the extinguisher already puts out);
-#   • the PLAYER standing / walking in it takes 1 hp per BURN_INTERVAL (1.1 s, building_floors' FIRE_DMG_INTERVAL); running (sprint)
-#     THROUGH it takes none — "sprint the gauntlet or walk and take the hits";
+#   • the PLAYER standing / walking in it takes a burn tick every WorldState.FIRE_BURN_INTERVAL (half a health stage each), only inside
+#     the flames proper (`in_fire(..., burn: true)` pulls the ends of the patch in by FIRE_BURN_INSET); running (sprint) THROUGH it takes
+#     none — "sprint the gauntlet or walk and take the hits";
 #   • it never blocks anything (no collision at all);
 #   • the fire extinguisher puts it out (`douse`, wired through player.douse_span).
 # SOUND (owner round 30b): the burst FWOOMPs as it lights (`molotov_ignite.wav`; the glass smash is the bottle's own), a steady
@@ -34,7 +35,6 @@ const SPREAD_TIME := 0.55           # the burst: from the impact point out to RA
 const LIFETIME := 12.0
 const FADE_TIME := 3.5              # the last stretch: the flames sink and the patch shrinks
 const DOUSE_TIME := 0.5
-const BURN_INTERVAL := 1.1          # player damage cadence in the fire (== building_floors.FIRE_DMG_INTERVAL)
 const PLANE_TOL := 46.0             # an actor's feet within this of the floor line are IN the fire
 const TICK := 0.25                  # how often enemies are checked
 
@@ -136,8 +136,11 @@ static func oneshot(parent: Node, stream: AudioStream, at: Vector2, db: float = 
 	return pl
 
 
-func in_fire(x: float, feet_y: float) -> bool:
-	return is_burning() and absf(x - global_position.x) <= extent() and absf(feet_y - global_position.y) <= PLANE_TOL
+## Is an actor with its feet at (x, feet_y) in the fire? `burn` asks the player's DAMAGE question: only inside the flames, the tapering ends of
+## the patch (WorldState.FIRE_BURN_INSET) excluded — the same box rule as the floor fire. Without it, the whole patch (an enemy catches anywhere in it).
+func in_fire(x: float, feet_y: float, burn: bool = false) -> bool:
+	var reach: float = extent() - (WorldState.FIRE_BURN_INSET if burn else 0.0)
+	return is_burning() and absf(x - global_position.x) <= reach and absf(feet_y - global_position.y) <= PLANE_TOL
 
 
 func _physics_process(delta: float) -> void:
@@ -162,13 +165,13 @@ func _physics_process(delta: float) -> void:
 	# the player: standing / walking in it burns, running through it doesn't (same rule as the corridor fire)
 	var p = get_tree().get_first_node_in_group("player")
 	if p != null and is_instance_valid(p) and WorldState.owning_scene_root(p) == WorldState.owning_scene_root(self) \
-			and in_fire(p.global_position.x, p.global_position.y + 33.0) \
+			and in_fire(p.global_position.x, p.global_position.y + 33.0, true) \
 			and not (("is_running" in p) and p.is_running):
 		_dmg_acc += delta
-		if _dmg_acc >= BURN_INTERVAL:
+		if _dmg_acc >= WorldState.FIRE_BURN_INTERVAL:
 			_dmg_acc = 0.0
-			if p.has_method("receive_hit"):
-				p.receive_hit(1)
+			if p.has_method("receive_burn"):
+				p.receive_burn()
 				HUD.show_feedback("It's burning me!")
 	else:
 		_dmg_acc = 0.0

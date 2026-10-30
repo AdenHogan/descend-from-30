@@ -229,31 +229,64 @@ func cell_of_unclamped(x: float) -> int:
 
 
 func is_burning_at(x: float) -> bool:
-	# Inside the down-stairwell zone the corridor fire isn't drawn — the only flames there are the
-	# stairwell's own, in the shaft — so that's the only place there that burns (what you see is
-	# what hurts: no invisible fire beside the stairs).
+	# Which part of the floor is ALIGHT — the cell's own state (drawing, spreading, dousing). It is NOT the damage test: a cell is 42 px wide
+	# and burns as a whole, but what is drawn on it tapers off at the ends and is not drawn at all beside a door — see fire_hot_at.
+	# Inside the down-stairwell zone the corridor fire isn't drawn — the only flames there are the stairwell's own, in the shaft.
 	if _in_stair_keepout(x):
-		return stair_fire_lit() and absf(x - _stair_fire_x) <= _stair_half + STAIR_HEAT_MARGIN
+		return stair_fire_lit() and absf(x - _stair_fire_x) <= _stair_half
 	var i := cell_of_unclamped(x)
 	return i >= 0 and i < cell_count and state_of(i) == BURNING
 
 
-# How close (px) the player must be to a VISIBLE flame to take the burn. Tight — a
-# player standing anywhere in a burning tile cell (42px wide) is within this of its
-# centre, but a step off the fire is not.
-const DAMAGE_REACH := 26.0
+# --- the damage box: a player / enemy is IN THE FLAMES only inside what is drawn ---------------------------------------------
+# Owner round 49d: "I was standing far to the right of the stairwell, just slightly visibly out of reach of the fire, but it still caused
+# damage. Damage should be confined more precisely to a collision box directly within the fire, not the outer licks."
+# The old test was the burning CELL (42 px, whole): it hurt in the 36 px either side of every door where no carpet is drawn, in the
+# stairwell's keep-out margin, and under the tapering cap at each end of a stretch of flame. Now the box is the carpet the front layer
+# DRAWS (`run_spans` and this read the same `_carpet_at`), pulled in WorldState.FIRE_BURN_INSET px from each end.
+# Player and enemy use this one test, so whatever cooks an enemy cooks the player and nothing burns where nothing is lit.
+
+## Is there floor carpet (the fire the front layer draws) at this x? One source for the drawing and for the damage.
+func _carpet_at(x: float) -> bool:
+	return stage < STAGE_CHARRED and x <= FIRE_MAX_X and is_burning_at(x) and not _near_door(x) and not _in_stair_keepout(x)
 
 
+## The unbroken stretch of carpet holding x, as Vector2(first, last) sample x's on the RUN_STEP grid — Vector2(1, 0) when x is on none, or
+## on a stub too short to be drawn (`_add_run_span` draws nothing under MIN_CARPET).
+func carpet_stretch_at(x: float) -> Vector2:
+	var k := floori((x - FIRE_MIN_X) / RUN_STEP)
+	if k < 0 or not _carpet_at(FIRE_MIN_X + float(k) * RUN_STEP):
+		return Vector2(1.0, 0.0)
+	var a := k
+	while a > 0 and _carpet_at(FIRE_MIN_X + float(a - 1) * RUN_STEP):
+		a -= 1
+	var b := k
+	while _carpet_at(FIRE_MIN_X + float(b + 1) * RUN_STEP):
+		b += 1
+	var x0 := FIRE_MIN_X + float(a) * RUN_STEP
+	var x1 := FIRE_MIN_X + float(b) * RUN_STEP
+	if x1 - x0 < MIN_CARPET:
+		return Vector2(1.0, 0.0)
+	return Vector2(x0, x1)
+
+
+## The damage box of a stretch of carpet, as Vector2(from, to): the stretch pulled in FIRE_BURN_INSET from each end, but never narrower than
+## 2 x BURN_CORE_HALF about its middle (a small fire still has a heart that burns).
+func burn_box(st: Vector2) -> Vector2:
+	var mid := (st.x + st.y) * 0.5
+	return Vector2(minf(st.x + WorldState.FIRE_BURN_INSET, mid - BURN_CORE_HALF), maxf(st.y - WorldState.FIRE_BURN_INSET, mid + BURN_CORE_HALF))
+
+
+## Is x INSIDE the flames — the player's damage test and the enemies' catch-fire test.
 func fire_hot_at(x: float) -> bool:
-	# Player-damage test (see building_floors fire damage): the player burns when they're
-	# standing IN a burning cell — SYMMETRIC with is_burning_at (the enemy-burn test), so
-	# anything that cooks an enemy also cooks the player and vice-versa. The old version used
-	# the CLAMPED, truncating cell_at() plus a DAMAGE_REACH distance guard; the clamp+truncation
-	# put the left approach into a dead-zone where enemies burned but the player didn't (owner:
-	# "no damage on the left"). Now: burn iff the player's OWN (unclamped) cell is a BURNING cell
-	# — the SAME rule is_burning_at applies to enemies (42px cell granularity: in the flames or
-	# not). Off the fire span → never cooked, for player and enemy alike.
-	return is_burning_at(x)
+	if _in_stair_keepout(x):
+		# the shaft's own flames, drawn strictly inside [cx - half, cx + half]: the box is that, pulled in
+		return stair_fire_lit() and absf(x - _stair_fire_x) <= _stair_half - WorldState.FIRE_BURN_INSET
+	var st := carpet_stretch_at(x)
+	if st.x > st.y:
+		return false
+	var b := burn_box(st)
+	return x >= b.x and x <= b.y
 
 
 func any_burning() -> bool:
@@ -609,7 +642,7 @@ func run_spans(layer: String) -> Array:
 	var x := FIRE_MIN_X
 	var x0 := -1.0
 	while x <= FIRE_MAX_X + RUN_STEP:
-		var on := x <= FIRE_MAX_X and is_burning_at(x) and not _near_door(x) and not _in_stair_keepout(x)
+		var on := _carpet_at(x)
 		# the wall-seam carpet is patchy (depth: never a solid line along the wall)
 		if on and layer == "back" and _hash01(float(floori(x / 84.0)) * 2.3 + float(floor_num) * 0.9 + salt) < 0.3:
 			on = false
@@ -623,6 +656,8 @@ func run_spans(layer: String) -> Array:
 
 
 const RUN_STEP := 6.0
+const BURN_CORE_HALF := 6.0        # half the narrowest damage box: a lone burning cell still burns at its heart
+const MIN_CARPET := 24.0           # a stretch shorter than this is not a carpet: nothing is drawn, nothing burns
 const PATCH_MIN_SPAN := 200.0      # a run shorter than this keeps its plain base
 const PATCH_EVERY := 230.0         # one small front patch per this much run
 const PATCH_END_MARGIN := 70.0     # kept clear of the run's ends (a patch there would blunt the cap)
@@ -630,7 +665,7 @@ const PATCH_DROP := 3.0            # px lower than the run's base
 
 
 func _add_run_span(out: Array, x0: float, x1: float, kit: String, salt: float) -> void:
-	if x1 - x0 < 24.0:
+	if x1 - x0 < MIN_CARPET:
 		return                                      # a stub is not a carpet
 	var sd := floorf(x0) * 0.37 + float(floor_num) * 0.83 + salt
 	var pw: float = FireArt.run_layout(kit, 1, 0.0)["pw"]
@@ -784,10 +819,6 @@ var _stair_keep_hi: float = -1.0
 # The owner's red HORIZONTAL line — the fire's BASE sits exactly here; flames rise up from
 # it into the stairwell shaft (never below it). Confirmed against the editor ruler.
 const STAIR_BASE_Y := 415.0
-
-
-# How far past the shaft's edges its flames still burn you (they lick a little wider than the box).
-const STAIR_HEAT_MARGIN := 8.0
 
 
 func set_stair_fire(cx: float, half: float = 26.0, keep_lo: float = 0.0, keep_hi: float = -1.0) -> void:

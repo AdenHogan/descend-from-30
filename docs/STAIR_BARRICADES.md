@@ -301,10 +301,13 @@ turbulence and fade — overlapping soft blobs reading as a billowing column. A
 run-1 fire is seeded **patchy** (a few separate flame patches with gaps, not a
 solid span).
 
-**Burn damage** (`building_floors._process`) — standing where
-`is_burning_at(player.x)` costs **1 health every `FIRE_DMG_INTERVAL` (1.1s)**;
-stepping clear resets the cadence. Fire **never blocks** — you can always walk
-THROUGH it, you just take the burn.
+**Burn damage** (`building_floors._process`; since round 49d) — standing where
+`fire_hot_at(player.x)` — INSIDE the drawn flames, `WorldState.FIRE_BURN_INSET` (14 px) in from each end of a
+stretch, never beside a door or in the stairwell's keep-out — costs a **burn tick every
+`WorldState.FIRE_BURN_INTERVAL` (2.2 s)**, each worth **half a health stage** (`Player.receive_burn`; two make one
+stage, so a stage costs 4.4 s in the fire — it was a whole stage every 1.1 s, `FIRE_DMG_INTERVAL`, on the whole
+42 px burning cell). Stepping clear resets the cadence; **running (sprint) through it takes none**, in a corridor, an
+apartment and a Molotov splash alike. Fire **never blocks** — you can always walk THROUGH it.
 
 **Smoke + crouch-under** (`fire_field.smoke_at` / `smoke_bottom_y` +
 `building_floors._process`) — a **BLAZE** fills the upper air with **choking

@@ -3443,6 +3443,18 @@ const FIRE_LIGHT := 0     # a small fire near the stairwell (spreads if left)
 const FIRE_BLAZE := 1     # most of the floor alight
 const FIRE_CHARRED := 2   # burnt-out ruin (no active fire, no loot)
 
+# FIRE DAMAGE — what fire does to the PLAYER, one set of numbers that every fire reads (the corridor's, an apartment's, a Molotov splash).
+# Owner round 49d: "within seconds my run was over… I was standing just visibly out of reach of the fire, but it still caused damage… cut it by
+# half and the speed of taking damage too… confined to a box directly within the fire, not the outer licks… and running through takes none."
+#   • a burn TICK lands every FIRE_BURN_INTERVAL seconds of standing in the flames and is HALF a health stage (FIRE_BURN_POINTS_PER_STAGE ticks make
+#     one: Player.receive_burn), so a stage costs 4.4 s in the fire — it was a whole stage every 1.1 s, five stages in five and a half seconds;
+#   • it only lands INSIDE the fire: FIRE_BURN_INSET px in from each end of what is drawn (the tapering licks at the ends hurt nothing), and
+#     nowhere there is no fire drawn (beside a door, in the stairwell's keep-out) — FireField.fire_hot_at / ApartmentFire.fire_hot_at;
+#   • running (sprint) through it takes none (Player.is_running) — in a corridor, an apartment and a Molotov splash alike.
+const FIRE_BURN_INTERVAL := 2.2
+const FIRE_BURN_POINTS_PER_STAGE := 2
+const FIRE_BURN_INSET := 14.0
+
 # Cross-run: origin floor (str) -> the run it was FULLY put out. Absent = still
 # burning/spreading. Persisted (it's the whole point of the escalation).
 var fire_dealt_with: Dictionary = {}

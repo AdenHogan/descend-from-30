@@ -39,6 +39,8 @@ func _ready() -> void:
 	_test_off_span_douse()
 	_test_my_fire_field()
 	await _test_apartment_fire_lights()
+	await _test_apartment_fire_box()
+	await _test_burn_on_floor()
 	await _test_hit_flash_clears()
 	await _test_burnt_breach()
 	_test_full_pack_key_drop()
@@ -86,55 +88,109 @@ func _make_field():
 
 
 func _test_fire_hot_at() -> void:
-	# The PLAYER-damage test burns whenever the player's OWN cell is a BURNING cell — ANY kind,
-	# tile OR gap. (Gap cells are exactly where the big TALL FLAMES rise, so excluding them left
-	# the player unburned while standing in the most visible fire — the owner's bug.) It's still
-	# TIGHT: DAMAGE_REACH < half a cell, so at a cell centre only that cell decides it, and a
-	# player off the fire is never cooked.
-	print("[fire_hot_at — player damage in any burning cell]")
+	# The DAMAGE BOX (owner round 49d: "I was standing just visibly out of reach of the fire, but it still caused damage… confined to a collision
+	# box directly within the fire, not the outer licks"). The old test was the whole 42 px burning CELL, which hurt beside every door (no carpet
+	# is drawn there), in the stairwell's margin and under the tapering ends of a stretch. Now a player / enemy is in the flames only inside the
+	# carpet the front layer DRAWS, pulled in WorldState.FIRE_BURN_INSET from each end.
+	print("[fire_hot_at — the damage box is inside the drawn flames]")
+	var inset: float = WorldState.FIRE_BURN_INSET
 	var ff = _make_field()
 	ff.floor_num = 7
 	ff.ignite_span(ff.FIRE_MIN_X + 40.0, ff.FIRE_MAX_X - 40.0)
 	check(not ff.fire_hot_at(ff.FIRE_MIN_X - 60.0), "no burn standing off the fire")
-	# At a cell CENTRE the neighbours are a full cell (>DAMAGE_REACH) away, so the burn is
-	# decided by the player's OWN cell: hot iff it's burning — regardless of tile/gap.
-	var exact := true
-	var found_hot_gap := false
-	for i in range(ff.cell_count):
-		var cx: float = ff.cell_x(i)
-		var hot: bool = ff.fire_hot_at(cx)
-		var burning: bool = ff.state_of(i) == ff.BURNING
-		if hot != burning:
-			exact = false
-		if hot and ff._cell_kind(cx) == 2:
-			found_hot_gap = true
-	check(exact, "at a cell centre, burn iff standing on a burning cell (any kind)")
-	check(found_hot_gap, "standing on a burning GAP cell (where the tall flames are) NOW burns")
+	var stretches: Array = []
+	var seen := {}
+	var x: float = ff.FIRE_MIN_X - 60.0
+	var inside_ok := true
+	var lit_only := true
+	var hot_n := 0
+	var cell_n := 0
+	var worst := ""
+	while x <= ff.FIRE_MAX_X + 60.0:
+		var hot: bool = ff.fire_hot_at(x)
+		if ff.is_burning_at(x):
+			cell_n += 1
+		if hot:
+			hot_n += 1
+			var st: Vector2 = ff.carpet_stretch_at(x)
+			var bb: Vector2 = ff.burn_box(st)
+			if not (st.x <= st.y and x >= bb.x - 0.001 and x <= bb.y + 0.001 and bb.x >= st.x and bb.y <= st.y):
+				inside_ok = false
+				worst = "x %.0f outside its stretch %s" % [x, str(st)]
+			if not ff.is_burning_at(x) or ff._near_door(x) or ff._in_stair_keepout(x):
+				lit_only = false
+				worst = "x %.0f is hot but not lit / by a door / in the keep-out" % x
+			if not seen.has(st):
+				seen[st] = true
+				stretches.append(st)
+		x += 2.0
+	check(inside_ok, "every burning spot lies inside a drawn stretch, %s px in from both ends (%s)" % [str(inset), worst])
+	check(lit_only, "…and only where a flame is lit, never beside a door or in the stairwell's keep-out (%s)" % worst)
+	check(hot_n > 0 and hot_n < cell_n, "the box is smaller than the burning cells (%d of %d samples)" % [hot_n, cell_n])
+	check(stretches.size() >= 2, "a floor-wide fire is several stretches, broken at the doors (%d)" % stretches.size())
+	# the owner's case: a cell that is ALIGHT beside a door, where no carpet is drawn — it lit the cell but must not burn the player
+	var door_x: float = float(WorldState.APARTMENT_X[3])
+	check(ff.is_burning_at(door_x) and ff._near_door(door_x) and not ff.fire_hot_at(door_x), "at a door the cell is lit but nothing is drawn: no burn")
+	check(not ff.fire_hot_at(door_x - 20.0) and not ff.fire_hot_at(door_x + 20.0), "…nor within the door's 36 px either side")
+	# the ends of a stretch: the tapering licks
+	var st0: Vector2 = stretches[0]
+	check(not ff.fire_hot_at(st0.x + inset - 3.0) and ff.fire_hot_at(st0.x + inset + 3.0), "the burn starts %s px in from a stretch's start, not at the lick" % str(inset))
+	check(not ff.fire_hot_at(st0.y - inset + 3.0) and ff.fire_hot_at(st0.y - inset - 3.0), "…and stops %s px before its end" % str(inset))
+	# what it burns is what is drawn: every stretch the front layer draws is the stretch the damage reads
+	var runs: Array = ff.run_spans("front")
+	if runs.is_empty():
+		print("  (no fire art loaded — the drawn-run comparison is skipped)")
+	else:
+		var same := true
+		for sp in runs:
+			var s2: Vector2 = ff.carpet_stretch_at(float(sp["x0"]) + 1.0)
+			if absf(s2.x - float(sp["x0"])) > 0.01 or absf(s2.y - float(sp["x1"])) > 0.01:
+				same = false
+		check(same, "each drawn run is exactly a stretch the damage reads (%d runs)" % runs.size())
+		var covered := true
+		for hx in range(int(ff.FIRE_MIN_X), int(ff.FIRE_MAX_X), 3):
+			if ff.fire_hot_at(float(hx)):
+				var in_run := false
+				for sp in runs:
+					if float(hx) >= float(sp["x0"]) and float(hx) <= float(sp["x1"]):
+						in_run = true
+				if not in_run:
+					covered = false
+		check(covered, "nothing burns where the front layer draws no fire")
+	# one lone cell, clear of the doors: a small fire still burns, but only at its heart
+	var lone = _make_field()
+	lone.floor_num = 7
+	var lc: float = lone.cell_x(8)             # 486..528: clear of the doors at 444 and 570
+	lone.ignite_span(lc, lc)
+	check(not lone._near_door(lc) and lone.is_burning_at(lc - 18.0) and lone.is_burning_at(lc + 18.0), "(the lone cell is clear of every door)")
+	check(lone.fire_hot_at(lc) and not lone.fire_hot_at(lc + 18.0) and not lone.fire_hot_at(lc - 18.0), "a lone burning cell burns only at its heart, not across its whole width")
+	lone.free()
+	# a charred ruin has nothing lit
+	ff.stage = ff.STAGE_CHARRED
+	var any_hot := false
+	for hx in range(int(ff.FIRE_MIN_X), int(ff.FIRE_MAX_X), 5):
+		if ff.fire_hot_at(float(hx)):
+			any_hot = true
+	check(not any_hot, "a charred stage burns nobody")
 	ff.free()
 
-	# PARITY (the "no damage on the left, but corpses appeared" bug): the player-burn test
-	# (fire_hot_at) and the enemy-burn test (is_burning_at) must AGREE everywhere, including OFF
-	# the ends of the fire span. cell_at() clamps+truncates, so an x just left of FIRE_MIN_X used
-	# to read the burning edge cell as "burning" for the enemy while the player was spared — so
-	# enemies cooked to death (leaving corpses) on the left where the player took no damage.
-	print("[fire_hot_at — left/right off-span parity (player == enemy)]")
+	# PARITY (the "no damage on the left, but corpses appeared" bug): the player and the enemies read ONE test, and off the ends of the span
+	# nothing burns for either. cell_at() clamped + truncated, so an x just left of FIRE_MIN_X once read the burning edge cell as "burning" for
+	# the enemy while the player was spared — enemies cooked and left corpses on the left where the player took no damage.
+	print("[fire_hot_at — nothing burns off the ends of the span (no phantom corpses)]")
 	var pf = _make_field()
 	pf.floor_num = 7
-	pf.ignite_span(pf.FIRE_MIN_X, pf.FIRE_MIN_X)          # only the very first (leftmost) cell
-	var parity := true
-	var phantom_left := false
-	# Sweep from well left of the span through the first cell.
-	for x in range(int(pf.FIRE_MIN_X) - 80, int(pf.FIRE_MIN_X) + 60, 3):
-		var pfx := float(x)
-		if pf.fire_hot_at(pfx) != pf.is_burning_at(pfx):
-			parity = false
-		# Nothing should burn (player OR enemy) a clear step LEFT of the span.
-		if pfx <= pf.FIRE_MIN_X - pf.CELL_W and (pf.fire_hot_at(pfx) or pf.is_burning_at(pfx)):
-			phantom_left = true
-	check(parity, "player-burn and enemy-burn agree across the left edge")
-	check(not phantom_left, "nothing burns a full cell left of the fire span (no phantom corpses)")
-	# The lit leftmost cell DOES still burn both when you stand on it.
-	check(pf.is_burning_at(pf.cell_x(0)) and pf.fire_hot_at(pf.cell_x(0)), "the lit edge cell still burns both")
+	pf.ignite_span(pf.FIRE_MIN_X, pf.FIRE_MIN_X + 200.0)
+	var phantom := false
+	for hx in range(int(pf.FIRE_MIN_X) - 90, int(pf.FIRE_MIN_X), 3):
+		if pf.fire_hot_at(float(hx)) or pf.is_burning_at(float(hx)):
+			phantom = true
+	check(not phantom, "nothing burns left of the fire span")
+	check(pf.fire_hot_at(pf.FIRE_MIN_X + 100.0), "…while the lit stretch still burns in its middle")
+	var src_bf := FileAccess.get_file_as_string("res://scripts/building_floors.gd")
+	var src_rm := FileAccess.get_file_as_string("res://scripts/room.gd")
+	check(src_bf.contains("var z_inflame: bool = _fire_field.fire_hot_at(") and not src_bf.contains("_fire_field.is_burning_at(z."), "a corridor enemy catches fire by the player's own box test")
+	check(src_rm.contains("var inflame: bool = _apt_fire.fire_hot_at(") and not src_rm.contains("_apt_fire.is_burning_at(z."), "…and so does an apartment's")
 	pf.free()
 
 
@@ -162,9 +218,12 @@ func _test_stair_fire() -> void:
 		ff.ignite_span(ff.cell_x(zone[0]), ff.cell_x(zone[0]))
 		check(ff.stair_fire_lit(), "%s: the fire reaching the stairwell's zone lights it" % side)
 		check(ff.is_burning_at(sx) and ff.fire_hot_at(sx), "%s: …and standing in the shaft's flames burns (player + enemy)" % side)
+		# The box is the shaft's drawn flames pulled in: the shaft's own edge (where the flames taper) does not burn.
+		var rim: float = sx + (ff._stair_half - 2.0)
+		check(ff.is_burning_at(rim) and not ff.fire_hot_at(rim), "%s: the lick at the shaft's edge is drawn but does not burn" % side)
 		# In the zone but clear of the shaft there are no flames drawn — so none that burn.
-		var beside: float = sx + (-(ff._stair_half + ff.STAIR_HEAT_MARGIN + 20.0) if side == "right" else (ff._stair_half + ff.STAIR_HEAT_MARGIN + 20.0))
-		check(ff._in_stair_keepout(beside) and not ff.is_burning_at(beside), "%s: beside the shaft (no flames drawn there) nothing burns" % side)
+		var beside: float = sx + (-(ff._stair_half + 20.0) if side == "right" else (ff._stair_half + 20.0))
+		check(ff._in_stair_keepout(beside) and not ff.is_burning_at(beside) and not ff.fire_hot_at(beside), "%s: beside the shaft (no flames drawn there) nothing burns" % side)
 		ff.extinguish_span(sx - 60.0, sx + 60.0)
 		check(not ff.stair_fire_lit(), "%s: spraying the stairs puts the stairwell fire OUT…" % side)
 		check(ff.any_burning(), "%s: …while the corridor fire further off still burns" % side)
@@ -822,6 +881,138 @@ func _test_apartment_fire_lights() -> void:
 		dark = dark and lt.energy == 0.0
 	check(not af.any_burning() and dark, "dousing every spot puts every fire light out")
 	af.free()
+
+
+func _test_apartment_fire_box() -> void:
+	# An apartment's spots burn only at their heart (the bed's tapering ends hurt nothing) — the same box rule as the corridor.
+	print("[apartment fire: the damage box is the heart of each spot]")
+	var af = load("res://scripts/apartment_fire.gd").new()
+	af.stage = WorldState.FIRE_BLAZE
+	af.seed_salt = "1502"
+	add_child(af)
+	await get_tree().process_frame
+	var sp: float = float(af._spots[0]["x"])
+	check(af.fire_hot_at(sp) and af.is_burning_at(sp), "standing at the heart of a spot burns")
+	var edge: float = sp + af.SPOT_RADIUS - 3.0
+	var alone := true
+	for o in af._spots:
+		if absf(float(o["x"]) - edge) <= af.SPOT_RADIUS - WorldState.FIRE_BURN_INSET:
+			alone = false
+	if alone:
+		check(af.is_burning_at(edge) and not af.fire_hot_at(edge), "the tapering edge of a spot is lit but does not burn")
+	else:
+		print("  (the spot's edge lies in another spot's heart — edge check skipped)")
+	check(not af.fire_hot_at(af.span0 - 200.0), "nothing burns well clear of every spot")
+	af.free()
+
+
+## Real corridor, real player: what a stretch of fire costs. (The player's own physics is off so `is_running` can be set by hand and the
+## player stays where it was put.)
+func _test_burn_on_floor() -> void:
+	print("[fire damage on a real floor: half a stage a tick, one tick every FIRE_BURN_INTERVAL, none running or at the licks]")
+	WorldState.new_game()
+	WorldState.tutorial_completed = true
+	WorldState.is_first_run = false
+	WorldState.god_mode = false
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_FIRE2
+	WorldState.dev_fire_origin = 15
+	WorldState.current_floor = 15
+	WorldState.spawn_source = ""
+	WorldState.fire_cells.clear()
+	WorldState.fire_origin_x.clear()
+	var fl = load("res://scenes/building_floors.tscn").instantiate()
+	add_child(fl)
+	for i in range(6):
+		await get_tree().physics_frame
+	var ff = fl._fire_field
+	var p = fl.get_node("Player")
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if fl.is_ancestor_of(z):
+			z.free()
+	check(ff != null and p != null, "a fire floor with a player")
+	if ff == null or p == null:
+		fl.free()
+		return
+	ff.set_process(false)
+	ff.ignite_span(ff.FIRE_MIN_X, ff.FIRE_MAX_X)
+	p.set_physics_process(false)
+	# the longest drawn stretch, its heart and a lick near its start
+	var best := Vector2(1.0, 0.0)
+	var xs: float = ff.FIRE_MIN_X
+	while xs <= ff.FIRE_MAX_X:
+		var st: Vector2 = ff.carpet_stretch_at(xs)
+		if st.y - st.x > best.y - best.x:
+			best = st
+		xs += 6.0
+	var heart: float = (best.x + best.y) * 0.5
+	var lick: float = best.x + 4.0
+	check(ff.fire_hot_at(heart) and not ff.fire_hot_at(lick) and ff.is_burning_at(lick), "(the heart burns; four px in from the start is lit but does not)")
+	var dt: float = 1.0 / float(Engine.physics_ticks_per_second)
+	var per_stage: int = WorldState.FIRE_BURN_POINTS_PER_STAGE
+
+	# standing at the heart
+	p.global_position.x = heart
+	p.is_running = false
+	p.burn_points = 0
+	var h0: int = int(p.health_state)
+	var t := 0.0
+	while t < WorldState.FIRE_BURN_INTERVAL * 0.9:
+		await get_tree().physics_frame
+		t += dt
+	check(int(p.health_state) == h0 and p.burn_points == 0, "just short of one interval: nothing yet (%.1f s)" % t)
+	while t < WorldState.FIRE_BURN_INTERVAL + 0.4:
+		await get_tree().physics_frame
+		t += dt
+	check(p.burn_points == 1 and int(p.health_state) == h0, "one interval: a half-stage tick — flinch, but the portrait holds (%.1f s, points %d, stage %d)" % [t, p.burn_points, int(p.health_state)])
+	check(p.is_hit, "…and the tick is a visible hit (the flash)")
+	while t < WorldState.FIRE_BURN_INTERVAL * float(per_stage) + 0.4:
+		await get_tree().physics_frame
+		t += dt
+	check(int(p.health_state) == h0 + 1 and p.burn_points == 0, "%d intervals (%.1f s): one whole stage — it used to take 1.1 s (stage %d)" % [per_stage, t, int(p.health_state)])
+	check(int(p.health_state) <= h0 + 1, "…and not the four or five stages the old rate would have cost by now")
+
+	# running through it
+	p.health_state = 0
+	WorldState.player_health = 0
+	p.burn_points = 0
+	p.is_running = true
+	t = 0.0
+	while t < WorldState.FIRE_BURN_INTERVAL * float(per_stage) * 1.5:
+		await get_tree().physics_frame
+		t += dt
+	check(int(p.health_state) == 0 and p.burn_points == 0, "sprinting through the heart of the fire takes nothing (%.1f s)" % t)
+
+	# standing in the licks
+	p.is_running = false
+	p.global_position.x = lick
+	t = 0.0
+	while t < WorldState.FIRE_BURN_INTERVAL * float(per_stage) * 1.5:
+		await get_tree().physics_frame
+		t += dt
+	check(int(p.health_state) == 0 and p.burn_points == 0, "standing in the lick at the end of the fire takes nothing (%.1f s)" % t)
+	# …and beside a door, where the cell is lit and nothing is drawn
+	var door_x: float = float(WorldState.APARTMENT_X[3])
+	p.global_position.x = door_x
+	t = 0.0
+	while t < WorldState.FIRE_BURN_INTERVAL * float(per_stage) * 1.5:
+		await get_tree().physics_frame
+		t += dt
+	check(ff.is_burning_at(door_x) and int(p.health_state) == 0 and p.burn_points == 0, "standing at a door in a lit cell takes nothing (%.1f s)" % t)
+
+	# the unit rule itself: two ticks = one stage, god mode takes none, the dead take none
+	p.burn_points = 0
+	p.receive_burn()
+	check(p.burn_points == 1 and int(p.health_state) == 0, "one burn is half a stage")
+	p.receive_burn()
+	check(p.burn_points == 0 and int(p.health_state) == 1, "two burns are one stage")
+	WorldState.god_mode = true
+	p.receive_burn()
+	p.receive_burn()
+	check(int(p.health_state) == 1 and p.burn_points == 0, "god mode takes no burn")
+	WorldState.god_mode = false
+	fl.free()
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
+	WorldState.dev_fire_origin = -1
 
 
 func _test_hit_flash_clears() -> void:

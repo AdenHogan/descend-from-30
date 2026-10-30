@@ -271,6 +271,8 @@ var is_running := false
 var hits := 0
 func receive_hit(amount: int = 1) -> void:
 	hits += amount
+func receive_burn() -> void:
+	hits += 1
 """
 
 
@@ -294,6 +296,10 @@ func _test_fire_rules() -> void:
 	check(f != null and f.is_burning(), "a fresh splash is burning")
 	check(f.in_fire(300.0 + f.RADIUS * 0.8, 419.0) and not f.in_fire(300.0 + f.RADIUS + 30.0, 419.0), "it covers ±RADIUS along the floor and no further")
 	check(not f.in_fire(300.0, 419.0 - 120.0), "…and not something high above it (a balcony)")
+	# the player's DAMAGE box is the patch pulled in from its tapering ends (the floor fire's rule); an enemy still catches anywhere in it
+	var edge: float = 300.0 + f.extent() - WorldState.FIRE_BURN_INSET * 0.5
+	check(f.in_fire(edge, 419.0) and not f.in_fire(edge, 419.0, true), "the last licks at its edge catch an enemy but do not burn the player")
+	check(f.in_fire(300.0 + f.extent() - WorldState.FIRE_BURN_INSET - 2.0, 419.0, true), "…while inside that margin the player burns")
 	var no_collision := true
 	for c in f.get_children():
 		if c is CollisionObject2D or c is CollisionShape2D:
@@ -319,16 +325,20 @@ func _test_fire_rules() -> void:
 	far.queue_free()
 	await get_tree().process_frame
 	var pl := _stub_player(Vector2(300, 386))
-	await _frames(int(MolotovFire.BURN_INTERVAL * 60.0) + 12)
-	check(pl.hits >= 1, "the player standing in it takes damage (%d hit(s) in ~1.3 s)" % pl.hits)
+	# (the splash lives LIFETIME 12 s and these waits are a burn interval long: keep it young so it is still there for the next check)
+	f._t = 1.0
+	await _frames(int(WorldState.FIRE_BURN_INTERVAL * 60.0) + 12)
+	check(pl.hits >= 1, "the player standing in it takes a burn tick (%d in ~%.1f s)" % [pl.hits, WorldState.FIRE_BURN_INTERVAL + 0.2])
 	var h0: int = pl.hits
 	pl.is_running = true
-	await _frames(int(MolotovFire.BURN_INTERVAL * 60.0) * 2)
+	f._t = 1.0
+	await _frames(int(WorldState.FIRE_BURN_INTERVAL * 60.0 * 1.4))
 	check(pl.hits == h0, "…but sprinting THROUGH it takes none")
 	pl.is_running = false
 	pl.global_position = Vector2(300.0 + f.RADIUS + 80.0, 386)
 	var h1: int = pl.hits
-	await _frames(int(MolotovFire.BURN_INTERVAL * 60.0) * 2)
+	f._t = 1.0
+	await _frames(int(WorldState.FIRE_BURN_INTERVAL * 60.0 * 1.4))
 	check(pl.hits == h1, "…and standing outside it takes none (%d → %d, fire extent %.0f at %.0f px away, t %.1f)" % [h1, pl.hits, f.extent(), absf(pl.global_position.x - f.global_position.x), f._t])
 	pl.queue_free()
 	# the extinguisher douses it

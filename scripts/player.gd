@@ -21,7 +21,11 @@ const DEV_MODE = true
 # are NOT a hazard — they're normal enemy seeding (WorldState.stair_enemy_count).
 
 # Stamina
-const STAMINA_SPRINT_DRAIN = 12.0
+# Owner round 49d: "since our changes to the stamina bar… stamina is no longer a thing to be overly concerned about… bump degeneration for running
+# by 20%… moving in combat should also hit stamina, but it needs to be a gradual reduction considering that it is a faster movement pace."
+const STAMINA_SPRINT_DRAIN = 14.4          # per second of sprinting (was 12.0: +20%)
+const STAMINA_SPRINT_MIN = 2.4             # the stamina sprint needs to (re)engage — it was STAMINA_SPRINT_DRAIN * 0.2 while that was 12.0
+const STAMINA_COMBAT_WALK_DRAIN = 3.0      # per second of walking at the COMBAT pace (150 px/s, nearly twice scavenge's): about a fifth of a sprint's
 const STAMINA_PUSH_COST = 28.0
 const STAMINA_PUSH_REPEAT_WINDOW = 0.6
 const STAMINA_PUSH_REPEAT_MULT = 2.0
@@ -71,6 +75,7 @@ var health_state: HealthState = HealthState.HEALTHY
 
 var is_crouching = false
 var is_running = false          # actively sprint-moving this frame (read by fire: run THROUGH fire unburned)
+var burn_points: int = 0        # fire ticks not yet worth a health stage (receive_burn: two make one)
 
 # --- ANTI-STUCK SAFETY NET (owner: "there can be NO blockages preventing a player from
 # moving otherwise the gameplay is destroyed"). The flat plane pins Y (_move_locked), so a
@@ -386,7 +391,7 @@ func _physics_process(delta: float) -> void:
 		direction = 0
 	# Sprint requires a small stamina floor to (re)engage. Without this, stamina
 	# ticking a sliver above 0 between frames lets sprint flicker back on at zero.
-	var can_sprint_stamina = WorldState.stamina > STAMINA_SPRINT_DRAIN * 0.2 or WorldState.god_mode
+	var can_sprint_stamina = WorldState.stamina > STAMINA_SPRINT_MIN or WorldState.god_mode
 	var is_sprinting = Input.is_action_pressed("sprint") and not is_crouching and not WorldState.is_scavenge_mode and can_sprint_stamina
 
 	if not WorldState.is_scavenge_mode:
@@ -411,10 +416,18 @@ func _physics_process(delta: float) -> void:
 	WorldState.sync_overload()      # a load with no backpack halves the stamina bar the same frame
 	# Actively running (sprint gait, moving): lets the player DASH through fire unburned.
 	is_running = is_sprinting and direction != 0 and (WorldState.stamina > 0 or WorldState.god_mode)
+	# Walking at the COMBAT pace (the fast one) wears stamina down slowly; the slow scavenge walk and a crouch cost nothing. Nothing comes back
+	# while it does (like a sprint), so a player who keeps walking in combat mode arrives with a low bar — and an empty one cannot swing or shove.
+	var combat_walking: bool = direction != 0 and not is_pushing and not is_sprinting and not is_crouching and not WorldState.is_scavenge_mode
 	if is_sprinting and direction != 0 and WorldState.stamina > 0 and not WorldState.god_mode:
 		WorldState.stamina = max(WorldState.stamina - STAMINA_SPRINT_DRAIN * WorldState.get_sprint_drain_mult() * delta, 0.0)
 		stamina_recovery_timer = STAMINA_RECOVERY_DELAY
 		HUD.update_stamina(WorldState.stamina, WorldState.get_max_stamina())
+	elif combat_walking and not WorldState.god_mode:
+		if WorldState.stamina > 0.0:
+			WorldState.stamina = max(WorldState.stamina - STAMINA_COMBAT_WALK_DRAIN * WorldState.get_sprint_drain_mult() * delta, 0.0)
+			HUD.update_stamina(WorldState.stamina, WorldState.get_max_stamina())
+		stamina_recovery_timer = STAMINA_RECOVERY_DELAY
 	else:
 		if stamina_recovery_timer > 0:
 			stamina_recovery_timer -= delta
@@ -2024,10 +2037,28 @@ func heal(states: int) -> bool:
 
 
 func receive_hit(amount: int = 1) -> void:
+	if not _begin_hit():
+		return
+	take_damage(amount)
+
+
+## One tick of fire (WorldState "FIRE DAMAGE"): the same reaction as any hit — the flash, the hurt pose, the pack slammed shut — but
+## worth only half a health stage, so it takes FIRE_BURN_POINTS_PER_STAGE ticks to drop the portrait one stage.
+func receive_burn() -> void:
+	if not _begin_hit():
+		return
+	burn_points += 1
+	if burn_points >= WorldState.FIRE_BURN_POINTS_PER_STAGE:
+		burn_points = 0
+		take_damage(1)
+
+
+## The start every hit shares: false when nothing can land (dead / dying / out the door / god mode), else the reaction.
+func _begin_hit() -> bool:
 	if is_dead or is_dying or escaping:
-		return
+		return false
 	if WorldState.god_mode:
-		return
+		return false
 	if is_listening:
 		_cancel_listen()
 	if pack_phase != "":
@@ -2038,7 +2069,7 @@ func receive_hit(amount: int = 1) -> void:
 	hit_flash_timer = HIT_FLASH_DURATION
 	animated_sprite.modulate = Color(1, 0, 0, 1)
 	animated_sprite.play("hurt")
-	take_damage(amount)
+	return true
 
 
 func flash_hurt() -> void:

@@ -158,6 +158,15 @@ func is_burning_at(x: float) -> bool:
 	return false
 
 
+## Is x INSIDE a spot's flames — the player's damage test and the enemies' catch-fire test (the same name and meaning as FireField.fire_hot_at).
+## A spot's bed is SPOT_RADIUS either side of its centre but tapers to nothing at its ends: only the part WorldState.FIRE_BURN_INSET in from them hurts.
+func fire_hot_at(x: float) -> bool:
+	for s in _spots:
+		if absf(float(s["x"]) - x) <= SPOT_RADIUS - WorldState.FIRE_BURN_INSET:
+			return true
+	return false
+
+
 func any_burning() -> bool:
 	return not _spots.is_empty()
 

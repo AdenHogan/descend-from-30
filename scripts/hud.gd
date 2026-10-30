@@ -1186,7 +1186,7 @@ func mode_tip_content() -> Dictionary:
 		"scavenge": {"head": "SCAVENGE" + ("   ◂ you are here" if scav else ""),
 			"body": "Searching mode. Loot nodes can only be searched here. You move slowly and quietly (about half speed, a small noise ring) and can't sprint, shove or swing a weapon — pressing attack with one drawn switches you to combat."},
 		"combat": {"head": "COMBAT" + ("" if scav else "   ◂ you are here"),
-			"body": "Fighting mode. Swing, shoot and shove, walk at full pace and sprint (sprinting is loud). Nothing can be searched from here — switch to scavenge first."},
+			"body": "Fighting mode. Swing, shoot and shove, walk at full pace and sprint (sprinting is loud). Moving here wears your stamina down — slowly walking, fast sprinting — and an empty bar can't swing or shove. Nothing can be searched from here — switch to scavenge first."},
 		"hint": "Click here or press [%s] to switch. It takes a moment — you can't move while you do." % key,
 		"current": "scavenge" if scav else "combat",
 	}

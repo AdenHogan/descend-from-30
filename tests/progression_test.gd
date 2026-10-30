@@ -44,6 +44,7 @@ func _ready() -> void:
 	await _test_handoff_ui()
 	await _test_legacy_ui()
 	await _test_game_over_screen()
+	await _test_game_over_layout()
 	_test_journal_line()
 	_test_desirability_column()
 	_test_perk_luck()
@@ -659,6 +660,76 @@ func _test_game_over_screen() -> void:
 	ui2.close()
 	ui2.queue_free()
 	get_tree().paused = false
+	_clear_valour()
+	await get_tree().process_frame
+
+
+# What is wrong with the end screen's layout, as strings (empty = fine): a line or button that runs off the screen, is not centred on it,
+# or a label whose text is not centred inside its own box.
+func _screen_problems(go: Node, vp: Vector2) -> Array:
+	var out: Array = []
+	for c in go.find_children("*", "Control", true, false):
+		if not (c is Label or c is Button):
+			continue
+		var r: Rect2 = c.get_global_rect()
+		var tag := "%s [%s]" % [c.name, c.text.left(24)]
+		if r.position.x < -0.5 or r.end.x > vp.x + 0.5:
+			out.append("%s runs off the screen (%.0f..%.0f of %.0f)" % [tag, r.position.x, r.end.x, vp.x])
+		if absf((r.position.x + r.end.x) * 0.5 - vp.x * 0.5) > 1.5:
+			out.append("%s is centred on %.1f, not %.1f" % [tag, (r.position.x + r.end.x) * 0.5, vp.x * 0.5])
+		if c is Label and c.horizontal_alignment != HORIZONTAL_ALIGNMENT_CENTER:
+			out.append("%s is not centre-aligned" % tag)
+		if c is Label and c.get_minimum_size().x > r.size.x + 0.5:
+			out.append("%s is wider than its box (%.0f > %.0f)" % [tag, c.get_minimum_size().x, r.size.x])
+	return out
+
+
+func _test_game_over_layout() -> void:
+	# Owner round 49d (a full-screen, fit-to-aspect window): the fixed-size, non-wrapping labels grew rightward from their left edge, so the
+	# run lines ran off the screen and the block sat off-centre. Every line must now sit INSIDE the screen and be centred on it, however long
+	# the tallies get.
+	print("[the end screen: every line inside the screen and centred, even with huge tallies]")
+	_clear_valour()
+	_finish([27, 22, 22], ["dead", "dead", "dead"], [])
+	var long := {"valour": 42, "deepest": 22, "kills": 142, "nodes": 99, "flats": 30, "quests": 12, "npcs": 15, "escaped": false}
+	WorldState.last_valour = {"runs": [long.duplicate(), long.duplicate(), long.duplicate()], "total": 126}
+	WorldState.valour = 106
+	var go = load("res://scenes/game_over.tscn").instantiate()
+	add_child(go)
+	for i in 3:
+		await get_tree().process_frame
+	var vp: Vector2 = get_viewport().get_visible_rect().size
+	var col = go.find_child("Column", true, false)
+	check(col != null, "the text column exists")
+	var n := 0
+	for c in go.find_children("*", "Control", true, false):
+		if c is Label or c is Button:
+			n += 1
+	check(n >= 8, "the screen has its lines and buttons (%d)" % n)
+	var probs: Array = _screen_problems(go, vp)
+	check(probs.is_empty(), "every line and button is inside the screen and centred (%s)" % "; ".join(probs))
+	var top := 1.0e9
+	var bottom := -1.0e9
+	for c in col.get_children():
+		var r: Rect2 = c.get_global_rect()
+		top = minf(top, r.position.y)
+		bottom = maxf(bottom, r.end.y)
+	check(top >= 0.0 and bottom <= vp.y + 0.5, "the content fits the screen height (%.0f..%.0f of %.0f)" % [top, bottom, vp.y])
+	# The checker itself can fail: a line that does not wrap, and a left-aligned one, are each reported.
+	var bad := Label.new()
+	bad.text = "x".repeat(260)
+	bad.autowrap_mode = TextServer.AUTOWRAP_OFF
+	col.add_child(bad)
+	var bad2 := Label.new()
+	bad2.text = "left"
+	bad2.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	col.add_child(bad2)
+	for i in 3:
+		await get_tree().process_frame
+	var seen: String = "; ".join(_screen_problems(go, vp))
+	check(seen.contains("wider than its box") or seen.contains("runs off"), "(the check catches a line that does not wrap)")
+	check(seen.contains("not centre-aligned"), "(…and a left-aligned one)")
+	go.queue_free()
 	_clear_valour()
 	await get_tree().process_frame
 

@@ -128,7 +128,6 @@ var _exit_outward := 0.0     # -1 = the door is at the left end, +1 = the right;
 # entrance, BLAZE across the room, CHARRED = scorch + smoke (no fire). See docs.
 const APARTMENT_FIRE := preload("res://scripts/apartment_fire.gd")
 const FIRE_BASE_Y_ROOM := 356.0        # room floor line the interior fire rises from (feet ~321+)
-const FIRE_DMG_INTERVAL := 1.1         # a health hit this often while standing in interior flame
 var _apt_fire = null
 var _apt_fire_was_burning: bool = false
 var _fire_dmg_acc: float = 0.0
@@ -448,12 +447,14 @@ func _apartment_fire_process(delta: float) -> void:
 	if _apt_fire == null or not is_instance_valid(_apt_fire):
 		return
 	var player = get_node_or_null("Player")
-	if player != null and player.has_method("receive_hit"):
-		if _apt_fire.is_burning_at(player.global_position.x):
+	if player != null and player.has_method("receive_burn"):
+		# standing / walking in the flames burns; running through them does not (the corridor's rule, WorldState "FIRE DAMAGE")
+		var running_thru: bool = ("is_running" in player) and player.is_running
+		if not running_thru and _apt_fire.fire_hot_at(player.global_position.x):
 			_fire_dmg_acc += delta
-			if _fire_dmg_acc >= FIRE_DMG_INTERVAL:
+			if _fire_dmg_acc >= WorldState.FIRE_BURN_INTERVAL:
 				_fire_dmg_acc = 0.0
-				player.receive_hit(1)
+				player.receive_burn()
 		else:
 			_fire_dmg_acc = 0.0
 	# Enemies catch fire in the room too (skip dead corpses so they never re-light). Only THIS
@@ -466,7 +467,7 @@ func _apartment_fire_process(delta: float) -> void:
 			if ("on_fire" in z) and z.on_fire:
 				z.on_fire = false
 			continue
-		var inflame: bool = _apt_fire.is_burning_at(z.global_position.x)
+		var inflame: bool = _apt_fire.fire_hot_at(z.global_position.x)
 		if "on_fire" in z:
 			z.on_fire = inflame
 		if inflame and z.has_method("burn_tick"):
