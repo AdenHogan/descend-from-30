@@ -88,8 +88,8 @@ def paint(c, x0, y0, x1, y1, spec):
     for yy in range(sh + 1, y1 + 1):
         c.put(cx + sw - (yy - sh) // 3 - 1, yy, shade(coat, 0.72))
     # --- neck
-    c.rect(cx - 1, sh - 3, cx + 1, sh, shade(skin, 0.92))
-    c.put(cx + 1, sh - 2, shade(skin, 0.72)); c.put(cx + 1, sh - 1, shade(skin, 0.72))
+    c.rect(cx - 2, sh - 4, cx + 2, sh, shade(skin, 0.92))
+    c.rect(cx + 1, sh - 4, cx + 2, sh, shade(skin, 0.72))
     col = spec['collar']
     if col == 'white':
         c.poly([(cx - 4, sh - 1), (cx, sh + 4), (cx + 4, sh - 1)], hexc('ece8dc'))
@@ -109,27 +109,61 @@ def paint(c, x0, y0, x1, y1, spec):
         c.poly([(cx - 3, sh - 1), (cx, sh + 3), (cx + 3, sh - 1)], shade(skin, 0.86))                  # an open neck
     if spec['jewel']:
         c.put(cx - 2, sh + 3, hexc('e8d8a0')); c.put(cx, sh + 4, hexc('e8d8a0')); c.put(cx + 2, sh + 3, hexc('e8d8a0'))
-    # --- head: lit on the left, a shaded cheek on the right
-    ry = hr * (1.22 if not child else 1.12)
-    c.ellipse(cx, hy, hr, ry, skin)
-    for yy in range(int(hy - ry), int(hy + ry) + 1):
-        for xx in range(int(cx + hr * 0.45), int(cx + hr) + 1):
-            if ((xx - cx) / hr) ** 2 + ((yy - hy) / ry) ** 2 <= 1.0:
-                c.put(xx, yy, shade(skin, 0.80))
-    c.put(int(cx - hr * 0.55), hy + 1, shade(skin, 1.10)); c.put(int(cx - hr * 0.55), hy + 2, shade(skin, 1.06))   # the lit cheek
+    # --- head (owner round 49f: "the details of the rectangular pictures look like Terrence and Phillip from South Park. We need better looking people in photos"): the old head was a flat
+    # oval with two dots and a slit; this one is lit from the upper left per pixel (four tones, a narrower jaw), with ears, lidded eyes (a pale white and a dark iris, a catch of light), brows, a
+    # nose with a lit tip and a shaded side, a lipped mouth that smiles a little, a shadow under the chin, and a few lines on the old.
+    ry = hr * (1.30 if not child else 1.18)
+    tones = (1.10, 1.0, 0.88, 0.76)
+    for yy in range(int(hy - ry) - 1, int(hy + ry) + 2):
+        v = (yy + 0.5 - hy) / ry
+        if abs(v) > 1.0:
+            continue
+        half = hr * (1.0 - 0.22 * max(0.0, v) ** 2) * (0.92 + 0.08 * (1.0 - abs(v)))        # the jaw narrows toward the chin
+        for xx in range(int(cx - half) - 1, int(cx + half) + 2):
+            u = (xx + 0.5 - cx) / max(0.5, half)
+            if abs(u) > 1.0:
+                continue
+            lit = 1.0 - 0.34 * u - 0.10 * v + (0.10 if (u < -0.2 and -0.3 < v < 0.45) else 0.0)     # light from the upper left, the cheek catching it
+            k = 0 if lit > 1.22 else 1 if lit > 0.92 else 2 if lit > 0.62 else 3
+            c.put(xx, yy, shade(skin, tones[k]))
     ey = hy - 1
-    eye = hexc('1e1814')
-    c.put(cx - 2, ey, eye); c.put(cx + 2, ey, eye)
-    c.put(cx - 2, ey - 1, shade(hair, 0.8)); c.put(cx - 3, ey - 1, shade(hair, 0.8)); c.put(cx + 2, ey - 1, shade(hair, 0.8)); c.put(cx + 3, ey - 1, shade(hair, 0.8))   # brows
-    c.put(cx - 3 + 1, ey + 1, shade(skin, 0.9)); c.put(cx + 1 + 1, ey + 1, shade(skin, 0.9)) if old else None
-    c.put(cx, hy + 1, shade(skin, 0.80))                                                                     # the nose, shaded on its lower side
-    c.put(cx - 1, hy + 2, shade(skin, 0.88))
-    lip = hexc('a85a50') if female else shade(skin, 0.62)
-    c.hline(cx - 1, cx + 1, hy + 3, lip)
+    es = max(2, int(round(hr * 0.52)))                                                     # half the gap between the eyes
+    lid = shade(skin, 0.66)
+    white = shade(hexc('e6e2d8'), 0.9)
+    iris = hexc('221a16') if spec['skin'] < 4 else hexc('120e0c')
+    eye = iris
+    for sgn in (-1, 1):
+        ox0 = cx + sgn * es
+        c.put(ox0 + sgn, ey, white)                                                          # the outer white
+        c.put(ox0, ey, iris)                                                                 # the iris, looking out at you
+        c.put(ox0, ey - 1, lid); c.put(ox0 + sgn, ey - 1, lid)                               # the lid
+        c.put(ox0 + sgn, ey + 1, shade(skin, 0.86))                                          # the shadow under the eye
+        c.hline(min(ox0, ox0 + sgn * 2), max(ox0, ox0 + sgn * 2), ey - 2, shade(hair, 0.78) if spec['style'] != 'bald' else shade(skin, 0.7))   # the brow (a bald head keeps a faint one)
+    nose = shade(skin, 0.84)
+    c.put(cx + 1, ey, nose); c.put(cx + 1, ey + 1, nose)                                    # the bridge, shaded on its far side
+    c.put(cx, ey + 2, shade(skin, 1.14))                                                     # the lit tip
+    c.put(cx - 1, ey + 3, shade(skin, 0.66)); c.put(cx + 1, ey + 3, shade(skin, 0.58))       # the nostrils
+    my = hy + max(3, int(round(ry * 0.52)))                                                  # the mouth
+    lip = hexc('b4605a') if female else shade(skin, 0.66)
+    c.hline(cx - 1, cx + 1, my, shade(lip, 0.72))                                            # the line between the lips
+    c.hline(cx - 1, cx + 0, my + 1, shade(lip, 1.15) if female else shade(skin, 0.86))       # the lower lip, lit
+    c.put(cx - 2, my - (1 if spec['kind'] != 'oil' else 0), shade(skin, 0.7))                # the corners: a small smile in a photograph, level in an oil
+    c.put(cx + 2, my - (1 if spec['kind'] != 'oil' else 0), shade(skin, 0.6))
+    c.put(cx, my + 2, shade(skin, 0.80))                                                     # the shadow under the lip
+    if female and not child:
+        c.put(cx - es - 1, ey + 2, mix(skin, hexc('d88a80'), 0.35)); c.put(cx + es + 1, ey + 2, mix(skin, hexc('d88a80'), 0.30))      # a touch of colour on the cheeks
+    if child:
+        c.put(cx - es - 1, ey + 2, mix(skin, hexc('e09a90'), 0.4)); c.put(cx + es + 1, ey + 2, mix(skin, hexc('e09a90'), 0.35))
+    ex0 = int(cx - hr) - 1                                                                   # the ears
+    c.put(ex0, ey + 1, shade(skin, 0.92)); c.put(ex0, ey + 2, shade(skin, 0.82))
+    c.put(int(cx + hr) + 1, ey + 1, shade(skin, 0.74)); c.put(int(cx + hr) + 1, ey + 2, shade(skin, 0.66))
+    c.hline(cx - 2, cx + 2, int(hy + ry) + 1, shade(skin, 0.55))                             # the shadow the chin throws on the neck
     if old:
-        c.put(cx - 3, hy + 1, shade(skin, 0.78)); c.put(cx + 3, hy + 1, shade(skin, 0.7))                     # lines
+        c.put(cx - es - 2, ey, shade(skin, 0.74)); c.put(cx + es + 2, ey, shade(skin, 0.66))        # crow's feet
+        c.put(cx - 2, my - 1, shade(skin, 0.74)); c.put(cx + 2, my - 1, shade(skin, 0.66))            # the lines from the nose to the mouth
+        c.hline(cx - 2, cx + 2, ey - 4, shade(skin, 0.84))                                            # a line across the forehead
     if female and not child and spec['jewel']:
-        c.put(int(cx - hr) - 0, hy + 2, hexc('f0e0a0')); c.put(int(cx + hr), hy + 2, hexc('f0e0a0'))          # earrings
+        c.put(ex0 - 0, ey + 3, hexc('f0e0a0')); c.put(int(cx + hr) + 1, ey + 3, hexc('f0e0a0'))     # earrings
     # --- beard / moustache
     if spec['beard'] == 'full':
         for yy in range(hy + 2, int(hy + ry) + 1):
@@ -164,10 +198,10 @@ def paint(c, x0, y0, x1, y1, spec):
         c.rect(int(cx - hr) - 1, top + 1, int(cx - hr), sh, hair); c.rect(int(cx + hr), top + 1, int(cx + hr) + 1, sh, shade(hair, 0.8))
         c.put(int(cx - hr), top + 2, hl)
     elif style == 'bun':
-        c.ellipse(cx, top + 1, hr + 0.5, 2.4, hair)
-        c.ellipse(cx, top - 2, 2.2, 2.0, hair)
+        c.ellipse(cx, top + 1, hr + 0.7, 2.2, hair)                                     # the hair swept back, a round knot on top (not a cone: a ball sitting on the crown)
+        c.ellipse(cx, top - 1, 2.6, 2.2, shade(hair, 0.92))
+        c.hline(cx - 1, cx + 0, top - 2, hl)
         c.vline(int(cx - hr), top + 1, hy, hair); c.vline(int(cx + hr), top + 1, hy, shade(hair, 0.8))
-        c.put(cx - 1, top - 3, hl)
     elif style == 'bob':
         c.ellipse(cx, top + 1, hr + 0.8, 2.6, hair)
         c.rect(int(cx - hr) - 1, top + 1, int(cx - hr), hy + 3, hair); c.rect(int(cx + hr), top + 1, int(cx + hr) + 1, hy + 3, shade(hair, 0.8))
@@ -187,11 +221,16 @@ def paint(c, x0, y0, x1, y1, spec):
         c.hline(cx - 3, cx + 3, top - 4, shade(hc, 1.4))
     # --- spectacles
     if spec['glasses']:
-        gl = hexc('7a7468')
-        for gx in (cx - 2, cx + 2):
-            c.put(gx - 1, ey, gl); c.put(gx + 1, ey, gl); c.put(gx, ey - 1, gl); c.put(gx, ey + 1, gl)
-        c.put(cx, ey, gl)
-        c.put(cx - 2, ey, eye); c.put(cx + 2, ey, eye)
+        gl = hexc('6a645a')
+        for sgn in (-1, 1):                                                                  # a round rim round each eye, a bridge between
+            ox0 = cx + sgn * es
+            xs = sorted((ox0 - sgn * 1 if False else ox0, ox0 + sgn))
+            for gx in range(xs[0] - 1, xs[1] + 2):
+                c.put(gx, ey - 1, gl); c.put(gx, ey + 1, gl)
+            c.put(xs[0] - 1, ey, gl); c.put(xs[1] + 1, ey, gl)
+        c.hline(cx - es + 1, cx + es - 1, ey - 1 + 0, gl) if es > 2 else c.put(cx, ey - 1, gl)
+        for sgn in (-1, 1):
+            c.put(cx + sgn * es, ey, iris); c.put(cx + sgn * (es + 1), ey, white)
     # --- a dark painter's edge on the right of an oil, a soft white border-less photo curl otherwise
     if spec['kind'] == 'oil':
         for yy in range(y0, y1 + 1):
@@ -204,3 +243,17 @@ def frame_kind(spec):
 
 def mat_for(spec):
     return hexc('ece2c8') if spec['kind'] != 'school' else hexc('f4f0e6')
+
+
+def pick(who, kind, nth=0):
+    """The index of the nth sitter of this kind in the gallery (the dining room's row of oils hangs particular people)."""
+    n = 0
+    for sp in SPECS:
+        if sp['who'] == who and sp['kind'] == kind:
+            if n == nth:
+                return sp['i']
+            n += 1
+    for sp in SPECS:
+        if sp['who'] == who:
+            return sp['i']
+    return 0

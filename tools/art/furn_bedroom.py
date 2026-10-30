@@ -82,14 +82,14 @@ def _portrait_variants():
     return {'p%02d' % s['i']: {'i': s['i']} for s in PG.SPECS}
 
 
-@piece('picture_portrait', 22, 28, 'decor', rooms={'bedroom': 5, 'living_room': 6, 'dining_room': 5, 'study': 5}, styles={'adult': 4, 'sick': 3}, tags=('picture',),
+@piece('picture_portrait', 26, 32, 'decor', rooms={'bedroom': 5, 'living_room': 6, 'dining_room': 5, 'study': 5}, styles={'adult': 4, 'sick': 3}, tags=('picture',),
        variants=_portrait_variants(), wall_y=(20, 34),
        note='a framed portrait of someone - one of a gallery of 36 sitters (men, women, children, the old; oil portraits, studio and school photographs) so no two flats hang the same faces')
 def picture_portrait(c, ox, oy, p):
     import portrait_gallery as PG
     import wallart as W
     spec = PG.SPECS[int(p['i'])]
-    r = W.frame(c, ox, oy + 1, ox + 21, oy + 27, PG.frame_kind(spec), mat=PG.mat_for(spec), thick=1, hang='wire', lip=True, matw=1)
+    r = W.frame(c, ox, oy + 1, ox + 25, oy + 31, PG.frame_kind(spec), mat=PG.mat_for(spec), thick=1, hang='wire', lip=True, matw=1)
     PG.paint(c, r[0], r[1], r[2], r[3], spec)
     W.glint(c, r, 36)
 

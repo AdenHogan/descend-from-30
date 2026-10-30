@@ -24,7 +24,7 @@ AVOID = {
     'filing_cabinet': {'green': ['den']},
     'loveseat': {'olive': ['cosy']},
     'piano_upright': {'ebonised': ['adult', 'formal']},
-    'picture_portrait': {'p00': ['adult', 'formal'], 'p11': ['adult', 'formal']},
+    'picture_portrait': {'p00': ['adult', 'formal'], 'p11': ['adult', 'formal'], 'p30': ['parlour']},
     'rug_oblong': {'mauve': ['adult', 'teen']},
     'sideboard': {'cream': ['party']},
     'sofa': {'olive': ['cosy']},

@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://bw3qr141accvl"]
 
 [ext_resource type="Texture2D" path="res://assets/rooms/living_room.png" id="1_art"]
+[ext_resource type="Script" path="res://scripts/module_anim.gd" id="4_anim"]
 
 [node name="Node2D" type="Node2D"]
 
@@ -57,3 +58,14 @@ metadata/kind = "table"
 [node name="lamp_1" type="Node2D" parent="Lights"]
 position = Vector2(168, 23)
 metadata/kind = "pendant"
+
+[node name="Anims" type="Node2D" parent="."]
+
+[node name="anim_0" type="Node2D" parent="Anims"]
+position = Vector2(187, 99)
+script = ExtResource("4_anim")
+metadata/kind = "smoke"
+metadata/fall = 0
+metadata/color = "c8c8c8"
+metadata/w = 3
+metadata/h = 14

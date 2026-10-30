@@ -37,6 +37,8 @@ func _ready() -> void:
 	_test_home_logic()
 	_test_designers_eye()
 	_test_study_bin()
+	_test_live_pieces()
+	_test_globe_stands_at_an_end()
 	_test_plans_obey_the_rules()
 	_test_rules_can_fail()
 	_test_variety_and_determinism()
@@ -606,6 +608,167 @@ func _test_study_bin() -> void:
 				far += 1
 	check(bins >= 10, "bins do appear (%d of 300 studies)" % bins)
 	check(far == 0, "…and every one stands within 6 px of its desk (%d further away, the worst %d px)" % [far, worst])
+
+
+# ------------------------------------------------------------------------------------------------------------------------------------ live details on planned pieces (owner round 49f)
+const LIVE_PIECES := [["lamp_lava", "lava"], ["ashtray_pack", "smoke"], ["clock_regulator", "pendulum"], ["clock_cuckoo", "pendulum"], ["clock_grandfather", "pendulum"]]
+
+
+func _anim_node(an: Dictionary) -> Node2D:
+	var a := Node2D.new()
+	a.set_script(load("res://scripts/module_anim.gd"))
+	for k in ["kind", "fall", "color", "w", "h"]:
+		if an.has(k):
+			a.set_meta(k, an[k])
+	add_child(a)
+	a.set_process(false)
+	return a
+
+
+func _sprite_image(file: String) -> Image:
+	return Image.load_from_file(ProjectSettings.globalize_path("res://assets/furniture/%s.png" % file))
+
+
+## Pixels the pendulum covers over a whole period that are NOT empty air or the dark inside of the case: wood, a weight, a glint under the bob. `shift` moves the pivot sideways
+## (the mutation that proves the check can fail).
+func _swing_hits(img: Image, spr: Dictionary, an: Dictionary, shift: int) -> Array:
+	var a := _anim_node(an)
+	var pivot := Vector2i(int(spr["rx"]) + int(an["dx"]) + shift, int(spr["ry"]) + int(an["dy"]))
+	var hits: Array = []
+	var seen := {}
+	for i in range(41):
+		for cell in a.pendulum_footprint(float(i) * 0.05):
+			var q: Vector2i = pivot + cell
+			if seen.has(q):
+				continue
+			seen[q] = true
+			if q.x < 0 or q.y < 0 or q.x >= img.get_width() or q.y >= img.get_height():
+				continue
+			var c := img.get_pixelv(q)
+			if c.a >= 0.5 and c.get_luminance() > 0.2:
+				hits.append(q)
+	a.free()
+	return hits
+
+
+func _test_live_pieces() -> void:
+	print("[the lava lamp, the cigarette and the clocks are LIVE: wax that rises, an ember and smoke, pendulums that swing (owner round 49f)]")
+	for lp in LIVE_PIECES:
+		var rec := FurniturePlanner.piece(String(lp[0]))
+		for vid in rec["variants"]:
+			var v: Dictionary = rec["variants"][vid]
+			var kinds: Array = []
+			for an in v["anims"]:
+				kinds.append(String(an["kind"]))
+			check(kinds == [lp[1]], "%s/%s carries exactly one %s detail (%s)" % [lp[0], vid, lp[1], str(kinds)])
+			if kinds != [lp[1]]:
+				continue
+			var an: Dictionary = v["anims"][0]
+			for spr in v["sprites"]:
+				var img := _sprite_image(String(spr["file"]))
+				check(img != null, "%s: the sprite loads" % spr["file"])
+				if img == null:
+					continue
+				match String(lp[1]):
+					"pendulum":
+						var hits := _swing_hits(img, spr, an, 0)
+						check(hits.is_empty(), "%s: the pendulum swings through clear air / the dark case only (%d pixels of wood or brass in its way, first %s)" % [spr["file"], hits.size(), str(hits.slice(0, 1))])
+						if String(lp[0]) == "clock_regulator":
+							check(not _swing_hits(img, spr, an, 4).is_empty(), "%s: the swing check CAN fail (a pivot four px off the glass door hits the case)" % spr["file"])
+					"lava":
+						check(String(an["color"]) == String(v["params"]["wax"]), "%s: the wax is the variant's own colour" % spr["file"])
+						var node := _anim_node(an)
+						var off := 0
+						for i in range(300):
+							for bi in range(node.LAVA_BLOBS.size()):
+								var r: Rect2i = node.lava_blob_rect(bi, float(i) * 0.1)
+								for yy in range(r.size.y):
+									for xx in range(r.size.x):
+										var q := Vector2i(int(spr["rx"]) + int(an["dx"]) + r.position.x + xx, int(spr["ry"]) + int(an["dy"]) + r.position.y + yy)
+										if img.get_pixelv(q).a < 0.5:
+											off += 1
+						check(off == 0, "%s: the wax stays inside the glass for 30 s (%d pixels outside it)" % [spr["file"], off])
+						node.free()
+					"smoke":
+						var ember := Vector2i(int(spr["rx"]) + int(an["dx"]), int(spr["ry"]) + int(an["dy"]))
+						var along := 0
+						for k in range(1, 6):
+							if img.get_pixelv(ember + Vector2i(-k, 0)).a >= 0.5:
+								along += 1
+						check(along == 5, "%s: the ember is the end of a cigarette lying along its row (%d of 5 pixels beside it drawn)" % [spr["file"], along])
+	# the planner puts each live detail where its piece stands
+	var found := {}
+	for lp in LIVE_PIECES:
+		found[lp[0]] = 0
+	for room in PLANNED:
+		for style in PLANNED[room]:
+			for k in range(40):
+				var pl := FurniturePlanner.plan(String(room), String(style), 52000 + k, {"window": "left"})
+				for it in pl["items"]:
+					var pid := String(it["id"])
+					if not found.has(pid):
+						continue
+					var rec := FurniturePlanner.piece(pid)
+					var want := String(rec["variants"][String(it["variant"])]["anims"][0]["kind"])
+					var hit := false
+					for an in pl["anims"]:
+						if String(an["kind"]) == want and int(an["x"]) == int(it["x"]) + int(an["dx"]):
+							hit = true
+					check(hit, "%s in a %s/%s room brings its %s detail" % [pid, room, style, want])
+					found[pid] = int(found[pid]) + 1
+	for pid in found:
+		check(int(found[pid]) >= 3, "%s was dealt into real plans (%d times)" % [pid, int(found[pid])])
+
+
+## (owner round 49f: "the globe… looks like it is floating… closer to the side of the desk") a globe stands at an END of the stretch of desk it is on (within 2 px of the slot's edge, or of
+## the thing beside it that ended the stretch), never mid-top. The slot is the measured safe top face (nothing floats), so the end is the slot's, not the desk's own. The other small things
+## dealt onto the same hosts are the control: they do land mid-top, so the measure can tell the difference.
+func _test_globe_stands_at_an_end() -> void:
+	print("[the globe stands toward the end of its desk]")
+	var globes := 0
+	var ends := 0
+	var others := 0
+	var middles := 0
+	var examples: Array = []
+	for style in STUDY_STYLES:
+		for k in range(120):
+			var pl := FurniturePlanner.plan("study", String(style), 61000 + k, {"window": "left"})
+			for it in pl["items"]:
+				if String(it["plane"]) != "top":
+					continue
+				var host = null
+				for h in pl["items"]:
+					if String(h["plane"]) == String(it.get("host_plane", "")) and String(h["plane"]) != "top" and int(h["x"]) <= int(it["x"]) and int(it["x"]) + int(it["w"]) <= int(h["x"]) + int(h["w"]):
+						host = h
+				if host == null:
+					continue
+				var slots: Array = FurniturePlanner.piece(String(host["id"]))["variants"][String(host["variant"])]["slots"]
+				if slots.is_empty():
+					continue
+				var sl: Dictionary = slots[0]
+				var lo := int(sl["dx0"])
+				var hi := int(sl["dx1"]) - int(it["w"]) + 1
+				var gx := int(it["x"]) - int(host["x"])
+				var beside := false                                                        # a neighbour on the desk ended the stretch
+				for o in pl["items"]:
+					if o != it and String(o["plane"]) == "top" and String(o.get("host_plane", "")) == String(it["host_plane"]):
+						var gap := maxi(int(o["x"]) - (int(it["x"]) + int(it["w"])), int(it["x"]) - (int(o["x"]) + int(o["w"])))
+						if gap <= 4:
+							beside = true
+				var at_end: bool = gx - lo <= 2 or hi - gx <= 2 or beside
+				if String(it["id"]) == "globe":
+					globes += 1
+					if at_end:
+						ends += 1
+					elif examples.size() < 3:
+						examples.append("%s/%s gx=%d slot %d..%d" % [host["id"], host["variant"], gx, lo, hi])
+				elif hi - lo >= 10:
+					others += 1
+					if gx - lo > 4 and hi - gx > 4 and not beside:
+						middles += 1
+	check(globes >= 15, "globes were dealt onto desks (%d)" % globes)
+	check(ends * 10 >= globes * 9, "…and nearly every one stands at an end of its stretch (%d of %d; the others: %s)" % [ends, globes, str(examples)])
+	check(middles >= 10, "…while other desk things do land mid-top (%d of %d), so the measure can tell the difference" % [middles, others])
 
 
 # ------------------------------------------------------------------------------------------------------------------------------------ every node can be reached

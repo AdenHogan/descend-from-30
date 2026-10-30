@@ -5,6 +5,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -146,6 +147,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     114,
     119
@@ -2360,6 +2362,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -2373,7 +2376,7 @@
    "must_above": false,
    "near": [],
    "needs": null,
-   "note": "an ashtray with a pack of cigarettes and a lighter beside it",
+   "note": "an ashtray with a lit cigarette resting on its rim \u2014 the ember breathes and a thread of smoke curls up (module_anim `smoke`) \u2014 and a pack beside it",
    "on": [
     "low"
    ],
@@ -2397,7 +2400,17 @@
    "variants": {
     "glass": {
      "anchors": [],
-     "anims": [],
+     "anims": [
+      {
+       "color": "c8c8c8",
+       "dx": 6,
+       "dy": -4,
+       "h": 15,
+       "kind": "smoke",
+       "top": true,
+       "w": 3
+      }
+     ],
      "lights": [],
      "params": {
       "col": "5a8a9a"
@@ -2421,7 +2434,17 @@
     },
     "tin": {
      "anchors": [],
-     "anims": [],
+     "anims": [
+      {
+       "color": "c8c8c8",
+       "dx": 6,
+       "dy": -4,
+       "h": 15,
+       "kind": "smoke",
+       "top": true,
+       "w": 3
+      }
+     ],
      "lights": [],
      "params": {
       "col": "9aa0a2"
@@ -2452,6 +2475,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     116,
     121
@@ -2627,6 +2651,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     106,
     119
@@ -2693,6 +2718,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -2790,6 +2816,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -2856,6 +2883,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     114,
     114
@@ -3244,6 +3272,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     114,
     114
@@ -3733,6 +3762,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     129,
     134
@@ -3862,6 +3892,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     114,
     117
@@ -4617,6 +4648,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     114,
     116
@@ -5187,6 +5219,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     114,
     116
@@ -5933,6 +5966,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     114,
     116
@@ -6857,6 +6891,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     106,
     113
@@ -6968,6 +7003,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     106,
     112
@@ -7317,6 +7353,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -7450,6 +7487,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     105,
     108
@@ -7866,6 +7904,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     105,
     108
@@ -8292,6 +8331,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -8402,6 +8442,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -8505,6 +8546,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     106,
     114
@@ -8652,6 +8694,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     105,
     108
@@ -8915,6 +8958,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -9015,6 +9059,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     106,
     116
@@ -9117,6 +9162,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -9208,6 +9254,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -9281,78 +9328,12 @@
     44
    ]
   },
-  "cameos": {
-   "above": [],
-   "bucketed": false,
-   "ceiling_drop": 0,
-   "companion_only": false,
-   "feet": [
-    0,
-    0
-   ],
-   "h": 22,
-   "keep": null,
-   "kind": "portrait",
-   "lap": 6,
-   "lean": false,
-   "limit": 1,
-   "must_above": false,
-   "near": [],
-   "needs": null,
-   "note": "a pair of silhouette cameos in oval gilt frames, the couple turned to face each other",
-   "on": [],
-   "opens": null,
-   "pair": null,
-   "plane": "decor",
-   "rooms": {
-    "dining_room": 3,
-    "living_room": 4
-   },
-   "sound": null,
-   "styles": {
-    "formal": 4,
-    "parlour": 9
-   },
-   "tags": [
-    "picture"
-   ],
-   "under": [],
-   "under_window": false,
-   "variants": {
-    "pair": {
-     "anchors": [],
-     "anims": [],
-     "lights": [],
-     "params": {},
-     "slots": [],
-     "sprites": [
-      {
-       "b": 23,
-       "bx": 160,
-       "file": "cameos_pair",
-       "h": 26,
-       "l": 1,
-       "r": 37,
-       "rx": -1,
-       "ry": 2,
-       "sb": 20,
-       "t": -2,
-       "w": 37
-      }
-     ]
-    }
-   },
-   "w": 38,
-   "wall_y": [
-    24,
-    36
-   ]
-  },
   "candelabra": {
    "above": [],
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -9460,6 +9441,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -9566,6 +9548,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     105,
     108
@@ -9824,6 +9807,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     106,
     118
@@ -9895,6 +9879,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -9967,6 +9952,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -10037,6 +10023,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -10213,6 +10200,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     116,
     121
@@ -10632,6 +10620,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": true,
+   "edge": false,
    "feet": [
     116,
     121
@@ -10746,6 +10735,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     116,
     121
@@ -11521,6 +11511,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     118,
     118
@@ -11672,6 +11663,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -11748,6 +11740,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     105,
     108
@@ -12183,6 +12176,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     105,
     108
@@ -12472,6 +12466,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -12542,6 +12537,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -12555,7 +12551,7 @@
    "must_above": false,
    "near": [],
    "needs": null,
-   "note": "a chalet cuckoo clock: a shingled roof, a carved front with a little door and the bird half out, two pine-cone weights and a pendulum on chains",
+   "note": "a chalet cuckoo clock: a shingled roof, a carved front with a little door and the bird half out, two pine-cone weights on chains and a pendulum that SWINGS between them (module_anim `pendulum`)",
    "on": [],
    "opens": null,
    "pair": null,
@@ -12584,7 +12580,16 @@
    "variants": {
     "a": {
      "anchors": [],
-     "anims": [],
+     "anims": [
+      {
+       "color": "c8a050",
+       "dx": 8,
+       "dy": 21,
+       "fall": 5,
+       "kind": "pendulum",
+       "w": 3
+      }
+     ],
      "lights": [],
      "params": {},
      "slots": [],
@@ -12616,6 +12621,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     105,
     108
@@ -12629,7 +12635,7 @@
    "must_above": false,
    "near": [],
    "needs": null,
-   "note": "a grandfather clock: a hooded case with a pale round dial and roman numerals, a long glass door showing the brass pendulum and two weights, a plinth",
+   "note": "a grandfather clock: a hooded case with a pale round dial and roman numerals, a long glass door showing a brass pendulum that SWINGS (module_anim `pendulum`, a swing a second) between two weights, a plinth",
    "on": [],
    "opens": null,
    "pair": null,
@@ -12660,7 +12666,16 @@
        "name": "clock"
       }
      ],
-     "anims": [],
+     "anims": [
+      {
+       "color": "d8b860",
+       "dx": 10,
+       "dy": -45,
+       "fall": 25,
+       "kind": "pendulum",
+       "w": 4
+      }
+     ],
      "lights": [],
      "params": {
       "wood": "6a3a2a"
@@ -12768,7 +12783,16 @@
        "name": "clock"
       }
      ],
-     "anims": [],
+     "anims": [
+      {
+       "color": "d8b860",
+       "dx": 10,
+       "dy": -45,
+       "fall": 25,
+       "kind": "pendulum",
+       "w": 4
+      }
+     ],
      "lights": [],
      "params": {
       "wood": "a07848"
@@ -12877,6 +12901,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -12890,7 +12915,7 @@
    "must_above": false,
    "near": [],
    "needs": null,
-   "note": "a walnut regulator clock: a pediment with a finial, a dial in an arched case, a glass door over a brass pendulum and two weights, a plinth",
+   "note": "a walnut regulator clock: a pediment with a finial, a dial in an arched case, a glass door over a brass pendulum that SWINGS (module_anim `pendulum`, a swing a second) and two weights, a plinth",
    "on": [],
    "opens": null,
    "pair": null,
@@ -12921,7 +12946,16 @@
    "variants": {
     "a": {
      "anchors": [],
-     "anims": [],
+     "anims": [
+      {
+       "color": "c8a050",
+       "dx": 7,
+       "dy": 24,
+       "fall": 5,
+       "kind": "pendulum",
+       "w": 3
+      }
+     ],
      "lights": [],
      "params": {},
      "slots": [],
@@ -12953,6 +12987,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -13046,6 +13081,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -13192,6 +13228,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     116,
     121
@@ -13331,6 +13368,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     116,
     119
@@ -13447,6 +13485,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     105,
     109
@@ -13575,6 +13614,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": true,
+   "edge": false,
    "feet": [
     114,
     118
@@ -13854,6 +13894,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -13986,6 +14027,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     105,
     108
@@ -14271,6 +14313,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     105,
     108
@@ -14550,6 +14593,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     106,
     114
@@ -14622,6 +14666,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     105,
     108
@@ -14784,6 +14829,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     110,
     114
@@ -15110,6 +15156,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     105,
     108
@@ -15583,6 +15630,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     106,
     106
@@ -15769,6 +15817,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     105,
     108
@@ -16192,6 +16241,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     114,
     118
@@ -16299,6 +16349,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     108,
     120
@@ -16430,6 +16481,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     105,
     108
@@ -16881,6 +16933,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     105,
     108
@@ -17114,6 +17167,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     113,
     119
@@ -17215,6 +17269,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -17291,6 +17346,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     106,
     106
@@ -17810,6 +17866,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -17911,6 +17968,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     108,
     121
@@ -18022,6 +18080,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -18118,6 +18177,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": true,
    "feet": [
     0,
     0
@@ -18166,14 +18226,14 @@
        "b": 2,
        "bx": 160,
        "file": "globe_blue",
-       "h": 22,
+       "h": 23,
        "l": -1,
-       "r": 14,
+       "r": 16,
        "rx": 1,
-       "ry": 19,
-       "sb": 0,
-       "t": -19,
-       "w": 16
+       "ry": 20,
+       "sb": 1,
+       "t": -20,
+       "w": 18
       }
      ]
     },
@@ -18190,14 +18250,14 @@
        "b": 2,
        "bx": 160,
        "file": "globe_old",
-       "h": 22,
+       "h": 23,
        "l": -1,
-       "r": 14,
+       "r": 16,
        "rx": 1,
-       "ry": 19,
-       "sb": 0,
-       "t": -19,
-       "w": 16
+       "ry": 20,
+       "sb": 1,
+       "t": -20,
+       "w": 18
       }
      ]
     }
@@ -18210,6 +18270,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     108,
     118
@@ -18301,6 +18362,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -18415,6 +18477,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -18482,6 +18545,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -18619,6 +18683,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -18747,6 +18812,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -18855,6 +18921,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     108,
     118
@@ -19013,6 +19080,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -19026,7 +19094,7 @@
    "must_above": false,
    "near": [],
    "needs": null,
-   "note": "a lava lamp \u2014 glowing wax in a tapered glass on a chrome base",
+   "note": "a lava lamp \u2014 a tapered glass on a chrome base; the wax in it is a LIVE detail (module_anim `lava`): blobs rising, stretching and sinking on their own slow tides",
    "on": [
     "lamp"
    ],
@@ -19052,7 +19120,17 @@
    "variants": {
     "blue": {
      "anchors": [],
-     "anims": [],
+     "anims": [
+      {
+       "color": "58e0c8",
+       "dx": 2,
+       "dy": -15,
+       "h": 10,
+       "kind": "lava",
+       "top": true,
+       "w": 6
+      }
+     ],
      "lights": [
       {
        "dx": 5,
@@ -19085,7 +19163,17 @@
     },
     "green": {
      "anchors": [],
-     "anims": [],
+     "anims": [
+      {
+       "color": "e8e04a",
+       "dx": 2,
+       "dy": -15,
+       "h": 10,
+       "kind": "lava",
+       "top": true,
+       "w": 6
+      }
+     ],
      "lights": [
       {
        "dx": 5,
@@ -19118,7 +19206,17 @@
     },
     "purple": {
      "anchors": [],
-     "anims": [],
+     "anims": [
+      {
+       "color": "f0902e",
+       "dx": 2,
+       "dy": -15,
+       "h": 10,
+       "kind": "lava",
+       "top": true,
+       "w": 6
+      }
+     ],
      "lights": [
       {
        "dx": 5,
@@ -19151,7 +19249,17 @@
     },
     "red": {
      "anchors": [],
-     "anims": [],
+     "anims": [
+      {
+       "color": "f0a83a",
+       "dx": 2,
+       "dy": -15,
+       "h": 10,
+       "kind": "lava",
+       "top": true,
+       "w": 6
+      }
+     ],
      "lights": [
       {
        "dx": 5,
@@ -19191,6 +19299,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -19876,6 +19985,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     106,
     106
@@ -20151,6 +20261,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     116,
     121
@@ -20289,6 +20400,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     118,
     118
@@ -20671,6 +20783,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -20755,6 +20868,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -20832,6 +20946,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -20913,6 +21028,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     105,
     108
@@ -21079,6 +21195,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     110,
     120
@@ -21152,6 +21269,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     108,
     112
@@ -21665,6 +21783,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -21766,6 +21885,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -21834,6 +21954,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     115,
     117
@@ -22580,6 +22701,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     116,
     120
@@ -22680,6 +22802,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -22797,6 +22920,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -22980,6 +23104,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -23085,6 +23210,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     118,
     118
@@ -23241,6 +23367,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -23366,6 +23493,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     105,
     108
@@ -23525,6 +23653,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     105,
     108
@@ -23825,6 +23954,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -23890,6 +24020,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -23955,6 +24086,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -24021,6 +24153,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -24088,6 +24221,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -24198,6 +24332,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     105,
     108
@@ -24354,6 +24489,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -24443,6 +24579,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -24541,6 +24678,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     106,
     114
@@ -24652,6 +24790,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -24772,6 +24911,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -24928,80 +25068,12 @@
    "w": 11,
    "wall_y": null
   },
-  "photo_wedding": {
-   "above": [],
-   "bucketed": false,
-   "ceiling_drop": 0,
-   "companion_only": false,
-   "feet": [
-    0,
-    0
-   ],
-   "h": 33,
-   "keep": null,
-   "kind": "portrait",
-   "lap": 6,
-   "lean": false,
-   "limit": 1,
-   "must_above": false,
-   "near": [],
-   "needs": null,
-   "note": "a sepia wedding portrait in an oval mat: the bride in a veil and white dress, the groom in a dark suit",
-   "on": [],
-   "opens": null,
-   "pair": null,
-   "plane": "decor",
-   "rooms": {
-    "bedroom": 4,
-    "living_room": 4
-   },
-   "sound": null,
-   "styles": {
-    "adult": 2,
-    "cosy": 2,
-    "parlour": 4,
-    "sick": 6
-   },
-   "tags": [
-    "picture"
-   ],
-   "under": [],
-   "under_window": false,
-   "variants": {
-    "a": {
-     "anchors": [],
-     "anims": [],
-     "lights": [],
-     "params": {},
-     "slots": [],
-     "sprites": [
-      {
-       "b": 34,
-       "bx": 160,
-       "file": "photo_wedding_a",
-       "h": 37,
-       "l": -1,
-       "r": 30,
-       "rx": 1,
-       "ry": 2,
-       "sb": 32,
-       "t": -2,
-       "w": 32
-      }
-     ]
-    }
-   },
-   "w": 29,
-   "wall_y": [
-    24,
-    40
-   ]
-  },
   "piano_upright": {
    "above": [],
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     105,
     108
@@ -25309,6 +25381,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -25376,6 +25449,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -25717,11 +25791,12 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
    ],
-   "h": 28,
+   "h": 32,
    "keep": null,
    "kind": "portrait",
    "lap": 6,
@@ -25772,17 +25847,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p00",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -25796,17 +25871,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p01",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -25820,17 +25895,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p02",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -25844,17 +25919,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p03",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -25868,17 +25943,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p04",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -25892,17 +25967,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p05",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -25916,17 +25991,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p06",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -25940,17 +26015,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p07",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -25964,17 +26039,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p08",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -25988,17 +26063,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p09",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -26012,17 +26087,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p10",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -26040,17 +26115,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p11",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -26064,17 +26139,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p12",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -26088,17 +26163,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p13",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -26112,17 +26187,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p14",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -26136,17 +26211,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p15",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -26160,17 +26235,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p16",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -26184,17 +26259,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p17",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -26208,17 +26283,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p18",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -26232,17 +26307,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p19",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -26256,17 +26331,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p20",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -26280,17 +26355,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p21",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -26304,17 +26379,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p22",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -26328,17 +26403,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p23",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -26352,17 +26427,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p24",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -26376,17 +26451,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p25",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -26400,17 +26475,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p26",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -26424,17 +26499,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p27",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -26448,17 +26523,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p28",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -26472,17 +26547,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p29",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -26491,22 +26566,25 @@
      "anims": [],
      "lights": [],
      "params": {
-      "i": 30
+      "i": 30,
+      "not": [
+       "parlour"
+      ]
      },
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p30",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -26520,17 +26598,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p31",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -26544,17 +26622,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p32",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -26568,17 +26646,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p33",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -26592,17 +26670,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p34",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     },
@@ -26616,22 +26694,22 @@
      "slots": [],
      "sprites": [
       {
-       "b": 29,
+       "b": 33,
        "bx": 160,
        "file": "picture_portrait_p35",
-       "h": 36,
+       "h": 40,
        "l": -1,
-       "r": 23,
+       "r": 27,
        "rx": 1,
        "ry": 6,
-       "sb": 27,
+       "sb": 31,
        "t": -6,
-       "w": 25
+       "w": 29
       }
      ]
     }
    },
-   "w": 22,
+   "w": 26,
    "wall_y": [
     20,
     34
@@ -26642,6 +26720,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -26735,6 +26814,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     105,
     108
@@ -26996,6 +27076,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     106,
     116
@@ -27073,6 +27154,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -27195,6 +27277,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -27417,6 +27500,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     112,
     119
@@ -27676,11 +27760,12 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
    ],
-   "h": 28,
+   "h": 32,
    "keep": null,
    "kind": "portrait",
    "lap": 6,
@@ -27689,7 +27774,7 @@
    "must_above": false,
    "near": [],
    "needs": null,
-   "note": "three gilt-framed oil portraits hung in a row: a lady in a high collar, a man in a hat and a bearded gentleman, their eyes following the table",
+   "note": "three oil portraits hung in a row: a lady, a gentleman and an old man \u2014 the gallery's painter at the same size as the single portrait (owner round 49f: \"they look like Terrence and Phillip from South Park\")",
    "on": [],
    "opens": null,
    "pair": null,
@@ -27717,22 +27802,22 @@
      "slots": [],
      "sprites": [
       {
-       "b": 26,
+       "b": 32,
        "bx": 160,
        "file": "portraits_row_three",
-       "h": 34,
+       "h": 40,
        "l": -1,
-       "r": 56,
+       "r": 78,
        "rx": 1,
        "ry": 7,
-       "sb": 24,
+       "sb": 30,
        "t": -7,
-       "w": 58
+       "w": 80
       }
      ]
     }
    },
-   "w": 56,
+   "w": 78,
    "wall_y": [
     24,
     38
@@ -27743,6 +27828,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -27835,6 +27921,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -27903,6 +27990,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -27973,6 +28061,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -28042,6 +28131,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -28109,6 +28199,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     112,
     122
@@ -28252,6 +28343,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -28317,6 +28409,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     108,
     120
@@ -28388,6 +28481,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     105,
     109
@@ -28630,6 +28724,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -28704,6 +28799,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     112,
     119
@@ -28801,6 +28897,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     106,
     106
@@ -29132,6 +29229,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -29248,6 +29346,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     116,
     121
@@ -29787,6 +29886,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     129,
     134
@@ -29992,6 +30092,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     129,
     134
@@ -30145,6 +30246,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -30217,6 +30319,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -30291,6 +30394,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     105,
     108
@@ -30594,6 +30698,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     116,
     121
@@ -30735,6 +30840,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     114,
     114
@@ -30888,6 +30994,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     105,
     108
@@ -31180,6 +31287,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     105,
     108
@@ -31796,6 +31904,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     106,
     106
@@ -31954,6 +32063,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -32021,6 +32131,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     116,
     121
@@ -32139,6 +32250,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     108,
     112
@@ -32722,6 +32834,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -32788,6 +32901,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": true,
+   "edge": false,
    "feet": [
     116,
     121
@@ -33205,6 +33319,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": true,
+   "edge": false,
    "feet": [
     116,
     121
@@ -33816,6 +33931,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     118,
     118
@@ -33967,6 +34083,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -34236,6 +34353,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     114,
     118
@@ -34540,6 +34658,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     116,
     120
@@ -34769,6 +34888,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -34868,6 +34988,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -34970,6 +35091,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -35038,6 +35160,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -35131,6 +35254,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -35229,6 +35353,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     114,
     114
@@ -35937,6 +36062,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -36050,6 +36176,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -36154,6 +36281,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     116,
     119
@@ -36305,6 +36433,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -36372,6 +36501,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     116,
     121
@@ -36494,6 +36624,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     110,
     120
@@ -36601,6 +36732,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     112,
     118
@@ -36674,6 +36806,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     105,
     109
@@ -37089,6 +37222,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -37274,6 +37408,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -37322,15 +37457,15 @@
      "slots": [],
      "sprites": [
       {
-       "b": 36,
+       "b": 28,
        "bx": 160,
        "file": "tv_wall_black",
-       "h": 39,
+       "h": 31,
        "l": -2,
        "r": 43,
        "rx": 2,
        "ry": 2,
-       "sb": 35,
+       "sb": 26,
        "t": -2,
        "w": 46
       }
@@ -37348,6 +37483,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -37441,6 +37577,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     106,
     106
@@ -40124,6 +40261,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     106,
     106
@@ -40889,6 +41027,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     106,
     106
@@ -41477,6 +41616,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -41547,6 +41687,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     114,
     114
@@ -41704,6 +41845,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -41831,6 +41973,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -42013,6 +42156,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     0,
     0
@@ -42116,6 +42260,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     105,
     108
@@ -42376,6 +42521,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     105,
     108
@@ -42741,6 +42887,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     105,
     108
@@ -43310,6 +43457,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     114,
     114
@@ -43577,6 +43725,7 @@
    "bucketed": true,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     114,
     114
@@ -43734,6 +43883,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": true,
+   "edge": false,
    "feet": [
     110,
     116
@@ -43846,6 +43996,7 @@
    "bucketed": false,
    "ceiling_drop": 0,
    "companion_only": false,
+   "edge": false,
    "feet": [
     116,
     120

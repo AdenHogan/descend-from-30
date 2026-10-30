@@ -27,6 +27,7 @@ func _ready() -> void:
 	await _test_exit_through_door()
 	_test_floor_boundary()
 	_test_module_variants()
+	_test_live_kinds()
 	await _test_module_sounds()
 	await _test_front_layer()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
@@ -402,6 +403,92 @@ func _img(path: String) -> Image:
 	return im
 
 
+## The lava lamp's wax, a cigarette's smoke and a clock's pendulum (owner round 49f): pure functions of time, checked over a long stretch, plus the baked rooms that carry them.
+func _test_live_kinds() -> void:
+	print("[live details: lava, smoke, pendulum]")
+	var script = load("res://scripts/module_anim.gd")
+	var mk := func(kind: String, fall: int, w: int, h: int, x: float) -> Node2D:
+		var a := Node2D.new()
+		a.set_script(script)
+		a.set_meta("kind", kind)
+		a.set_meta("fall", fall)
+		a.set_meta("w", w)
+		a.set_meta("h", h)
+		a.set_meta("color", "d8b860")
+		a.position = Vector2(x, 10)
+		add_child(a)
+		a.set_process(false)
+		return a
+	# the pendulum: a swing every second (period 2 s), half a period later it is on the other side, and its reach in pixels is the same for a short rod as a long one
+	for L in [5, 6, 25]:
+		var p: Node2D = mk.call("pendulum", L, 3, 1, 40.0)
+		var worst := 0.0
+		var crossings := 0
+		var last := 0.0
+		for i in range(401):
+			var t := float(i) * 0.01
+			var x := float(p.pendulum_tip(t).x)
+			worst = maxf(worst, absf(x))
+			if i > 0 and last < 0.0 and x >= 0.0:
+				crossings += 1
+			last = x
+		check(worst >= 1.0 and worst <= 2.0, "pendulum rod %d: swings between 1 and 2 px either side (%d)" % [L, int(worst)])
+		check(absf(p.pendulum_angle(0.3) - p.pendulum_angle(2.3)) < 0.0001, "pendulum rod %d: a period is two seconds" % L)
+		check(absf(p.pendulum_angle(0.3) + p.pendulum_angle(1.3)) < 0.0001, "pendulum rod %d: a second later it is on the other side" % L)
+		check(crossings == 2, "pendulum rod %d: two full swings in four seconds (crossed the middle %d times)" % [L, crossings])
+		check(int(p.pendulum_tip(0.0).y) >= L - 1 and int(p.pendulum_tip(0.0).y) <= L, "pendulum rod %d: the bob hangs a rod's length below the pivot" % L)
+		p.free()
+	var p1: Node2D = mk.call("pendulum", 25, 4, 1, 41.0)
+	var p2: Node2D = mk.call("pendulum", 25, 4, 1, 42.0)
+	check(p1.pendulum_angle(0.0) != p2.pendulum_angle(0.0), "two clocks do not swing in step")
+	p1.free()
+	p2.free()
+	# the lava: three blobs, always inside the glass, never all in one place, really moving
+	var lv: Node2D = mk.call("lava", 0, 6, 10, 20.0)
+	var spots := [{}, {}, {}]
+	var bad := 0
+	for i in range(600):
+		var t := float(i) * 0.1
+		for b in range(lv.LAVA_BLOBS.size()):
+			var r: Rect2i = lv.lava_blob_rect(b, t)
+			var gw: float = lv.lava_glass_width(float(r.position.y))
+			if r.position.x < 0 or r.position.y < 0 or r.end.x > 6 or r.end.y > 9 or float(r.size.x) > gw + 0.01 or r.position.x < int(ceil((6.0 - gw) * 0.5)) or float(r.end.x) > (6.0 + gw) * 0.5 + 0.01:
+				bad += 1
+			spots[b][str(r)] = true
+	check(bad == 0, "the wax stays inside the glass over a minute (%d blob-frames outside)" % bad)
+	for b in range(3):
+		check(spots[b].size() >= 5, "wax blob %d moves (%d distinct places over a minute)" % [b, spots[b].size()])
+	lv.free()
+	# the smoke: puffs fade in and out, rise to the top of their height and sway no wider than `w`
+	var sm: Node2D = mk.call("smoke", 0, 3, 15, 30.0)
+	var amax := 0.0
+	var ymin := 0.0
+	var xmax := 0.0
+	for i in range(400):
+		for k in range(sm.SMOKE_PUFFS):
+			var pf: Vector3 = sm.smoke_puff(k, float(i) * 0.05)
+			amax = maxf(amax, pf.z)
+			ymin = minf(ymin, pf.y)
+			xmax = maxf(xmax, absf(pf.x))
+	check(amax > 0.3 and amax <= 0.5, "smoke is a faint haze (strongest alpha %.2f)" % amax)
+	check(ymin >= -16.5 and ymin <= -13.0, "smoke rises about its height (%.1f)" % ymin)
+	check(xmax <= 3.01, "smoke sways no wider than its width (%.1f)" % xmax)
+	sm.free()
+	# the baked rooms that carry them
+	var kinds := {}
+	for f in DirAccess.open("res://scenes/Room_Modules").get_files():
+		if not f.ends_with(".tscn"):
+			continue
+		var inst = (load("res://scenes/Room_Modules/" + f) as PackedScene).instantiate()
+		var anims = inst.get_node_or_null("Anims")
+		if anims != null:
+			for a in anims.get_children():
+				kinds[str(a.get_meta("kind", ""))] = true
+		inst.free()
+	for k in ["lava", "smoke", "pendulum"]:
+		check(kinds.has(k), "a baked room carries a live %s detail" % k)
+
+
 func _test_module_variants() -> void:
 	# Every room type's ART VARIANTS (room.MODULE_VARIANTS): each loads as its room type, carries
 	# its art with the placeholder label hidden, enough nodes of its own, node names no other room
@@ -448,7 +535,7 @@ func _test_module_variants() -> void:
 					n_anims += 1
 					var sc = a.get_script()
 					check(sc != null and sc.resource_path == "res://scripts/module_anim.gd", "%s: %s runs module_anim" % [nm, a.name])
-					check(str(a.get_meta("kind", "")) in ["drip", "drop", "blink", "static", "spin", "tv"], "%s: %s has a known kind" % [nm, a.name])
+					check(str(a.get_meta("kind", "")) in ["drip", "drop", "blink", "static", "spin", "tv", "lava", "smoke", "pendulum"], "%s: %s has a known kind" % [nm, a.name])
 					check(a.position.x >= 0 and a.position.x < 320 and a.position.y >= 0 and a.position.y < 144, "%s: %s sits in the module" % [nm, a.name])
 					check(int(a.get_meta("w", 0)) >= 1 and int(a.get_meta("h", 0)) >= 1, "%s: %s has a size" % [nm, a.name])
 			inst.free()

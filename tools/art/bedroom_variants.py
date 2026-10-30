@@ -113,7 +113,7 @@ def b_furniture(c):
         for gy in (86, 91, 96):
             c.hline(293, 309, gy, hexc('7c6140'))
         c.poly([(294, 81), (298, 66), (302, 81)], hexc('7a3a6a'))          # (round 22: both stand ON the crate)
-        c.ellipse(298, 74, 2, 3, hexc('d98a4a')); c.ellipse(297, 78, 1, 1, hexc('d98a4a'))
+        PX.anim(295, 68, 'lava', color='d98a4a', w=6, h=12)                 # the wax is live (module_anim `lava`): it rises, stretches and sinks in the glass
         F.light(298, 74, 'lava')
         c.box(302, 77, 306, 81, hexc('26262a'), hexc('111114'))
         c.put(304, 79, hexc('c0453a'))

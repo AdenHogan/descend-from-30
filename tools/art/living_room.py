@@ -10,6 +10,7 @@ the floor in front of the wall/floor seam. Flat/neutral lighting — the engine 
 import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
+import pixlib as PX
 from pixlib import persp, flat_piece
 from pixlib import Canvas, hexc, shade, mix, SEAM_Y, W, H, check_window_boxes, check_edge_columns, save_floor_strip, finish_module, floor_is_periodic, iso_box, iso_pt, outline_layer, rrect
 
@@ -457,6 +458,8 @@ def coffee_table(c):
     c.rect(218, 99, 230, 100, hexc('7f8f98'))
     c.rect(220, 98, 232, 99, hexc('b7584a'))
     c.ellipse(210, 100, 3, 1, hexc('6c6a66'))
+    c.put(208, 99, hexc('c89860')); c.hline(209, 211, 99, hexc('ece4d0')); c.put(212, 99, hexc('7c776c'))      # a cigarette laid across the ashtray
+    PX.anim(213, 99, 'smoke', color='c8c8c8', w=3, h=14)                                                       # its ember and a thread of smoke are live (module_anim `smoke`)
 
 
 def shifted(c, fn, dy, dx=0):

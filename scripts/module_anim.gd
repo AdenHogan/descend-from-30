@@ -10,6 +10,9 @@ extends Node2D
 #   static — a w×h screen of TV snow, now and then a bar rolling down it (a set left on)
 #   spin   — a glint going round a w×h ellipse (a record still turning on the platter)
 #   flies  — a few flies buzzing about a w×h patch (over what's left in a breach room)
+#   lava   — a lava lamp (owner round 49f): three blobs of wax (`color`) rising, stretching and sinking in a tapered w×h glass at their own slow paces
+#   smoke  — a cigarette left in an ashtray: its tip glows and breathes at (0, 0) and a thread of smoke (`color`) curls up `h` px, swaying `w` px, in little puffs that fade
+#   pendulum — a clock's pendulum: a rod `fall` px long hung from (0, 0) with a bob `w` px wide, swinging one way every second (a two-second period), the pivot fixed
 #   tv     — a big flat screen, struck (owner round 22): snow under a spider-web CRACK from an impact
 #            with a dead black patch round it and coloured lines bleeding down from it; now and then a
 #            bright FLASH; every so often it goes badly wrong for a second — rows torn sideways, bars of
@@ -160,6 +163,148 @@ func _draw() -> void:
 			var p := Vector2(roundf(cos(a) * float(w)), roundf(sin(a) * float(h)))
 			draw_rect(Rect2(p.x, p.y, 1, 1), col)
 			draw_rect(Rect2(-p.x, -p.y, 1, 1), Color(col, 0.5))
+		"lava":
+			_draw_lava()
+		"smoke":
+			_draw_smoke()
+		"pendulum":
+			_draw_pendulum()
+
+
+## The swing: one way every second (a two-second period). A pendulum in a glass door a few pixels wide cannot swing a fixed angle and still be seen, so the TIP's sideways reach is set in pixels
+## (`PENDULUM_REACH_MIN`..`MAX`, about a quarter of the rod) and the angle follows from the rod's length. Everything is whole pixels from the fixed pivot at (0, 0): the rod, then a bob `w` wide.
+const PENDULUM_PERIOD := 2.0
+const PENDULUM_REACH_MIN := 1.4
+const PENDULUM_REACH_MAX := 2.4
+
+
+func pendulum_swing(length: float) -> float:
+	var reach := clampf(0.28 * length, PENDULUM_REACH_MIN, PENDULUM_REACH_MAX)
+	return asin(minf(reach / maxf(1.0, length), 0.95))
+
+
+func pendulum_angle(at_time: float) -> float:
+	return pendulum_swing(maxf(4.0, fall)) * sin(TAU * at_time / PENDULUM_PERIOD + float(absi(int(position.x)) % 7))
+
+
+## The bob's tip at `at_time`, in whole pixels from the pivot.
+func pendulum_tip(at_time: float) -> Vector2i:
+	var length: float = maxf(4.0, fall)
+	var th := pendulum_angle(at_time)
+	return Vector2i(roundi(sin(th) * length), roundi(cos(th) * length))
+
+
+## The rod's pixels at `at_time`, pivot to tip.
+func pendulum_rod(at_time: float) -> Array:
+	var length: float = maxf(4.0, fall)
+	var th := pendulum_angle(at_time)
+	var tip := Vector2(sin(th) * length, cos(th) * length)
+	var steps := int(ceilf(length))
+	var out: Array = []
+	for i in range(steps + 1):
+		var q := tip * (float(i) / float(steps))
+		var cell := Vector2i(roundi(q.x), roundi(q.y))
+		if out.is_empty() or out[out.size() - 1] != cell:
+			out.append(cell)
+	return out
+
+
+## The bob's pixels as offsets from its tip: a disc `w` wide.
+func pendulum_bob_offsets() -> Array:
+	var r := maxf(1.0, float(w) * 0.5)
+	var out: Array = []
+	for dy in range(-int(r), int(r) + 1):
+		for dx in range(-int(r), int(r) + 1):
+			if float(dx * dx + dy * dy) <= r * r + 0.6:
+				out.append(Vector2i(dx, dy))
+	return out
+
+
+## Every pixel the pendulum covers at `at_time` (pivot-relative): what a test holds against the clock's case.
+func pendulum_footprint(at_time: float) -> Array:
+	var out: Array = pendulum_rod(at_time)
+	var tip := pendulum_tip(at_time)
+	for o in pendulum_bob_offsets():
+		out.append(tip + o)
+	return out
+
+
+func _draw_pendulum() -> void:
+	for cell in pendulum_rod(_snow):
+		draw_rect(Rect2(float(cell.x), float(cell.y), 1, 1), col)
+	var r := maxf(1.0, float(w) * 0.5)
+	var tip := pendulum_tip(_snow)
+	for o in pendulum_bob_offsets():
+		var lit := 1.0 + 0.35 * (-float(o.x) - float(o.y)) / maxf(1.0, r * 2.0)        # lit from the upper left
+		draw_rect(Rect2(float(tip.x + o.x), float(tip.y + o.y), 1, 1), Color(minf(col.r * lit, 1.0), minf(col.g * lit, 1.0), minf(col.b * lit, 1.0), col.a))
+
+
+## A lava lamp: a pool of wax at the foot and three blobs rising off it on their own slow tides inside a glass that narrows toward the top (w wide at the foot, h tall). At this size a round
+## blob is a plus sign, so each is a little rounded block of whole pixels: width and height in px, a lit corner and a dark underside, its height stretching a pixel as it climbs.
+const LAVA_BLOBS := [[4, 3, 11.0, 0.0, 0.7, 0.5, 0.38], [3, 2, 8.3, 2.1, 0.9, 0.75, 0.66], [2, 2, 6.1, 4.0, 1.2, 0.95, 0.5]]      # width px, height px, period s, phase s, sway px, how high it climbs (0..1), where across the glass it lives (0..1)
+
+
+## The glass's width at row `y` (0 at the top): it tapers from `w` at the foot to a little over half that at the cap.
+func lava_glass_width(y: float) -> float:
+	return lerpf(float(w), float(w) * 0.55, 1.0 - clampf(y / maxf(1.0, float(h)), 0.0, 1.0))
+
+
+## Blob `i` at `at_time` as a whole-pixel Rect2i inside the glass: it rises from the pool, stretches a pixel in mid-climb, drifts a little side to side and is never wider than the glass at its top row.
+func lava_blob_rect(i: int, at_time: float) -> Rect2i:
+	var b: Array = LAVA_BLOBS[i]
+	var k := 0.5 - 0.5 * cos(TAU * (at_time + float(b[3])) / float(b[2]))               # 0 resting on the pool .. 1 at the top of its climb, slowly
+	var hp := int(b[1]) + (1 if k > 0.3 and k < 0.75 else 0)
+	var bottom := float(h) - 2.0 - k * float(b[5]) * (float(h) - 3.0)
+	var top := maxi(1, roundi(bottom) - hp)                                              # never into the glass's narrow cap
+	var width_here := lava_glass_width(float(top))
+	var lo := ceili((float(w) - width_here) * 0.5)                                      # the glass's inside at this height, in whole pixels
+	var he := floori((float(w) + width_here) * 0.5)
+	var wp := mini(int(b[0]), maxi(1, he - lo))
+	var left := roundi(float(w) * float(b[6]) + sin(TAU * (at_time + float(b[3])) / (float(b[2]) * 0.7)) * float(b[4]) - float(wp) * 0.5)
+	return Rect2i(clampi(left, lo, maxi(lo, he - wp)), top, wp, hp)
+
+
+func _draw_lava() -> void:
+	var lit := Color(minf(col.r * 1.35, 1.0), minf(col.g * 1.35, 1.0), minf(col.b * 1.35, 1.0), 0.97)
+	var body := Color(col.r, col.g, col.b, 0.96)
+	var under := Color(col.r * 0.78, col.g * 0.78, col.b * 0.78, 0.96)
+	draw_rect(Rect2(1, h - 1, w - 2, 1), under)                                          # the pool: a broad dark foot with a rounder lit head on it
+	draw_rect(Rect2(2, h - 2, w - 4, 1), body)
+	for i in range(LAVA_BLOBS.size()):
+		var r := lava_blob_rect(i, _snow)
+		for yy in range(r.size.y):
+			for xx in range(r.size.x):
+				if r.size.x >= 4 and (yy == 0 or yy == r.size.y - 1) and (xx == 0 or xx == r.size.x - 1):
+					continue                                                              # a wide blob has rounded corners
+				var c := body
+				if yy == 0 and xx == 0 or (yy == 0 and r.size.x <= 2):
+					c = lit
+				elif yy == r.size.y - 1:
+					c = under
+				draw_rect(Rect2(r.position.x + xx, r.position.y + yy, 1, 1), c)
+
+
+## A cigarette's tip and its smoke: ten puffs a few seconds old at a time (close enough to read as one thread), each rising, swaying and fading.
+const SMOKE_LIFE := 3.6
+const SMOKE_PUFFS := 10
+
+
+## Puff `i` at `at_time`: x, y (px from the ember at (0, 0), y up is negative) and alpha 0..0.5 — it fades in over the first eighth of its life, then out.
+func smoke_puff(i: int, at_time: float) -> Vector3:
+	var f := fmod(at_time + SMOKE_LIFE * float(i) / float(SMOKE_PUFFS), SMOKE_LIFE) / SMOKE_LIFE
+	var y := -1.0 - f * float(h)
+	var x := sin(f * TAU * 1.4 + float(i) * 1.9) * float(w) * (0.25 + 0.75 * f)
+	var a := (1.0 - f) * (0.42 if f > 0.12 else 0.42 * f / 0.12)
+	return Vector3(x, y, a)
+
+
+func _draw_smoke() -> void:
+	var ember := 0.65 + 0.35 * sin(_snow * 2.1)
+	draw_rect(Rect2(0, 0, 1, 1), Color(1.0, 0.45 * ember + 0.1, 0.18, 0.55 + 0.4 * ember))
+	for i in range(SMOKE_PUFFS):
+		var pf := smoke_puff(i, _snow)
+		var f := fmod(_snow + SMOKE_LIFE * float(i) / float(SMOKE_PUFFS), SMOKE_LIFE) / SMOKE_LIFE
+		draw_rect(Rect2(roundf(pf.x), roundf(pf.y), 2 if f > 0.45 else 1, 1), Color(col.r, col.g, col.b, pf.z))
 
 
 func _draw_drip() -> void:

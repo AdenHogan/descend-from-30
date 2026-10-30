@@ -491,16 +491,13 @@ def d_wall(c):
 
 
 def d_decor(c):
-    # a pair of SILHOUETTE cameos in oval frames, the couple turned to face each other — the furniture library's own pair (wall_art3d.cameos), hung 22 px apart here; his glass cracked
+    # a pair of framed portraits, a man and a woman side by side - the furniture library's own (owner round 49f: the oval cameos "look like weird dinner plates"); his glass cracked
     import furn_embed as FE
-    FE.lay(c, 'cameos', 'pair', 112, 27, floor=False, override={'draw': _cameos_wide})
+    import portrait_gallery as PG
+    FE.lay(c, 'picture_portrait', 'p%02d' % PG.pick('woman', 'oil'), 100, 24, floor=False)
+    FE.lay(c, 'picture_portrait', 'p%02d' % PG.pick('man', 'oil'), 130, 24, floor=False)
     for (ax, ay, bx, by) in ((147, 32, 149, 29), (147, 32, 150, 34), (147, 32, 144, 30)):   # a star crack in his glass
         c.line(ax, ay, bx, by, hexc('f4f0e4', 150))
-
-
-def _cameos_wide(c, ox, oy, p):
-    import wall_art3d
-    wall_art3d.cameos(c, ox, oy, dict(p, gap=22))
 
 
 @persp

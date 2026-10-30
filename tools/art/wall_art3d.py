@@ -178,54 +178,6 @@ def sampler_home(c, ox, oy, p):
     W.glint(c, (ix0, iy0, ix1, iy1), 34)
 
 
-def cameos(c, ox, oy, p):
-    """A pair of cameos in oval gilt frames: each frame a convex ring (a dark outer edge, a lit upper-left arc, a mid band, a shaded lower-right arc), a black velvet rebate, the cream
-    cameo with a soft vignette and the silhouette in profile; a bow of ribbon on the cord, a shadow on the wall."""
-    cord = hexc('4a3e30')
-    gap = int(p.get('gap', 18))                                                    # the distance between the two centres (a baked room hangs them further apart)
-    for k, flip in enumerate((1, -1)):
-        cx = ox + 10 + k * gap
-        cy = oy + 11
-        rx, ry = 8.2, 10.4
-        for y in range(int(cy - ry) - 1, int(cy + ry) + 3):                       # the cast shadow, an oval offset down-right
-            for x in range(int(cx - rx) - 1, int(cx + rx) + 3):
-                if ((x + 0.5 - (cx + 1.2)) / rx) ** 2 + ((y + 0.5 - (cy + 1.2)) / ry) ** 2 <= 1.0:
-                    W.px(c, x, y, hexc('000000', 46))
-        for y in range(int(cy - ry) - 1, int(cy + ry) + 2):                       # the gilt ring, shaded by its own roundness
-            for x in range(int(cx - rx) - 1, int(cx + rx) + 2):
-                u, v = (x + 0.5 - cx) / rx, (y + 0.5 - cy) / ry
-                q = u * u + v * v
-                if q > 1.0:
-                    continue
-                if q > 0.84:                                                       # the ring: convex, lit toward the upper left
-                    lam = 0.5 - 0.5 * (u * 0.7 + v * 0.7) / max(0.01, math.sqrt(q))
-                    col = shade(hexc('c9a24e'), 0.55 + 0.95 * lam)
-                    if q > 0.96:
-                        col = shade(hexc('7a5e24'), 0.9)                           # the outer edge
-                    W.px(c, x, y, col)
-                elif q > 0.76:
-                    W.px(c, x, y, hexc('3a2a14'))                                  # the rebate
-                else:
-                    t = 1.0 - q
-                    W.px(c, x, y, shade(hexc('e8dcc0'), 0.80 + 0.28 * t))         # the cameo's paper, darker toward its edge
-        for (dx, dy) in ((-5, -4), (-6, -3), (-4, -6)):                           # a bright catch on the ring's lit arc
-            W.px(c, int(cx + dx), int(cy + dy), hexc('fff0b0'))
-        sil = hexc('1c1418')                                                       # the silhouette, in profile, facing in
-        K.ell(c, cx - 0.5 * flip, oy + 8.5, 2.7, 3.4, sil)
-        nx = int(cx + 3 * flip) - (1 if flip < 0 else 0)
-        c.put(nx, oy + 9, sil); c.put(nx, oy + 10, sil)
-        c.rect(int(cx - 2), oy + 11, int(cx), oy + 13, sil)
-        for yy in range(oy + 13, oy + 19):
-            hw = 2 + (yy - (oy + 13))
-            c.hline(int(cx - 1) - hw, int(cx - 1) + hw, yy, sil)
-        (c.put(int(cx - 1) - flip * 4, oy + 8, sil) if k == 1 else c.put(int(cx - 1) - flip * 4, oy + 7, sil))
-        W.px(c, int(cx), oy - 1, cord)
-    c.hline(ox + 10, ox + 10 + gap, oy, cord)
-    bx = ox + 10 + gap // 2                                                                   # the ribbon bow where the cords meet
-    for (dx, dy, col) in ((-2, 1, 'a8322a'), (-1, 1, 'c8483a'), (1, 1, 'c8483a'), (2, 1, 'a8322a'), (0, 1, '7a2018'), (-1, 2, 'a8322a'), (1, 2, 'a8322a')):
-        W.px(c, bx + dx, oy - 1 + dy, hexc(col))
-
-
 def map_street(c, ox, oy, p):
     """A large street map pinned to the wall: folded paper (a vertical and a horizontal crease, a curling corner, a speckle of fibre), tinted blocks with a lit and a shaded edge,
     streets with kerbs, a park with trees, a river with banks and a bridge, tiny grey labels, a compass rose, and coloured pins that each cast their own shadow."""
@@ -484,7 +436,7 @@ def tv_wall(c, ox, oy, p):
     for y in range(oy + 2, yb + 2):
         W.px(c, xr + 1, y, hexc('000000', 56))
     W.prect(c, mid - 5, yb + 1, mid + 6, yb + 1, hexc('3a3c44'))
-    if p.get('cable', True):
+    if p.get('cable', False):                                                         # (owner round 49f: "the wire under the TV just disappears. We need to remove that wire" - no cable is drawn any more)
         for k in range(5):                                                          # the cable: a 2 px dark cord with a lit edge, hanging then bending
             W.px(c, mid + 1, yb + 2 + k, hexc('2a2a30')); W.px(c, mid, yb + 2 + k, hexc('4a4c54'))
         for k in range(5):

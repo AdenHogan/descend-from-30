@@ -64,59 +64,6 @@ def frame_family(c, ox, oy, p):
     W.glint(c, (ix0, iy0, ix1, iy1))
 
 
-# ================================================================================================================================ the wedding photo
-@piece('photo_wedding', 29, 33, 'decor', rooms={'bedroom': 4, 'living_room': 4}, styles={'sick': 6, 'adult': 2}, tags=('picture',), wall_y=(24, 40), limit=1,
-       note='a sepia wedding portrait in an oval mat: the bride in a veil and white dress, the groom in a dark suit')
-def photo_wedding(c, ox, oy, p):
-    ix0, iy0, ix1, iy1 = W.frame(c, ox, oy + 5, ox + 28, oy + 32, 'walnut', mat=hexc('d8c8a4'), thick=1, lip=False, hang='wire', matw=2)
-    cx, cy = (ix0 + ix1) / 2.0 + 0.5, (iy0 + iy1) / 2.0 + 0.5
-    rx, ry = (ix1 - ix0) / 2.0 + 0.5, (iy1 - iy0) / 2.0 + 0.5
-    sepia = [hexc('2a1e14'), hexc('4a3424'), hexc('7a5e44'), hexc('a8896a'), hexc('d8c09a'), hexc('efe2c6')]
-    mat = hexc('d8c8a4')
-    c.rect(ix0, iy0, ix1, iy1, mat)                                                              # the mat, with an oval window cut in it
-    def in_oval(x, y, lim):
-        u, v = (x + 0.5 - cx) / rx, (y + 0.5 - cy) / ry
-        return u * u + v * v <= lim
-    for y in range(iy0, iy1 + 1):
-        for x in range(ix0, ix1 + 1):
-            if in_oval(x, y, 1.0):
-                u, v = (x + 0.5 - cx) / rx, (y + 0.5 - cy) / ry
-                c.put(x, y, mix(sepia[3], sepia[2], min(1.0, (u * u + v * v) * 0.95)))             # a studio backdrop, vignetted
-    L = K.Layer(c)
-    lc = L.c
-    mid = int(cx)
-    base = iy1 - 2
-    gx, bx = mid - 5, mid + 5
-    skin, hair = sepia[4], sepia[1]
-    # the groom: dark shoulders, a white shirt front and tie, a round head with short dark hair
-    lc.ellipse(gx, base + 3, 6.4, 6.4, sepia[0])
-    lc.poly([(gx - 2, base - 3), (gx + 2, base - 3), (gx, base + 1)], sepia[5])
-    lc.vline(gx, base - 2, base + 1, sepia[1])
-    lc.ellipse(gx, base - 7.5, 3.0, 3.9, skin)
-    lc.ellipse(gx, base - 10.8, 3.1, 1.9, hair)
-    lc.put(gx - 1, base - 8, sepia[0]); lc.put(gx + 1, base - 8, sepia[0])
-    lc.hline(gx - 1, gx + 1, base - 5, sepia[2])
-    # the bride: a veil round her head, a white dress, a bouquet held low
-    lc.ellipse(bx, base - 7.5, 5.3, 7.2, sepia[5])
-    lc.ellipse(bx, base + 3, 6.4, 6.4, sepia[5])
-    lc.hline(bx - 5, bx + 5, base - 2, sepia[4])
-    lc.ellipse(bx, base - 7.0, 2.8, 3.7, skin)
-    lc.ellipse(bx, base - 10.2, 3.0, 1.8, hair)
-    lc.put(bx - 1, base - 8, sepia[0]); lc.put(bx + 1, base - 8, sepia[0])
-    lc.hline(bx - 1, bx + 1, base - 5, sepia[2])
-    lc.rect(bx - 2, base - 3, bx + 2, base, sepia[3]); lc.put(bx, base - 3, sepia[5]); lc.put(bx - 2, base, sepia[2]); lc.put(bx + 2, base - 2, sepia[5])
-    for y in range(lc.h):                                                                         # keep the figures inside the oval
-        for x in range(lc.w):
-            if lc.px[x, y][3] and not (ix0 <= x <= ix1 and iy0 <= y <= iy1 and in_oval(x, y, 0.88)):
-                lc.px[x, y] = (0, 0, 0, 0)
-    L.flush(outline=False)
-    for y in range(iy0, iy1 + 1):                                                                # the window's thin gilt edge
-        for x in range(ix0, ix1 + 1):
-            if in_oval(x, y, 1.0) and not in_oval(x, y, 0.88):
-                c.put(x, y, GILT_DK)
-    W.glint(c, (ix0, iy0, ix1, iy1), 34)
-
-
 # ================================================================================================================================ the HOME sampler
 @piece('sampler_home', 22, 17, 'decor', rooms={'bedroom': 3, 'living_room': 3, 'kitchen': 3}, styles={'sick': 6, 'adult': 2}, tags=('picture',), wall_y=(24, 40), limit=1,
        note='a cross-stitched HOME in a walnut frame: stitched letters, a heart, a border of little flowers')

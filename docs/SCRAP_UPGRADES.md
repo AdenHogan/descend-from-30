@@ -72,7 +72,7 @@ Owner, on the first bench: *"add a plain Lv2 that's a taste of upgrading — mor
 | Level | What it is | Cost | Gives |
 |---|---|---|---|
 | Lv1 | as found | | |
-| **Lv2 Reinforced** | the plain first step, every weapon | 30 scrap, no spare | **+15 % durability and nothing else** (`R_melee` / `R_gun`; owner round 49f: *"this upgrade can just simply improve durability by 15%"* — it was +1 damage / +5 % to hit and ×1.5 durability, which read as "half as much durability again"). No pick, **no tuning points** |
+| **Lv2 Reinforced** | the plain first step, every weapon | 30 scrap, no spare | **+1 damage (a gun: +5 % to hit, head and body) AND +15 % durability** (`R_melee` / `R_gun`; owner round 49f: the durability was ×1.5, which read as "half as much again", and was made a plain +15 % — then, on the owner's correction, *"restore the damage and/or percentage increase to hit… we weren't meant to remove that, only make it clear what was happening to durability"*: the damage / to-hit bonus is back, the bench's "gives" line spells out both). No pick, **no tuning points** |
 | Lv3 | pick of two (tree weapons) or two special mods | 50 scrap, no spare | + 2 tuning points |
 | Lv4 | pick of two | 80 scrap + a spare | + 2 points |
 | **Lv5 LEGENDARY** | a TITLE; renamable | 100 scrap + a spare of Lv4 | + 2 points (6 in all) |

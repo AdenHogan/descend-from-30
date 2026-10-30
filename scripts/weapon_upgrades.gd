@@ -5,7 +5,7 @@ extends RefCounted
 #
 # A weapon climbs EIGHT levels:
 #   Lv2    REINFORCED      — the first, CHEAP step (30 scrap, no spare, no choice, no tuning points): the
-#                            weapon is simply tougher and hits harder (owner round 48i: "a taste of
+#                            weapon is tougher (+15% durability) and hits harder (+1 damage / +5% to hit) (owner round 48i: "a taste of
 #                            upgrading" — `R_melee` / `R_gun` below). Every weapon, always, so a character
 #                            who reaches the first bench has something affordable to try.
 #   Lv3-4  ordinary        — every level-up from here grants TUNING POINTS the player spends on the
@@ -51,7 +51,7 @@ const HEIRLOOM := {
 
 # EVERY level-up toughens the weapon (owner round 49f: "make all upgrades improve the durability regardless"): each level
 # above Reinforced multiplies its durability by this, on top of whatever the level's pick and tuning give. Reinforced itself
-# is exactly this and nothing else (R_melee / R_gun: "+15% durability").
+# is this plus its own damage / to-hit bonus (R_melee / R_gun: "+1 damage and +15% durability", "+5% to hit and +15% durability").
 const LEVEL_DURABILITY := 1.15
 
 const POINTS_PER_LEVEL := 2          # tuning points each level above REINFORCE_LEVEL grants (Lv3 = 2, Lv5 = 6, Lv8 = 12)
@@ -125,10 +125,11 @@ const TREES := {
 # mods: stat → {"add": x} and/or {"mult": x}; flags: qualitative behaviours read by the combat code.
 const PERKS := {
 	# --- the first step, every weapon (Lv2): applied by the bench itself, never offered as a choice. No "title" key: it doesn't say what a legendary weapon is best at. ---
-	"R_melee": {"name": "Reinforced", "desc": "+15% durability.",
-		"mods": {"durability": {"mult": 1.15}}},
-	"R_gun": {"name": "Reinforced", "desc": "+15% durability.",
-		"mods": {"durability": {"mult": 1.15}}},
+	# (owner round 49f: the damage / to-hit bonus STAYS — "we weren't meant to remove that, only make it clear what was happening to durability": durability is +15%, the old "half as much again" read as a bug.)
+	"R_melee": {"name": "Reinforced", "desc": "+1 damage and +15% durability.",
+		"mods": {"damage": {"add": 1}, "durability": {"mult": 1.15}}},
+	"R_gun": {"name": "Reinforced", "desc": "+5% to hit (head and body) and +15% durability.",
+		"mods": {"headshot": {"add": 0.05}, "body": {"add": 0.05}, "durability": {"mult": 1.15}}},
 	# --- Gun (the doc's tree) ---
 	"G_aim": {"name": "Aim Assist", "desc": "Steadier aim: +10% headshot and +10% body-hit chance.",
 		"mods": {"headshot": {"add": 0.10}, "body": {"add": 0.10}}, "title": "T_sights"},
@@ -353,7 +354,7 @@ static func gives_text(inst) -> String:
 		return " · ".join(parts)
 	parts.append("a pick of two upgrades" if not next_choices(inst).is_empty() else "every stat can go one rank higher")
 	parts.append("%d tuning points to spend" % POINTS_PER_LEVEL)
-	parts.append("+15%% durability")
+	parts.append("+15% durability")
 	if to_level == LEGENDARY_LEVEL:
 		parts.append("a NAME: it becomes legendary")
 	return " · ".join(parts)

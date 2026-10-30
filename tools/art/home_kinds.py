@@ -117,9 +117,9 @@ PIECE_KIND = {
     'ceiling_flush': 'ceiling_light', 'ceiling_paper': 'ceiling_light', 'ceiling_pendant': 'ceiling_light', 'light_bulb': 'ceiling_light', 'light_tube': 'ceiling_light',
     'light_dome_orange': 'ceiling_light', 'chandelier': 'chandelier',
     # decor
-    'banner_party': 'banner', 'calendar_wall': 'notice', 'cameos': 'portrait', 'clock_cuckoo': 'wall_clock', 'clock_regulator': 'wall_clock', 'clock_sunburst': 'wall_clock',
+    'banner_party': 'banner', 'calendar_wall': 'notice', 'clock_cuckoo': 'wall_clock', 'clock_regulator': 'wall_clock', 'clock_sunburst': 'wall_clock',
     'clock_wall': 'wall_clock', 'frame_family': 'portrait', 'height_chart': 'notice', 'map_street': 'notice', 'mirror_bath': 'bath_furnishing', 'mirror_wall': 'mirror',
-    'note_bills': 'notice', 'note_cat_food': 'notice', 'note_milk_eggs': 'notice', 'note_rent': 'notice', 'noticeboard': 'notice', 'photo_wedding': 'portrait',
+    'note_bills': 'notice', 'note_cat_food': 'notice', 'note_milk_eggs': 'notice', 'note_rent': 'notice', 'noticeboard': 'notice', 
     'picture_crayon': 'portrait', 'picture_landscape': 'art', 'picture_portrait': 'portrait', 'portraits_row': 'portrait', 'poster_film': 'poster', 'poster_game': 'poster',
     'poster_gig': 'poster', 'poster_map': 'poster', 'poster_rainbow': 'poster', 'print_hunting': 'hunting', 'sampler_home': 'portrait', 'shelf_jars': 'kitchen_ware',
     'sketches_wall': 'art', 'stag_head': 'hunting', 'tea_towel': 'kitchen_ware', 'timetable': 'notice', 'towel_rail': 'bath_furnishing', 'toy_shelf': 'toys', 'tv_wall': 'tv',

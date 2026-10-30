@@ -69,7 +69,7 @@ those rooms (its `rooms` weights); registration refuses a piece outside the boun
 | `piano_stool` | living_room, bedroom, study, dining_room | a piano stool stands wherever the piano does | `stool_piano` (BSLD) |
 | `plant_floor` | bedroom, living_room, dining_room, study | a tall plant in a big pot stands in a living space — never a kitchen or a bathroom | `plant_floor` (BSLD) |
 | `plant_small` | any room | a small plant on a sill, a shelf or a counter is anywhere | `plant_desk` (BTKSLD), `vase_flowers` (LD) |
-| `portrait` | bedroom, living_room, dining_room, study, kitchen | family photographs and portraits hang where the family lives — not the bathroom | `cameos` (LD), `frame_family` (BSLD), `photo_small` (BSLD), `photo_wedding` (BL), `picture_crayon` (BKL), `picture_portrait` (BSLD), `portraits_row` (LD), `sampler_home` (BKL) |
+| `portrait` | bedroom, living_room, dining_room, study, kitchen | family photographs and portraits hang where the family lives — not the bathroom | `frame_family` (BSLD), `photo_small` (BSLD), `picture_crayon` (BKL), `picture_portrait` (BSLD), `portraits_row` (LD), `sampler_home` (BKL) |
 | `poster` | bedroom, living_room, study, dining_room | a poster is in somebody's room | `poster_film` (BL), `poster_game` (BL), `poster_gig` (BSL), `poster_map` (BSL), `poster_rainbow` (BD) |
 | `pouf` | living_room, bedroom | a pouf is a living-room / bedroom seat | `pouf` (L) |
 | `radiator` | any room | every room is heated | `radiator` (BTSLD) |

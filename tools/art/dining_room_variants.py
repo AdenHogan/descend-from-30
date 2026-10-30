@@ -250,9 +250,8 @@ def grandfather_clock(c, x0, base):
     c.ellipse(x0 + 9, base - 64, 7, 7, hexc('e6ddc8'))
     c.ellipse(x0 + 9, base - 64, 7, 7, hexc('e6ddc8'))
     c.vline(x0 + 9, base - 69, base - 64, hexc('26262a')); c.line(x0 + 9, base - 64, x0 + 13, base - 62, hexc('26262a'))
-    c.rect(x0 + 6, base - 46, x1 - 6, base - 16, hexc('2a1d14'))                               # the pendulum window
-    c.vline(x0 + 9, base - 46, base - 24, F.BRASS)
-    c.ellipse(x0 + 9, base - 22, 3, 3, F.BRASS)
+    c.rect(x0 + 5, base - 46, x1 - 4, base - 16, hexc('2a1d14'))                               # the pendulum window, nine wide so a pendulum swings clear inside it
+    PX.anim(x0 + 9, base - 46, 'pendulum', fall=26, color='d8b860', w=3)                       # (owner round 49f: "the pendulum actually swinging every second") hung from the top of the window
 
 
 def c_strip(c):

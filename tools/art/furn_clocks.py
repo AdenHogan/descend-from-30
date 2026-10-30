@@ -140,7 +140,8 @@ def clock_sunburst(c, ox, oy, p):
 
 # ================================================================================================================================ the regulator
 @piece('clock_regulator', 16, 36, 'decor', rooms={'living_room': 5, 'dining_room': 4, 'study': 4, 'bedroom': 2}, styles={'adult': 4, 'sick': 2}, tags=('clock',), wall_y=(16, 30), limit=1,
-       note='a walnut regulator clock: a pediment with a finial, a dial in an arched case, a glass door over a brass pendulum and two weights, a plinth')
+       anims=({'kind': 'pendulum', 'dx': 7, 'dy': 24, 'fall': 5, 'w': 3, 'color': 'c8a050'},),
+       note='a walnut regulator clock: a pediment with a finial, a dial in an arched case, a glass door over a brass pendulum that SWINGS (module_anim `pendulum`, a swing a second) and two weights, a plinth')
 def clock_regulator(c, ox, oy, p):
     wood, wl, wd, wo = hexc('6a4430'), hexc('86583c'), hexc('4a2e20'), hexc('2a1810')
     x0, x1 = ox + 1, ox + 14
@@ -165,17 +166,17 @@ def clock_regulator(c, ox, oy, p):
     c.hline(ox + 3, ox + 12, top + 18, wd)                                                               # the waist
     _raised(c, ox + 3, top + 19, ox + 12, oy + 31, wood, wl, wd, wo)                                      # the glass door
     c.rect(ox + 4, top + 20, ox + 11, oy + 30, hexc('3a2a20'))
-    c.vline(ox + 7, top + 20, top + 25, hexc('a89050'))                                                   # the pendulum rod and its brass bob
-    K.sphere(c, ox + 7.5, top + 27.0, 2.6, 2.6, BRASS, gloss=True)
-    for wx in (ox + 5, ox + 10):                                                                          # two hanging weights
-        c.rect(wx, top + 21, wx + 1, top + 23, BRASS_DK)
+    # (no pendulum here: the rod and its brass bob are live — module_anim `pendulum`, hung from (ox + 7, oy + 24); the weights keep clear of its swing)
+    for wx in (ox + 4, ox + 11):                                                                          # two hanging weights, out against the case so the pendulum swings clear
+        c.rect(wx, top + 21, wx, top + 23, BRASS_DK)
     c.rect(x0 - 1, oy + 32, x1 + 1, oy + 35, wl)                                                         # the plinth
     c.hline(x0 - 1, x1 + 1, oy + 32, shade(wl, 1.25)); c.hline(x0 - 1, x1 + 1, oy + 35, wo)
 
 
 # ================================================================================================================================ the cuckoo clock
 @piece('clock_cuckoo', 16, 30, 'decor', rooms={'living_room': 3, 'kitchen': 4, 'dining_room': 4, 'bedroom': 1}, styles={'adult': 3, 'kid': 2, 'sick': 1}, tags=('clock',), wall_y=(16, 30), limit=1,
-       note='a chalet cuckoo clock: a shingled roof, a carved front with a little door and the bird half out, two pine-cone weights and a pendulum on chains')
+       anims=({'kind': 'pendulum', 'dx': 8, 'dy': 21, 'fall': 5, 'w': 3, 'color': 'c8a050'},),
+       note='a chalet cuckoo clock: a shingled roof, a carved front with a little door and the bird half out, two pine-cone weights on chains and a pendulum that SWINGS between them (module_anim `pendulum`)')
 def clock_cuckoo(c, ox, oy, p):
     wood, wl, wd, wo = hexc('7a5434'), hexc('96683e'), hexc('54381f'), hexc('2c1c10')
     roof, roof_lt = hexc('5a3a24'), hexc('7a5232')
@@ -195,9 +196,8 @@ def clock_cuckoo(c, ox, oy, p):
     c.line(int(ox + 7.5), int(oy + 18), int(ox + 7.5), int(oy + 16), hexc('222222')); c.line(int(ox + 7.5), int(oy + 18), int(ox + 9), int(oy + 18), hexc('222222'))
     for (lx, ly) in ((ox + 3, oy + 11), (ox + 12, oy + 11), (ox + 3, oy + 17), (ox + 12, oy + 17)):    # carved leaves in the corners
         c.put(lx, ly, wl)
-    for wx in (ox + 4, ox + 11):                                                                         # chains and pine-cone weights
+    for wx in (ox + 3, ox + 12):                                                                         # chains and pine-cone weights, out at the sides so the pendulum swings clear of them
         c.vline(wx, oy + 21, oy + 25, hexc('8a8a82'))
         K.sphere(c, wx + 0.5, oy + 27.0, 1.7, 2.2, hexc('8a6a3a'), gloss=False)
         c.put(wx, oy + 26, hexc('5a4020')); c.put(wx + 1, oy + 28, hexc('5a4020'))
-    c.vline(ox + 8, oy + 21, oy + 26, hexc('a89050'))                                                    # the pendulum
-    K.sphere(c, ox + 8.5, oy + 27.0, 1.5, 1.5, BRASS, gloss=True)
+    # (no pendulum here: it is live — module_anim `pendulum`, hung from (ox + 8, oy + 21))

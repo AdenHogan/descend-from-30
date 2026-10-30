@@ -75,6 +75,15 @@ metadata/kind = "flush"
 [node name="Anims" type="Node2D" parent="."]
 
 [node name="anim_0" type="Node2D" parent="Anims"]
+position = Vector2(113, 59)
+script = ExtResource("4_anim")
+metadata/kind = "pendulum"
+metadata/fall = 26
+metadata/color = "d8b860"
+metadata/w = 3
+metadata/h = 1
+
+[node name="anim_1" type="Node2D" parent="Anims"]
 position = Vector2(194, 101)
 script = ExtResource("4_anim")
 metadata/kind = "drip"
@@ -83,7 +92,7 @@ metadata/color = "7a1c26"
 metadata/w = 1
 metadata/h = 1
 
-[node name="anim_1" type="Node2D" parent="Anims"]
+[node name="anim_2" type="Node2D" parent="Anims"]
 position = Vector2(250, 85)
 script = ExtResource("4_anim")
 metadata/kind = "drip"

@@ -210,7 +210,9 @@ def jewel_box(c, ox, oy, p):
 @piece('lamp_lava', 10, 18, 'top', rooms={'bedroom': 3, 'living_room': 1}, styles={'teen': 8}, tags=('light', 'lamp'), on=('lamp',), limit=1,
        variants={'purple': {'liq': '8a3a9a', 'wax': 'f0902e', 'top': 'c46ad0'}, 'blue': {'liq': '2a5a9a', 'wax': '58e0c8', 'top': '4a90d0'},
                  'green': {'liq': '2a8a4a', 'wax': 'e8e04a', 'top': '4ac870'}, 'red': {'liq': '9a2a2a', 'wax': 'f0a83a', 'top': 'd84a3a'}},
-       lights=({'dx': 5, 'dy': -9, 'kind': 'lava', 'top': True},), note='a lava lamp — glowing wax in a tapered glass on a chrome base')
+       lights=({'dx': 5, 'dy': -9, 'kind': 'lava', 'top': True},),
+       anims=tuple({'kind': 'lava', 'dx': 2, 'dy': -15, 'w': 6, 'h': 10, 'color': wax, 'top': True, 'if': {'wax': wax}} for wax in ('f0902e', '58e0c8', 'e8e04a', 'f0a83a')),
+       note='a lava lamp — a tapered glass on a chrome base; the wax in it is a LIVE detail (module_anim `lava`): blobs rising, stretching and sinking on their own slow tides')
 def lamp_lava(c, ox, oy, p):
     liq, wax, topc = hexc(p['liq']), hexc(p['wax']), hexc(p['top'])
     chrome = hexc('aab0b6')
@@ -229,10 +231,7 @@ def lamp_lava(c, ox, oy, p):
             u = (x + 0.5 - cx) / r
             if u > -0.3:
                 lc.put(x, y, mix(shade(liq, 0.75 - 0.25 * max(0.0, u)), topc, 0.55 * (1.0 - f)))
-    # the wax: a big blob low, a drifting one and a bead near the top, each hot in the middle
-    for (bx, by, rx_, ry_) in ((cx - 0.4, oy - 8.2, 2.2, 1.8), (cx + 0.7, oy - 12.0, 1.3, 1.5), (cx - 0.5, oy - 14.8, 0.9, 0.9)):
-        K.sphere(lc, bx, by, rx_, ry_, wax, n=4, lo=0.7, hi=1.35)
-    lc.put(int(cx - 2), oy - 9, shade(wax, 1.6))
+    # the wax is NOT drawn here: it moves (owner round 49f, "let's make the lava lamp actually have animation") — module_anim.gd `lava` draws three blobs and a pool in this glass
     lc.vline(ox + 2, oy - 14, oy - 8, shade(liq, 1.7))                         # the glass's highlight
     # the metal cap
     K.frustum(lc, cx, oy - 19, oy - 16, 0.8, 1.9, chrome, ry_t=0.5, ry_b=0.8, gloss=True)

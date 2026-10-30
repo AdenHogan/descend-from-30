@@ -97,14 +97,18 @@ def magazines(c, ox, oy, p):
 
 @piece('ashtray_pack', 11, 7, 'top', rooms={'living_room': 4}, styles={'mid': 5, 'squat': 4, 'cosy': 2}, tags=('small',), on=('low',), limit=1,
        variants={'glass': {'col': '5a8a9a'}, 'tin': {'col': '9aa0a2'}},
-       note='an ashtray with a pack of cigarettes and a lighter beside it')
+       anims=({'kind': 'smoke', 'dx': 6, 'dy': -4, 'w': 3, 'h': 15, 'color': 'c8c8c8', 'top': True},),
+       note='an ashtray with a lit cigarette resting on its rim — the ember breathes and a thread of smoke curls up (module_anim `smoke`) — and a pack beside it')
 def ashtray_pack(c, ox, oy, p):
     col = hexc(p['col'])
     K.contact_shadow(c, ox + 5, oy + 0.5, 6, 1.2, 90)
     L = K.Layer(c)
     lc = L.c
     K.frustum(lc, ox + 3.5, oy - 3, oy - 1, 3.4, 3.0, col, ry_t=1.2, ry_b=0.9, inner=hexc('3a3430'), rim=shade(col, 1.3))
-    lc.put(ox + 3, oy - 3, hexc('d8d0c0')); lc.put(ox + 4, oy - 3, hexc('d8d0c0'))
+    lc.put(ox + 3, oy - 3, hexc('d8d0c0')); lc.put(ox + 4, oy - 3, hexc('d8d0c0'))              # two stubs in the bowl
+    lc.put(ox + 1, oy - 4, hexc('c89860'))                                                       # a lit cigarette laid across the rim: tan filter,
+    lc.hline(ox + 2, ox + 4, oy - 4, hexc('ece4d0'))                                             # white paper,
+    lc.put(ox + 5, oy - 4, hexc('7c776c'))                                                       # a grey stub of ash (the ember at ox + 6 is live — module_anim `smoke`)
     lc.rect(ox + 7, oy - 3, ox + 9, oy - 1, hexc('c8483a'))
     lc.hline(ox + 7, ox + 9, oy - 3, hexc('f0e8d0'))
     L.flush()
@@ -257,13 +261,6 @@ def stag_head(c, ox, oy, p):
         lc.put(cx + d * 2, oy + 18, hexc('f0d8a0'))
     lc.rect(cx - 1, oy + 25, cx + 1, oy + 27, hexc('2a1a14'))                                    # the nose
     L.flush()
-
-
-@piece('cameos', 38, 22, 'decor', rooms={'living_room': 4, 'dining_room': 3}, styles={'parlour': 9, 'formal': 4}, tags=('picture',), wall_y=(24, 36), limit=1, variants={'pair': {}},
-       note='a pair of silhouette cameos in oval gilt frames, the couple turned to face each other')
-def cameos(c, ox, oy, p):
-    import wall_art3d
-    wall_art3d.cameos(c, ox, oy, p)
 
 
 @piece('print_hunting', 26, 24, 'decor', rooms={'living_room': 4}, styles={'lodge': 8}, tags=('picture',), wall_y=(24, 40), limit=1, variants={'gilt': {}},

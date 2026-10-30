@@ -148,20 +148,35 @@ def typewriter(c, ox, oy, p):
     L.flush()
 
 
-@piece('globe', 14, 18, 'top', rooms={'study': 5}, styles={'library': 7, 'den': 4}, tags=('small',), on=('desk', 'small'), limit=1,
+@piece('globe', 14, 18, 'top', rooms={'study': 5}, styles={'library': 7, 'den': 4}, tags=('small',), on=('desk', 'small'), limit=1, edge=True,
        variants={'blue': {'sea': '3a5a8a'}, 'old': {'sea': 'b8a060'}},
        note='a globe on a wooden stand: tilted on its brass meridian, blue seas and pale continents (or a yellowed old one)')
 def globe(c, ox, oy, p):
+    """(owner round 49f: "this globe looks like it is floating") a round walnut foot with a lit rim and a brass ring, a stem you can see, the brass meridian arc that holds the sphere
+    running down to the stem, and the sphere sitting low on it, its shadow on the foot."""
     sea = hexc(p['sea'])
-    K.contact_shadow(c, ox + 7, oy + 0.5, 6, 1.2, 95)
+    wood, wood_lt, wood_dk = hexc('6a4630'), hexc('8a6446'), hexc('3e2818')
+    K.contact_shadow(c, ox + 7, oy + 0.5, 7, 1.4, 120)
     L = K.Layer(c)
     lc = L.c
-    K.cyl(lc, ox + 7, oy - 3, oy - 1, 3.6, hexc('5a3a26'), ry=1.0)
-    lc.vline(ox + 7, oy - 6, oy - 3, hexc('5a3a26'))
-    K.sphere(lc, ox + 7, oy - 11, 6.0, 6.0, sea, gloss=True)
-    for (dx, dy, r) in ((-2, -2, 2.4), (2, 1, 2.0), (-1, 3, 1.6)):
-        K.sphere(lc, ox + 7 + dx, oy - 11 + dy, r, r * 0.8, hexc('c8b880') if p['sea'] == '3a5a8a' else hexc('9a7a3a'))
-    lc.line(ox + 2, oy - 14, ox + 11, oy - 6, BRASS)
+    cx = ox + 7
+    K.cyl(lc, cx, oy - 2, oy - 1, 4.6, wood, ry=1.1, lo=0.62, hi=1.10)                     # the foot
+    lc.hline(cx - 3, cx + 3, oy - 2, wood_lt)                                              # its lit top edge
+    lc.hline(cx - 4, cx + 4, oy - 1, BRASS)                                                # a brass ring round the foot
+    lc.rect(cx - 1, oy - 6, cx, oy - 3, wood)                                              # the stem
+    lc.vline(cx - 1, oy - 6, oy - 3, wood_lt)
+    lc.vline(cx, oy - 6, oy - 3, wood_dk)
+    cy = oy - 11
+    K.sphere(lc, cx, cy, 5.6, 5.6, sea, gloss=True)
+    land = hexc('c8b880') if p['sea'] == '3a5a8a' else hexc('9a7a3a')
+    for (dx, dy, r) in ((-2, -2, 2.2), (2, 1, 1.9), (-1, 3, 1.5)):
+        K.sphere(lc, cx + dx, cy + dy, r, r * 0.8, land)
+    import math
+    for k in range(0, 17):                                                                 # the brass meridian: an arc round the right and lower side of the globe, down to the stem
+        t = math.radians(105 - k * 11.0)
+        mx, my = int(round(cx + 6.6 * math.cos(t))), int(round(cy - 6.6 * math.sin(t)))
+        lc.put(mx, my, BRASS if k % 3 else shade(BRASS, 1.3))
+    lc.put(cx, cy + 6, BRASS); lc.put(cx, cy + 7, BRASS) if cy + 7 < oy - 6 else None
     L.flush()
 
 

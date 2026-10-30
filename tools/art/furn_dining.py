@@ -289,7 +289,8 @@ def bottles_row(c, ox, oy, p):
 @piece('clock_grandfather', 20, 78, 'wall', rooms={'dining_room': 6, 'living_room': 3}, styles={'formal': 9, 'family': 2, 'parlour': 3, 'cosy': 1}, tags=('clock', 'storage'), depth=5,
        variants={'mahogany': {'wood': '6a3a2a'}, 'oak': {'wood': 'a07848'}},
        anchors=({'name': 'clock', 'dx': 10, 'dy': -40},), feet=(105, 108),
-       note='a grandfather clock: a hooded case with a pale round dial and roman numerals, a long glass door showing the brass pendulum and two weights, a plinth')
+       anims=({'kind': 'pendulum', 'dx': 10, 'dy': -45, 'fall': 25, 'w': 4, 'color': 'd8b860'},),
+       note='a grandfather clock: a hooded case with a pale round dial and roman numerals, a long glass door showing a brass pendulum that SWINGS (module_anim `pendulum`, a swing a second) between two weights, a plinth')
 def clock_grandfather(c, ox, oy, p):
     wood = hexc(p['wood'])
     wl, wd = shade(wood, 1.3), shade(wood, 0.6)
@@ -301,6 +302,7 @@ def clock_grandfather(c, ox, oy, p):
     c.rect(x0, top + 3, x1, top + 24, wood)                                                       # the hood
     c.vline(x0, top + 3, top + 24, wl)
     c.vline(x1, top + 3, top + 24, wd)
+    K.ell(c, (x0 + x1) / 2.0 + 0.5, top + 14, 7.0, 7.0, hexc('c8a050'))                          # a brass ring round the dial
     K.ell(c, (x0 + x1) / 2.0 + 0.5, top + 14, 6.4, 6.4, hexc('d6cdb6'))                          # the dial
     K.ell(c, (x0 + x1) / 2.0 + 0.5, top + 14, 5.2, 5.2, hexc('ece6d4'))
     for k in range(12):                                                                          # hour marks
@@ -309,14 +311,18 @@ def clock_grandfather(c, ox, oy, p):
     c.line(int((x0 + x1) / 2.0 + 0.5), top + 14, int((x0 + x1) / 2.0 + 0.5) + 2, top + 11, hexc('1a1410'))
     c.line(int((x0 + x1) / 2.0 + 0.5), top + 14, int((x0 + x1) / 2.0 + 0.5) - 1, top + 10, hexc('1a1410'))
     c.rect(x0 + 1, top + 25, x1 - 1, top + 28, wl)                                                # the waist
+    c.hline(x0 + 1, x1 - 1, top + 26, hexc('d8b860'))                                             # a brass band along it
     c.rect(x0 + 2, top + 29, x1 - 2, base - 12, wood)                                             # the long case with its glass door
     c.rect(x0 + 4, top + 31, x1 - 4, base - 14, hexc('2a2018'))
-    c.vline((x0 + x1) // 2 + 1, top + 31, top + 52, hexc('c8a050'))                              # the pendulum rod and bob
-    K.sphere(c, (x0 + x1) / 2.0 + 1.5, top + 52, 3.2, 3.2, hexc('d8b860'), gloss=True)
-    for wx in (x0 + 6, x1 - 6):                                                                  # two weights hanging
+    c.vline(x1 - 3, top + 29, base - 13, wd)                                                      # the door's hinge-side edge, in shadow
+    c.put(x1 - 3, top + 40, hexc('e8d080')); c.put(x1 - 3, top + 41, hexc('e8d080'))             # a brass catch
+    # (no pendulum here: the rod and its bob are live — module_anim `pendulum`, hung from (ox + 10, top + 31); the weights hang out at the sides so it swings between them)
+    for wx in (x0 + 4, x1 - 5):                                                                  # two weights hanging, two px wide, lit on the left
         c.vline(wx, top + 31, top + 44, hexc('8a7a50'))
-        c.rect(wx - 1, top + 45, wx + 1, top + 52, hexc('b89a48'))
-    c.vline(x0 + 5, top + 31, base - 14, hexc('9ab0b8'))                                          # the glass glint
+        c.rect(wx, top + 45, wx, top + 52, hexc('d0b058'))
+        c.rect(wx + 1, top + 45, wx + 1, top + 52, hexc('9a8038'))
+    for (gy0, gy1) in ((top + 31, top + 43), (top + 54, base - 14)):                              # the glass glint, down the door's own left edge (broken where the left weight hangs; the pendulum swings clear of it)
+        c.vline(x0 + 4, gy0, gy1, hexc('9ab0b8'))
     c.rect(x0, base - 11, x1, base - 5, wl)                                                       # the plinth
     c.hline(x0, x1, base - 11, shade(wl, 1.2))
     c.rect(x0 - 1, base - 4, x1 + 1, base - 1, wood)
@@ -387,30 +393,18 @@ def balloons(c, ox, oy, p):
     L.flush()
 
 
-@piece('portraits_row', 56, 28, 'decor', rooms={'dining_room': 5, 'living_room': 3}, styles={'formal': 9, 'parlour': 3}, tags=('picture',), wall_y=(24, 38), limit=1, variants={'three': {}},
-       note='three gilt-framed oil portraits hung in a row: a lady in a high collar, a man in a hat and a bearded gentleman, their eyes following the table')
+@piece('portraits_row', 78, 32, 'decor', rooms={'dining_room': 5, 'living_room': 3}, styles={'formal': 9, 'parlour': 3}, tags=('picture',), wall_y=(24, 38), limit=1, variants={'three': {}},
+       note='three oil portraits hung in a row: a lady, a gentleman and an old man — the gallery\'s painter at the same size as the single portrait (owner round 49f: "they look like Terrence and Phillip from South Park")')
 def portraits_row(c, ox, oy, p):
     import wallart as W
-    for k in range(3):
-        x0 = ox + k * 19
-        ix0, iy0, ix1, iy1 = W.frame(c, x0, oy, x0 + 16, oy + 24, 'gilt', mat=hexc('3a2e22'), thick=1, hang='wire', matw=1)
-        bg = (hexc('3a3a44'), hexc('2e3a3a'), hexc('3e3434'))[k]
-        c.rect(ix0, iy0, ix1, iy1, bg)
-        skin = hexc('e0b898')
-        cx = (ix0 + ix1) // 2
-        K.ell(c, cx, iy0 + 6, 2.8, 3.4, skin)                                                    # the face
-        c.rect(cx - 5, iy0 + 11, cx + 4, iy1, hexc('1c1c22'))                                    # the dark coat
-        c.rect(cx - 1, iy0 + 10, cx, iy0 + 12, skin)
-        if k == 0:
-            c.rect(cx - 3, iy0 + 2, cx + 3, iy0 + 3, hexc('5a3a22'))                             # hair, high collar
-            c.hline(cx - 3, cx + 2, iy0 + 11, hexc('ece6d4'))
-        elif k == 1:
-            c.rect(cx - 4, iy0 + 1, cx + 4, iy0 + 2, hexc('3a2a1a'))                             # a hat
-            c.rect(cx - 2, iy0 - 1, cx + 2, iy0 + 1, hexc('3a2a1a'))
-        else:
-            c.rect(cx - 2, iy0 + 8, cx + 2, iy0 + 9, hexc('3a2a1a'))                             # a beard
-        c.put(cx - 1, iy0 + 5, hexc('1a1410')); c.put(cx + 1, iy0 + 5, hexc('1a1410'))
-        W.glint(c, (ix0, iy0, ix1, iy1))
+    import portrait_gallery as PG
+    for k, (who, nth) in enumerate((('woman', 0), ('man', 0), ('old_man', 0))):
+        spec = PG.SPECS[PG.pick(who, 'oil', nth)]
+        spec = dict(spec, frame='gilt')
+        x0 = ox + k * 26
+        r = W.frame(c, x0, oy, x0 + 24, oy + 30, 'gilt', mat=hexc('3a2e22'), thick=1, hang='wire', lip=True, matw=1)
+        PG.paint(c, r[0], r[1], r[2], r[3], dict(spec, kind='oil'))
+        W.glint(c, r)
 
 
 @piece('gifts_pile', 26, 18, 'floor', keep='party', rooms={'dining_room': 5}, styles={'party': 9}, tags=('clutter', 'party'), limit=1,

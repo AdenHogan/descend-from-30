@@ -158,9 +158,9 @@ func _test_costs_and_feed() -> void:
 		var max_before: int = w.get_max_durability()
 		check(WorldState.upgrade_weapon(0, "") == "" and w.level == 2 and WeaponUpgrades.auto_perk(id, 2) in w.perks, "%s: Lv2 Reinforced for 30" % w.get_data().get("name", id))
 		if WeaponUpgrades.kind_of(id) == "melee":
-			check(int(w.perk_add("damage")) == 0 and w.get_max_durability() == int(round(max_before * 1.15)) and w.get_max_durability() > max_before, "…%s: only +15%% durability, nothing else (%d → %d)" % [id, max_before, w.get_max_durability()])
+			check(int(w.perk_add("damage")) == 1 and w.get_max_durability() == int(round(max_before * 1.15)) and w.get_max_durability() > max_before, "…%s: +1 damage AND +15%% durability (%d → %d)" % [id, max_before, w.get_max_durability()])
 		else:
-			check(is_equal_approx(w.perk_add("headshot"), 0.0) and w.shots_per_mark() == 6 and w.get_max_durability() == int(round(max_before * 1.15)) and w.get_max_durability() > max_before, "…the gun: only +15%% durability, no other change (%d → %d marks)" % [max_before, w.get_max_durability()])
+			check(is_equal_approx(w.perk_add("headshot"), 0.05) and is_equal_approx(w.perk_add("body"), 0.05) and w.shots_per_mark() == 6 and w.get_max_durability() == int(round(max_before * 1.15)) and w.get_max_durability() > max_before, "…the gun: +5%% to hit (head and body) AND +15%% durability (%d → %d marks)" % [max_before, w.get_max_durability()])
 
 
 func _test_perk_effects() -> void:
@@ -176,7 +176,7 @@ func _test_perk_effects() -> void:
 	check(plain.is_damaged, "(a plain gun still takes the damage)")
 	door.queue_free()
 	var aim := _gun(3, ["G_aim"])
-	check(is_equal_approx(aim.perk_add("headshot"), 0.10) and is_equal_approx(aim.perk_add("body"), 0.10), "Aim Assist: +10% head / +10% body (Reinforced adds none)")
+	check(is_equal_approx(aim.perk_add("headshot"), 0.15) and is_equal_approx(aim.perk_add("body"), 0.15), "Aim Assist: +10% head / +10% body on top of Reinforced's +5% (= +15%)")
 	var P = load("res://scripts/player.gd")
 	var p = P.new()
 	check(p.gunshot_noise_radius(_gun(4, ["G_aim", "G_silencer"])) == WorldState.NOISE_RADIUS["walk"], "Silencer: a shot is heard like footsteps")
@@ -234,7 +234,7 @@ func _test_melee_perks() -> void:
 		return [50 - z.current_hp, 50 - z2.current_hp, WorldState.get_max_stamina() - WorldState.stamina]
 	var a: Array = swing.call(plain, false)
 	var b: Array = swing.call(heavy, false)
-	check(a[0] > 0 and b[0] == a[0] + 1, "Heavy Head +1 (Reinforced adds no damage): +1 damage over a plain hammer (%d vs %d)" % [b[0], a[0]])
+	check(a[0] > 0 and b[0] == a[0] + 2, "Heavy Head +1 and Reinforced +1: +2 damage over a plain hammer (%d vs %d)" % [b[0], a[0]])
 	check(is_equal_approx(b[2], a[2] * 0.6), "Featherweight: 40%% less stamina (%.1f vs %.1f)" % [b[2], a[2]])
 	var c: Array = swing.call(heavy, true)
 	check(c[0] > 0 and c[1] > 0, "Sweeping Blow: both enemies in reach take the hit (%d, %d)" % [c[0], c[1]])
@@ -596,12 +596,12 @@ func _test_tuning() -> void:
 	var t := _hammer(4, ["H_heavy", "H_sweep"])
 	t.tuning = {"T_balance": 3, "T_handling": 2, "T_weight": 1}
 	check(is_equal_approx(t.perk_mult("stamina"), 0.7) and is_equal_approx(t.perk_mult("cooldown"), 0.84), "Balance ×0.7 stamina, Handling ×0.84 swing time")
-	check(int(t.perk_add("damage")) == 2, "Weight stacks with Heavy Head (+2; Reinforced adds none)")
+	check(int(t.perk_add("damage")) == 3, "Weight stacks with Heavy Head and Reinforced (+1 each = +3)")
 	var g := _gun(3, ["G_aim"])
 	g.tuning = {"T_drum": 2, "T_sights": 1, "T_oiled": 2, "T_handload": 1}
 	check(g.get_mag_cap() == ItemInstance.MAG_CAP + 4 + WorldState.get_gun_mag_bonus(), "Magazine +2 a rank")
-	check(is_equal_approx(g.perk_add("headshot"), 0.14) and g.shots_per_mark() == 9 and is_equal_approx(g.perk_add("free_shot"), 0.05),
-		"Sights / Oiled / Hand-loaded reach the gun")
+	check(is_equal_approx(g.perk_add("headshot"), 0.19) and g.shots_per_mark() == 9 and is_equal_approx(g.perk_add("free_shot"), 0.05),
+		"Sights / Oiled / Hand-loaded reach the gun (head: Reinforced 0.05 + Aim 0.10 + Sights 0.04)")
 	var back: ItemInstance = WorldState.instance_from_dict(JSON.parse_string(JSON.stringify(WorldState.instance_to_dict(t))))
 	check(back.tuning == {"T_balance": 3, "T_handling": 2, "T_weight": 1} and typeof(back.tuning["T_balance"]) == TYPE_INT,
 		"tuning survives a JSON save as ints (%s)" % str(back.tuning))

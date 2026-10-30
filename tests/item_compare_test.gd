@@ -82,7 +82,7 @@ func _ready() -> void:
 	print("[workbench levels count]")
 	var knife2 = _weapon("001", 2)
 	var c3: Dictionary = ItemCompare.card(knife2, knife)
-	check(_row(c3, "Damage")["tone"] == 0 and _row(c3, "Damage")["text"] == "1", "a Reinforced knife hits just as hard: the first bench step is only durability (%s)" % _row(c3, "Damage")["text"])
+	check(_row(c3, "Damage")["tone"] == 1 and _row(c3, "Damage")["text"] == "2" and "+1" in _row(c3, "Damage")["delta"], "a Reinforced knife hits for 2, one more than a plain one (%s %s)" % [_row(c3, "Damage")["text"], _row(c3, "Damage")["delta"]])
 	check(_row(c3, "Durability")["text"] == "8 / 8" and _row(c3, "Durability")["tone"] == 1, "…and lasts 15%% longer, 7 -> 8, which the card shows (%s)" % _row(c3, "Durability")["text"])
 
 	print("[only like against like]")
@@ -92,7 +92,7 @@ func _ready() -> void:
 	check(not _row(c4, "Close hit").is_empty() and not _row(c4, "Magazine").is_empty(), "…but it still shows its own numbers")
 	var gun2 = _weapon("004", 2)
 	var c5: Dictionary = ItemCompare.card(gun2, gun)
-	check(_row(c5, "Close hit")["tone"] == 0 and _row(c5, "Durability")["tone"] == 1, "a Reinforced gun aims the same but wears 15%% slower (%s)" % _row(c5, "Durability")["text"])
+	check(_row(c5, "Close hit")["tone"] == 1 and _row(c5, "Durability")["tone"] == 1, "a Reinforced gun hits 5%% more often and wears 15%% slower (%s, %s)" % [_row(c5, "Close hit")["text"], _row(c5, "Durability")["text"]])
 	var gun3 = _weapon("004", 3)
 	gun3.perks.append("G_aim")
 	check(_row(ItemCompare.card(gun3, gun), "Close hit")["tone"] == 1, "…and an Aim Assist gun hits more often at close range")

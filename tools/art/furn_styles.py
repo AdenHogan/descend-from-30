@@ -25,7 +25,6 @@ STYLES = {
     'mirror_wall': {'cosy': 3, 'mid': 3, 'parlour': 4, 'formal': 4, 'diner': 2},
     'newspaper_stacks': {'squat': 3, 'houseshare': 3, 'den': 2, 'radio': 3, 'library': 2},
     'photo_small': {'cosy': 4, 'parlour': 3, 'mid': 3, 'family': 3, 'formal': 2, 'den': 3, 'office': 2},
-    'photo_wedding': {'cosy': 2, 'parlour': 4},
     'picture_landscape': {'cosy': 6, 'mid': 3, 'lodge': 2, 'family': 5, 'formal': 2, 'diner': 2, 'den': 3, 'library': 2, 'office': 1},
     'picture_portrait': {'parlour': 5, 'cosy': 3, 'formal': 3, 'family': 2, 'library': 5, 'den': 2},
     'pizza_boxes': {'squat': 8, 'party': 2, 'houseshare': 3},

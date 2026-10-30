@@ -70,3 +70,12 @@ metadata/fall = 0
 metadata/color = "9ae0aa"
 metadata/w = 2
 metadata/h = 1
+
+[node name="anim_1" type="Node2D" parent="Anims"]
+position = Vector2(295, 70)
+script = ExtResource("4_anim")
+metadata/kind = "lava"
+metadata/fall = 0
+metadata/color = "d98a4a"
+metadata/w = 6
+metadata/h = 12

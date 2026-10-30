@@ -1108,6 +1108,10 @@ static func _fill_tops(st: Dictionary, chance: float) -> void:
 						break
 					pick -= span2
 				var x := rng.randi_range(at.x, at.y - w + 1)
+				if bool(rec.get("edge", false)):                           # a globe stands toward an END of the desk, not in the middle of it (owner round 49f); the roll above is kept so no other piece's draw moves
+					var at_low: bool = x - at.x <= (at.y - w + 1) - x
+					x = at.x + rng.randi_range(0, 2) if at_low else at.y - w + 1 - rng.randi_range(0, 2)
+					x = clampi(x, at.x, at.y - w + 1)
 				var vid := _vid(rng, rec, String(st["style"]))
 				var info := _sprite_for(rec, vid, float(x) + float(w) * 0.5)
 				var y_lo := int(host["y"]) + int(sl["dy"])
