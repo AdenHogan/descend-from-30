@@ -109,7 +109,7 @@ func _load_data() -> void:
 			"single_use": durability_data["single_use"],
 			"max_durability": durability_data["max_durability"],
 			"heals_states": durability_data["heals_states"],
-			"requires_battery": raw["ITEM_NAME"] == "Flashlight"
+			"requires_battery": raw["ITEM_NAME"] == "Torch"
 		}
 	
 	for item_name in data["ROOM_SPAWN_POOLS"]:

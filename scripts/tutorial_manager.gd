@@ -64,8 +64,8 @@ const LINES := {
 	"hall_force_break": "Damnit, it broke. I gotta get inside, fast.",
 	# --- Staged stairs gate ---
 	"stairs_key": "Wait, 3003 isn't downstairs, I need the spare key.",
-	"stairs_apts": "Hmmm, maybe I should search the other apartments before I descend.",
-	"stairs_choice": "That thing is dangerous. If I descend now, I might not be able to come back up. Should I leave these apartments unsearched?",
+	"stairs_apts": "Hmmm, maybe I should search the other flats before I descend.",
+	"stairs_choice": "That thing is dangerous. If I descend now, I might not be able to come back up. Should I leave these flats unsearched?",
 }
 
 var _awaiting: bool = false

@@ -40,11 +40,11 @@ def b_decor(c):
     def board(c):
         c.box(148, 20, 200, 52, hexc('9a7650'), hexc('3b2718'))                              # a corkboard
         c.dither(149, 21, 199, 51, hexc('86653f'), 0.3, pattern='random')
-        F.note(c, 152, 23, ['TAX', 'DUE!'])
-        F.sticky(c, 172, 25, 'PAY')
+        F.note(c, 152, 23, ['TAX', 'DUE'])
+        F.sticky(c, 172, 25, 'RENT')
         F.photo(c, 186, 24, 196, 35, [(hexc('e0c0a0'), hexc('6a4a2a'), hexc('d9c24a'), 5)]) # the kid
         F.pin(c, 191, 24)
-        F.sticky(c, 154, 38, 'CALL', col=hexc('e88aa0'))
+        F.sticky(c, 154, 38, 'BANK', col=hexc('e88aa0'))
         F.note(c, 172, 38, ['BACK', 'MON'], paper=hexc('dfe8ec'))
     F.moved(c, board, 0, -4)                  # hung clear of the monitor's top (round 23)
 

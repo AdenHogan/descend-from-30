@@ -724,7 +724,7 @@ func _elevator_ride_process(player) -> void:
 		HUD.hide_world_prompt(self)
 		return
 	if absf(player.global_position.x - ELEVATOR_X) < ELEVATOR_RIDE_RANGE:
-		HUD.show_world_prompt(self, "Elevator (powered)  [{interact}] Ride", Vector2(ELEVATOR_X, 300.0))
+		HUD.show_world_prompt(self, "Lift (powered)  [{interact}] Ride", Vector2(ELEVATOR_X, 300.0))
 		if Input.is_action_just_pressed("interact") and not TutorialManager.interact_guarded() and not _maintenance_door_is_nearer(player):
 			HUD.hide_world_prompt(self)
 			_board_elevator(elevator)
@@ -1574,7 +1574,7 @@ func _do_spawn_merchant() -> void:
 	# Rode the lift onto the merchant's own floor — they reclaim their elevator and
 	# grumble about it (docs/MAINTENANCE_ELEVATOR.md), then trade as normal.
 	if WorldState.spawn_source == "elevator":
-		HUD.show_dialogue("Merchant: You rode MY elevator? Cheeky. Fine — you're here now. Let's trade.", "", false, 4.5)
+		HUD.show_dialogue("Merchant: You rode MY lift? Cheeky. Fine — you're here now. Let's trade.", "", false, 4.5)
 
 func _spawn_world_drops(floor_num: int) -> void:
 	var scene_path = scene_file_path   # THIS scene — a pan backdrop is not the current scene yet

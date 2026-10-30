@@ -113,7 +113,7 @@ func _test_place_words() -> void:
 	WorldState.current_floor = 17
 	check(WorldState.place_in_words("res://scenes/building_floors.tscn") == "on Floor 17", "corridor")
 	WorldState.current_apartment_id = "1703"
-	check(WorldState.place_in_words("res://scenes/room.tscn") == "in apartment 1703 on Floor 17", "apartment")
+	check(WorldState.place_in_words("res://scenes/room.tscn") == "in flat 1703 on Floor 17", "apartment")
 	WorldState.current_apartment_id = ""
 	WorldState.current_floor = 0
 	check(WorldState.place_in_words("res://scenes/lobby.tscn") == "in the Lobby", "lobby")
@@ -297,7 +297,7 @@ func _test_escape_guard_and_summary() -> void:
 	var rows := {}
 	for r in WorldState.run_summary("Hammer Lv3"):
 		rows[r[0]] = r[1]
-	check(rows.get("Felled") == "7" and rows.get("Searched") == "12" and rows.get("Apartments looted") == "2", "kills / searches / apartments (%s)" % str(rows))
+	check(rows.get("Felled") == "7" and rows.get("Searched") == "12" and rows.get("Flats looted") == "2", "kills / searches / apartments (%s)" % str(rows))
 	# (owner round 48i: the dead felled, things searched and flats looted score Valour too - the card's line counts the same run tallies)
 	check(rows.get("Quests completed") == "1" and rows.get("Descent Valour") == "+%d" % Progression.valour_for_run(0, true, 1, 0, 0, 7, 12, 2), "quests + this run's Valour (%s)" % str(rows.get("Descent Valour")))
 	check(not rows.has("Residents aided"), "a fact that didn't happen isn't listed")

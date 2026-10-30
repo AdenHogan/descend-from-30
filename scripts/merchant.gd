@@ -12,9 +12,9 @@ extends Area2D
 const GREETINGS = [
 	"Got wares, if you've got notes, friend.",
 	"The lady on 22 cleaned me out of bandages, heh.",
-	"Don't ask how the elevator moves. Trade secret.",
+	"Don't ask how the lift moves. Trade secret.",
 	"Heh heh... always a pleasure, neighbour.",
-	"Everything's for sale. Except the elevator.",
+	"Everything's for sale. Except the lift.",
 ]
 
 const DOOR_OPEN_DISTANCE = 150.0

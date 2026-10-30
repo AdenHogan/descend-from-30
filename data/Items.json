@@ -33,8 +33,8 @@
       "PROPERTY_WEIGHT_SIZE": null
     },
     "005": {
-      "ITEM_NAME": "Canned Food",
-      "ITEM_DESCRIPTION": "You might not be hungry, but a thrown can makes a lot of noise. Could be a useful distraction.",
+      "ITEM_NAME": "Tinned Food",
+      "ITEM_DESCRIPTION": "You might not be hungry, but a thrown tin makes a lot of noise. Could be a useful distraction.",
       "VALUE_PROPERTY": "is_throwable",
       "PROPERTY_DURABILITY": "single use, throwable object",
       "PROPERTY_SPAWN_RARITY": 3,
@@ -113,7 +113,7 @@
       "PROPERTY_WEIGHT_SIZE": null
     },
     "015": {
-      "ITEM_NAME": "Flashlight",
+      "ITEM_NAME": "Torch",
       "ITEM_DESCRIPTION": "Hey, who turned out the lights?! It's shocking that at the end of the world, some people didn't pay their electricity bill!",
       "VALUE_PROPERTY": "is_tool",
       "PROPERTY_DURABILITY": "requires battery",
@@ -154,7 +154,7 @@
     },
     "020": {
       "ITEM_NAME": "Fuse",
-      "ITEM_DESCRIPTION": "Sometimes, a blown fuse is the difference between life and death. Fortunately all building circuit breakers use the same fuses! The elevator needs three.",
+      "ITEM_DESCRIPTION": "Sometimes, a blown fuse is the difference between life and death. Fortunately all building circuit breakers use the same fuses! The lift needs three.",
       "VALUE_PROPERTY": "is_tool, is_fuse",
       "PROPERTY_DURABILITY": "single use",
       "PROPERTY_SPAWN_RARITY": 1,
@@ -162,14 +162,14 @@
     },
     "021": {
       "ITEM_NAME": "Battery",
-      "ITEM_DESCRIPTION": "Who would have thought that the humble battery could be so useful for powering up lights, and elevators. For a time…",
+      "ITEM_DESCRIPTION": "Who would have thought that the humble battery could be so useful for powering up lights, and lifts. For a time…",
       "VALUE_PROPERTY": "is_tool",
       "PROPERTY_DURABILITY": "single use, holds charge state for power",
       "PROPERTY_SPAWN_RARITY": 2,
       "PROPERTY_WEIGHT_SIZE": null
     },
     "022": {
-      "ITEM_NAME": "Apartment Key",
+      "ITEM_NAME": "Flat Key",
       "ITEM_DESCRIPTION": "There's a lot of trusting neighbours in this building.",
       "VALUE_PROPERTY": "is_key",
       "PROPERTY_DURABILITY": "single use",
@@ -346,7 +346,7 @@
       "living_room": 0.5,
       "dining_room": 0
     },
-    "Canned Food": {
+    "Tinned Food": {
       "bedroom": 0,
       "kitchen": 3,
       "bathroom": 0,
@@ -426,7 +426,7 @@
       "living_room": 2,
       "dining_room": 0
     },
-    "Flashlight": {
+    "Torch": {
       "bedroom": 2,
       "kitchen": 1,
       "bathroom": 1,

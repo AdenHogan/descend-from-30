@@ -471,7 +471,7 @@ func _refresh() -> void:
 		portrait_rect.texture = tex
 	# Status header.
 	var where := "the Lobby" if WorldState.current_floor == 0 else "Floor %d" % WorldState.current_floor
-	status_text.text = "[b]Run %d — %s[/b]\nCondition: [b]%s[/b]\n%s\nFelled %d  ·  Scavenged %d\nLooted %d apartment%s" % [
+	status_text.text = "[b]Run %d — %s[/b]\nCondition: [b]%s[/b]\n%s\nFelled %d  ·  Scavenged %d\nLooted %d flat%s" % [
 		WorldState.current_run, WorldState.run_name(WorldState.current_run),
 		WorldState.health_word(), where,
 		WorldState.run_kills, WorldState.run_scavenged,

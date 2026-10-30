@@ -682,7 +682,7 @@ func _refresh_fuse_slots() -> void:
 func _fuse_box_prompt() -> String:
 	# What [E] will do, given how many fuses are fitted and how many the player carries.
 	if WorldState.elevator_powered:
-		return "Elevator powered  —  ride it from the corridor"
+		return "Lift powered  —  ride it from the corridor"
 	var loaded := WorldState.elevator_fuses_loaded
 	var need := WorldState.ELEVATOR_FUSES_NEEDED - loaded
 	var carried := WorldState.fuse_count()
@@ -693,19 +693,19 @@ func _fuse_box_prompt() -> String:
 
 func _fit_fuses() -> void:
 	if WorldState.elevator_powered:
-		HUD.show_feedback("The elevator's already powered — ride it from the corridor.")
+		HUD.show_feedback("The lift's already powered — ride it from the corridor.")
 		return
 	var carried := WorldState.fuse_count()
 	if carried <= 0:
 		var need := WorldState.ELEVATOR_FUSES_NEEDED - WorldState.elevator_fuses_loaded
-		HUD.show_feedback("The fuse box needs " + str(need) + " more fuse" + ("s" if need != 1 else "") + " to power the elevator.")
+		HUD.show_feedback("The fuse box needs " + str(need) + " more fuse" + ("s" if need != 1 else "") + " to power the lift.")
 		return
 	var fitted := WorldState.fit_fuses_from_inventory()
 	_refresh_fuse_slots()
 	if WorldState.elevator_powered:
 		# Power-on: elevator "ding" + a rising electrical whirr (a quick pitched-up ding).
 		_play_fuse_ding()
-		HUD.show_feedback("The box hums to life — the elevator is powered. Ride it from the corridor.")
+		HUD.show_feedback("The box hums to life — the lift is powered. Ride it from the corridor.")
 	else:
 		_play_fuse_click()
 		var loaded := WorldState.elevator_fuses_loaded

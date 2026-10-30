@@ -574,7 +574,7 @@ func run_summary(left_behind: String = "") -> Array:
 	out.append(["Felled", str(run_kills)])
 	out.append(["Searched", str(run_scavenged)])
 	if not run_apartments_looted.is_empty():
-		out.append(["Apartments looted", str(run_apartments_looted.size())])
+		out.append(["Flats looted", str(run_apartments_looted.size())])
 	var q: int = int(e.get("quests_completed", 0))
 	var n: int = int(e.get("npcs_aided", 0))
 	if q > 0:
@@ -1489,11 +1489,11 @@ func apply_time_tint(scene: Node, floor_num: int = -1) -> void:
 	cm.color = ambient_color(f)
 
 
-# Where the current character is, in words, for the end card ("on Floor 17", "in apartment
+# Where the current character is, in words, for the end card ("on Floor 17", "in flat
 # 1703 on Floor 17", "in the Lobby").
 func place_in_words(scene_path: String = "") -> String:
 	if scene_path.ends_with("room.tscn") and current_apartment_id != "":
-		return "in apartment %s on Floor %d" % [current_apartment_id, current_floor]
+		return "in flat %s on Floor %d" % [current_apartment_id, current_floor]
 	if current_floor <= 0:
 		return "in the Lobby"
 	return "on Floor %d" % current_floor

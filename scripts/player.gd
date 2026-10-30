@@ -2007,7 +2007,7 @@ func use_item(slot_index: int) -> void:
 		if target != "":
 			HUD.show_feedback(WorldState.key_display(target))
 		else:
-			HUD.show_feedback("Apartment Key")
+			HUD.show_feedback("Flat Key")
 	elif item_data.get("is_clothes", false):
 		# No crafting — three clothes are knotted AT a balcony during the lash.
 		HUD.show_feedback("Clothes for a balcony line — need 3 (have %d)." % WorldState.count_clothes())
