@@ -100,6 +100,14 @@ else
 	echo "FAIL   support audit — something would float above its furniture: see tools/art/support_audit.py and furnlib._settle_slots"; head -8 "$LOG_DIR/_support.log"
 	bad=$((bad + 1))
 fi
+# SYMMETRIC BASINS (owner round 49f, twice: "they need to be structurally looking sound on both sides, no lopsidedness… that bar above is clipping"): every basin (3 kinds x every place the planner or a
+# baked room puts one) is a mirror image about its own axis from the rim down, and its back deck lies wholly above the rim (tools/art/symmetry_audit.py).
+if python3 tools/art/symmetry_audit.py --check >"$LOG_DIR/_symmetry.log" 2>&1; then
+	echo "ok     symmetry audit ($(tail -1 "$LOG_DIR/_symmetry.log" | sed 's/^symmetry audit: //'))"
+else
+	echo "FAIL   symmetry audit — a lopsided or clipping basin: see tools/art/symmetry_audit.py and bathroom.basin3d"; head -8 "$LOG_DIR/_symmetry.log"
+	bad=$((bad + 1))
+fi
 # HOME LOGIC (owner round 48k: "this logic needs to be for everything… no one on earth has a piano in their kitchen"): every piece is a KIND of thing and a kind lists the only rooms a home could keep
 # it in; a floor piece says why a home keeps it there (a small plant is kept on a surface, only a tall one stands on a floor); the baked rooms' floor plants are tall; docs/HOME_LOGIC.md is current
 # (tools/art/home_logic.py, home_kinds.py). The rules are proven to FAIL by the script's own selftest and by tests/furniture_test.gd.

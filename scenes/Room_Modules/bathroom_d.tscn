@@ -26,7 +26,7 @@ texture = ExtResource("1_art")
 centered = false
 
 [node name="anchor_bathroom_small_sink" type="Marker2D" parent="."]
-position = Vector2(27, 70)
+position = Vector2(28, 72)
 
 [node name="anchor_bathroom_grim_toilet" type="Marker2D" parent="."]
 position = Vector2(70, 92)
@@ -55,10 +55,10 @@ metadata/kind = "bulb"
 [node name="Anims" type="Node2D" parent="."]
 
 [node name="anim_0" type="Node2D" parent="Anims"]
-position = Vector2(30, 67)
+position = Vector2(25, 71)
 script = ExtResource("4_anim")
 metadata/kind = "drip"
-metadata/fall = 7
+metadata/fall = 5
 metadata/color = "c8dce4"
 metadata/w = 1
 metadata/h = 1

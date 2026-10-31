@@ -89,22 +89,20 @@ _BASINS = {
 
 @_fixture('basin', 46, 40, rooms={'bathroom': 8}, styles={'tub': 8, 'pink': 8, 'wetroom': 8, 'avocado': 0.01, 'gilded': 0.01},
           tags=('basin', 'wet'), variants={k: {'t': k, 'for': v['forr']} for k, v in _BASINS.items()},
-          anchors=({'name': 'basin', 'dx': 9, 'dy': -46, 'if': {'t': 'pedestal'}}, {'name': 'wall_sink', 'dx': 21, 'dy': -40, 'if': {'t': 'pedestal'}},
-                   {'name': 'basin', 'dx': 9, 'dy': -46, 'if': {'t': 'pink'}}, {'name': 'wall_sink', 'dx': 24, 'dy': -38, 'if': {'t': 'pink'}},
-                   {'name': 'wall_sink', 'dx': 23, 'dy': -44, 'if': {'t': 'bracket'}}),
+          anchors=({'name': 'basin', 'dx': 10, 'dy': -48, 'if': {'t': 'pedestal'}}, {'name': 'wall_sink', 'dx': 29, 'dy': -38, 'if': {'t': 'pedestal'}},
+                   {'name': 'basin', 'dx': 10, 'dy': -48, 'if': {'t': 'pink'}}, {'name': 'wall_sink', 'dx': 29, 'dy': -38, 'if': {'t': 'pink'}},
+                   {'name': 'wall_sink', 'dx': 29, 'dy': -42, 'if': {'t': 'bracket'}}),     # (on the basin's own axis: the tumbler on the deck's left end, the sink node a hand right of the bowl's centre)
           note='a basin standing out from the wall, drawn in perspective so we look down into the bowl: a white pedestal basin with a tumbler of toothbrushes and a pump bottle on the rim, a pink one, or a small basin on iron brackets with a waste pipe, a drip and grime')
 def basin(c, ox, oy, p):
     spec = _BASINS[p['t']]
     cx = ox + 26
     if p['t'] == 'bracket':
-        c.vline(cx, 80, 99, IRON)                                                                    # the waste pipe, down the wall
-        c.rect(cx - 3, 92, cx + 3, 97, BR.RUST)
-        BR.basin3d(c, cx, **spec['kw'])
-        BR.grime_patch(c, cx - 19, 69, cx - 1, 72, hexc('8a7a5a'), seed=31, cover=0.55)             # grime in the basin
+        sx, _ = BR.basin3d(c, cx, **spec['kw'])                                                      # (its trap and waste pipe run back to the wall inside basin3d)
+        BR.grime_patch(c, sx - 14, 69, sx + 2, 72, hexc('8a7a5a'), seed=31, cover=0.55)             # grime in the basin
         return
     if p['t'] == 'pedestal':
-        BR.basin3d(c, cx, things={}, **spec['kw'])                                                    # the tumbler and bottle stand on the basin's own back deck (owner round 49f)
-        c.ellipse(cx - 2, 76, 2, 1, BLOOD)
+        sx, _ = BR.basin3d(c, cx, things={}, **spec['kw'])                                            # the tumbler and bottle stand on the basin's own back deck (owner round 49f)
+        c.ellipse(sx - 3, 78, 2, 1, BLOOD)
     else:
         BR.basin3d(c, cx, things=dict(mug=spec['mug'], bottle=spec['bottle']), **spec['kw'])
 

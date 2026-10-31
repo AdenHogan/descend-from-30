@@ -25,10 +25,10 @@ texture = ExtResource("1_art")
 centered = false
 
 [node name="anchor_basin_rim" type="Marker2D" parent="."]
-position = Vector2(6, 68)
+position = Vector2(8, 66)
 
 [node name="anchor_wall_sink" type="Marker2D" parent="."]
-position = Vector2(27, 74)
+position = Vector2(27, 76)
 
 [node name="anchor_centre_toilet" type="Marker2D" parent="."]
 position = Vector2(70, 92)

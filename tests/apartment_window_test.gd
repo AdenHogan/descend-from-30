@@ -58,7 +58,7 @@ func _test_seeded_side() -> void:
 
 func _balcony_count(apt: String) -> int:
 	var n := 0
-	for slot in range(3):
+	for slot in range(WorldState.apartment_span(apt)):
 		if WorldState.is_balcony_slot(apt, slot):
 			n += 1
 	return n
@@ -66,7 +66,7 @@ func _balcony_count(apt: String) -> int:
 
 func _expected_windows(apt: String) -> int:
 	var n := 0
-	for slot in range(3):
+	for slot in range(WorldState.apartment_span(apt)):
 		if not WorldState.is_balcony_slot(apt, slot):
 			n += 1
 	return n
@@ -115,7 +115,8 @@ func _test_windows_day() -> void:
 	check(mw != null, "the room builds its module walls")
 	if mw != null:
 		var bs: Array = mw.boundaries
-		check(bs.size() == 4, "4 walls: two ends + two partitions (%d)" % bs.size())
+		var span: int = WorldState.apartment_span(APT)                       # three rooms, or two for a two-room flat
+		check(bs.size() == span + 1, "%d walls: two ends + %d partitions (%d)" % [span + 1, span - 1, bs.size()])
 		var interior_doors := 0
 		var outside := 0
 		for b in bs:
@@ -123,7 +124,7 @@ func _test_windows_day() -> void:
 				interior_doors += 1
 			if b["outside"]:
 				outside += 1
-		check(interior_doors == 2, "both partitions have a doorway (%d)" % interior_doors)
+		check(interior_doors == span - 1, "every partition has a doorway (%d of %d)" % [interior_doors, span - 1])
 		check(outside == 1, "exactly one end is the entrance (doorway to the corridor) (%d)" % outside)
 		var mid: Dictionary = bs[1]
 		check(mw.facing_room(mid, float(mid["x"]) - 50.0) == mid["left"], "camera left of a partition sees the LEFT room's wall")
@@ -166,7 +167,8 @@ func _test_windows_day() -> void:
 		var r_edge: float = rw.position.x + rcol.position.x - rcol.shape.size.x / 2.0
 		check(absf(l_edge - room.wall_foot_left) < 0.5 and absf(r_edge - room.wall_foot_right) < 0.5,
 			"wall collision = the drawn wall's foot (L %.1f/%.1f, R %.1f/%.1f)" % [l_edge, room.wall_foot_left, r_edge, room.wall_foot_right])
-		check(room.wall_foot_left < 100.0 and room.wall_foot_right > 1086.0,
+		var short_by: float = 320.0 * float(3 - WorldState.apartment_span(APT))          # a two-room flat's right wall is a module nearer
+		check(room.wall_foot_left < 100.0 and room.wall_foot_right > 1086.0 - short_by,
 			"the player reaches further than the old tile walls (112 / 1074): %.1f / %.1f" % [room.wall_foot_left, room.wall_foot_right])
 		var door = room.get_node("Area2D")
 		var foot_entry: float = room.wall_foot_left if WorldState.get_entrance_side(APT) == "left" else room.wall_foot_right
@@ -288,7 +290,7 @@ func _test_exit_through_door() -> void:
 			var half_view: float = get_viewport().get_visible_rect().size.x / cam.zoom.x / 2.0
 			var cam_x: float = (float(cam.limit_left) + half_view) if left else (float(cam.limit_right) - half_view)
 			var mw = load("res://scripts/module_walls.gd")
-			var inner: float = (float(room.LEFT_WALL_X) + mw.HALF_T) if left else (float(room.LEFT_WALL_X + 3 * room.MODULE_WIDTH) - mw.HALF_T)
+			var inner: float = (float(room.LEFT_WALL_X) + mw.HALF_T) if left else (float(room.LEFT_WALL_X + WorldState.apartment_span(apt) * room.MODULE_WIDTH) - mw.HALF_T)
 			var face: float = cam_x + (inner - cam_x) * mw._s_for_floor(room.exit_door_floor_y())
 			check(absf((pts[0].x + pts[1].x) * 0.5 - (face + out * 9.5)) < 0.6,
 				"%s: the walk goes through the drawn door (face %.1f; threshold %.1f, beyond %.1f)" % [side, face, pts[0].x, pts[1].x])
@@ -459,6 +461,22 @@ func _test_live_kinds() -> void:
 	for b in range(3):
 		check(spots[b].size() >= 5, "wax blob %d moves (%d distinct places over a minute)" % [b, spots[b].size()])
 	lv.free()
+	# the night glow (owner round 49f: "if it's a night run, the lava lamp can glow a bit"): a coloured light and unshaded wax on run 3 only
+	var run_was: int = WorldState.current_run
+	var glow_seen := {}
+	for run in [1, 2, 3]:
+		WorldState.current_run = run
+		var gl: Node2D = mk.call("lava", 0, 6, 10, 20.0)
+		add_child(gl)
+		var light := gl.get_node_or_null("LavaGlow") as PointLight2D
+		var mat := gl.material as CanvasItemMaterial
+		glow_seen[run] = {"light": light != null, "unshaded": mat != null and mat.light_mode == CanvasItemMaterial.LIGHT_MODE_UNSHADED,
+			"energy": light.energy if light != null else 0.0}
+		gl.free()
+	WorldState.current_run = run_was
+	check(not bool(glow_seen[1]["light"]) and not bool(glow_seen[2]["light"]), "a lava lamp does not glow in the morning or the afternoon")
+	check(bool(glow_seen[3]["light"]) and bool(glow_seen[3]["unshaded"]), "on the night run it glows: a light in the glass and the wax drawn unshaded (%s)" % str(glow_seen[3]))
+	check(float(glow_seen[3]["energy"]) > 0.2 and float(glow_seen[3]["energy"]) <= 1.0, "…a little, not a floodlight (energy %.2f)" % float(glow_seen[3]["energy"]))
 	# the smoke: puffs fade in and out, rise to the top of their height and sway no wider than `w`
 	var sm: Node2D = mk.call("smoke", 0, 3, 15, 30.0)
 	var amax := 0.0

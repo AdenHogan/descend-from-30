@@ -10,7 +10,8 @@ extends Node2D
 #   static — a w×h screen of TV snow, now and then a bar rolling down it (a set left on)
 #   spin   — a glint going round a w×h ellipse (a record still turning on the platter)
 #   flies  — a few flies buzzing about a w×h patch (over what's left in a breach room)
-#   lava   — a lava lamp (owner round 49f): three blobs of wax (`color`) rising, stretching and sinking in a tapered w×h glass at their own slow paces
+#   lava   — a lava lamp (owner round 49f): three blobs of wax (`color`) rising, stretching and sinking in a tapered w×h glass at their own slow paces;
+#            on the NIGHT run it glows a little (`LAVA_GLOW_BY_RUN`: the wax is drawn unshaded and a small coloured light breathes with the blobs)
 #   smoke  — a cigarette left in an ashtray: its tip glows and breathes at (0, 0) and a thread of smoke (`color`) curls up `h` px, swaying `w` px, in little puffs that fade
 #   pendulum — a clock's pendulum: a rod `fall` px long hung from (0, 0) with a bob `w` px wide, swinging one way every second (a two-second period), the pivot fixed
 #   tv     — a big flat screen, struck (owner round 22): snow under a spider-web CRACK from an impact
@@ -23,6 +24,8 @@ extends Node2D
 # (static / tv) hisses softly, only when you're close; the turning record (spin) plays its stuck ten
 # seconds — the needle catches, a scratch, back to the start — across the module. Loudness follows
 # the PLAYER's distance (not the camera's), fading out by `reach`. Silent on a passive backdrop.
+
+const FloorLighting = preload("res://scripts/floor_lighting.gd")
 
 const SOUNDS := {
 	"static": ["res://assets/audio/ambience/tv_static.wav", -31.0, 24.0, 160.0],     # a LOW HUM, even up close (owner round 34)
@@ -43,6 +46,11 @@ var _sound: AudioStreamPlayer = null
 var _loud := 0.0
 var _near := 0.0
 var _reach := 0.0
+var _glow: PointLight2D = null
+
+## How strongly a lava lamp glows by run (owner round 49f: "if it's a night run, the lava lamp can glow a bit"): none by day or at dusk, a modest coloured pool at night.
+const LAVA_GLOW_BY_RUN := [0.0, 0.0, 0.0, 0.55]       # index = WorldState.current_run (1..3)
+const LAVA_GLOW_SCALE := 0.26                         # the round cookie is 256 px: 0.26 -> a ~67 px pool, a bit more than the lamp's own height
 
 
 func _ready() -> void:
@@ -72,6 +80,8 @@ func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	if SOUNDS.has(kind) and not _in_backdrop():
 		_start_sound(SOUNDS[kind])
+	if kind == "lava":
+		_start_glow()
 
 
 ## A screen under this live detail was switched off (open_furniture.gd, kind `screen_off`): the snow / the struck picture / the blinking light stops.
@@ -83,6 +93,29 @@ func screen_off(rect: Rect2) -> void:
 			_sound.stop()
 			_sound.queue_free()
 			_sound = null
+
+
+## Night: the wax is the lamp's own light, so it ignores the room's darkness, and a small coloured light sits in the glass.
+func lava_glow_strength() -> float:
+	return float(LAVA_GLOW_BY_RUN[clampi(int(WorldState.current_run), 0, LAVA_GLOW_BY_RUN.size() - 1)])
+
+
+func _start_glow() -> void:
+	if lava_glow_strength() <= 0.0:
+		return
+	var mat := CanvasItemMaterial.new()
+	mat.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
+	material = mat
+	if _in_backdrop():
+		return                                           # a pan backdrop shows the lit wax, not a second light
+	_glow = PointLight2D.new()
+	_glow.name = "LavaGlow"
+	_glow.texture = FloorLighting.light_texture()
+	_glow.texture_scale = LAVA_GLOW_SCALE
+	_glow.color = Color(minf(col.r * 1.15 + 0.1, 1.0), minf(col.g * 1.15 + 0.05, 1.0), minf(col.b * 1.15 + 0.1, 1.0))
+	_glow.energy = lava_glow_strength()
+	_glow.position = Vector2(float(w) * 0.5, float(h) * 0.5)
+	add_child(_glow)
 
 
 func _in_backdrop() -> bool:
@@ -138,6 +171,8 @@ func _process(delta: float) -> void:
 	_snow += delta
 	if _sound != null:
 		_update_sound()
+	if _glow != null:
+		_glow.energy = lava_glow_strength() * (0.85 + 0.15 * sin(_snow * 0.9 + float(position.x)))     # it breathes with the wax, no two lamps in step
 	queue_redraw()
 
 
