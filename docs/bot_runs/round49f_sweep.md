@@ -211,3 +211,18 @@ Engine findings in the run logs (excluding the exit-time leak notices): 2 distin
 - ×4 in 3 runs — `ERROR: Parameter "data.tree" is null.` at: get_tree (scene/main/node.h:549)
 - ×4 in 3 runs — `SCRIPT ERROR: Cannot call method 'call_group' on a null value.` at: _stop_live_screens (res://scripts/open_furniture.gd:137)
 
+
+
+## Replay of the pinned seeds (2026-10-31, after the anti-stuck fix)
+
+The owner asked for the seeds that pinned to be replayed ("we cannot have any stuck issues or soft locks"). Seeds 101, 102 and 104 x `need` / `safe` (6 playthroughs, 18 characters), built from `54e44995`.
+
+**Replay 1 (the build with the net-progress fix, no bot changes): it still pinned** — `need_101` and `safe_101` at floor 26 flat 2601 (`DOOR_TIMEOUT`, 75 s) and `need_102` at floor 25 flat 2503 (`NO_PROGRESS` + `DOOR_TIMEOUT`, 166 s). So the earlier "fixed" claim for those seeds was wrong.
+
+**The 2503 pin, from its `[stall]` trace, was the BOT, not the game**: the keys alternated `move_right` / `move_left` on EVERY physics frame (x 1024.98 <-> 1022.48, `real_v` +-150, `stuck=30.10`, `phased=2`). Unarmed (`gun(0)`, no hammer), the bot's `_brawl` walks toward the stairs (right) while the looter walks toward the door (left, flat 2503); a zombie standing on the player is "ahead" from one side of it and "behind" from the other, so the two controllers took turns every frame. The game was doing its part — the net had phased the player through both bodies — and a person holding one key would have walked on. (The earlier round-49f note that the pin was depenetration jitter of +-0.58 px was a different sample; this one is control thrash.) The 2601 stall lines carry no per-frame trace (only `NO_PROGRESS` prints one), so they are consistent with the same thrash (`unjam` 0.07 / 0.33 with the keys held, a crawler and a defender's fight overlapping the player) **but that is not proven**.
+
+**Bot changes** (`tools/bot_run.gd`, `tools/bot_loot.gd`): a THRASH BREAKER in `_walk` (8 reversals inside 1 s: hold the way last asked for 1.5 s, event `THRASH`), and a `[pin]` line once a second after 15 s of walking to one door (`diag(p)`; silent before, so a run that never gets stuck takes the path it always took).
+
+**Replay 2 (with those changes): 0 `DOOR_TIMEOUT`, 0 `NO_PROGRESS`, 0 `THRASH` events, 0 engine findings in all 6 logs.** `need_101` / `safe_101` / `need_102` all passed the flats that pinned before. **What that does and does not show:** the bots are real-time and chaotic (a traced run, with `--trace` printing, took a different path and never reached 2601 at all), so a clean replay is absence of evidence, not a proof; and since no THRASH fired the breaker was not what cleared them. The game itself was not changed for these pins.
+
+**Other anomalies in replay 2** (each seen, none a pin, none investigated today): `TAKE_NO_EFFECT` x2 (a 016 taken from a filing cabinet / a crate with nothing changing in the bag, one free slot), `DROP_NOT_TAKEN` x3 (three presses of [interact] on a 033 / 007 floor drop with a free slot and it stayed — a survivor offering [Talk] holds the press (`claim_interact_for_talk`), which would explain it, but that was not checked).

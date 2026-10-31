@@ -48,6 +48,7 @@ FLOOR_KEEPS = {
     'clothes':  dict(why='laundry is in a basket or a pile by the bed, the wardrobe or the bath', min_h=0, rooms=('bedroom', 'bathroom')),
     'toy':      dict(why='children leave toys on the floor where they played', min_h=0, rooms=('bedroom', 'living_room')),
     'rubbish':  dict(why='a bin, a bag of rubbish or an empty box is put on the floor until it is taken out', min_h=0, rooms=None),
+    'airer':    dict(why='washing is dried on an airer in the warm: the kitchen, a bedroom or the living room', min_h=0, rooms=('kitchen', 'bedroom', 'living_room')),
     'cleaning': dict(why='a mop and bucket stand where the mess is: the kitchen and the bathroom', min_h=0, rooms=('kitchen', 'bathroom')),
     'pet':      dict(why="a pet is fed on the floor, in a corner of the kitchen or the room it lives in", min_h=0, rooms=('kitchen', 'living_room', 'dining_room')),
     'party':    dict(why='presents are left on the floor beside the table', min_h=0, rooms=('dining_room', 'living_room')),

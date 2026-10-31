@@ -13,6 +13,7 @@ those rooms (its `rooms` weights); registration refuses a piece outside the boun
 
 | kind | a home could keep it in | why | pieces (where the game uses each) |
 |---|---|---|---|
+| `airer` | kitchen, bedroom, living_room | a clothes airer stands where the washing is dried in the warm: the kitchen, a bedroom, a living room | `airer_laundry` (K) |
 | `alarm_clock` | bedroom, study, kitchen, living_room | an alarm clock is by a bed, or on a desk / kitchen shelf | `alarm_clock` (B) |
 | `armchair` | living_room, bedroom, study, dining_room | an armchair is anywhere somebody sits to read or talk, but not where they cook or wash | `armchair` (BSLD) |
 | `art` | any room | a landscape or a sketch can hang in any room | `picture_landscape` (BTKSLD), `sketches_wall` (S) |
@@ -54,8 +55,8 @@ those rooms (its `rooms` weights); registration refuses a piece outside the boun
 | `hunting` | living_room, dining_room, study | a stag head and a hunting print are a den / dining / living-room thing | `print_hunting` (L), `stag_head` (L) |
 | `instrument` | living_room, bedroom, study, dining_room | a piano or a guitar is in a living room, a bedroom, a study or a dining room — and never where food is cooked or people wash | `guitar_stand` (BL), `piano_upright` (BSLD) |
 | `jewellery` | bedroom | a jewellery box lives on a dressing table | `jewel_box` (B) |
-| `kitchen_unit` | kitchen | a fitted unit, cooker, fridge or larder is a kitchen thing | `fridge_tall` (K), `larder_tall` (K), `range_recess` (K), `sink_butler` (K), `trolley_kitchen` (K), `unit_base` (K), `unit_cooker` (K), `unit_sink` (K), `wall_cupboards` (K) |
-| `kitchen_ware` | kitchen | a kettle, toaster, microwave, board, tin or jar of utensils is kept in the kitchen | `bread_bin` (K), `canisters` (K), `chopping_board` (K), `kettle` (K), `microwave` (K), `shelf_jars` (K), `tea_towel` (K), `tin_stack` (K), `toaster` (K), `utensil_jar` (K) |
+| `kitchen_unit` | kitchen | a fitted unit, cooker, fridge or larder is a kitchen thing | `fridge_tall` (K), `hood_extractor` (K), `larder_tall` (K), `range_recess` (K), `sink_butler` (K), `trolley_kitchen` (K), `unit_base` (K), `unit_cooker` (K), `unit_sink` (K), `wall_cupboards` (K) |
+| `kitchen_ware` | kitchen | a kettle, toaster, microwave, board, tin or jar of utensils is kept in the kitchen | `bread_bin` (K), `canisters` (K), `chopping_board` (K), `kettle` (K), `microwave` (K), `pan_rail` (K), `shelf_jars` (K), `tea_towel` (K), `tin_stack` (K), `toaster` (K), `utensil_jar` (K) |
 | `laundry_basket` | bedroom, bathroom | dirty washing collects in a bedroom or a bathroom | `clothes_pile` (BT), `laundry_basket` (BT), `laundry_basket3d` (T) |
 | `long_case_clock` | living_room, dining_room, study, bedroom | a grandfather clock stands in a room people sit in | `clock_grandfather` (LD) |
 | `luggage` | bedroom, living_room, study | a suitcase is kept in a bedroom or the living room (on a wardrobe, under the stairs) | `suitcase` (BL) |
@@ -84,14 +85,14 @@ those rooms (its `rooms` weights); registration refuses a piece outside the boun
 | `smoking` | living_room, dining_room, study, bedroom | an ashtray is in a room people sit in | `ashtray_pack` (L) |
 | `sofa` | living_room, study, bedroom | a sofa is in a living room (a study or a bedsit can hold one) | `loveseat` (L), `sofa` (L) |
 | `table_lamp` | bedroom, study, living_room, dining_room | a lamp stands on a table or desk in a room people sit or sleep in | `lamp_banker` (S), `lamp_lava` (BL), `lamp_table` (BSLD) |
-| `tableware` | kitchen, dining_room, living_room | a teapot, bowl, place setting or cake is on the kitchen or dining table, or on a living-room one | `cake_party` (D), `fruit_bowl` (KD), `place_settings` (D), `teapot` (KD) |
+| `tableware` | kitchen, dining_room, living_room | a teapot, bowl, place setting or cake is on the kitchen or dining table, or on a living-room one | `cake_party` (D), `fruit_bowl` (KD), `place_settings` (D), `plate_rack` (K), `teapot` (KD) |
 | `toiletries` | bedroom, bathroom | a hairbrush or scent is on a dressing table or by a basin | `hairbrush` (BT), `perfume_set` (BT) |
 | `toys` | bedroom, living_room | children play in their bedroom and the living room | `ball` (BL), `block_tower` (BL), `dollhouse_table` (BL), `rag_doll` (BL), `rocking_horse` (BL), `toy_chest` (BL), `toy_shelf` (BL) |
 | `trunk` | bedroom, living_room, dining_room, study | a trunk holds blankets and keepsakes | `trunk` (BSLD) |
 | `tv` | living_room, bedroom | a television is in the living room (or the bedroom) | `tv_crt` (L), `tv_wall` (L) |
 | `wall_clock` | bedroom, kitchen, living_room, dining_room, study | a clock hangs where people check the time: not over the bath | `clock_cuckoo` (BKLD), `clock_regulator` (BSLD), `clock_sunburst` (), `clock_wall` (BKSLD) |
 | `wardrobe` | bedroom | clothes are kept where they are put on | `wardrobe_mirror` (B), `wardrobe_small` (B), `wardrobe_wood` (B) |
-| `washing_machine` | kitchen, bathroom | a washing machine stands where there is a water supply and drain: the kitchen or the bathroom | `washer` (T) |
+| `washing_machine` | kitchen, bathroom | a washing machine stands where there is a water supply and drain: the kitchen or the bathroom | `washer` (T), `washer_unit` (K) |
 | `work_gear` | study, bedroom, living_room | a computer, typewriter, printer or globe is a study thing (a desk in a bedroom or living room) | `computer_crt` (S), `globe` (S), `printer_stand` (S), `typewriter` (S) |
 
 Room letters: B bedroom, T bathroom, K kitchen, S study, L living room, D dining room.
@@ -126,6 +127,7 @@ A piece tagged `small` is never kept on the floor. A thing on a SURFACE is at mo
 
 | keep | why a home keeps it on the floor | from (px) | rooms |
 |---|---|---|---|
+| `airer` | washing is dried on an airer in the warm: the kitchen, a bedroom or the living room | — | kitchen, bedroom, living_room |
 | `bag` | a bag is dropped by the bed, a chair or the door | — | any |
 | `cleaning` | a mop and bucket stand where the mess is: the kitchen and the bathroom | — | kitchen, bathroom |
 | `clothes` | laundry is in a basket or a pile by the bed, the wardrobe or the bath | — | bedroom, bathroom |
@@ -146,6 +148,7 @@ A piece tagged `small` is never kept on the floor. A thing on a SURFACE is at mo
 
 | piece | keep | height | belongs beside (`near`) | rooms |
 |---|---|---|---|---|
+| `airer_laundry` | airer | 38 | — | kitchen |
 | `backpack` | bag | 24 | sleeping | bedroom, dining_room, living_room, study |
 | `ball` | toy | 10 | toy | bedroom, living_room |
 | `bin_bags` | rubbish | 24 | unit | dining_room, kitchen, living_room |

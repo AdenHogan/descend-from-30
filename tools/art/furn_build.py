@@ -35,6 +35,7 @@ import furn_walls  # noqa: F401
 import furn_clocks  # noqa: F401
 import furn_kitchen  # noqa: F401
 import furn_kitchen_small  # noqa: F401
+import furn_kitchen_more  # noqa: F401
 import furn_living  # noqa: F401
 import furn_living2  # noqa: F401
 import furn_living_small  # noqa: F401

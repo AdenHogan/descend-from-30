@@ -29,6 +29,7 @@ KINDS = {
     'chest_of_drawers': ('BLS',  'a chest of drawers keeps clothes and linen: a bedroom, or a living room / study that doubles as one'),
     'clothes_rail':     ('BL',   'a rail of clothes is a bedroom thing (a living room that is slept in, too)'),
     'laundry_basket':   ('BT',   'dirty washing collects in a bedroom or a bathroom'),
+    'airer':            ('KBL',  'a clothes airer stands where the washing is dried in the warm: the kitchen, a bedroom, a living room'),
     'washing_machine':  ('KT',   'a washing machine stands where there is a water supply and drain: the kitchen or the bathroom'),
     'toiletries':       ('BT',   'a hairbrush or scent is on a dressing table or by a basin'),
     'jewellery':        ('B',    'a jewellery box lives on a dressing table'),
@@ -123,7 +124,7 @@ PIECE_KIND = {
     'picture_crayon': 'portrait', 'picture_landscape': 'art', 'picture_portrait': 'portrait', 'portraits_row': 'portrait', 'poster_film': 'poster', 'poster_game': 'poster',
     'poster_gig': 'poster', 'poster_map': 'poster', 'poster_rainbow': 'poster', 'print_hunting': 'hunting', 'sampler_home': 'portrait', 'shelf_jars': 'kitchen_ware',
     'sketches_wall': 'art', 'stag_head': 'hunting', 'tea_towel': 'kitchen_ware', 'timetable': 'notice', 'towel_rail': 'bath_furnishing', 'toy_shelf': 'toys', 'tv_wall': 'tv',
-    'wall_cupboards': 'kitchen_unit', 'wall_shelf': 'shelf',
+    'wall_cupboards': 'kitchen_unit', 'wall_shelf': 'shelf', 'hood_extractor': 'kitchen_unit', 'pan_rail': 'kitchen_ware', 'plate_rack': 'tableware',
     # floor
     'backpack': 'bag', 'ball': 'toys', 'bin_bags': 'rubbish', 'block_tower': 'toys', 'box_cardboard': 'boxes', 'bucket_mop': 'cleaning', 'cat_tins': 'food_store',
     'chair_child': 'chair', 'chair_office': 'chair', 'chair_wood': 'chair', 'champagne_stand': 'drinks_stand', 'clothes_pile': 'laundry_basket', 'clothes_rail': 'clothes_rail',
@@ -131,7 +132,7 @@ PIECE_KIND = {
     'lamp_floor': 'floor_lamp', 'laundry_basket': 'laundry_basket', 'laundry_basket3d': 'laundry_basket', 'log_basket': 'fireplace', 'med_trolley': 'care_equipment',
     'mop_bucket3d': 'cleaning', 'pedal_bin': 'rubbish', 'pizza_boxes': 'food_store', 'plant_floor': 'plant_floor', 'pouf': 'pouf', 'printer_stand': 'work_gear',
     'rag_doll': 'toys', 'rocking_horse': 'toys', 'shoes_pair': 'footwear', 'slippers': 'footwear', 'stool_dressing': 'dressing_stool', 'stool_piano': 'piano_stool', 'stool_radio': 'audio', 'toy_chest': 'toys', 'trainers': 'footwear',
-    'trolley_drinks': 'drinks', 'waste_bin': 'rubbish', 'wheelchair': 'mobility_aid',
+    'trolley_drinks': 'drinks', 'waste_bin': 'rubbish', 'wheelchair': 'mobility_aid', 'airer_laundry': 'airer',
     # front
     'armchair': 'armchair', 'basin': 'sanitaryware', 'bath': 'sanitaryware', 'bed_iron': 'bed', 'bed_kid': 'bed', 'bed_pine': 'bed', 'bed_wood': 'bed', 'desk_study': 'desk',
     'loveseat': 'sofa', 'mattress_floor': 'bed', 'shower_walkin': 'sanitaryware', 'sofa': 'sofa', 'table_dining': 'dining_table', 'table_kitchen': 'dining_table',
@@ -152,7 +153,7 @@ PIECE_KIND = {
     'desk_crt': 'desk', 'dollhouse_table': 'toys', 'dresser_welsh': 'dresser', 'dressing_table': 'dressing_table', 'filing_cabinet': 'filing_cabinet', 'fireplace': 'fireplace',
     'fridge_tall': 'kitchen_unit', 'larder_tall': 'kitchen_unit', 'linen_cupboard': 'bath_furnishing', 'newspaper_stacks': 'reading', 'nightstand_wood': 'bedside',
     'paint_shelf': 'art_supplies', 'piano_upright': 'instrument', 'pill_cabinet': 'medicine', 'radiator': 'radiator', 'range_recess': 'kitchen_unit', 'shelving_open': 'shelving',
-    'side_table': 'side_table', 'sideboard': 'sideboard', 'sink_butler': 'kitchen_unit', 'trunk': 'trunk', 'unit_base': 'kitchen_unit', 'unit_cooker': 'kitchen_unit',
+    'side_table': 'side_table', 'sideboard': 'sideboard', 'sink_butler': 'kitchen_unit', 'trunk': 'trunk', 'unit_base': 'kitchen_unit', 'washer_unit': 'washing_machine', 'unit_cooker': 'kitchen_unit',
     'unit_sink': 'kitchen_unit', 'wardrobe_mirror': 'wardrobe', 'wardrobe_small': 'wardrobe', 'wardrobe_wood': 'wardrobe',
 }
 

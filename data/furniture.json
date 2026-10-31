@@ -1,5 +1,111 @@
 {
  "items": {
+  "airer_laundry": {
+   "above": [],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "edge": false,
+   "feet": [
+    110,
+    118
+   ],
+   "h": 38,
+   "keep": "airer",
+   "kind": "airer",
+   "lap": 6,
+   "lean": false,
+   "limit": null,
+   "must_above": false,
+   "near": [],
+   "needs": null,
+   "note": "a clothes airer, its wings opened out, with the washing on it: a towel and a shirt over the rails, socks, a tea towel",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "floor",
+   "rooms": {
+    "kitchen": 5
+   },
+   "snap": false,
+   "sound": null,
+   "styles": {
+    "classic": 4,
+    "country": 3,
+    "hoarder": 4,
+    "retro": 3,
+    "student": 8
+   },
+   "tags": [
+    "clutter",
+    "laundry"
+   ],
+   "under": [],
+   "under_window": false,
+   "variants": {
+    "white": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "a": "white",
+      "for": [
+       "student",
+       "classic",
+       "retro"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "airer_laundry_white",
+       "h": 39,
+       "l": -3,
+       "r": 38,
+       "rx": 3,
+       "ry": 35,
+       "sb": 0,
+       "t": -35,
+       "w": 42
+      }
+     ]
+    },
+    "wood": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "a": "wood",
+      "for": [
+       "classic",
+       "country",
+       "hoarder",
+       "retro"
+      ]
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "airer_laundry_wood",
+       "h": 39,
+       "l": -3,
+       "r": 38,
+       "rx": 3,
+       "ry": 35,
+       "sb": 0,
+       "t": -35,
+       "w": 42
+      }
+     ]
+    }
+   },
+   "w": 36,
+   "wall_y": null
+  },
   "alarm_clock": {
    "above": [],
    "bucketed": false,
@@ -29,6 +135,7 @@
    "rooms": {
     "bedroom": 6
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 3,
@@ -172,6 +279,7 @@
     "living_room": 8,
     "study": 5
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 3,
@@ -2386,6 +2494,7 @@
    "rooms": {
     "living_room": 4
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "cosy": 2,
@@ -2502,6 +2611,7 @@
     "living_room": 2,
     "study": 2
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 1,
@@ -2676,6 +2786,7 @@
     "bedroom": 4,
     "living_room": 3
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "kid": 8,
@@ -2742,6 +2853,7 @@
    "rooms": {
     "dining_room": 6
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "party": 9
@@ -2838,6 +2950,7 @@
    "rooms": {
     "dining_room": 6
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "party": 9
@@ -2905,6 +3018,7 @@
    "rooms": {
     "bathroom": 8
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "avocado": 0.01,
@@ -3294,6 +3408,7 @@
    "rooms": {
     "bathroom": 10
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -3784,6 +3899,7 @@
    "rooms": {
     "bathroom": 8
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "avocado": 8,
@@ -3916,6 +4032,7 @@
    "rooms": {
     "bedroom": 4
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "sick": 8
@@ -4672,6 +4789,7 @@
    "rooms": {
     "bedroom": 5
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "kid": 8
@@ -5243,6 +5361,7 @@
    "rooms": {
     "bedroom": 6
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "teen": 8
@@ -5990,6 +6109,7 @@
    "rooms": {
     "bedroom": 8
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 8,
@@ -6917,6 +7037,7 @@
     "kitchen": 7,
     "living_room": 1
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "classic": 4,
@@ -7028,6 +7149,7 @@
     "bedroom": 4,
     "living_room": 3
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "kid": 8
@@ -7382,6 +7504,7 @@
     "living_room": 4,
     "study": 6
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -7511,6 +7634,7 @@
     "living_room": 5,
     "study": 6
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 3,
@@ -7927,6 +8051,7 @@
     "living_room": 3,
     "study": 8
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "cosy": 2,
@@ -8358,6 +8483,7 @@
     "dining_room": 5,
     "living_room": 3
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "diner": 2,
@@ -8468,6 +8594,7 @@
     "dining_room": 5,
     "living_room": 2
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "diner": 2,
@@ -8573,6 +8700,7 @@
     "living_room": 2,
     "study": 2
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -8720,6 +8848,7 @@
     "living_room": 3,
     "study": 4
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "bedsit": 8,
@@ -8982,6 +9111,7 @@
    "rooms": {
     "kitchen": 4
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -9084,6 +9214,7 @@
     "bathroom": 5,
     "kitchen": 5
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -9186,6 +9317,7 @@
    "rooms": {
     "dining_room": 7
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "party": 9
@@ -9280,6 +9412,7 @@
     "living_room": 2,
     "study": 4
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 3,
@@ -9357,6 +9490,7 @@
    "rooms": {
     "dining_room": 6
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "family": 1,
@@ -9465,6 +9599,7 @@
    "rooms": {
     "kitchen": 4
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -9570,6 +9705,7 @@
    "rooms": {
     "study": 7
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "library": 1,
@@ -9831,6 +9967,7 @@
    "rooms": {
     "kitchen": 5
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "hoarder": 9
@@ -9906,6 +10043,7 @@
     "living_room": 4,
     "study": 3
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -9975,6 +10113,7 @@
     "bedroom": 3,
     "living_room": 2
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "kid": 8
@@ -10049,6 +10188,7 @@
     "living_room": 4,
     "study": 2
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 4,
@@ -10225,6 +10365,7 @@
    "rooms": {
     "bedroom": 4
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "kid": 8
@@ -10643,6 +10784,7 @@
     "bedroom": 6,
     "study": 8
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 1,
@@ -10761,6 +10903,7 @@
    "rooms": {
     "bedroom": 5
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 3,
@@ -11533,6 +11676,7 @@
    "rooms": {
     "bathroom": 5
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "gilded": 9
@@ -11686,6 +11830,7 @@
     "bathroom": 4,
     "dining_room": 3
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "formal": 3,
@@ -11767,6 +11912,7 @@
     "bedroom": 6,
     "living_room": 4
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 5,
@@ -12203,6 +12349,7 @@
     "dining_room": 8,
     "living_room": 5
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "cosy": 1,
@@ -12490,6 +12637,7 @@
    "rooms": {
     "kitchen": 4
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -12562,6 +12710,7 @@
     "kitchen": 4,
     "living_room": 3
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 3,
@@ -12644,6 +12793,7 @@
     "dining_room": 6,
     "living_room": 3
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "cosy": 1,
@@ -12926,6 +13076,7 @@
     "living_room": 5,
     "study": 4
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 4,
@@ -13007,6 +13158,7 @@
    "pair": null,
    "plane": "decor",
    "rooms": {},
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -13107,6 +13259,7 @@
     "living_room": 4,
     "study": 3
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 3,
@@ -13254,6 +13407,7 @@
     "bathroom": 2,
     "bedroom": 7
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -13393,6 +13547,7 @@
     "bedroom": 4,
     "living_room": 1
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "bedsit": 8,
@@ -13509,6 +13664,7 @@
     "living_room": 2,
     "study": 2
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -13636,6 +13792,7 @@
    "rooms": {
     "living_room": 8
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "cosy": 8,
@@ -13922,6 +14079,7 @@
    "rooms": {
     "study": 7
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "office": 8,
@@ -14049,6 +14207,7 @@
    "rooms": {
     "bedroom": 4
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "bedsit": 2,
@@ -14335,6 +14494,7 @@
    "rooms": {
     "living_room": 6
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "squat": 8
@@ -14617,6 +14777,7 @@
    "rooms": {
     "kitchen": 6
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "country": 9,
@@ -14696,6 +14857,7 @@
     "bedroom": 8,
     "study": 4
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 1,
@@ -14867,6 +15029,7 @@
    "rooms": {
     "study": 10
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -15179,6 +15342,7 @@
     "bedroom": 4,
     "living_room": 2
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "kid": 8
@@ -15657,6 +15821,7 @@
     "dining_room": 4,
     "kitchen": 6
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "country": 8,
@@ -15850,6 +16015,7 @@
    "rooms": {
     "bedroom": 6
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 6,
@@ -16265,6 +16431,7 @@
    "rooms": {
     "bedroom": 4
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 1,
@@ -16371,6 +16538,7 @@
    "rooms": {
     "study": 7
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "studio": 9
@@ -16507,6 +16675,7 @@
    "rooms": {
     "study": 7
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "den": 6,
@@ -16955,6 +17124,7 @@
    "rooms": {
     "living_room": 8
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "cosy": 1,
@@ -17194,6 +17364,7 @@
     "living_room": 3,
     "study": 2
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "bedsit": 6,
@@ -17294,6 +17465,7 @@
     "living_room": 5,
     "study": 3
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 5,
@@ -17372,6 +17544,7 @@
    "rooms": {
     "kitchen": 6
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -17892,6 +18065,7 @@
     "dining_room": 3,
     "kitchen": 5
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -17992,6 +18166,7 @@
    "rooms": {
     "dining_room": 5
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "party": 9
@@ -18112,6 +18287,7 @@
     "living_room": 2,
     "study": 1
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -18202,6 +18378,7 @@
    "rooms": {
     "study": 5
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "den": 4,
@@ -18293,6 +18470,7 @@
     "bedroom": 1,
     "living_room": 4
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "mid": 1,
@@ -18387,6 +18565,7 @@
     "bathroom": 3,
     "bedroom": 3
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -18501,6 +18680,7 @@
     "kitchen": 2,
     "living_room": 2
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "kid": 8
@@ -18540,6 +18720,212 @@
     66
    ]
   },
+  "hood_extractor": {
+   "above": [
+    "hob"
+   ],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "edge": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 41,
+   "keep": null,
+   "kind": "kitchen_unit",
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "must_above": true,
+   "near": [],
+   "needs": null,
+   "note": "an extractor hood hung dead-centre over a freestanding cooker: a brushed-steel / white / black chimney hood (flue to the ceiling, a canopy with a grille and a warm lamp) or a slim glass slab",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "decor",
+   "rooms": {
+    "kitchen": 7
+   },
+   "snap": true,
+   "sound": null,
+   "styles": {
+    "classic": 2,
+    "country": 0,
+    "hoarder": 1,
+    "retro": 2,
+    "student": 2
+   },
+   "tags": [
+    "hood",
+    "unit_above"
+   ],
+   "under": [],
+   "under_window": false,
+   "variants": {
+    "black_chimney": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "3c3e42",
+      "for": [
+       "student",
+       "classic"
+      ],
+      "glow": "f2dc9a",
+      "kind": "chimney"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 46,
+       "bx": 160,
+       "file": "hood_extractor_black_chimney",
+       "h": 48,
+       "l": -1,
+       "r": 28,
+       "rx": 1,
+       "ry": 1,
+       "sb": 40,
+       "t": -1,
+       "w": 30
+      }
+     ]
+    },
+    "black_slim": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "2c2e32",
+      "for": [
+       "student",
+       "retro"
+      ],
+      "glow": "f2dc9a",
+      "kind": "slim"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 46,
+       "bx": 160,
+       "file": "hood_extractor_black_slim",
+       "h": 48,
+       "l": -1,
+       "r": 28,
+       "rx": 1,
+       "ry": 1,
+       "sb": 40,
+       "t": -1,
+       "w": 30
+      }
+     ]
+    },
+    "cream_slim": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "d4ccb4",
+      "for": [
+       "hoarder",
+       "classic",
+       "retro"
+      ],
+      "glow": "f2dc9a",
+      "kind": "slim"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 46,
+       "bx": 160,
+       "file": "hood_extractor_cream_slim",
+       "h": 48,
+       "l": -1,
+       "r": 28,
+       "rx": 1,
+       "ry": 1,
+       "sb": 40,
+       "t": -1,
+       "w": 30
+      }
+     ]
+    },
+    "steel_chimney": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "aeb6b9",
+      "for": [
+       "classic",
+       "retro",
+       "student",
+       "hoarder"
+      ],
+      "glow": "f2dc9a",
+      "kind": "chimney"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 46,
+       "bx": 160,
+       "file": "hood_extractor_steel_chimney",
+       "h": 48,
+       "l": -1,
+       "r": 28,
+       "rx": 1,
+       "ry": 1,
+       "sb": 40,
+       "t": -1,
+       "w": 30
+      }
+     ]
+    },
+    "white_chimney": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "col": "e6e3d8",
+      "for": [
+       "classic",
+       "retro",
+       "hoarder"
+      ],
+      "glow": "f2dc9a",
+      "kind": "chimney"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 46,
+       "bx": 160,
+       "file": "hood_extractor_white_chimney",
+       "h": 48,
+       "l": -1,
+       "r": 28,
+       "rx": 1,
+       "ry": 1,
+       "sb": 40,
+       "t": -1,
+       "w": 30
+      }
+     ]
+    }
+   },
+   "w": 28,
+   "wall_y": [
+    10,
+    12
+   ]
+  },
   "jewel_box": {
    "above": [],
    "bucketed": false,
@@ -18569,6 +18955,7 @@
    "rooms": {
     "bedroom": 4
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 4,
@@ -18707,6 +19094,7 @@
    "rooms": {
     "kitchen": 7
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -18837,6 +19225,7 @@
    "rooms": {
     "study": 7
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "den": 8,
@@ -18947,6 +19336,7 @@
     "living_room": 6,
     "study": 3
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "cosy": 6,
@@ -19105,6 +19495,7 @@
     "bedroom": 3,
     "living_room": 3
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "mid": 3,
@@ -19327,6 +19718,7 @@
     "living_room": 5,
     "study": 3
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -20007,6 +20399,7 @@
    "rooms": {
     "kitchen": 4
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "country": 2,
@@ -20287,6 +20680,7 @@
     "bathroom": 6,
     "bedroom": 5
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 3,
@@ -20424,6 +20818,7 @@
    "rooms": {
     "bathroom": 7
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "avocado": 4,
@@ -20808,6 +21203,7 @@
     "living_room": 2,
     "study": 2
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "country": 2,
@@ -20891,6 +21287,7 @@
     "dining_room": 2,
     "kitchen": 5
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "diner": 6,
@@ -20970,6 +21367,7 @@
     "kitchen": 6,
     "study": 3
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "classic": 8,
@@ -21054,6 +21452,7 @@
    "rooms": {
     "bathroom": 6
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "avocado": 2,
@@ -21219,6 +21618,7 @@
    "rooms": {
     "living_room": 5
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "cosy": 1,
@@ -21299,6 +21699,7 @@
    "rooms": {
     "living_room": 4
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -21811,6 +22212,7 @@
     "living_room": 6,
     "study": 2
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -21907,6 +22309,7 @@
    "rooms": {
     "study": 6
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "den": 2,
@@ -21978,6 +22381,7 @@
    "rooms": {
     "bedroom": 4
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "bedsit": 8
@@ -22725,6 +23129,7 @@
    "rooms": {
     "bedroom": 4
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "sick": 8
@@ -22826,6 +23231,7 @@
    "rooms": {
     "kitchen": 5
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "classic": 2,
@@ -22942,6 +23348,7 @@
    "rooms": {
     "bathroom": 9
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "avocado": 9,
@@ -23129,6 +23536,7 @@
     "dining_room": 1,
     "living_room": 3
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 4,
@@ -23232,6 +23640,7 @@
    "rooms": {
     "bathroom": 6
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "avocado": 9,
@@ -23394,6 +23803,7 @@
     "dining_room": 3,
     "kitchen": 7
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -23518,6 +23928,7 @@
     "living_room": 3,
     "study": 1
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "den": 2,
@@ -23679,6 +24090,7 @@
    "rooms": {
     "bedroom": 6
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 6,
@@ -23976,6 +24388,7 @@
    "rooms": {
     "kitchen": 5
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "hoarder": 9
@@ -24042,6 +24455,7 @@
    "rooms": {
     "kitchen": 5
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "hoarder": 9
@@ -24108,6 +24522,7 @@
    "rooms": {
     "kitchen": 5
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "hoarder": 1,
@@ -24176,6 +24591,7 @@
     "bedroom": 3,
     "kitchen": 5
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "bedsit": 6,
@@ -24243,6 +24659,7 @@
    "rooms": {
     "study": 8
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "den": 9,
@@ -24354,6 +24771,7 @@
    "rooms": {
     "study": 6
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "radio": 1,
@@ -24484,6 +24902,141 @@
    "w": 28,
    "wall_y": null
   },
+  "pan_rail": {
+   "above": [
+    "unit"
+   ],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "edge": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 30,
+   "keep": null,
+   "kind": "kitchen_ware",
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "must_above": true,
+   "near": [],
+   "needs": null,
+   "note": "a steel rail on two wall plates with S-hooks: a frying pan, a saucepan, a ladle, a spatula and a colander hanging over the worktop",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "decor",
+   "rooms": {
+    "kitchen": 7
+   },
+   "snap": false,
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "storage",
+    "rail"
+   ],
+   "under": [],
+   "under_window": false,
+   "variants": {
+    "copper": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "country",
+       "classic",
+       "retro"
+      ],
+      "p": "copper"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 26,
+       "bx": 160,
+       "file": "pan_rail_copper",
+       "h": 28,
+       "l": -2,
+       "r": 34,
+       "rx": 2,
+       "ry": 1,
+       "sb": 25,
+       "t": -1,
+       "w": 37
+      }
+     ]
+    },
+    "iron": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "student",
+       "hoarder",
+       "classic"
+      ],
+      "p": "iron"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 26,
+       "bx": 160,
+       "file": "pan_rail_iron",
+       "h": 28,
+       "l": -2,
+       "r": 34,
+       "rx": 2,
+       "ry": 1,
+       "sb": 25,
+       "t": -1,
+       "w": 37
+      }
+     ]
+    },
+    "steel": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "classic",
+       "retro",
+       "student",
+       "hoarder",
+       "country"
+      ],
+      "p": "steel"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 26,
+       "bx": 160,
+       "file": "pan_rail_steel",
+       "h": 28,
+       "l": -2,
+       "r": 34,
+       "rx": 2,
+       "ry": 1,
+       "sb": 25,
+       "t": -1,
+       "w": 37
+      }
+     ]
+    }
+   },
+   "w": 34,
+   "wall_y": [
+    18,
+    26
+   ]
+  },
   "papers_pile": {
    "above": [],
    "bucketed": false,
@@ -24513,6 +25066,7 @@
    "rooms": {
     "study": 8
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -24603,6 +25157,7 @@
    "rooms": {
     "dining_room": 7
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "party": 9
@@ -24702,6 +25257,7 @@
    "rooms": {
     "kitchen": 6
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -24815,6 +25371,7 @@
     "bathroom": 3,
     "bedroom": 4
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 3,
@@ -24940,6 +25497,7 @@
     "living_room": 4,
     "study": 3
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 4,
@@ -25109,6 +25667,7 @@
     "living_room": 6,
     "study": 2
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 1,
@@ -25405,6 +25964,7 @@
     "kitchen": 3,
     "living_room": 3
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "kid": 8
@@ -25476,6 +26036,7 @@
     "living_room": 6,
     "study": 3
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 5,
@@ -25816,6 +26377,7 @@
     "living_room": 6,
     "study": 5
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 4,
@@ -26745,6 +27307,7 @@
     "bathroom": 6,
     "bedroom": 4
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 2,
@@ -26837,6 +27400,7 @@
     "bathroom": 5,
     "bedroom": 4
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 1,
@@ -27102,6 +27666,7 @@
     "kitchen": 5,
     "living_room": 3
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "hoarder": 2,
@@ -27178,6 +27743,7 @@
    "rooms": {
     "dining_room": 8
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "diner": 3,
@@ -27307,6 +27873,7 @@
     "living_room": 3,
     "study": 3
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -27529,6 +28096,7 @@
     "living_room": 7,
     "study": 3
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 3,
@@ -27755,6 +28323,140 @@
    "w": 26,
    "wall_y": null
   },
+  "plate_rack": {
+   "above": [
+    "unit"
+   ],
+   "bucketed": false,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "edge": false,
+   "feet": [
+    0,
+    0
+   ],
+   "h": 27,
+   "keep": null,
+   "kind": "tableware",
+   "lap": 6,
+   "lean": false,
+   "limit": 1,
+   "must_above": true,
+   "near": [],
+   "needs": null,
+   "note": "a wooden plate rack on the wall: three plates on edge with a painted rim, a lipped shelf under them, two mugs hung from hooks",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "decor",
+   "rooms": {
+    "kitchen": 6
+   },
+   "snap": false,
+   "sound": null,
+   "styles": null,
+   "tags": [
+    "storage",
+    "rack",
+    "food"
+   ],
+   "under": [],
+   "under_window": false,
+   "variants": {
+    "blue": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "classic",
+       "country",
+       "hoarder"
+      ],
+      "r": "blue"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 28,
+       "bx": 160,
+       "file": "plate_rack_blue",
+       "h": 28,
+       "l": -1,
+       "r": 34,
+       "rx": 1,
+       "ry": -1,
+       "sb": 27,
+       "t": 1,
+       "w": 36
+      }
+     ]
+    },
+    "green": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "country",
+       "retro",
+       "classic"
+      ],
+      "r": "green"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 28,
+       "bx": 160,
+       "file": "plate_rack_green",
+       "h": 28,
+       "l": -1,
+       "r": 34,
+       "rx": 1,
+       "ry": -1,
+       "sb": 27,
+       "t": 1,
+       "w": 36
+      }
+     ]
+    },
+    "plain": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "for": [
+       "student",
+       "retro",
+       "hoarder"
+      ],
+      "r": "plain"
+     },
+     "slots": [],
+     "sprites": [
+      {
+       "b": 28,
+       "bx": 160,
+       "file": "plate_rack_plain",
+       "h": 28,
+       "l": -1,
+       "r": 34,
+       "rx": 1,
+       "ry": -1,
+       "sb": 27,
+       "t": 1,
+       "w": 36
+      }
+     ]
+    }
+   },
+   "w": 34,
+   "wall_y": [
+    18,
+    24
+   ]
+  },
   "portraits_row": {
    "above": [],
    "bucketed": false,
@@ -27783,6 +28485,7 @@
     "dining_room": 5,
     "living_room": 3
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "formal": 9,
@@ -27851,6 +28554,7 @@
     "bedroom": 6,
     "living_room": 2
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "bedsit": 4,
@@ -27944,6 +28648,7 @@
     "bedroom": 5,
     "living_room": 3
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "bedsit": 3,
@@ -28014,6 +28719,7 @@
     "living_room": 2,
     "study": 2
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "bedsit": 6,
@@ -28085,6 +28791,7 @@
     "living_room": 2,
     "study": 4
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 1,
@@ -28154,6 +28861,7 @@
     "bedroom": 5,
     "dining_room": 3
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "diner": 4,
@@ -28221,6 +28929,7 @@
    "rooms": {
     "living_room": 4
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "mid": 2,
@@ -28365,6 +29074,7 @@
    "rooms": {
     "living_room": 4
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "lodge": 8
@@ -28431,6 +29141,7 @@
    "rooms": {
     "study": 6
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "office": 9
@@ -28507,6 +29218,7 @@
     "living_room": 3,
     "study": 3
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -28748,6 +29460,7 @@
    "rooms": {
     "study": 8
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "radio": 9
@@ -28824,6 +29537,7 @@
     "bedroom": 4,
     "living_room": 3
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "kid": 8
@@ -28923,6 +29637,7 @@
    "rooms": {
     "kitchen": 6
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "country": 8
@@ -29256,6 +29971,7 @@
     "dining_room": 5,
     "living_room": 4
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "diner": 8,
@@ -29371,6 +30087,7 @@
     "bedroom": 4,
     "living_room": 3
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "kid": 8
@@ -29910,6 +30627,7 @@
     "living_room": 8,
     "study": 2
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "cosy": 8,
@@ -30117,6 +30835,7 @@
     "living_room": 5,
     "study": 3
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 3,
@@ -30270,6 +30989,7 @@
     "kitchen": 3,
     "living_room": 3
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 2,
@@ -30341,6 +31061,7 @@
    "rooms": {
     "kitchen": 6
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "classic": 1,
@@ -30417,6 +31138,7 @@
     "living_room": 6,
     "study": 5
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "den": 2,
@@ -30723,6 +31445,7 @@
     "bedroom": 6,
     "living_room": 2
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -30862,6 +31585,7 @@
    "rooms": {
     "bathroom": 6
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "tub": 9,
@@ -31018,6 +31742,7 @@
     "living_room": 6,
     "study": 2
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "cosy": 5,
@@ -31314,6 +32039,7 @@
     "dining_room": 7,
     "living_room": 7
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "cosy": 2,
@@ -31926,6 +32652,7 @@
    "rooms": {
     "kitchen": 6
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "country": 8,
@@ -32085,6 +32812,7 @@
    "rooms": {
     "study": 6
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "library": 1,
@@ -32156,6 +32884,7 @@
     "bathroom": 2,
     "bedroom": 6
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 4,
@@ -32280,6 +33009,7 @@
    "rooms": {
     "living_room": 10
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -32856,6 +33586,7 @@
    "rooms": {
     "living_room": 4
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "lodge": 9
@@ -32923,6 +33654,7 @@
    "rooms": {
     "bedroom": 6
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 6,
@@ -33344,6 +34076,7 @@
     "living_room": 6,
     "study": 6
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -33953,6 +34686,7 @@
    "rooms": {
     "bathroom": 5
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "avocado": 9
@@ -34108,6 +34842,7 @@
     "bedroom": 5,
     "living_room": 1
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 4,
@@ -34375,6 +35110,7 @@
    "rooms": {
     "dining_room": 10
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -34680,6 +35416,7 @@
    "rooms": {
     "kitchen": 8
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -34718,12 +35455,12 @@
        "file": "table_kitchen_camping",
        "h": 33,
        "l": -1,
-       "r": 39,
+       "r": 53,
        "rx": 1,
        "ry": 29,
        "sb": 0,
        "t": -29,
-       "w": 41
+       "w": 55
       }
      ]
     },
@@ -34869,13 +35606,13 @@
        "bx": 160,
        "file": "table_kitchen_trestle",
        "h": 46,
-       "l": -1,
+       "l": -16,
        "r": 53,
-       "rx": 1,
+       "rx": 16,
        "ry": 42,
        "sb": 0,
        "t": -42,
-       "w": 55
+       "w": 70
       }
      ]
     }
@@ -34910,6 +35647,7 @@
    "rooms": {
     "kitchen": 6
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -35015,6 +35753,7 @@
     "dining_room": 4,
     "kitchen": 4
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -35114,6 +35853,7 @@
     "bedroom": 4,
     "study": 4
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "kid": 1,
@@ -35184,6 +35924,7 @@
    "rooms": {
     "kitchen": 5
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "classic": 1,
@@ -35278,6 +36019,7 @@
    "rooms": {
     "kitchen": 5
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -35379,6 +36121,7 @@
    "rooms": {
     "bathroom": 10
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -36086,6 +36829,7 @@
    "rooms": {
     "bathroom": 5
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -36198,6 +36942,7 @@
    "rooms": {
     "bathroom": 7
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "avocado": 2,
@@ -36306,6 +37051,7 @@
     "bedroom": 4,
     "living_room": 3
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "kid": 8,
@@ -36456,6 +37202,7 @@
     "bedroom": 5,
     "living_room": 2
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "kid": 8
@@ -36527,6 +37274,7 @@
     "bedroom": 6,
     "living_room": 2
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 1,
@@ -36650,6 +37398,7 @@
     "dining_room": 5,
     "living_room": 2
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "diner": 2,
@@ -36756,6 +37505,7 @@
    "rooms": {
     "kitchen": 5
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "classic": 2,
@@ -36831,6 +37581,7 @@
     "living_room": 2,
     "study": 2
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 2,
@@ -37250,6 +38001,7 @@
    "rooms": {
     "living_room": 6
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "cosy": 1,
@@ -37430,6 +38182,7 @@
    "rooms": {
     "living_room": 6
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "squat": 8
@@ -37507,6 +38260,7 @@
    "rooms": {
     "study": 5
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "den": 6,
@@ -37603,6 +38357,7 @@
    "rooms": {
     "kitchen": 8
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -40287,11 +41042,13 @@
    "rooms": {
     "kitchen": 8
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
     "unit",
-    "cooking"
+    "cooking",
+    "hob"
    ],
    "under": [],
    "under_window": false,
@@ -41053,6 +41810,7 @@
    "rooms": {
     "kitchen": 8
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -41640,6 +42398,7 @@
    "rooms": {
     "kitchen": 5
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -41709,6 +42468,7 @@
    "rooms": {
     "bathroom": 7
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "avocado": 9
@@ -41871,6 +42631,7 @@
     "dining_room": 7,
     "living_room": 2
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "cosy": 4,
@@ -41995,6 +42756,7 @@
    "rooms": {
     "kitchen": 7
    },
+   "snap": false,
    "sound": null,
    "styles": null,
    "tags": [
@@ -42183,6 +42945,7 @@
     "living_room": 5,
     "study": 4
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 3,
@@ -42282,6 +43045,7 @@
    "rooms": {
     "bedroom": 4
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 2,
@@ -42543,6 +43307,7 @@
    "rooms": {
     "bedroom": 4
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "kid": 8
@@ -42913,6 +43678,7 @@
    "rooms": {
     "bedroom": 6
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 6,
@@ -43479,6 +44245,7 @@
    "rooms": {
     "bathroom": 7
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "avocado": 2,
@@ -43720,6 +44487,648 @@
    "w": 60,
    "wall_y": null
   },
+  "washer_unit": {
+   "above": [],
+   "bucketed": true,
+   "ceiling_drop": 0,
+   "companion_only": false,
+   "edge": false,
+   "feet": [
+    106,
+    106
+   ],
+   "h": 32,
+   "keep": null,
+   "kind": "washing_machine",
+   "lap": 6,
+   "lean": true,
+   "limit": 1,
+   "must_above": false,
+   "near": [],
+   "needs": null,
+   "note": "a front-loading washing machine built into the run under the worktop of its kitchen: a detergent drawer and a dial over a chrome-ringed porthole with a wash behind the glass",
+   "on": [],
+   "opens": null,
+   "pair": null,
+   "plane": "wall",
+   "rooms": {
+    "kitchen": 2
+   },
+   "snap": false,
+   "sound": null,
+   "styles": {
+    "classic": 2,
+    "country": 1,
+    "hoarder": 3,
+    "retro": 2,
+    "student": 4
+   },
+   "tags": [
+    "unit",
+    "laundry"
+   ],
+   "under": [],
+   "under_window": false,
+   "variants": {
+    "cream": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "body": "dcd5bf",
+      "fin": "cream",
+      "for": [
+       "hoarder"
+      ]
+     },
+     "slots": [
+      {
+       "bottom_max": -33,
+       "dx0": 3,
+       "dx1": 26,
+       "dy": -33,
+       "id": "top",
+       "kinds": [
+        "worktop",
+        "appliance"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "washer_unit_cream_b0",
+       "h": 40,
+       "l": -2,
+       "r": 36,
+       "rx": 2,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 39
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "washer_unit_cream_b1",
+       "h": 40,
+       "l": -2,
+       "r": 34,
+       "rx": 2,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "washer_unit_cream_b2",
+       "h": 40,
+       "l": -2,
+       "r": 32,
+       "rx": 2,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "washer_unit_cream_b3",
+       "h": 40,
+       "l": -2,
+       "r": 30,
+       "rx": 2,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "washer_unit_cream_b4",
+       "h": 40,
+       "l": -3,
+       "r": 30,
+       "rx": 3,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "washer_unit_cream_b5",
+       "h": 40,
+       "l": -5,
+       "r": 30,
+       "rx": 5,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "washer_unit_cream_b6",
+       "h": 40,
+       "l": -7,
+       "r": 30,
+       "rx": 7,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 38
+      }
+     ]
+    },
+    "pine": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "body": "e8e8e4",
+      "fin": "pine",
+      "for": [
+       "country"
+      ]
+     },
+     "slots": [
+      {
+       "bottom_max": -33,
+       "dx0": 3,
+       "dx1": 26,
+       "dy": -33,
+       "id": "top",
+       "kinds": [
+        "worktop",
+        "appliance"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "washer_unit_pine_b0",
+       "h": 40,
+       "l": -2,
+       "r": 36,
+       "rx": 2,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 39
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "washer_unit_pine_b1",
+       "h": 40,
+       "l": -2,
+       "r": 34,
+       "rx": 2,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "washer_unit_pine_b2",
+       "h": 40,
+       "l": -2,
+       "r": 32,
+       "rx": 2,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "washer_unit_pine_b3",
+       "h": 40,
+       "l": -2,
+       "r": 30,
+       "rx": 2,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "washer_unit_pine_b4",
+       "h": 40,
+       "l": -3,
+       "r": 30,
+       "rx": 3,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "washer_unit_pine_b5",
+       "h": 40,
+       "l": -5,
+       "r": 30,
+       "rx": 5,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "washer_unit_pine_b6",
+       "h": 40,
+       "l": -7,
+       "r": 30,
+       "rx": 7,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 38
+      }
+     ]
+    },
+    "sage": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "body": "e8e8e4",
+      "fin": "sage",
+      "for": [
+       "classic"
+      ]
+     },
+     "slots": [
+      {
+       "bottom_max": -33,
+       "dx0": 3,
+       "dx1": 26,
+       "dy": -33,
+       "id": "top",
+       "kinds": [
+        "worktop",
+        "appliance"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "washer_unit_sage_b0",
+       "h": 40,
+       "l": -2,
+       "r": 36,
+       "rx": 2,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 39
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "washer_unit_sage_b1",
+       "h": 40,
+       "l": -2,
+       "r": 34,
+       "rx": 2,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "washer_unit_sage_b2",
+       "h": 40,
+       "l": -2,
+       "r": 32,
+       "rx": 2,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "washer_unit_sage_b3",
+       "h": 40,
+       "l": -2,
+       "r": 30,
+       "rx": 2,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "washer_unit_sage_b4",
+       "h": 40,
+       "l": -3,
+       "r": 30,
+       "rx": 3,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "washer_unit_sage_b5",
+       "h": 40,
+       "l": -5,
+       "r": 30,
+       "rx": 5,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "washer_unit_sage_b6",
+       "h": 40,
+       "l": -7,
+       "r": 30,
+       "rx": 7,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 38
+      }
+     ]
+    },
+    "white": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "body": "e8e8e4",
+      "fin": "white",
+      "for": [
+       "student"
+      ]
+     },
+     "slots": [
+      {
+       "bottom_max": -33,
+       "dx0": 3,
+       "dx1": 26,
+       "dy": -33,
+       "id": "top",
+       "kinds": [
+        "worktop",
+        "appliance"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "washer_unit_white_b0",
+       "h": 40,
+       "l": -2,
+       "r": 36,
+       "rx": 2,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 39
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "washer_unit_white_b1",
+       "h": 40,
+       "l": -2,
+       "r": 34,
+       "rx": 2,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "washer_unit_white_b2",
+       "h": 40,
+       "l": -2,
+       "r": 32,
+       "rx": 2,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "washer_unit_white_b3",
+       "h": 40,
+       "l": -2,
+       "r": 30,
+       "rx": 2,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "washer_unit_white_b4",
+       "h": 40,
+       "l": -3,
+       "r": 30,
+       "rx": 3,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "washer_unit_white_b5",
+       "h": 40,
+       "l": -5,
+       "r": 30,
+       "rx": 5,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "washer_unit_white_b6",
+       "h": 40,
+       "l": -7,
+       "r": 30,
+       "rx": 7,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 38
+      }
+     ]
+    },
+    "yellow": {
+     "anchors": [],
+     "anims": [],
+     "lights": [],
+     "params": {
+      "body": "e8e8e4",
+      "fin": "yellow",
+      "for": [
+       "retro"
+      ]
+     },
+     "slots": [
+      {
+       "bottom_max": -33,
+       "dx0": 3,
+       "dx1": 26,
+       "dy": -33,
+       "id": "top",
+       "kinds": [
+        "worktop",
+        "appliance"
+       ],
+       "top": true
+      }
+     ],
+     "sprites": [
+      {
+       "b": 3,
+       "bx": 36,
+       "file": "washer_unit_yellow_b0",
+       "h": 40,
+       "l": -2,
+       "r": 36,
+       "rx": 2,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 39
+      },
+      {
+       "b": 3,
+       "bx": 72,
+       "file": "washer_unit_yellow_b1",
+       "h": 40,
+       "l": -2,
+       "r": 34,
+       "rx": 2,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 37
+      },
+      {
+       "b": 3,
+       "bx": 116,
+       "file": "washer_unit_yellow_b2",
+       "h": 40,
+       "l": -2,
+       "r": 32,
+       "rx": 2,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 35
+      },
+      {
+       "b": 3,
+       "bx": 160,
+       "file": "washer_unit_yellow_b3",
+       "h": 40,
+       "l": -2,
+       "r": 30,
+       "rx": 2,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 33
+      },
+      {
+       "b": 3,
+       "bx": 204,
+       "file": "washer_unit_yellow_b4",
+       "h": 40,
+       "l": -3,
+       "r": 30,
+       "rx": 3,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 34
+      },
+      {
+       "b": 3,
+       "bx": 248,
+       "file": "washer_unit_yellow_b5",
+       "h": 40,
+       "l": -5,
+       "r": 30,
+       "rx": 5,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 36
+      },
+      {
+       "b": 3,
+       "bx": 284,
+       "file": "washer_unit_yellow_b6",
+       "h": 40,
+       "l": -7,
+       "r": 30,
+       "rx": 7,
+       "ry": 36,
+       "sb": 0,
+       "t": -36,
+       "w": 38
+      }
+     ]
+    }
+   },
+   "w": 30,
+   "wall_y": null
+  },
   "washstand": {
    "above": [],
    "bucketed": true,
@@ -43747,6 +45156,7 @@
    "rooms": {
     "bathroom": 7
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "gilded": 9
@@ -43905,6 +45315,7 @@
    "rooms": {
     "study": 6
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "avocado": 2,
@@ -44022,6 +45433,7 @@
     "bedroom": 4,
     "living_room": 1
    },
+   "snap": false,
    "sound": null,
    "styles": {
     "adult": 1,
@@ -45010,8 +46422,8 @@
     5
    ],
    "decor": [
-    4,
-    6
+    5,
+    7
    ],
    "fallback": [
     {
@@ -45102,8 +46514,8 @@
     4
    ],
    "decor": [
-    3,
-    5
+    4,
+    6
    ],
    "fallback": [
     {
@@ -45267,8 +46679,8 @@
     4
    ],
    "decor": [
-    4,
-    6
+    5,
+    7
    ],
    "fallback": [
     {
@@ -45359,8 +46771,8 @@
     6
    ],
    "decor": [
-    3,
-    5
+    4,
+    6
    ],
    "fallback": [
     {
@@ -46038,6 +47450,15 @@
     }
    ],
    "keeps": {
+    "airer": {
+     "min_h": 0,
+     "rooms": [
+      "kitchen",
+      "bedroom",
+      "living_room"
+     ],
+     "why": "washing is dried on an airer in the warm: the kitchen, a bedroom or the living room"
+    },
     "bag": {
      "min_h": 0,
      "rooms": null,
@@ -46146,6 +47567,14 @@
     }
    },
    "kinds": {
+    "airer": {
+     "rooms": [
+      "kitchen",
+      "bedroom",
+      "living_room"
+     ],
+     "why": "a clothes airer stands where the washing is dried in the warm: the kitchen, a bedroom, a living room"
+    },
     "alarm_clock": {
      "rooms": [
       "bedroom",

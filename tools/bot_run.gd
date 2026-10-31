@@ -1260,7 +1260,39 @@ func _fire_ahead(p, dirx: float) -> bool:
 	return false
 
 
+# THRASH BREAKER. Two of the bot's controllers can want opposite ways every frame (the unarmed brawl wants the stairs, the looter wants a door, and a body
+# standing ON the bot is "ahead" from one side of it and "behind" from the other): the keys then flip each physics frame, the player shuffles +-2.5 px
+# about the body for ever and the watcher reports a PIN although nothing in the game is blocking anyone (round 49f replay: need_102 floor 25, `[stall]`
+# trace = move_right / move_left alternating on every frame, phased=2). A person does not do that, so: past THRASH_REVERSALS reversals inside THRASH_WINDOW
+# game-seconds the way the bot last asked for is HELD for THRASH_HOLD seconds, and it says so (event THRASH). A real block (the player held against a wall
+# or a body with no reversals) is untouched and still reported by the watcher.
+const THRASH_REVERSALS := 8
+const THRASH_WINDOW := 1.0
+const THRASH_HOLD := 1.5
+var _walk_last: float = 0.0
+var _rev_times: Array = []
+var _thrash_dir: float = 0.0
+var _thrash_until: float = -1.0
+var thrash_breaks: int = 0
+
+
 func _walk(d: float) -> void:
+	if d != 0.0:
+		if t < _thrash_until:
+			d = _thrash_dir
+		else:
+			if _walk_last != 0.0 and signf(d) != _walk_last:
+				_rev_times.append(t)
+				while not _rev_times.is_empty() and t - float(_rev_times[0]) > THRASH_WINDOW:
+					_rev_times.pop_front()
+				if _rev_times.size() >= THRASH_REVERSALS:
+					_rev_times.clear()
+					_thrash_dir = signf(d)
+					_thrash_until = t + THRASH_HOLD
+					thrash_breaks += 1
+					var pp = _player()
+					_event("THRASH", "floor %d: %d direction reversals in %.1f s — holding %s for %.1f s (x=%d)" % [WorldState.current_floor, THRASH_REVERSALS, THRASH_WINDOW, "right" if _thrash_dir > 0.0 else "left", THRASH_HOLD, int(pp.global_position.x) if pp != null else -1])
+			_walk_last = signf(d)
 	if d > 0.0:
 		_set_key("move_right", true)
 		_set_key("move_left", false)

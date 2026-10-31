@@ -426,6 +426,10 @@ func _work_door(p) -> bool:
 	var d = cur_door
 	var apt := str(d.apartment_id)
 	door_t += bot.dt
+	# A long walk to a door is the shape of a pin: from 15 s on, say what the player, the dead and the survivors are doing once a game-second
+	# (silent before, so a run that never gets stuck prints nothing and takes exactly the path it always took).
+	if door_t > 15.0 and int(door_t) != int(door_t - bot.dt):
+		print("      [pin t=%.1f door_t=%d] apt %s stage %s :: %s" % [bot.t, int(door_t), apt, door_stage, diag(p)])
 	if door_t > 75.0:
 		done[apt] = "timed out at the door (%s)" % door_stage
 		bot._anomaly("DOOR_TIMEOUT", "floor %d apt %s: gave up at the door, stage %s, state %s (door x=%d, near=%s) :: %s" % [WorldState.current_floor, apt, door_stage, _state_name(int(d.current_state)), int(d.global_position.x), str(d.player_nearby), diag(p)])

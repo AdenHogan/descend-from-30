@@ -505,7 +505,11 @@ static func _fits(st: Dictionary, it: Dictionary, gap: int = 1) -> bool:
 				var op := String(o["plane"])
 				if op == "rug" or op == "floor" or op == "ceiling":
 					continue
-				if rect.grow(2.0).intersects(o["rect"]):
+				var test: Rect2 = rect.grow(2.0)
+				if bool(rec.get("snap", false)):                       # a hood is as wide as its cooker: it may stand flush against the tall fridge beside it, so it is tested by its FACE, not its outlined sprite
+					var hf: Vector2 = it["face"]
+					test = Rect2(hf.x + 2.0, rect.position.y, hf.y - hf.x - 3.0, rect.size.y)     # (a tall neighbour's outlined sprite starts 2 px before its face)
+				if test.intersects(o["rect"]):
 					return false
 		"rug":
 			for o in items:
@@ -1153,6 +1157,8 @@ static func _fill_decor(st: Dictionary, cnt: Array) -> void:
 			if not hosts.is_empty() and (t < SPOTS_PER_PIECE or must_over):
 				var h: Dictionary = hosts[rng.randi() % hosts.size()]
 				x = clampi(int(h["x"]) + rng.randi_range(-w / 3, int(h["w"]) - w * 2 / 3), EDGE_L + 2, EDGE_R - w - 1)
+				if bool(rec.get("snap", false)):                       # an extractor hood hangs dead-centre over its cooker (the roll above is kept so no other piece's draw moves)
+					x = clampi(int(h["x"]) + (int(h["w"]) - w) / 2, EDGE_L + 2, EDGE_R - w - 1)
 			var it := _make(id, vid, x, rng.randi_range(int(wy[0]), int(wy[1])))
 			if _fits(st, it):
 				_add(st, it)
@@ -1320,6 +1326,20 @@ static func _hangs_over(it: Dictionary, items: Array, above: Array) -> bool:
 	return false
 
 
+## A hung thing that must sit dead-centre over its host (an extractor hood over the cooker): its middle is within 2 px of one host's middle.
+static func _centred_over(it: Dictionary, items: Array, above: Array) -> bool:
+	var cx: float = float(it["x"]) + float(it["w"]) * 0.5
+	for o in items:
+		if not _is_body(String(o["plane"])):
+			continue
+		for t in above:
+			if String(t) in o["tags"]:
+				var f: Vector2 = o["face"]
+				if absf(cx - (f.x + f.y) * 0.5) <= 2.0:
+					return true
+	return false
+
+
 static func validate_state(st: Dictionary) -> Array:
 	var bad: Array = []
 	var items: Array = st["items"]
@@ -1340,6 +1360,8 @@ static func validate_state(st: Dictionary) -> Array:
 			bad.append("%s belongs beside %s but nothing of the kind is within %d px of it" % [id, str(rec.get("near", [])), _belong_gap()])
 		if plane == "decor" and bool(rec.get("must_above", false)) and not _hangs_over(it, items, rec.get("above", [])):
 			bad.append("%s hangs over nothing: it belongs above %s" % [id, str(rec.get("above", []))])
+		elif plane == "decor" and bool(rec.get("snap", false)) and not _centred_over(it, items, rec.get("above", [])):
+			bad.append("%s is not centred over its %s" % [id, str(rec.get("above", []))])
 		if not eligible(id, room, style):
 			bad.append("%s is not allowed in a %s (%s)" % [id, room, style])
 		elif not variant_ok(rec, String(it["variant"]), style):

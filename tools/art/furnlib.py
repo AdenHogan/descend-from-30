@@ -91,7 +91,7 @@ class Piece:
     face) at y = oy; `p` is the variant's parameter dict (colourway, which way the head of a bed faces, an open state 0..1…)."""
 
     def __init__(self, pid, draw, w, h, plane, rooms, styles, tags, variants, depth, lean, bucketed, surface_h, anchors, lights, slots, on, opens, anims,
-                 pair, near, wall_y, ceiling_drop, feet, sound, note, limit=None, needs=None, post=None, companion_only=False, above=(), lap=6, under=(), keep=None, kind=None, must_above=False, under_window=False, edge=False):
+                 pair, near, wall_y, ceiling_drop, feet, sound, note, limit=None, needs=None, post=None, companion_only=False, above=(), lap=6, under=(), keep=None, kind=None, must_above=False, under_window=False, edge=False, snap=False):
         self.id, self.draw, self.w, self.h = pid, draw, w, h
         self.plane, self.rooms, self.styles, self.tags = plane, rooms, styles, tags
         self.variants = variants              # {variant id: params}
@@ -112,6 +112,7 @@ class Piece:
         self.must_above = must_above          # a hung piece that is ONLY ever hung over one of its `above` pieces (a bathroom mirror over the basin, wall cupboards over the worktop)
         self.kind = kind                      # what it IS (home_kinds.KINDS): the rooms a home could keep it in are an upper bound on `rooms`
         self.keep = keep                      # a FLOOR piece's reason for standing on a floor (home_logic.FLOOR_KEEPS): 'seat', 'footwear', 'plant' (tall, big pot)…; None for every other plane
+        self.snap = snap                      # a hung thing that sits dead-centre over the body it hangs above (an extractor hood over its cooker), not anywhere along it
         self.edge = edge                      # a small thing that stands toward an END of the surface it is on, not in the middle of it (a globe at the side of a desk)
         self.under_window = under_window      # a piece that belongs UNDER a window (a radiator, a butler sink): where the room has a window it stands under it, never elsewhere
         self.limit = limit                    # at most this many in one room (None = the planner's default for its plane)
@@ -142,7 +143,7 @@ def recheck_registry():
 
 
 def piece(pid, w, h, plane, rooms, styles=None, tags=(), variants=None, depth=0, lean=None, bucketed=None, surface_h=None, anchors=(), lights=(), slots=(),
-          on=(), opens=None, anims=(), pair=None, near=(), wall_y=None, ceiling_drop=0, feet=None, sound=None, note='', limit=None, needs=None, post=None, companion_only=False, above=(), lap=6, under=(), keep=None, must_above=False, under_window=False, edge=False):
+          on=(), opens=None, anims=(), pair=None, near=(), wall_y=None, ceiling_drop=0, feet=None, sound=None, note='', limit=None, needs=None, post=None, companion_only=False, above=(), lap=6, under=(), keep=None, must_above=False, under_window=False, edge=False, snap=False):
     """Register a piece (a decorator for its draw function). See Piece. `rooms` {room: weight}; `styles` {style: weight} (None = any style at weight 1)."""
     assert plane in PLANES, plane
     for r_ in rooms:
@@ -155,6 +156,7 @@ def piece(pid, w, h, plane, rooms, styles=None, tags=(), variants=None, depth=0,
         for s_ in styles:
             assert s_ in STYLES, s_
     assert not must_above or above, '%s: must_above needs an `above` list' % pid
+    assert not snap or must_above, '%s: snap (centred over its host) needs must_above' % pid
     kind_ = HK.PIECE_KIND.get(pid)
     why_ = HL.issue(plane, h, tuple(tags), keep, tuple(rooms), kind_)
     if why_ and os.environ.get('HOME_REPORT'):                                           # HOME_REPORT=1 lists every violation instead of stopping at the first
@@ -168,7 +170,7 @@ def piece(pid, w, h, plane, rooms, styles=None, tags=(), variants=None, depth=0,
         is_bucketed = is_lean if bucketed is None else bucketed
         REGISTRY[pid] = Piece(pid, fn, w, h, plane, dict(rooms), dict(styles) if styles else None, tuple(tags), variants or {'a': {}}, depth, is_lean, is_bucketed,
                               surface_h if surface_h is not None else h, tuple(anchors), tuple(lights), tuple(slots), tuple(on), opens, tuple(anims), pair, tuple(near),
-                              wall_y, ceiling_drop, feet or {'wall': (105, 109), 'front': (114, 120), 'floor': (108, 120), 'rug': (112, 118)}.get(plane, (0, 0)), sound, note, limit, needs, post, companion_only, above, lap, under, keep, kind_, must_above, under_window, edge)
+                              wall_y, ceiling_drop, feet or {'wall': (105, 109), 'front': (114, 120), 'floor': (108, 120), 'rug': (112, 118)}.get(plane, (0, 0)), sound, note, limit, needs, post, companion_only, above, lap, under, keep, kind_, must_above, under_window, edge, snap)
         return fn
     return deco
 
@@ -410,7 +412,7 @@ def build_piece(pc):
     rec = {'plane': pc.plane, 'rooms': pc.rooms, 'styles': pc.styles, 'tags': list(pc.tags), 'w': pc.w, 'h': pc.h, 'lean': pc.lean, 'bucketed': pc.bucketed,
            'variants': {}, 'on': list(pc.on), 'pair': pc.pair, 'near': list(pc.near), 'wall_y': list(pc.wall_y) if pc.wall_y else None,
            'ceiling_drop': pc.ceiling_drop, 'feet': list(pc.feet), 'sound': pc.sound, 'note': pc.note, 'opens': dict(pc.opens) if pc.opens else None,
-           'limit': pc.limit, 'needs': pc.needs, 'companion_only': pc.companion_only, 'above': list(pc.above), 'lap': pc.lap, 'under': list(pc.under), 'keep': pc.keep, 'kind': pc.kind, 'must_above': pc.must_above, 'under_window': pc.under_window, 'edge': pc.edge}
+           'limit': pc.limit, 'needs': pc.needs, 'companion_only': pc.companion_only, 'above': list(pc.above), 'lap': pc.lap, 'under': list(pc.under), 'keep': pc.keep, 'kind': pc.kind, 'must_above': pc.must_above, 'under_window': pc.under_window, 'edge': pc.edge, 'snap': pc.snap}
     for vid, params in pc.variants.items():
         sprites = []
         first_spr = first_info = None

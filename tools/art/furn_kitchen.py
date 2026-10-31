@@ -218,7 +218,7 @@ def _cooker_variants():
             'cream_bare': {'col': 'cream', 'on': 'none', 'for': ['hoarder']}, 'black_bare': {'col': 'black', 'on': 'none', 'for': ['student', 'hoarder']}}
 
 
-@piece('unit_cooker', 28, 34, 'wall', rooms={'kitchen': 8}, styles=None, tags=('unit', 'cooking'), depth=4, variants=_cooker_variants(), limit=1, feet=(106, 106),
+@piece('unit_cooker', 28, 34, 'wall', rooms={'kitchen': 8}, styles=None, tags=('unit', 'cooking', 'hob'), depth=4, variants=_cooker_variants(), limit=1, feet=(106, 106),
        slots=(), anchors=({'name': 'oven', 'dx': 14, 'dy': -14},), opens={'kind': 'door_drop', 'frames': 3, 'anchor': 'oven'},
        note='a freestanding cooker: knobs on a fascia, an oven door with a window and a bar handle (it drops open when searched), a hob with rings and a pot / a kettle on it')
 def unit_cooker(c, ox, oy, p):
@@ -648,3 +648,6 @@ def table_kitchen(c, ox, oy, p):
             K.slab(L.c, bx, top - 13, bx + 9, top - 2, bc, d=2, inset=1)
             L.c.hline(bx + 2, bx + 7, top - 16, hexc('9aa0a4')); L.c.vline(bx + 2, top - 16, top - 14, hexc('9aa0a4')); L.c.vline(bx + 7, top - 16, top - 14, hexc('9aa0a4'))
             L.flush()
+    if kind in ('camping', 'trestle'):                                                              # the two tables that had no seat get one (furn_kitchen_more)
+        import furn_kitchen_more
+        furn_kitchen_more.seat_for_table(c, ox, oy, kind)
