@@ -30,6 +30,7 @@ func _ready() -> void:
 	await _test_generic_reaction()
 	await _test_new_kinds()
 	await _test_special_sounds()
+	await _test_screen_off_before_the_tree()
 	await _test_critters()
 	await _test_toilet_roll()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
@@ -324,6 +325,43 @@ func _test_new_kinds() -> void:
 			after += 1
 	check(after == before + 1, "the switch-off click plays at the press (%d -> %d players)" % [before, after])
 	s2.queue_free()
+	await get_tree().process_frame
+
+
+## Found by the round-49f bot sweep: a PLANNED room lays its open-state patches before they are in the tree, and a patch whose screen was already switched off called `get_tree()` on nothing
+## ("Cannot call method 'call_group' on a null value", 5 of 12 playthroughs). The patch now waits for the tree and stops the live screen under it a frame later.
+func _test_screen_off_before_the_tree() -> void:
+	print("[a switched-off screen is stopped even when its patch is built before it is in the tree]")
+	var module := Node2D.new()
+	add_child(module)
+	var anims := Node2D.new()
+	anims.name = "Anims"
+	module.add_child(anims)
+	var live := Node2D.new()
+	live.set_script(load("res://scripts/module_anim.gd"))
+	live.set_meta("kind", "blink")
+	live.set_meta("w", 4)
+	live.set_meta("h", 3)
+	live.position = Vector2(30.0, 40.0)
+	anims.add_child(live)
+	var img := Image.create(24, 20, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0.2, 0.2, 0.2, 1.0))
+	var s := Sprite2D.new()
+	s.set_script(load("res://scripts/open_furniture.gd"))
+	s.texture = ImageTexture.create_from_image(img)
+	s.kind = "screen_off"
+	s.centered = false
+	s.position = Vector2(24.0, 34.0)
+	s.apartment_id = "9995"
+	s.anchor_name = "anchor_test_screen"
+	WorldState.note_anchor_opened("9995", "anchor_test_screen")
+	s.refresh()                                                       # the planned build's order: before it is in the tree — this used to be a script error
+	check(live.visible, "(the live blink is still running while the patch is not in the tree)")
+	module.add_child(s)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	check(not live.visible, "once the patch is in the tree the live screen under it goes dark (an opened screen stays off on re-entry)")
+	module.queue_free()
 	await get_tree().process_frame
 
 

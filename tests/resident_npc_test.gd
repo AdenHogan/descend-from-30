@@ -21,6 +21,7 @@ func _ready() -> void:
 	_test_seeding()
 	_test_dialogue_file()
 	await _test_hostile()
+	await _test_placement_in_short_flats()
 	await _test_scared()
 	await _test_trader()
 	await _test_scripts()
@@ -65,10 +66,12 @@ func _test_seeding() -> void:
 			if (int(r["look"]) == WorldState.RESIDENT_STICK_LOOK) != (str(r["weapon"]) in WorldState.RESIDENT_STICK_WEAPONS):
 				ok_look = false
 		per_run.append(n)
-	check(per_run[0] >= 3 and per_run[2] >= 1, "residents turn up in every run (%s)" % str(per_run))
+	# (Counted over the FIXED buildings below, not this game's random one: a building may legitimately roll no resident at all in run 3 -
+	# the stress run met [18, 12, 0] - so a check on one random building failed about one game in twenty.)
 	# Fewer by night: the share of locked flats with someone in, over a few buildings (the count of
 	# locked doors itself changes by run, so compare shares, not counts).
 	var share := [0.0, 0.0, 0.0]
+	var hits := [0, 0, 0]
 	for run in [1, 2, 3]:
 		var hit := 0
 		var locked := 0
@@ -85,6 +88,8 @@ func _test_seeding() -> void:
 					if not WorldState.resident_for(a).is_empty():
 						hit += 1
 		share[run - 1] = float(hit) / maxf(1.0, float(locked))
+		hits[run - 1] = hit
+	check(hits[0] >= 3 and hits[2] >= 1, "residents turn up in every run (over ten fixed buildings: %s; this game's building: %s)" % [str(hits), str(per_run)])
 	check(share[0] > share[1] and share[1] > share[2], "...fewer as the arc goes on (share of locked flats %.2f / %.2f / %.2f)" % share)
 	check(ok_doors, "only ever behind a LOCKED door, never on Floor 30")
 	check(tempers.size() == 3, "all three tempers turn up (%s)" % str(tempers.keys()))
@@ -261,6 +266,39 @@ func _test_hostile() -> void:
 	check(npc != null and npc.is_dead and not npc.is_in_group("resident_target"), "come back: they still lie there")
 	await _close(room)
 	WorldState.god_mode = false
+
+
+func _test_placement_in_short_flats() -> void:
+	# Found by the gate meeting a two-room flat (a resident stood at x 992, beyond the 762 right wall): the first placement said "module 2"
+	# for every flat. Over every flat of a game, both door sides and the ends of the seeded spot, it stands inside the flat — in the far room.
+	print("[a resident is first laid INSIDE its flat, in the room furthest from the door - two rooms or three]")
+	# A game where all five columns are balcony columns (1 in 32) has no two-room flat at all - deal until one has both sizes.
+	var spans := {}
+	for attempt in 40:
+		WorldState.new_game()
+		spans = {}
+		for a in _apts():
+			spans[WorldState.apartment_span(a)] = true
+		if spans.has(2) and spans.has(3):
+			break
+	var seen := {2: 0, 3: 0}
+	var bad := 0
+	var worst := ""
+	for apt in _apts():
+		var span: int = WorldState.apartment_span(apt)
+		for side in ["left", "right"]:
+			for s in [0.0, 0.5, 1.0]:
+				var x: float = NPC.spawn_x(apt, {"spot": s}, side)
+				var lo: float = 113.0 + (span - 1) * 320.0 if side == "left" else 113.0
+				var hi: float = WorldState.flat_x_hi(apt) if side == "left" else 113.0 + 320.0
+				seen[span] = int(seen.get(span, 0)) + 1
+				if x < lo or x > hi:
+					bad += 1
+					worst = "%s %s spot %.1f -> x %.0f (want %.0f..%.0f)" % [apt, side, s, x, lo, hi]
+	check(int(seen[2]) > 0 and int(seen[3]) > 0, "(setup) this game has both two-room and three-room flats (%d / %d placements)" % [seen[2], seen[3]])
+	check(bad == 0, "every placement is inside the far room of its flat (%d outside; last: %s)" % [bad, worst])
+	var recorded: float = NPC.spawn_x("2502", {"x": 400.0, "spot": 0.9}, "left")
+	check(recorded == 400.0, "a recorded x is kept as it was (%.0f)" % recorded)
 
 
 func _test_scared() -> void:

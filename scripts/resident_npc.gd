@@ -108,14 +108,20 @@ static func spawn(room: Node, apt_id: String, record: Dictionary, entrance_side:
 	n.name = "Resident"
 	n.apartment_id = apt_id
 	n.rec = record
-	var x: float = float(record.get("x", -1.0))
-	if x < 0.0:
-		# The far module from the front door (they keep away from it), somewhere in its middle.
-		var far_mod := 2 if entrance_side == "left" else 0
-		x = 113.0 + far_mod * 320.0 + 70.0 + float(record.get("spot", 0.5)) * 180.0
-	n.position = Vector2(x, FEET_Y)
+	n.position = Vector2(spawn_x(apt_id, record, entrance_side), FEET_Y)
 	room.add_child(n)
 	return n
+
+
+## Where a resident is first laid: its recorded x, else the FAR module from the front door (they keep away from it), somewhere in its middle.
+## (A two-room flat has no module 2: the far one is its last. This said `2` for every flat, which stood a resident in the street beyond a
+## short flat's right wall — x 823..1003 against a wall at ~753; found when the gate met a two-room flat.)
+static func spawn_x(apt_id: String, record: Dictionary, entrance_side: String) -> float:
+	var x: float = float(record.get("x", -1.0))
+	if x >= 0.0:
+		return x
+	var far_mod: int = (WorldState.apartment_span(apt_id) - 1) if entrance_side == "left" else 0
+	return 113.0 + far_mod * 320.0 + 70.0 + float(record.get("spot", 0.5)) * 180.0
 
 
 func _ready() -> void:

@@ -133,5 +133,17 @@ func _centre() -> Vector2:
 func _stop_live_screens() -> void:
 	if kind != "screen_off" or texture == null:
 		return
+	# A PLANNED room builds this patch before it is in the tree (its `refresh()` runs while the room is being laid), so there is no tree to ask yet — and the live screen under it
+	# (a node of the module's `Anims`) does not exist yet either. Wait until the patch is in the tree, then a frame more, and stop the screen then (found by the round-49f bot sweep:
+	# "Cannot call method 'call_group' on a null value" on re-entering a flat whose monitor was already switched off).
+	if not is_inside_tree():
+		if not tree_entered.is_connected(_stop_live_screens_soon):
+			tree_entered.connect(_stop_live_screens_soon, CONNECT_ONE_SHOT)
+		return
 	var size := Vector2(float(texture.get_width()) / float(maxi(1, hframes)), float(texture.get_height()))
 	get_tree().call_group("module_anim", "screen_off", Rect2(global_position, size))
+
+
+func _stop_live_screens_soon() -> void:
+	call_deferred("_stop_live_screens")
+

@@ -27,6 +27,7 @@ func _ready() -> void:
 	await _test_unstick(load("res://scenes/enemy_zombie_crawler.tscn"), "crawler (wide 80px body)")
 	await _test_net_survives_zombie_resolidify(load("res://scenes/enemy_zombie_standard.tscn"), "standard zombie")
 	await _test_net_survives_zombie_resolidify(load("res://scenes/enemy_zombie_big.tscn"), "big zombie")
+	await _test_jitter_pin()
 	await _test_freed_phased_body_is_quiet()
 	await _test_wall_only_no_error()
 	await _test_resolidify_clearance()
@@ -116,6 +117,73 @@ func _test_net_survives_zombie_resolidify(scene: PackedScene, label: String) -> 
 		p.set("has_move_target", true)
 		p.set("move_target_x", 780.0)
 	check(p.global_position.x > z.global_position.x + 20.0, "%s: the player still got PAST it (x %.1f -> %.1f, body at %.1f)" % [label, x0, p.global_position.x, z.global_position.x])
+	p.queue_free()
+	if is_instance_valid(z):
+		z.queue_free()
+	WorldState.god_mode = false
+	await get_tree().physics_frame
+
+
+func _test_jitter_pin() -> void:
+	# The descent bot's 30-75 s pins (round 49f): wedged between a solid body and a defender's endless fight, the player did not stand
+	# still — depenetration shoved them about ±0.6 px a frame, which beat the old per-frame "moved < 0.5" test every other frame, so the
+	# stuck timer never grew and the net never fired. The net must judge NET progress. The player's own physics is switched off so this
+	# drives _update_unjam directly with the positions the bot's stall trace recorded (437.0 / 437.6, alternating).
+	print("[the net fires for a player jittering ±0.6 px a frame, and not for one who is walking]")
+	WorldState.new_game()
+	WorldState.god_mode = true
+	var p = load("res://scenes/player.tscn").instantiate()
+	add_child(p)
+	p.global_position = Vector2(437.0, 388)
+	var z = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	add_child(z)
+	z.global_position = Vector2(460, 372)
+	z.set("state", "idle")
+	z.set_physics_process(false)
+	for i in range(3):
+		await get_tree().physics_frame
+	p.set_physics_process(false)             # the test is the only thing moving / judging the player now
+	p.set("_stuck_time", 0.0)
+	p.set("_unjam_ref_x", p.global_position.x)
+	# 1. a real walk (2.5 px a frame = 150 px/s, beside the body) never trips it, however long it goes on
+	var x: float = 300.0
+	var worst: float = 0.0
+	for f in range(120):
+		x += 2.5
+		p.global_position.x = x
+		p.call("_update_unjam", true)
+		worst = maxf(worst, float(p.get("_stuck_time")))
+		await get_tree().physics_frame
+	check(worst < 0.1 and (p.get("_phased_bodies") as Array).is_empty(), "a walking player never builds up stuck time or phases a body (worst %.2f s of %.1f)" % [worst, p.STUCK_UNJAM_TIME])
+	# a slow walk is no jitter either: the slowest real walk (crouch 60 px/s x a trait's 0.7 = 0.7 px a frame)
+	x = 300.0
+	worst = 0.0
+	for f in range(240):
+		x += 0.7
+		p.global_position.x = x
+		p.call("_update_unjam", true)
+		worst = maxf(worst, float(p.get("_stuck_time")))
+		await get_tree().physics_frame
+	check(worst < p.STUCK_UNJAM_TIME * 0.5 and (p.get("_phased_bodies") as Array).is_empty(), "the slowest walk (0.7 px a frame) is still progress (worst %.2f s)" % worst)
+	# 2. the same wedge, with nobody pressing anything: the net stays out of it
+	p.global_position.x = 437.0
+	p.set("_stuck_time", 0.0)
+	p.set("_unjam_ref_x", 437.0)
+	for f in range(90):
+		p.global_position.x = 437.0 + (0.6 if f % 2 == 0 else 0.0)
+		p.call("_update_unjam", false)
+		await get_tree().physics_frame
+	check((p.get("_phased_bodies") as Array).is_empty(), "not trying to move -> the net does not phase anything")
+	# 3. trying to move, shuffled about by the body: after STUCK_UNJAM_TIME the body is phased
+	var fired_at := -1
+	for f in range(90):                       # 1.5 s
+		p.global_position.x = 437.0 + (0.6 if f % 2 == 0 else 0.0)
+		p.call("_update_unjam", true)
+		if z in (p.get("_phased_bodies") as Array) and fired_at < 0:
+			fired_at = f
+		await get_tree().physics_frame
+	check(fired_at >= 0, "a jittering player (±0.6 px a frame) trying to walk is freed (phased at frame %d)" % fired_at)
+	check(fired_at >= 0 and fired_at <= 40, "...within about the dwell time (0.5 s = 30 frames; got %d)" % fired_at)
 	p.queue_free()
 	if is_instance_valid(z):
 		z.queue_free()

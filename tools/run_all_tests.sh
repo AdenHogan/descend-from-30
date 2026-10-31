@@ -142,7 +142,7 @@ for t in tests/*.tscn; do
 	fi
 	count=$((count + 1))
 	log="$LOG_DIR/$n.log"
-	timeout 300 godot --headless "res://$t" >"$log" 2>&1
+	timeout "${SUITE_TIMEOUT:-300}" godot --headless "res://$t" >"$log" 2>&1
 	code=$?
 	if [ $code -ne 0 ]; then
 		echo "FAIL   $n (exit $code)"; grep -E "  FAIL " "$log" | head -5
