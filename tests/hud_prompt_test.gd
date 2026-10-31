@@ -149,6 +149,24 @@ func _test_dialogue_bubble() -> void:
 	HUD._position_dialogue()
 	chk(not Rect2(panel.position, panel.size).intersects(other.get_global_rect()), "…nor another speech bubble")
 	other.queue_free()
+	# a line somebody ELSE says (the merchant behind the lift's doors) hangs over THEM, not over the player, and carries no "Merchant:" label
+	var lift_at := Vector2(900.0, 363.0)
+	stand.global_position = Vector2(600, 330)
+	HUD.show_dialogue("Not a chance — I'm not opening these doors with the floor on fire.", "", false, 4.0, lift_at)
+	await get_tree().process_frame
+	var mouth: Vector2 = get_viewport().get_canvas_transform() * (lift_at + Vector2(0, HUD.DIALOGUE_HEAD_DY))
+	var rs := Rect2(panel.position, panel.size)
+	chk(absf(rs.get_center().x - mouth.x) < 2.0 or rs.position.x <= 8.5 or rs.end.x >= HUD.SCREEN_W - 8.5, "the merchant's line hangs over the merchant, not the player (bubble centre %.0f, mouth %.0f)" % [rs.get_center().x, mouth.x])
+	chk(absf(rs.get_center().x - (get_viewport().get_canvas_transform() * (stand.global_position + Vector2(0, HUD.DIALOGUE_HEAD_DY))).x) > 20.0, "…and it is nowhere near the player's head")
+	HUD.hide_dialogue()
+	HUD.show_dialogue("The player speaks again.", "", false, 2.0)
+	await get_tree().process_frame
+	var back := Rect2(panel.position, panel.size)
+	chk(absf(back.get_center().x - (get_viewport().get_canvas_transform() * (stand.global_position + Vector2(0, HUD.DIALOGUE_HEAD_DY))).x) < 2.0, "the next ordinary line is the player's again (the speaker point does not stick)")
+	for path in ["res://scripts/building_floors.gd"]:
+		var src := FileAccess.get_file_as_string(path)
+		chk(src.find("\"Merchant: ") < 0, "no merchant line still carries a \"Merchant:\" label")
+	HUD.hide_dialogue()
 	# a paused teaching beat keeps its hint inside the bubble
 	HUD.show_dialogue("Find a weapon.", "[any key]", true)
 	await get_tree().process_frame

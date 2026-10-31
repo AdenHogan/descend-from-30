@@ -704,7 +704,7 @@ func _process(delta: float) -> void:
 	if _merchant_pending_fire and not _merchant_shelter_line_shown \
 			and absf(player.global_position.x - 1029.5) < 170.0:
 		_merchant_shelter_line_shown = true
-		HUD.show_dialogue("Merchant: Not a chance — I'm not opening these doors with the floor on fire. Put it out and we'll trade.", "", false, 4.5)
+		HUD.show_dialogue("Not a chance — I'm not opening these doors with the floor on fire. Put it out and we'll trade.", "", false, 4.5, MERCHANT_LIFT_AT)
 
 	_elevator_ride_process(player)
 
@@ -1521,6 +1521,7 @@ func _place_elevator_kit(floor_num: int) -> void:
 const MAINT_DOOR_SCENE := preload("res://scenes/door.tscn")
 const MAINT_DOOR_X := 929.0       # the old extinguisher wall spot (between apartment 01 and the elevator)
 const ELEVATOR_X := 1029.5        # the corridor elevator sprite (building_floors.tscn)
+const MERCHANT_LIFT_AT := Vector2(1029.5, 363.0)   # where the merchant stands (its origin): their lines hang over this point, not over the player's head
 const ELEVATOR_RIDE_RANGE := 80.0 # how close to the doors the [E] Ride prompt shows
 
 
@@ -1574,7 +1575,7 @@ func _do_spawn_merchant() -> void:
 	# Rode the lift onto the merchant's own floor — they reclaim their elevator and
 	# grumble about it (docs/MAINTENANCE_ELEVATOR.md), then trade as normal.
 	if WorldState.spawn_source == "elevator":
-		HUD.show_dialogue("Merchant: You rode MY lift? Cheeky. Fine — you're here now. Let's trade.", "", false, 4.5)
+		HUD.show_dialogue("You rode MY lift? Cheeky. Fine — you're here now. Let's trade.", "", false, 4.5, MERCHANT_LIFT_AT)
 
 func _spawn_world_drops(floor_num: int) -> void:
 	var scene_path = scene_file_path   # THIS scene — a pan backdrop is not the current scene yet

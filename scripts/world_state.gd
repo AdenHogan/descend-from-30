@@ -3493,12 +3493,24 @@ func get_apartment_zombie_count(apartment_id: String) -> int:
 	var rng = RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "zombies" + apartment_id)
 	var roll = rng.randf()
+	var n: int
 	if roll < 0.30:
 		return 0
 	elif roll < 0.33:
-		return 10
+		n = 10
 	else:
-		return rng.randi() % 4 + 1
+		n = rng.randi() % 4 + 1
+	return _scaled_to_span(n, apartment_id)
+
+
+## The dead of a flat are dealt for a three-room flat (150..1030 px); a TWO-room flat is 320 px shorter, so the same count would crowd it (owner round 49f: "build in those
+## not done items"). The roll above is drawn EXACTLY as before — a three-room flat's count is unchanged, a two-room flat's is that count x 2/3 rounded, never below one
+## (1, 2, 3, 4, 10 become 1, 1, 2, 3, 7: the same dead per metre of floor).
+func _scaled_to_span(n: int, apartment_id: String) -> int:
+	var span: int = apartment_span(apartment_id)
+	if span >= 3 or n <= 0:
+		return n
+	return maxi(1, int(round(float(n) * float(span) / 3.0)))
 
 
 # --- Stairwell hazards: barricades (crowbar). Stairwell ENEMIES are NOT a hazard —

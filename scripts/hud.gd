@@ -553,6 +553,7 @@ func world_prompt_panel(prompt_owner: Node) -> Panel:
 const DIALOGUE_FONT := preload("res://assets/fonts/PixelOperator8.ttf")
 const DIALOGUE_W := 260.0               # the bubble's text column (a resident's is 250)
 const DIALOGUE_HEAD_DY := -64.0         # world px above the player's origin where the bubble's foot sits
+var _dialogue_speaker_at := Vector2.INF  # a line that is NOT the player's (the merchant's) hangs over this WORLD point (the speaker's origin) instead of the player's head
 const DIALOGUE_GAP := 6.0
 
 
@@ -613,7 +614,10 @@ func _position_dialogue() -> void:
 	var sz: Vector2 = dialogue_panel.size
 	var pos := Vector2((SCREEN_W - sz.x) * 0.5, 96.0)
 	var player = get_tree().get_first_node_in_group("player")
-	if player != null and is_instance_valid(player):
+	if _dialogue_speaker_at != Vector2.INF:
+		var mouth: Vector2 = get_viewport().get_canvas_transform() * (_dialogue_speaker_at + Vector2(0, DIALOGUE_HEAD_DY))
+		pos = Vector2(mouth.x - sz.x * 0.5, mouth.y - sz.y)
+	elif player != null and is_instance_valid(player):
 		var head: Vector2 = get_viewport().get_canvas_transform() * (player.global_position + Vector2(0, DIALOGUE_HEAD_DY))
 		pos = Vector2(head.x - sz.x * 0.5, head.y - sz.y)
 	pos = Vector2(clampf(pos.x, 8.0, SCREEN_W - sz.x - 8.0), clampf(pos.y, 8.0, SCREEN_H - sz.y - 8.0))
@@ -639,11 +643,13 @@ func _position_dialogue() -> void:
 	dialogue_panel.position = r.position
 
 
-func show_dialogue(text: String, hint: String = "", persist: bool = false, seconds: float = 5.0) -> void:
+func show_dialogue(text: String, hint: String = "", persist: bool = false, seconds: float = 5.0, speaker_at: Vector2 = Vector2.INF) -> void:
 	# Player-speech line. `persist` = a paused teaching beat that stays up until
-	# hide_dialogue(); otherwise it auto-hides after `seconds`.
+	# hide_dialogue(); otherwise it auto-hides after `seconds`. `speaker_at` (a world point) is for a line somebody ELSE says (the merchant behind the lift's
+	# doors): the same bubble hangs over THEM, so it never reads as the player talking and needs no "Merchant:" label.
 	if dialogue_panel == null:
 		return
+	_dialogue_speaker_at = speaker_at
 	dialogue_label.text = SettingsManager.localize(text)
 	if hint != "":
 		dialogue_hint.text = SettingsManager.localize(hint)
@@ -674,6 +680,7 @@ func _create_fg_cat() -> void:
 
 
 func hide_dialogue() -> void:
+	_dialogue_speaker_at = Vector2.INF
 	if dialogue_panel == null:
 		return
 	dialogue_panel.visible = false

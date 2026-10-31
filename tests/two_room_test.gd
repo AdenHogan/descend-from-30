@@ -26,6 +26,7 @@ func _ready() -> void:
 	_test_the_mix()
 	_test_the_rules()
 	_test_breach()
+	_test_the_dead()
 	await _test_built("left")
 	await _test_built("right")
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
@@ -130,6 +131,59 @@ func _test_the_rules() -> void:
 		if WorldState.get_apartment_layout(id).size() == 2 and a2 == "":
 			a2 = id
 	check(a3 != "" and a2 != "" and is_equal_approx(WorldState.flat_x_hi(a3), 1030.0) and is_equal_approx(WorldState.flat_x_hi(a2), 710.0), "the dead's range ends at 1030 in a three-room flat and 710 in a two-room one")
+
+
+## The dead are dealt for a three-room flat; a two-room flat gets that count x 2/3 (rounded, never below one) so it is not crowded for being shorter (owner round 49f).
+## The raw roll is re-derived here, independently of the code under test (the same seed string, the same draws).
+func _raw_dead(id: String) -> int:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(WorldState.master_seed) + "zombies" + id)
+	var roll := rng.randf()
+	if roll < 0.30:
+		return 0
+	if roll < 0.33:
+		return 10
+	return rng.randi() % 4 + 1
+
+
+func _test_the_dead() -> void:
+	print("[the dead are dealt for the flat's length]")
+	var three_same := 0
+	var three := 0
+	var two_scaled := 0
+	var two := 0
+	var wrong: Array = []
+	var seen_by_raw := {}
+	for seed_ in [12345, 777, 90210, 31415, 2718]:
+		WorldState.master_seed = seed_
+		WorldState.apartment_layouts.clear()
+		for id in _all_ids():
+			var raw: int = _raw_dead(id)
+			var got: int = WorldState.get_apartment_zombie_count(id)
+			if WorldState.apartment_span(id) >= 3:
+				three += 1
+				if got == raw:
+					three_same += 1
+				else:
+					wrong.append("%s three-room %d -> %d" % [id, raw, got])
+			else:
+				two += 1
+				var want: int = 0 if raw == 0 else maxi(1, int(round(float(raw) * 2.0 / 3.0)))
+				if got == want:
+					two_scaled += 1
+				else:
+					wrong.append("%s two-room %d -> %d (wanted %d)" % [id, raw, got, want])
+				if raw > 0:
+					seen_by_raw[raw] = got
+	check(three > 100 and three_same == three, "a three-room flat's count is exactly the old roll (%d of %d) %s" % [three_same, three, str(wrong.slice(0, 3))])
+	check(two > 40 and two_scaled == two, "a two-room flat's count is that roll x 2/3, never below one (%d of %d) %s" % [two_scaled, two, str(wrong.slice(0, 3))])
+	check(seen_by_raw.get(1, 1) == 1 and seen_by_raw.get(2, 1) == 1 and seen_by_raw.get(3, 2) == 2 and seen_by_raw.get(4, 3) == 3, "the table: 1, 2, 3, 4 become 1, 1, 2, 3 (%s)" % str(seen_by_raw))
+	var has_empty := false
+	for id in _all_ids():
+		if WorldState.apartment_span(id) < 3 and _raw_dead(id) == 0 and WorldState.get_apartment_zombie_count(id) == 0:
+			has_empty = true
+			break
+	check(has_empty, "an empty flat stays empty at two rooms (the scaling never invents a dead)")
 
 
 func _test_breach() -> void:

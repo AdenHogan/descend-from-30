@@ -469,6 +469,80 @@ func _test_world_drop_rounds() -> void:
 	check(drop.is_queued_for_deletion() and not WorldState.world_drops.has(key) and _bullets_in_pack() == 2, "with room, the last two are taken and the pickup goes")
 	world.queue_free()
 	await get_tree().process_frame
+	await _test_world_drop_two_guns()
+
+
+## Owner round 49f: bullets on the floor with the pack full and TWO guns that could take them ask which gun, instead of the first one taking them.
+func _test_world_drop_two_guns() -> void:
+	print("[bullets lying on the floor, two guns: ask which]")
+	_fresh()
+	var world := Node2D.new()
+	world.scene_file_path = "res://scenes/building_floors.tscn"
+	add_child(world)
+	var p = load("res://scenes/player.tscn").instantiate()
+	world.add_child(p)
+	await get_tree().process_frame
+	var g1 := _gun(3)
+	var g2 := _gun(6)
+	WorldState.inventory.append(g1)
+	WorldState.inventory.append(g2)
+	_fill_pack()
+	var m1: int = g1.mag_count
+	var m2: int = g2.mag_count
+	var key: String = WorldState.add_world_drop("016", Vector2(600.0, 412.0), 12, {"amount": 5, "scene": "res://scenes/building_floors.tscn"})
+	var drop = load("res://scenes/world_drop.tscn").instantiate()
+	drop.item_id = "016"
+	drop.amount = 5
+	drop.drop_key = key
+	world.add_child(drop)
+	drop.player_nearby = true                       # (standing in reach: the question is dropped the moment they leave it)
+	await get_tree().process_frame
+	var did: bool = drop._try_pickup()
+	await get_tree().process_frame
+	check(did and g1.mag_count == m1 and g2.mag_count == m2, "pack full, two guns short: the press asks and loads NOTHING yet (%d/%d, %d/%d)" % [g1.mag_count, g1.get_mag_cap(), g2.mag_count, g2.get_mag_cap()])
+	var ask: GunChoice = drop._choice
+	check(ask != null and is_instance_valid(ask) and ask.guns.size() == 2 and ask.is_in_group("hud_widget_extra"), "…a 'which gun?' panel is up, one row a gun, counted as a HUD widget")
+	check(WorldState.world_drops.has(key) and drop.amount == 5, "…and the bullets are still on the floor")
+	drop._try_pickup()
+	check(g1.mag_count == m1 and g2.mag_count == m2 and drop._choice == ask, "a second press while it asks is spent on the question (nothing loaded, one panel)")
+	ask.choose(1)
+	check(g2.mag_count == m2 + 5 and g1.mag_count == m1, "choosing the second gun loads THAT gun only (%d -> %d; the first stays %d)" % [m2, g2.mag_count, g1.mag_count])
+	check((not is_instance_valid(drop) or drop.is_queued_for_deletion()) and not WorldState.world_drops.has(key), "…and, all five fitting, the pickup goes")
+	# walking away puts the question away, taking nothing
+	var key2: String = WorldState.add_world_drop("016", Vector2(640.0, 412.0), 12, {"amount": 9, "scene": "res://scenes/building_floors.tscn"})
+	var drop2 = load("res://scenes/world_drop.tscn").instantiate()
+	drop2.item_id = "016"
+	drop2.amount = 9
+	drop2.drop_key = key2
+	world.add_child(drop2)
+	drop2.player_nearby = true
+	await get_tree().process_frame
+	var before1: int = g1.mag_count
+	drop2._try_pickup()
+	await get_tree().process_frame
+	var ask2: GunChoice = drop2._choice
+	check(ask2 != null and is_instance_valid(ask2), "(a second bundle asks too)")
+	drop2.player_nearby = false
+	drop2._process(0.016)
+	await get_tree().process_frame
+	check(not is_instance_valid(ask2) or ask2.is_queued_for_deletion(), "walking out of reach puts the question away")
+	check(g1.mag_count == before1 and WorldState.world_drops.has(key2) and drop2.amount == 9, "…and takes nothing")
+	# one gun that could take them: loaded without asking, as ever
+	WorldState.inventory.erase(g2)
+	_fill_pack()                                     # (the erased gun left a slot: the pockets must stay unable to take the bundle)
+	var key3: String = WorldState.add_world_drop("016", Vector2(680.0, 412.0), 12, {"amount": 2, "scene": "res://scenes/building_floors.tscn"})
+	var drop3 = load("res://scenes/world_drop.tscn").instantiate()
+	drop3.item_id = "016"
+	drop3.amount = 2
+	drop3.drop_key = key3
+	world.add_child(drop3)
+	drop3.player_nearby = true
+	await get_tree().process_frame
+	var b1: int = g1.mag_count
+	drop3._try_pickup()
+	check(drop3._choice == null and g1.mag_count == mini(b1 + 2, g1.get_mag_cap()), "with only ONE gun that could take them it just loads it (no question)")
+	world.queue_free()
+	await get_tree().process_frame
 
 
 # --- (3) the way an item is thrown ----------------------------------------------------------------------------------------------------

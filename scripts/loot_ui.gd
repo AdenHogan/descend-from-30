@@ -845,8 +845,7 @@ func _open_choice(guns: Array) -> void:
 		c.queue_free()
 	for i in range(_choice_guns.size()):
 		var g = _choice_guns[i]
-		var tier: String = g.tier_tag()
-		var row := _lamp_label("%d   %s%s   %d / %d" % [i + 1, g.get_display_name(), ("  " + tier) if tier != "" else "", g.mag_count, g.get_mag_cap()], "body", Lamp.PX_BODY, Lamp.TEXT)
+		var row := _lamp_label(GunChoice.row_text(i, g), "body", Lamp.PX_BODY, Lamp.TEXT)
 		row.name = "Gun%d" % (i + 1)
 		_choice_box.add_child(row)
 	hint_label.text = "WHICH GUN?"

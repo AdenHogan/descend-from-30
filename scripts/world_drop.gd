@@ -28,6 +28,7 @@ var _tex: Texture2D = null
 var _light: PointLight2D = null
 # Toss state
 var _tossing: bool = false
+var _choice: GunChoice = null            # the open "which gun?" question for a bullet pickup (two guns could take the rounds)
 var _vel: Vector2 = Vector2.ZERO
 var _rest_y: float = 0.0
 var _bounces: int = 0
@@ -252,6 +253,8 @@ func _process(delta: float) -> void:
 		if _hud_checked:
 			_sync_registered_x()
 	if not player_nearby:
+		if _choice != null and is_instance_valid(_choice):
+			_choice.close()                      # they walked away: nothing taken, nothing asked
 		return
 	var focused: bool = focus_drop(get_tree()) == self
 	if focused:
@@ -358,6 +361,16 @@ func _try_pickup() -> bool:
 			HUD.show_feedback("Inventory full.", true)
 			return false
 	elif ItemData.get_item(item_id).get("is_ammo", false):
+		# Bullets the pockets cannot take and TWO guns could: the player's choice, not ours (owner round 49f; the same question the found-item tag asks).
+		if _choice != null and is_instance_valid(_choice):
+			return true                          # already asking: the press is spent on the question
+		if WorldState.ammo_pack_room(item_id) < amount:
+			var guns: Array = WorldState.guns_with_room()
+			if guns.size() >= 2:
+				_choice = GunChoice.ask(guns, global_position)
+				if _choice != null:
+					_choice.chosen.connect(_on_gun_chosen)
+					return true
 		# Bullets that don't wholly fit the pockets load a gun carried (owner round 48h); what fits nowhere stays on the floor.
 		var res: Dictionary = WorldState.take_found_ammo(item_id, amount)
 		if int(res["left"]) > 0:
@@ -388,7 +401,38 @@ func _try_pickup() -> bool:
 	return true
 
 
+## The player named the gun: its magazine takes what it can, the rest stays on the floor (nothing is destroyed).
+func _on_gun_chosen(gun) -> void:
+	_choice = null
+	if not is_instance_valid(gun) or not WorldState.inventory.has(gun):
+		return
+	var here: int = maxi(amount, 1)
+	var res: Dictionary = WorldState.load_found_rounds(here, gun)
+	var put: int = int(res["n"])
+	if put <= 0:
+		HUD.show_feedback("Magazine full.")
+		return
+	WorldState.note_item_seen(item_id)
+	var msg := "Loaded %d — mag %d/%d." % [put, gun.mag_count, gun.get_mag_cap()]
+	amount = here - put
+	if amount > 0:
+		if drop_key != "" and WorldState.world_drops.has(drop_key):
+			WorldState.world_drops[drop_key]["amount"] = amount
+		HUD.show_feedback(msg)
+		HUD.refresh_inventory()
+		return
+	HUD.show_feedback(msg)
+	HUD.refresh_inventory()
+	if drop_key != "":
+		WorldState.remove_world_drop(drop_key)
+	HUD.hide_world_prompt(self)
+	queue_free()
+
+
 func _exit_tree() -> void:
+	if _choice != null and is_instance_valid(_choice):
+		_choice.close(false)                    # a question about a drop that is gone has no answer
+	_choice = null
 	# Freed while the player was still in range (scene change, etc.) — don't leave
 	# the HUD prompt pointing at a gone item.
 	if player_nearby:
