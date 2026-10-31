@@ -96,7 +96,7 @@ const MODULE_WIDTH = 320
 const LEFT_WALL_X = 113
 var _arrived_by_balcony: bool = false   # the player came down a balcony, not through the front door (set in _ready before spawn_source is cleared)
 const ARRIVAL_X_LEFT := 140.0           # where the player stands on arrival (the two `player.position.x =` lines in _ready)
-const ARRIVAL_X_RIGHT := 1050.0
+const ARRIVAL_X_RIGHT := 1050.0         # (of a three-room flat — `_arrival_x_right()` is the one the code asks)
 const ARRIVAL_PLAYER_HALF := 13.0       # the player's capsule half-width
 const ARRIVAL_MARGIN := 14.0            # + clear air between them and a body stepped off the arrival point
 # Wall-window placement inside a module. Y sits the whole window ON THE WALLPAPER band of the
@@ -118,6 +118,24 @@ const BalconyGeo = preload("res://scripts/balcony_geo.gd")
 # building_floors gives a corridor. The tight band zooms the view in to fill it.
 const ROOM_BAND_TOP := 215.0   # 8px lower than the old 207: a thin ceiling slab + this flat's floor edge (room_shell)
 const ROOM_BAND_H := 160.0
+# HOW MANY ROOMS THIS FLAT HAS (owner round 49f: "I like the idea of two-room apartments mixed among the three-room seeds, so the building has more variety"): `WorldState.apartment_span`,
+# 3 or 2, a pure function of the seed and the flat's number (set when its modules are built). A two-room flat is 640 px long, not 960: its right wall, its zombies' right limit, the arrival
+# spot beside a right-hand door and the mirror point all follow the span. The tutorial's flats and every balcony flat stay three, and a two-room flat is never breached.
+var _span := 3
+
+
+func _right_x() -> float:
+	return float(LEFT_WALL_X + _span * MODULE_WIDTH)             # 1073 for three rooms
+
+
+func _x_hi() -> float:
+	return _right_x() - 43.0                                      # the dead's right limit (1030)
+
+
+func _arrival_x_right() -> float:
+	return _right_x() - 23.0                                      # where the player stands arriving by a right-hand door (1050)
+
+
 var wall_foot_left := 0.0    # where each end wall meets the floor at the lane (set by _fit_view_and_walls)
 var wall_foot_right := 0.0
 var _exit_door_x := 0.0      # the front door's face at its mid-depth (set by _fit_view_and_walls)
@@ -199,8 +217,8 @@ func _ready() -> void:
 		player.position.x = 140
 		player.get_node("AnimatedSprite2D").flip_h = false
 	else:
-		door.position.x = 1072
-		player.position.x = 1050
+		door.position.x = _right_x() - 1.0
+		player.position.x = _arrival_x_right()
 		player.get_node("AnimatedSprite2D").flip_h = true
 
 	# Arrived by climbing DOWN a balcony (see player.begin_balcony_descent): land
@@ -264,7 +282,7 @@ func _ready() -> void:
 				var apt_rng = RandomNumberGenerator.new()
 				apt_rng.seed = hash(str(WorldState.master_seed) + "aptpos" + apartment_id)
 				var zombie_scene = preload("res://scenes/enemy_zombie_standard.tscn")
-				var positions = WorldState.get_zombie_positions(zombie_count, apt_rng, 150.0, 1030.0, 321.0)
+				var positions = WorldState.get_zombie_positions(zombie_count, apt_rng, 150.0, _x_hi(), 321.0)
 				var on_balcony := WorldState.balcony_spawn_pick(apartment_id, positions.size())
 				for pi in range(positions.size()):
 					var pos: Vector2 = positions[pi]
@@ -333,7 +351,7 @@ func _arrival_clear_x(z: Node, x: float, left: bool) -> float:
 		elif cs.shape is CapsuleShape2D or cs.shape is CircleShape2D:
 			half = cs.shape.radius
 	var need: float = half + ARRIVAL_PLAYER_HALF + ARRIVAL_MARGIN
-	var ax: float = ARRIVAL_X_LEFT if left else ARRIVAL_X_RIGHT
+	var ax: float = ARRIVAL_X_LEFT if left else _arrival_x_right()
 	if absf(x - ax) < need:
 		return ax + (need if left else -need)
 	return x
@@ -385,7 +403,7 @@ func _fit_view_and_walls(cam: Camera2D) -> void:
 	var shell_script = load("res://scripts/room_shell.gd")
 	var half_t: float = load("res://scripts/module_walls.gd").HALF_T
 	var inner_l: float = float(LEFT_WALL_X) + half_t
-	var inner_r: float = float(LEFT_WALL_X + 3 * MODULE_WIDTH) - half_t
+	var inner_r: float = _right_x() - half_t
 	var lim: Vector2 = shell_script.camera_limits_x(inner_l, inner_r, half_view)
 	cam.limit_left = int(floor(lim.x))
 	cam.limit_right = int(ceil(lim.y))
@@ -776,10 +794,10 @@ func _spawn_apartment_fire() -> void:
 	_apt_fire = APARTMENT_FIRE.new()
 	_apt_fire.stage = stage
 	_apt_fire.span0 = 140.0
-	_apt_fire.span1 = 1040.0
+	_apt_fire.span1 = _right_x() - 33.0
 	_apt_fire.base_y = FIRE_BASE_Y_ROOM
 	var eside := WorldState.get_entrance_side(apartment_id)
-	_apt_fire.entrance_x = 200.0 if eside == "left" else 980.0
+	_apt_fire.entrance_x = 200.0 if eside == "left" else _right_x() - 93.0
 	_apt_fire.seed_salt = apartment_id
 	add_child(_apt_fire)
 	_apt_fire_was_burning = _apt_fire.any_burning()
@@ -821,7 +839,7 @@ func _seed_on_balcony(z: Node) -> void:
 
 
 func _burnt_breach(stage: int) -> void:
-	var list: Array = WorldState.get_breached_room_enemies(apartment_id, 150.0, 1030.0, 321.0)
+	var list: Array = WorldState.get_breached_room_enemies(apartment_id, 150.0, _x_hi(), 321.0)
 	if not list.is_empty():
 		var pos: Vector2 = list[0]["position"]
 		var key := str(WorldState.current_floor) + ":" + str(snappedf(pos.x, 1.0)) + ":" + str(snappedf(pos.y, 1.0))
@@ -860,9 +878,10 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 	# The three interior modules + balcony art. `live` also spawns the balcony
 	# descent zone (interactive) — passive backdrops get art only.
 	var layout = WorldState.get_apartment_layout(apartment_id)
+	_span = layout.size()                                      # two rooms or three
 	var built_modules: Array = []
 	var breached: bool = WorldState.get_door_state(apartment_id) == WorldState.DoorState.BREACHED
-	for i in range(3):
+	for i in range(layout.size()):
 		var scene_path: String
 		var charred_flat: bool = WorldState.is_apartment_charred(_apt_floor(), _apt_index())
 		var fplan: Dictionary = {}            # a room the PLANNER lays (scripts/furniture_planner.gd) rather than a baked module — {} for the baked ones
@@ -1003,7 +1022,7 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 	shell.name = "RoomShell"
 	add_child(shell)
 	var tb := StairPan.clean_bounds(get_node_or_null("TileMapLayer"))
-	shell.setup(tb, [float(LEFT_WALL_X), float(LEFT_WALL_X + 3 * MODULE_WIDTH)])
+	shell.setup(tb, [float(LEFT_WALL_X), _right_x()])
 
 	# One storm driver per LIVE night apartment: rain hiss + synced lightning/thunder across
 	# all the windows just built. Skipped on passive backdrops and on day/afternoon runs.
@@ -2219,7 +2238,7 @@ func _spawn_passive_enemies(floor_num: int, breached: bool) -> void:
 	# drift out of place before the swap. Static poses match the arrival exactly.
 	var positions := []
 	if breached:
-		var enemy_list = WorldState.get_breached_room_enemies(apartment_id, 150.0, 1030.0, 321.0)
+		var enemy_list = WorldState.get_breached_room_enemies(apartment_id, 150.0, _x_hi(), 321.0)
 		for entry in enemy_list:
 			positions.append(entry["position"])
 	else:
@@ -2228,7 +2247,7 @@ func _spawn_passive_enemies(floor_num: int, breached: bool) -> void:
 			return
 		var apt_rng = RandomNumberGenerator.new()
 		apt_rng.seed = hash(str(WorldState.master_seed) + "aptpos" + apartment_id)
-		positions = WorldState.get_zombie_positions(zombie_count, apt_rng, 150.0, 1030.0, 321.0)
+		positions = WorldState.get_zombie_positions(zombie_count, apt_rng, 150.0, _x_hi(), 321.0)
 	var std_scene = preload("res://scenes/enemy_zombie_standard.tscn")
 	for i in range(positions.size()):
 		var pos = positions[i]
@@ -2283,13 +2302,13 @@ func _spawn_hider(entrance_side: String) -> void:
 		return
 	var x: float = float(rec.get("x", -1.0))
 	if x < 0.0:
-		var far_mod := 2 if entrance_side == "left" else 0
+		var far_mod := (_span - 1) if entrance_side == "left" else 0
 		x = float(LEFT_WALL_X) + far_mod * MODULE_WIDTH + 70.0 + float(rec.get("spot", 0.5)) * 180.0
 		rec["post"] = x
 	hider = Survivor.spawn(self, rec, ROOM_FEET_Y, x)
 	if SurvivorPlan.rescue_status(rec) == "open" and not bool(rec.get("dead", false)):
 		# A RESCUE (scripts/survivor_plan.gd): the three dead come from the front door's side, walking at them.
-		SurvivorPlan.spawn_rescue_dead(self, rec, x, ROOM_STD_ORIGIN_Y, 170.0, 1010.0, -1.0 if entrance_side == "left" else 1.0, _apt_floor(), false)
+		SurvivorPlan.spawn_rescue_dead(self, rec, x, ROOM_STD_ORIGIN_Y, 170.0, _right_x() - 63.0, -1.0 if entrance_side == "left" else 1.0, _apt_floor(), false)
 
 
 ## Is a rescue ON in this flat this run (someone shouting for help, not yet saved or lost)?
@@ -2307,7 +2326,7 @@ func _spawn_revenant() -> Node:
 		return null
 	var scene: PackedScene = BREACH_SCENES.get(str(r.get("type", "crawler")), BREACH_SCENES["crawler"])
 	var z = scene.instantiate()
-	z.global_position = Vector2(clampf(float(r.get("x", 600.0)), 150.0, 1030.0), 321.0)
+	z.global_position = Vector2(clampf(float(r.get("x", 600.0)), 150.0, _x_hi()), 321.0)
 	z.spawn_key = key
 	z.hp_floor = _apt_floor()
 	add_child(z)
@@ -2371,7 +2390,7 @@ func _spawn_breached_enemies() -> void:
 	# long-arm or a spitter) carries the room's key; the pack follows the leader. Slot 0 is bound to
 	# the leader for good: a dead leader stays dead and the survivors stay what they are.
 	var floor_num = WorldState.current_floor
-	var enemy_list = WorldState.get_breached_room_enemies(apartment_id, 150.0, 1030.0, 321.0)
+	var enemy_list = WorldState.get_breached_room_enemies(apartment_id, 150.0, _x_hi(), 321.0)
 	var key_target := WorldState.breach_key_target(apartment_id)
 	for i in range(enemy_list.size()):
 		var entry = enemy_list[i]

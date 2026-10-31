@@ -2934,6 +2934,8 @@ func get_apartment_layout(apartment_id: String) -> Array:
 		pool[i] = pool[j]
 		pool[j] = temp
 	var layout = [pool[0], pool[1], pool[2]]
+	if _seeded_two_room(apartment_id):
+		layout = _two_room_layout(pool, apt_rng)
 	# Balcony column: force a balcony room (study/dining) at the seeded slot so it
 	# stacks continuously down the building. Other slots keep their rolled types;
 	# non-balcony apartments are untouched (identical to the old generation).
@@ -2954,6 +2956,45 @@ func get_apartment_layout(apartment_id: String) -> Array:
 			layout[bal_slot] = BALCONY_ROOMS[apt_rng.randi() % BALCONY_ROOMS.size()]
 	apartment_layouts[apartment_id] = layout
 	return layout
+
+
+# TWO-ROOM FLATS (owner round 49f: "I like the idea of two room apartments mixed among the three room seeds, so the building has more variety"). About three flats in ten have two rooms
+# instead of three: a pure function of the master seed and the flat's number (never of the run, so a flat is the same size all three runs). Never on Floor 30 (the tutorial's flats are fixed),
+# never in a balcony column (a balcony pair stacks down the building and its slot is one of three), and never breached (the breach pack is laid out for a long flat: `_may_breach`).
+const TWO_ROOM_CHANCE := 0.30
+
+
+func _seeded_two_room(apartment_id: String) -> bool:
+	if apartment_id == "" or _apartment_floor(apartment_id) >= 30:
+		return false
+	if is_balcony_column(_apartment_column(apartment_id)):
+		return false
+	return float(posmod(hash(str(master_seed) + "aptspan" + apartment_id), 10000)) / 10000.0 < TWO_ROOM_CHANCE
+
+
+## Two rooms from the shuffled pool — and a home has somewhere to sleep or sit: when neither a bedroom nor a living room was dealt, the second is one of them.
+func _two_room_layout(pool: Array, rng: RandomNumberGenerator) -> Array:
+	var l: Array = [pool[0], pool[1]]
+	if not ("bedroom" in l or "living_room" in l):
+		l[1] = ["bedroom", "living_room"][rng.randi() % 2]
+	return l
+
+
+## Where the dead's range ends on the right in a flat (room.gd `_x_hi`): 1030 for three rooms, 710 for two.
+func flat_x_hi(apartment_id: String) -> float:
+	return 113.0 + 320.0 * float(apartment_span(apartment_id)) - 43.0
+
+
+## How many rooms (modules) a flat has: 3, or 2 for the two-room ones.
+func apartment_span(apartment_id: String) -> int:
+	if apartment_id == "":
+		return 3
+	return get_apartment_layout(apartment_id).size()
+
+
+## Can this flat's door be breached? Floors 24 and below (BREACH_TOP_FLOOR) and only a three-room flat — the breach pack, its far-end placement and the nest story are laid out for the long one.
+func _may_breach(apartment_id: String) -> bool:
+	return _apartment_floor(apartment_id) <= BREACH_TOP_FLOOR and apartment_span(apartment_id) >= 3
 
 
 func _apartment_column(apartment_id: String) -> int:
@@ -3046,7 +3087,7 @@ func apartment_balcony_occupied(apartment_id: String) -> bool:
 		return false
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "aptpos" + apartment_id)
-	var positions: Array = get_zombie_positions(count, rng, 150.0, 1030.0, 321.0)
+	var positions: Array = get_zombie_positions(count, rng, 150.0, flat_x_hi(apartment_id), 321.0)
 	var pick := balcony_spawn_pick(apartment_id, positions.size())
 	for i in range(positions.size()):
 		var pos: Vector2 = positions[i]
@@ -4428,16 +4469,16 @@ func _get_door_weights(run_num: int) -> Array:
 const BREACH_TOP_FLOOR := 24
 
 
-func _no_high_breach(floor_num: int, state: int) -> int:
-	if state == DoorState.BREACHED and floor_num > BREACH_TOP_FLOOR:
+func _no_high_breach(floor_num: int, state: int, apartment_id: String = "") -> int:
+	if state == DoorState.BREACHED and (floor_num > BREACH_TOP_FLOOR or (apartment_id != "" and apartment_span(apartment_id) < 3)):
 		return DoorState.SHUT_FORCEABLE
 	return state
 
 
-## An old save may hold a breach above the line; it becomes a shut door the way a new roll would (called by load).
+## An old save may hold a breach above the line (or in a two-room flat); it becomes a shut door the way a new roll would (called by load).
 func _drop_high_breaches() -> void:
 	for apt in door_states.keys():
-		if int(door_states[apt]) == DoorState.BREACHED and _apartment_floor(str(apt)) > BREACH_TOP_FLOOR:
+		if int(door_states[apt]) == DoorState.BREACHED and not _may_breach(str(apt)):
 			door_states[apt] = DoorState.SHUT_FORCEABLE
 
 
@@ -4495,7 +4536,7 @@ func seed_floor_door_states(floor_num: int) -> void:
 	for i in range(open_count, apartments.size()):
 		var apt_id = apartments[i]
 		if not door_states.has(apt_id):
-			door_states[apt_id] = _no_high_breach(floor_num, _pick_door_state(rng, weights))
+			door_states[apt_id] = _no_high_breach(floor_num, _pick_door_state(rng, weights), apt_id)
 	_ensure_cabinet_key_room(floor_num)
 
 
@@ -4526,7 +4567,7 @@ func mutate_door_states_for_new_run() -> void:
 	for apt_id in door_states.keys():
 		var state = door_states[apt_id]
 		var roll = rng.randf()
-		var may_breach: bool = _apartment_floor(str(apt_id)) <= BREACH_TOP_FLOOR     # (the roll is drawn either way: the sequence is unchanged)
+		var may_breach: bool = _may_breach(str(apt_id))     # (the roll is drawn either way: the sequence is unchanged)
 
 		match state:
 			DoorState.SHUT_FORCEABLE:
@@ -4663,7 +4704,7 @@ func apartment_corpse(apartment_id: String) -> Dictionary:
 	if float(h) / 10000.0 >= float(APARTMENT_CORPSE_CHANCE.get(current_run, 0.1)):
 		return {}
 	@warning_ignore("integer_division")
-	return {"slot": (h / 7) % 3, "side": "l" if (h / 3) % 2 == 0 else "r"}
+	return {"slot": (h / 7) % apartment_span(apartment_id), "side": "l" if (h / 3) % 2 == 0 else "r"}
 
 
 # ============================================================
@@ -5222,6 +5263,8 @@ func _ensure_cabinet_key_room(floor_num: int) -> void:
 			continue
 		if door_states.get(apt, -1) == DoorState.BREACHED:
 			return
+		if not _may_breach(apt):
+			continue                                       # a two-room flat is never breached
 		others.append(apt)
 	if others.is_empty():
 		return
@@ -5387,7 +5430,7 @@ func breach_entrant_delay(apartment_id: String, i: int) -> float:
 
 # The leader's memory key (slot 0's spawn key) — its kill record says the leader's dead.
 func breach_leader_key(apartment_id: String) -> String:
-	var list: Array = get_breached_room_enemies(apartment_id, 150.0, 1030.0, BREACH_SPAWN_Y)
+	var list: Array = get_breached_room_enemies(apartment_id, 150.0, flat_x_hi(apartment_id), BREACH_SPAWN_Y)
 	if list.is_empty():
 		return ""
 	var pos: Vector2 = list[0]["position"]

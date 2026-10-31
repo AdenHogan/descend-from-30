@@ -234,7 +234,8 @@ func _test_passive_room() -> void:
 	for m in get_tree().get_nodes_in_group("room_module"):
 		if m.get_parent() == room:
 			modules += 1
-	check(modules == 3, "passive room builds its three interior modules")
+	var want: int = WorldState.apartment_span("2503")                       # three rooms, or two for the flats that are dealt only two
+	check(modules == want and want >= 2 and want <= 3, "passive room builds its interior modules (%d, the flat has %d)" % [modules, want])
 	check(room.get_node_or_null("Player") == null, "passive room has NO player")
 	check(room.get_node_or_null("Area2D") == null, "passive room has NO door area")
 	check(room.get_node_or_null("LootUI") == null, "passive room has NO loot UI")

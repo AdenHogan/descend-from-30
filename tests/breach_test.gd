@@ -66,13 +66,19 @@ func _test_breach_rules() -> void:
 	check(high == 0, "no breach room on floors 25-29, in any run, across 6 buildings (%d)" % high)
 	check(low > 20, "…and they still turn up from floor 24 down (%d)" % low)
 	# an old save's breach up top becomes a shut door; one at the line stays
+	var line_apt := ""                                          # a THREE-room flat on floor 24 (a two-room flat is never breached, so a save's breach there is dropped for that reason instead)
+	for i in range(1, 6):
+		if WorldState.apartment_span("240" + str(i)) >= 3:
+			line_apt = "240" + str(i)
+			break
+	check(line_apt != "", "this building has a three-room flat on floor 24 to test the line with")
 	WorldState.door_states["2703"] = WorldState.DoorState.BREACHED
-	WorldState.door_states["2404"] = WorldState.DoorState.BREACHED
+	WorldState.door_states[line_apt] = WorldState.DoorState.BREACHED
 	WorldState._drop_high_breaches()
-	check(WorldState.door_states["2703"] == WorldState.DoorState.SHUT_FORCEABLE and WorldState.door_states["2404"] == WorldState.DoorState.BREACHED,
-		"loading an old save turns a floor-27 breach into a shut door and leaves floor 24's")
+	check(WorldState.door_states["2703"] == WorldState.DoorState.SHUT_FORCEABLE and WorldState.door_states[line_apt] == WorldState.DoorState.BREACHED,
+		"loading an old save turns a floor-27 breach into a shut door and leaves floor 24's (%s)" % line_apt)
 	WorldState.door_states.erase("2703")
-	WorldState.door_states.erase("2404")
+	WorldState.door_states.erase(line_apt)
 	# the pack: 30% smaller (the old 4..9 → 3..6), and at the far end from where the player arrives
 	WorldState.dev_seed = 5151
 	WorldState.new_game()

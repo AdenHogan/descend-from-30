@@ -249,7 +249,7 @@ static func populate_flat(room: Node, apt: String, entrance_side: String) -> Arr
 		return spawned
 	var d := def(qid)
 	var run := WorldState.current_run
-	var far_mod := 2 if entrance_side == "left" else 0
+	var far_mod: int = (int(room.get("_span")) - 1) if entrance_side == "left" else 0
 	var base_x: float = float(room.LEFT_WALL_X) + far_mod * float(room.MODULE_WIDTH) + 120.0
 	var specs: Array = []
 	if run <= 1:
