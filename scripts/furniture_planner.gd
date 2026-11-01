@@ -28,9 +28,11 @@ extends RefCounted
 const DATA_PATH := "res://data/furniture.json"
 const SPRITE_DIR := "res://assets/furniture/"
 
-const MODULE_W := 320
-const EDGE_L := 4                  # nothing inside the side-wall sample columns (x 3 / 316) and a margin
-const EDGE_R := 315
+const ModuleGeo := preload("res://scripts/module_geo.gd")   # the module width + the art's design offset (docs/MODULE_WIDTH.md)
+const MODULE_W := ModuleGeo.WIDTH
+const DESIGN_PAD := ModuleGeo.DESIGN_PAD      # the lean buckets are keyed by DESIGN x (the art's 320 px canvas, vanishing point 160): design x = module x + DESIGN_PAD
+const EDGE_L := 4                  # nothing inside the side-wall sample columns (x 3 / W-4) and a margin
+const EDGE_R := ModuleGeo.WIDTH - 5
 const TOP_MIN_Y := 5               # below the crown moulding (a ceiling light is the exception)
 const LANE_CLEAR_ROW := 122        # the lowest row anything standing / lying on the floor may reach (pixlib.LANE_CLEAR_ROW)
 const STAND_TOP_ROW := 102         # the step-up spot's stand zone rows (pixlib.BP_ROWS)
@@ -40,7 +42,7 @@ const FRONT_NODE_MIN_Y := 66       # a node higher than this is out of reach fro
 const WANT_TRIES := 4              # how many spots a recipe's `want` tag is tried at before the room carries on without it
 const NODE_MIN_Y := 46             # no node higher than this at all: from the step-up plane (player origin y 82) a node more than ~44 px away in a straight line cannot be searched, and the window sits above
 const PLANE_ORIGIN_Y := 82         # the player's origin (module-local y) while stepped up at a set-back piece — room.gd back_spot_groups
-const WINDOW_INSET := 72           # room.MODULE_WINDOW_INSET
+const WINDOW_INSET := ModuleGeo.WINDOW_INSET           # room.MODULE_WINDOW_INSET
 const WINDOW_HALF_W := 22
 const WINDOW_Y0 := 10
 const WINDOW_Y1 := 66
@@ -62,7 +64,16 @@ static func data() -> Dictionary:
 			var parsed = JSON.parse_string(f.get_as_text())
 			if parsed is Dictionary:
 				_data = parsed
+				if not module_matches():
+					push_error("furniture.json was built for a %s px module (pad %s) but the game's ModuleGeo is %d (pad %d): run tools/art/furn_build.py" % [
+						str(_data.get("module", {}).get("width", 320)), str(_data.get("module", {}).get("pad", 0)), ModuleGeo.WIDTH, ModuleGeo.DESIGN_PAD])
 	return _data
+
+
+## Was the library built for the module this game has? (tools/art/pixlib.MW / PAD vs ModuleGeo) — a mismatch would plan a room for the wrong width.
+static func module_matches() -> bool:
+	var m: Dictionary = _data.get("module", {"width": 320, "pad": 0})
+	return int(m.get("width", 320)) == ModuleGeo.WIDTH and int(m.get("pad", 0)) == ModuleGeo.DESIGN_PAD
 
 
 static func piece(id: String) -> Dictionary:
@@ -332,8 +343,9 @@ static func _sprite_for(rec: Dictionary, vid: String, x_centre: float) -> Dictio
 		return sprites[0]
 	var best: Dictionary = sprites[0]
 	var bd := 1.0e9
+	var design_x := x_centre + float(DESIGN_PAD)
 	for s in sprites:
-		var d := absf(float(s["bx"]) - x_centre)
+		var d := absf(float(s["bx"]) - design_x)
 		if d < bd:
 			bd = d
 			best = s

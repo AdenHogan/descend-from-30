@@ -254,8 +254,28 @@ RECIPES.update({
 BUILT = ('bedroom', 'kitchen', 'living_room', 'dining_room', 'study', 'bathroom')
 
 
+def _module_space(rcp):
+    """A recipe is AUTHORED in the art's design coordinates (the 320 px canvas); the game plans in MODULE coordinates (pixlib.PAD columns narrower on each side): a centre piece's x range, a run
+    that starts away from the walls (x range above the 40 px edge offsets) and every fallback layout move in by PAD. (A run's small x is an offset from the wall it starts at: unchanged.)"""
+    import copy
+    import pixlib as PX
+    if PX.PAD == 0:
+        return rcp
+    r = copy.deepcopy(rcp)
+    lo_edge = 4
+    c = r.get('centre')
+    if c and 'x' in c:
+        c['x'] = [max(lo_edge, c['x'][0] - PX.PAD), max(lo_edge, c['x'][1] - PX.PAD)]
+    run = r.get('run')
+    if run and 'x' in run and run['x'][1] > 40:
+        run['x'] = [max(lo_edge, run['x'][0] - PX.PAD), max(lo_edge, run['x'][1] - PX.PAD)]
+    for f in r.get('fallback', []):
+        f['x'] = f['x'] - PX.PAD
+    return r
+
+
 def built_recipes():
-    return {k: v for k, v in RECIPES.items() if k.split('/')[0] in BUILT}
+    return {k: _module_space(v) for k, v in RECIPES.items() if k.split('/')[0] in BUILT}
 
 
 # THE LOGIC as data: piece tags -> the only room types they may be registered in (furnlib.TAG_ROOMS is the source; exported so the game and its tests read the same table).

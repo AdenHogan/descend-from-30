@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from PIL import Image
 
 import pixlib
-from pixlib import Canvas, W, H, SEAM_Y, save_floor_strip, floor_is_periodic, run_looks, check_edge_columns
+from pixlib import Canvas, W, H, MW, PAD, frame, SEAM_Y, save_floor_strip, floor_is_periodic, run_looks, check_edge_columns
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
@@ -38,8 +38,8 @@ def write_shell_scene(name, room_type, plan):
     if room_type in BALCONY_TYPES:                                                                         # a study / dining room may sit on a balcony slot: the doors (room.gd shows them there)
         out.append('[ext_resource type="Texture2D" path="res://assets/rooms/balcony.png" id="3_balcony"]')
     out += ['', '[node name="Node2D" type="Node2D"]', 'metadata/furniture_plan = "%s"' % plan, '',
-           '[node name="ColorRect" type="ColorRect" parent="."]', 'offset_right = 320.0', 'offset_bottom = 144.0', 'color = Color(0.4, 0.4, 0.4, 1)', '',
-           '[node name="Label" type="Label" parent="ColorRect"]', 'layout_mode = 0', 'offset_right = 318.0', 'offset_bottom = 100.0',
+           '[node name="ColorRect" type="ColorRect" parent="."]', 'offset_right = %d.0' % MW, 'offset_bottom = 144.0', 'color = Color(0.4, 0.4, 0.4, 1)', '',
+           '[node name="Label" type="Label" parent="ColorRect"]', 'layout_mode = 0', 'offset_right = %d.0' % (MW - 2), 'offset_bottom = 100.0',
            'theme_override_font_sizes/font_size = 32', 'visible = false', 'text = "%s"' % LABELS[room_type], 'horizontal_alignment = 1', 'vertical_alignment = 1', '',
            '[node name="Art" type="Sprite2D" parent="."]', 'texture_filter = 1', 'texture = ExtResource("1_art")', 'centered = false', '']
     if room_type in BALCONY_TYPES:
@@ -59,7 +59,7 @@ def finish_shell(name, room_type, plan, seed, wall_fn, floor_fn, build_fn, check
     wall_fn(bare_floor)
     floor_fn(bare_floor)
     errs = []
-    holes = [(x, y) for y in range(H) for x in range(W) if main.img.getpixel((x, y))[3] != 255]
+    holes = [(x, y) for y in range(H) for x in range(PAD, PAD + MW) if main.img.getpixel((x, y))[3] != 255]
     if holes:
         errs.append('transparent pixels in the shell: %s' % holes[:6])
     if main.img.tobytes() != bare_floor.img.tobytes():
@@ -74,7 +74,7 @@ def finish_shell(name, room_type, plan, seed, wall_fn, floor_fn, build_fn, check
     if check:
         import io
         b = io.BytesIO()
-        main.img.save(b, format='PNG')
+        frame(main.img).save(b, format='PNG')
         stale = []
         path = os.path.join(ROOT, 'assets', 'rooms', name + '.png')
         if not os.path.exists(path) or open(path, 'rb').read() != b.getvalue():
@@ -85,13 +85,13 @@ def finish_shell(name, room_type, plan, seed, wall_fn, floor_fn, build_fn, check
         if not os.path.exists(os.path.join(SHELL_DIR, name + '.tscn')):
             stale.append(name + '.tscn')
         return stale
-    main.img.save(os.path.join(ROOT, 'assets', 'rooms', name + '.png'))
-    runs = run_looks(name, ROOT, main.img, main.img, bare.img, bare_floor.img, floor_fn, seed, False, debris_y0=DEBRIS_Y0)
+    frame(main.img).save(os.path.join(ROOT, 'assets', 'rooms', name + '.png'))
+    runs = run_looks(name, ROOT, frame(main.img), frame(main.img), frame(bare.img), frame(bare_floor.img), floor_fn, seed, False, debris_y0=DEBRIS_Y0)
     prev = os.path.join(ROOT, 'docs', 'art_reference', 'furniture')
     os.makedirs(prev, exist_ok=True)
-    sheet = Image.new('RGBA', (W * 2 * 3, H * 2), (0, 0, 0, 255))
-    for i, im in enumerate((main.img, runs[2], runs[3])):
-        sheet.paste(im.resize((W * 2, H * 2), Image.NEAREST), (W * 2 * i, 0))
+    sheet = Image.new('RGBA', (MW * 2 * 3, H * 2), (0, 0, 0, 255))
+    for i, im in enumerate((frame(main.img), runs[2], runs[3])):
+        sheet.paste(im.resize((MW * 2, H * 2), Image.NEAREST), (MW * 2 * i, 0))
     sheet.save(os.path.join(prev, name + '_runs.png'))
     write_shell_scene(name, room_type, plan)
     print('wrote shell', name)

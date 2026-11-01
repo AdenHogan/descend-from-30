@@ -60,7 +60,8 @@ PIECE_MODULES = ('furn_bedroom',)
 
 def build_all(only=None):
     FL.recheck_registry()                                                               # every rule on the final registry (after furn_styles widened some pieces)
-    data = {'version': 1, 'lean_x': list(FL.LEAN_X), 'lean_mode': FL.LEAN_MODE, 'rules': furn_rooms.rules(), 'recipes': furn_rooms.built_recipes(), 'items': {}}
+    import pixlib as PX
+    data = {'version': 1, 'module': {'width': PX.MW, 'pad': PX.PAD, 'window_inset': PX.WIN_INSET}, 'lean_x': list(FL.LEAN_X), 'lean_mode': FL.LEAN_MODE, 'rules': furn_rooms.rules(), 'recipes': furn_rooms.built_recipes(), 'items': {}}
     files = {}
     for pid, pc in FL.REGISTRY.items():
         if only and pid not in only:

@@ -22,8 +22,9 @@ from collections import Counter, defaultdict
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
 SPRITES = os.path.join(ROOT, 'assets', 'furniture')
-MODULE_W = 320
-WINDOW_INSET = 72
+import pixlib as _PX
+MODULE_W = _PX.MW
+WINDOW_INSET = _PX.WIN_INSET
 WINDOW_HALF_W = 22
 BELONG_GAP = 32          # data/furniture.json rules.home.belong_gap
 UNDER_WINDOW_SLACK = 10  # furniture_planner.gd UNDER_WINDOW_SLACK

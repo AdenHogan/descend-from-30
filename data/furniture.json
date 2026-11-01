@@ -45584,6 +45584,11 @@
   248,
   284
  ],
+ "module": {
+  "pad": 0,
+  "width": 320,
+  "window_inset": 72
+ },
  "recipes": {
   "bathroom/avocado": {
    "ceiling": 1.0,

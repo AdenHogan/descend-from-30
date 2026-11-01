@@ -35,7 +35,8 @@ def main():
         comp = compose_plan(img, pl, run, show_nodes)
         if show_window and pl.get('window'):
             d = ImageDraw.Draw(comp)
-            cx = 72 if pl['window'] == 'left' else 248
+            import pixlib as PX
+            cx = PX.WIN_INSET if pl['window'] == 'left' else PX.MW - PX.WIN_INSET
             d.rectangle((cx - 22, 10, cx + 22, 66), outline=(255, 255, 0, 255))
         d = ImageDraw.Draw(comp)
         cells.append(comp.resize((comp.width * scale, comp.height * scale), Image.NEAREST))

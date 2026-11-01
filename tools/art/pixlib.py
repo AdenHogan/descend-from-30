@@ -1244,6 +1244,11 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
     if bp:
         errs.append('front furniture stands where the player would step up to a back-plane spot '
                     '(spot x, blocked column): %s' % bp)
+    if errs and os.environ.get('FRAME_REPORT'):          # audit: list what does not fit the frame, write nothing more, carry on with the next room
+        print('FRAME %s: %d problems' % (name, len(errs)))
+        for e_ in errs:
+            print('   ' + e_)
+        return full
     if errs:
         sys.exit(name + ':\n  ' + '\n  '.join(errs))
     # ---- from here on everything is MODULE space (the frame's columns); the checks above ran on the whole design canvas
