@@ -92,8 +92,9 @@ const TUTORIAL_LAYOUTS = {
 	"3005": ["living_room", "dining_room", "kitchen"],
 }
 
-const MODULE_WIDTH = 320
-const LEFT_WALL_X = 113
+const ModuleGeo = preload("res://scripts/module_geo.gd")
+const MODULE_WIDTH = ModuleGeo.WIDTH                  # (docs/MODULE_WIDTH.md: ModuleGeo is the one source)
+const LEFT_WALL_X = ModuleGeo.LEFT_WALL_X
 var _arrived_by_balcony: bool = false   # the player came down a balcony, not through the front door (set in _ready before spawn_source is cleared)
 const ARRIVAL_X_LEFT := 140.0           # where the player stands on arrival (the two `player.position.x =` lines in _ready)
 const ARRIVAL_X_RIGHT := 1050.0         # (of a three-room flat — `_arrival_x_right()` is the one the code asks)
@@ -106,7 +107,7 @@ const ARRIVAL_MARGIN := 14.0            # + clear air between them and a body st
 # round 9, the first real module art). It stays ABOVE every scavenge node. INSET is how far in
 # from the module edge the left/right window slot sits.
 const MODULE_WINDOW_Y := 262.0
-const MODULE_WINDOW_INSET := 72.0
+const MODULE_WINDOW_INSET := ModuleGeo.WINDOW_INSET
 const CLICK_RADIUS = 10.0
 const UI_FONT = preload("res://assets/fonts/PixelOperator8.ttf")
 const BalconyGeo = preload("res://scripts/balcony_geo.gd")

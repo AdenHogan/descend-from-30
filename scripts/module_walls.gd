@@ -43,7 +43,8 @@ const OUTSIDE_COL := Color(0.05, 0.045, 0.05)
 const CORRIDOR_FLOOR := Color(0.16, 0.12, 0.09)   # a glimpse of the corridor floor through the door
 const THRESHOLD := Color(0.46, 0.36, 0.24)
 
-const MODULE_W := 320.0      # a module's width (room.MODULE_WIDTH)
+const ModuleGeo = preload("res://scripts/module_geo.gd")
+const MODULE_W := float(ModuleGeo.WIDTH)      # a module's width (room.MODULE_WIDTH)
 const FLOOR_EXT_M := 96.0    # how far past each edge a module's <name>_floor_ext.png runs (tools/art pixlib)
 var boundaries: Array = []     # [{x, left_mod, right_mod, door, outside}]
 var _exts: Dictionary = {}     # module instance id + texture path → its perspective floor export

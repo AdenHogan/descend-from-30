@@ -31,7 +31,9 @@ from PIL import Image, ImageDraw
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
 ROOMS = os.path.join(ROOT, 'assets', 'rooms')
-W, H = 320, 144
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from pixlib import MW as W          # the MODULE's width (pixlib.MW)
+H = 144
 SEAM = 100
 FLOOR_EXT_M = 96
 TYPES = ['living_room', 'bedroom', 'kitchen', 'bathroom', 'study', 'dining_room']

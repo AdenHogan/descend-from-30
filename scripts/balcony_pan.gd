@@ -43,8 +43,9 @@ const ROPE_TIME := 1.6         # shimmying down one floor on a rope
 const JUMP_TIME := 0.6         # a fall is fast
 const OVER_RAIL_TIME := 0.35   # over the lower balcony's rail, onto its floor
 const LAND_TIME := 0.3
-const LEFT_WALL_X := 113.0
-const MODULE_WIDTH := 320.0
+const ModuleGeo = preload("res://scripts/module_geo.gd")
+const LEFT_WALL_X := float(ModuleGeo.LEFT_WALL_X)
+const MODULE_WIDTH := float(ModuleGeo.WIDTH)
 # The apartment interior band (matches room.gd ROOM_BAND_*): the live room locks
 # the camera to this; the descent extends the bottom by one floor.
 const ROOM_BAND_TOP := 215.0   # == room.ROOM_BAND_TOP (checked by apartment_window_test)

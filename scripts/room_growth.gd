@@ -20,7 +20,7 @@ const Sway := preload("res://scripts/sway.gd")
 
 const META_PATH := "res://assets/rooms/growth_meta.json"
 const DIR := "res://assets/growth/"
-const W := 320
+const W := preload("res://scripts/module_geo.gd").WIDTH
 const SLOTS := 40
 const MARGIN := 14                      # the perspective walls between modules cover the outer columns
 const PLANT_REST := 6                   # a houseplant stands within this many px of a corner of the room or of a piece of furniture

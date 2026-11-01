@@ -9,6 +9,7 @@ const ROOM_POOL = ["bedroom", "bathroom", "study", "kitchen", "living_room", "di
 # a continuous vertical stack, so every balcony (except floor 1) has one below.
 const BALCONY_ROOMS = ["study", "dining_room"]
 const BALCONY_GEO = preload("res://scripts/balcony_geo.gd")   # the balcony plane's numbers
+const ModuleGeo = preload("res://scripts/module_geo.gd")      # the module width (docs/MODULE_WIDTH.md)
 const BALCONY_COLUMN_CHANCE = 0.5
 # Balconies come in vertical PAIRS, never stacks: a descendable "top" balcony has
 # exactly one partner "bottom" balcony directly below it, and descending is
@@ -2982,7 +2983,7 @@ func _two_room_layout(pool: Array, rng: RandomNumberGenerator) -> Array:
 
 ## Where the dead's range ends on the right in a flat (room.gd `_x_hi`): 1030 for three rooms, 710 for two.
 func flat_x_hi(apartment_id: String) -> float:
-	return 113.0 + 320.0 * float(apartment_span(apartment_id)) - 43.0
+	return ModuleGeo.right_x(apartment_span(apartment_id)) - 43.0
 
 
 ## How many rooms (modules) a flat has: 3, or 2 for the two-room ones.

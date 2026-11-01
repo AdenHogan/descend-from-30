@@ -45,7 +45,8 @@ import zlib
 
 from PIL import Image
 
-W, H, SEAM = 320, 144, 100
+from pixlib import MW as W          # the MODULE's width (pixlib.MW: the frame the exports are cropped to)
+H, SEAM = 144, 100
 STAND_Y0, STAND_Y1 = 102, 118                      # = pixlib.STAND_ROWS (the stand zone of a back-plane spot)
 BODY_RISE = 0                    # a lying body sits ON the floor row it was placed on (= scripts/corpse_depth.gd BAKED_RISE). It was 6 (round 37: sat back so it could cover a back-plane player's legs); owner round 48h: "I am standing on top of bodies" — a body 6 px back is BEHIND a player on the lane, who then draws over it. Bodies now draw in front of whoever stands level with them (corpse_depth.gd).
 LANE_Y = 129                     # the walking line (world 353 − the module's top 224): the trail's line

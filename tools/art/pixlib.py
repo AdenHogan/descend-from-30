@@ -15,7 +15,26 @@ from PIL import Image
 import random
 import zlib
 
-W, H = 320, 144
+W, H = 320, 144          # the DESIGN canvas every generator draws on (vanishing point x 160)
+# THE MODULE FRAME (owner round 49h: "modules are 20-25% too wide"): a module is the central MW columns of the design canvas, so the perspective (floor,
+# set-back pieces, lean buckets) stays valid — module x = design x - PAD, and a piece in the outer PAD columns is out of the room. finish_module crops
+# every export to the frame; PAD 0 = the old 320 px module. docs/MODULE_WIDTH.md.
+import os as _os
+PAD = int(_os.environ.get('DFT_PAD', '0'))            # (experiment switch while the width change is built: docs/MODULE_WIDTH.md)
+MW = W - 2 * PAD         # the exported module width
+WIN_INSET = int(_os.environ.get('DFT_WIN_INSET', '72'))           # module-space inset of the runtime wall windows (room.MODULE_WINDOW_INSET)
+
+
+def frame(img):
+    """The module's columns of a design-canvas image."""
+    return img if PAD == 0 and img.width == MW else img.crop((PAD, 0, PAD + MW, img.height))
+
+
+def to_module(pts):
+    """A set / dict of design (x, y) pixels in module space, the ones outside the frame dropped."""
+    if isinstance(pts, dict):
+        return {(x - PAD, y): v for (x, y), v in pts.items() if PAD <= x < PAD + MW}
+    return {(x - PAD, y) for (x, y) in pts if PAD <= x < PAD + MW}
 
 # LIGHT FIXTURES (owner round 14 — lamps on desks / drawers / coffee tables + ceiling lights, lit for
 # real in the evening and at night): the lamp helpers in furn.py draw a fixture AND register its bulb
@@ -60,8 +79,8 @@ def pop_light_offset():
 
 SEAM_Y = 100        # wall meets floor (top of the skirting shadow)
 FLOOR_Y = 128       # the room floor line (feet 129)
-WIN_L = (50, 10, 94, 66)      # room.MODULE_WINDOW_Y 262 = local 38; pane 44x52 + frame
-WIN_R = (226, 10, 270, 66)
+WIN_L = (PAD + WIN_INSET - 22, 10, PAD + WIN_INSET + 22, 66)          # room.MODULE_WINDOW_Y 262 = local 38; pane 44x52 + frame (DESIGN coordinates)
+WIN_R = (PAD + MW - WIN_INSET - 22, 10, PAD + MW - WIN_INSET + 22, 66)
 
 
 def hexc(h, a=255):
@@ -296,7 +315,7 @@ def check_window_boxes(full, wall_only):
     return bad
 
 
-EDGE_COLS = (3, W - 4)   # module_walls samples each wall face from exactly these columns — furniture
+EDGE_COLS = (PAD + 3, PAD + MW - 4)   # module_walls samples each wall face from exactly these columns — furniture
                          # there smears along the side wall
 
 
@@ -328,7 +347,7 @@ def save_floor_strip(floor_fn, name, root, seed=1, level=None):
     dirt = (58, 46, 34)
     c = Canvas(seed=seed)
     floor_fn(c)
-    strip = c.img.crop((0, SEAM_Y, W, H))
+    strip = c.img.crop((PAD, SEAM_Y, PAD + MW, H))
     flat = Canvas(seed=seed)
     _PERSP_DEPTH[0] += 1                  # a floor built from another's (lr.floor) draws flat too
     try:
@@ -341,9 +360,9 @@ def save_floor_strip(floor_fn, name, root, seed=1, level=None):
     strip.save(os.path.join(root, 'assets', 'rooms', name + suffix + '_floor.png'))
     ext = floor_ext(flat.img, level, dirt)
     ext.save(os.path.join(root, 'assets', 'rooms', name + suffix + '_floor_ext.png'))
-    if ext.crop((FLOOR_EXT_M, 0, FLOOR_EXT_M + W, H - SEAM_Y)).tobytes() != strip.tobytes():
+    if ext.crop((FLOOR_EXT_M, 0, FLOOR_EXT_M + MW, H - SEAM_Y)).tobytes() != strip.tobytes():
         raise SystemExit('%s%s: the extended floor does not match the art\'s own floor' % (name, suffix))
-    return flat.img.crop((0, SEAM_Y, W, H))
+    return flat.img.crop((PAD, SEAM_Y, PAD + MW, H))
 
 
 # --- FLOORS IN PERSPECTIVE (owner round 14 — a tile floor "looks like an optical illusion where you're
@@ -404,14 +423,14 @@ def persp(fn):
 
 
 def floor_ext(flat_img, grime_level=None, dirt=(58, 46, 34)):
-    """The perspective floor rows (SEAM_Y..H-1) from x −M to W+M, from a FLAT periodic floor image."""
+    """The perspective floor rows (SEAM_Y..H-1) from module x −M to MW+M (design x PAD−M .. PAD+MW+M), from a FLAT periodic floor image."""
     M = FLOOR_EXT_M
     fp_ = flat_img.load()
-    out = Image.new('RGBA', (W + 2 * M, H - SEAM_Y), (0, 0, 0, 0))
+    out = Image.new('RGBA', (MW + 2 * M, H - SEAM_Y), (0, 0, 0, 0))
     op = out.load()
     for y in range(SEAM_Y, H):
-        for xe in range(W + 2 * M):
-            x = xe - M
+        for xe in range(MW + 2 * M):
+            x = xe - M + PAD
             sx = int(round(_persp_sx(x, y)))
             if not 0 <= sx < W:
                 sx = sx % 32 + 128                        # the flat floor repeats every 32px
@@ -885,7 +904,7 @@ def stand_bands(anchors):
     """The columns of every step-up spot's stand zone (a 1 px margin either side), as (lo, hi) — what nothing lying or standing on the floor
     may occupy in the zone's rows (STAND_ROWS): the character's sprite is drawn over ALL baked art, so a body, a dropped bag or a plank
     there is walked over (owner round 36i / 36k). Used by the nest overlays (bodies, dropped things) and the run looks' floor debris."""
-    bands = sorted((max(0, int(cx) - BP_HALF_W - 1), min(W - 1, int(cx) + BP_HALF_W + 1)) for cx in _bp_centres(anchors))
+    bands = sorted((max(0, int(cx) - BP_HALF_W - 1), min(MW - 1, int(cx) + BP_HALF_W + 1)) for cx in _bp_centres(anchors))
     merged = []
     for lo, hi in bands:
         if merged and lo <= merged[-1][1] + 1:
@@ -985,9 +1004,9 @@ def _write_over(root, name, suffix, pixels):
         _remove_asset(fp)
         return
     src = Image.open(os.path.join(root, 'assets', 'rooms', name + suffix + '.png')).convert('RGBA')
-    im = Image.new('RGBA', (W, H), (0, 0, 0, 0))
-    for (x, y) in pixels:
-        if 0 <= x < W and 0 <= y < H:
+    im = Image.new('RGBA', src.size, (0, 0, 0, 0))
+    for (x, y) in pixels:                                  # module-space pixels
+        if 0 <= x < src.width and 0 <= y < src.height:
             im.putpixel((x, y), src.getpixel((x, y)))
     im.save(fp)
 
@@ -1158,7 +1177,7 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
             break
     elif strip_fn is not None:
         errs.append('only balcony-capable rooms have a strip')
-    holes = [(x, y) for y in range(H) for x in range(W) if main.img.getpixel((x, y))[3] != 255]
+    holes = [(x, y) for y in range(H) for x in range(PAD, PAD + MW) if main.img.getpixel((x, y))[3] != 255]
     if holes:
         errs.append('transparent pixels in the art (they show the grey placeholder in game): %s' % holes[:6])
     fl = save_floor_strip(floor_fn, name, ROOT, seed=seed)
@@ -1174,8 +1193,8 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
         if 'bp' not in fl_ and ay < FRONT_NODE_MIN_Y:
             errs.append('%s: a FRONT node at y %d is out of reach from the walking line (>= %d) — lower it onto what stands '
                         'there, or make it a step-up ("bp") node' % (an, ay, FRONT_NODE_MIN_Y))
-        if not (6 <= ax <= 314):
-            errs.append('%s: x %d off the module' % (an, ax))
+        if not (PAD + 6 <= ax <= PAD + MW - 6):
+            errs.append('%s: x %d is outside the module frame (design x %d..%d)' % (an, ax, PAD + 6, PAD + MW - 6))
         ref = full if (in_strip or front_fn is not None or front_strip_fn is not None) else main
         if ref.img.getpixel((ax, ay)) == bare_floor.img.getpixel((ax, ay)):
             errs.append('%s at (%d,%d) is not on anything drawn' % (an, ax, ay))
@@ -1193,8 +1212,11 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
     if n_front < 2:
         errs.append('needs >= 2 FRONT nodes (reachable from the walking line) — owner round 10')
     for (lx, ly, lk, lf) in lights:
-        if not (0 <= lx < W and 0 <= ly < H):
-            errs.append('light fixture %s at (%d,%d) is off the module' % (lk, lx, ly))
+        if not (PAD <= lx < PAD + MW and 0 <= ly < H):
+            errs.append('light fixture %s at (%d,%d) is outside the module frame (design x %d..%d)' % (lk, lx, ly, PAD, PAD + MW - 1))
+    for a_ in main_anims:
+        if not (PAD <= a_[0] < PAD + MW and 0 <= a_[1] < H):
+            errs.append('live detail %s at (%d,%d) is outside the module frame' % (a_[2], a_[0], a_[1]))
     if os.environ.get('FLAT_REPORT'):               # audit: pieces standing on the seam with no depth
         runs_, cur_ = [], []
         for x in range(W):
@@ -1224,10 +1246,15 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
                     '(spot x, blocked column): %s' % bp)
     if errs:
         sys.exit(name + ':\n  ' + '\n  '.join(errs))
+    # ---- from here on everything is MODULE space (the frame's columns); the checks above ran on the whole design canvas
+    anchors_d = anchors
+    anchors = [(an, ax - PAD, ay, fl_) for (an, ax, ay, fl_) in anchors_d]
+    lights = [(x - PAD, y, k, f_) for (x, y, k, f_) in lights]
+    main_anims = [(a_[0] - PAD,) + tuple(a_[1:]) for a_ in main_anims]
     out = os.path.join(ROOT, 'assets', 'rooms', name + '.png')
     prev = os.path.join(ROOT, 'docs', 'art_reference', 'modules')
-    main.img.save(out)
-    full.img.resize((W * 4, H * 4), Image.NEAREST).save(os.path.join(prev, name + '_x4.png'))
+    frame(main.img).save(out)
+    frame(full.img).resize((MW * 4, H * 4), Image.NEAREST).save(os.path.join(prev, name + '_x4.png'))
     if strip_fn is not None:
         s = Image.new('RGBA', (W, H), (0, 0, 0, 0))
         for y in range(H):
@@ -1235,20 +1262,20 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
                 p = nofront.getpixel((x, y))
                 if p != main.img.getpixel((x, y)):
                     s.putpixel((x, y), p)
-        s.save(os.path.join(ROOT, 'assets', 'rooms', name + '_strip.png'))
-    over_main = _over_of(FLOOR_PIECES[:n_pm])
+        frame(s).save(os.path.join(ROOT, 'assets', 'rooms', name + '_strip.png'))
+    over_main = to_module(_over_of(FLOOR_PIECES[:n_pm]))
     over_by_look = {'': over_main, '_r2': over_main, '_r3': over_main}      # (a run look that rebuilds its furniture overrides its own below)
     if _over_of(FLOOR_PIECES[n_pm:n_ps]):
         sys.exit(name + ': a balcony-strip piece reaches below the lane row — an over layer for the strip is not built yet (tools/art/pixlib.py _over_of)')
     for (suffix, lay) in (('_front', front_img), ('_front_strip', front_strip_img)):
         fp = os.path.join(ROOT, 'assets', 'rooms', name + suffix + '.png')
         if lay is not None:
-            lay.save(fp)
+            frame(lay).save(fp)
         else:
             _remove_asset(fp)
-    _node_overlay(full.img, anchors, os.path.join(prev, 'nodes', name + '_nodes.png'))
+    _node_overlay(frame(full.img), anchors, os.path.join(prev, 'nodes', name + '_nodes.png'))
     import nest                                   # the BREACH-ROOM look of this module (tools/art/nest.py)
-    nest.write(name, full.img, bare_floor.img, seed, ROOT, FLAT_PIECES.get(id(full), {}), keep_clear=stand_bands(anchors))
+    nest.write(name, frame(full.img), frame(bare_floor.img), seed, ROOT, to_module(FLAT_PIECES.get(id(full), {})), keep_clear=stand_bands(anchors))
     per_level = {}
     if per_run is not None:
         for lv in (2, 3):
@@ -1266,13 +1293,13 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
             # a run look may knock a piece somewhere else: the same lane rule, and its own over pieces
             for (pn, kind, low, high) in _lane_violations(FLOOR_PIECES):
                 sys.exit('%s: run %d look: %s (%s) stands / lies on the walking band (rows %d..%d)' % (name, lv, pn, kind, high, low))
-            over_by_look['_r%d' % lv] = _over_of(FLOOR_PIECES[:n_pm_r])
-            per_level[lv] = (mr.img, fr.img)
-            for (an, ax, ay, fl_) in anchors:
+            over_by_look['_r%d' % lv] = to_module(_over_of(FLOOR_PIECES[:n_pm_r]))
+            per_level[lv] = (frame(mr.img), frame(fr.img))
+            for (an, ax, ay, fl_) in anchors_d:
                 ref = fr if 's' in fl_.replace('bp', '') else mr
                 if ref.img.getpixel((ax, ay)) == bare_floor.img.getpixel((ax, ay)):
                     sys.exit('%s: %s at (%d,%d) is not on anything drawn in the run-%d look' % (name, an, ax, ay, lv))
-            bp = check_back_plane_clear(fr.img, bare_floor.img, anchors)
+            bp = check_back_plane_clear(fr.img, bare_floor.img, anchors_d)
             if bp and os.environ.get('BP_REPORT'):
                 print('BP %s run %d: %s' % (name, lv, bp))
                 bp = []
@@ -1281,16 +1308,16 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
                          'to a back-plane spot (spot x, blocked column): %s' % (name, lv, bp))
         per_run(1)
     import growth_map                             # where vegetation may grow here (tools/art/growth_map.py)
-    growth_map.write(name, [full.img] + [v[1] for v in per_level.values()], bare_floor.img, ROOT)
+    growth_map.write(name, [frame(full.img)] + [v[1] for v in per_level.values()], frame(bare_floor.img), ROOT)
     import baked_objects                          # what the picture is made of, measured (tools/art/baked_objects.py): the flat-drawing audit reads it
-    baked_objects.write(name, full.img, bare_floor.img, ROOT, main.img)
-    runs = run_looks(name, ROOT, main.img, nofront, bare.img, bare_floor.img, floor_fn, seed, strip_fn is not None,
+    baked_objects.write(name, frame(full.img), frame(bare_floor.img), ROOT, frame(main.img))
+    runs = run_looks(name, ROOT, frame(main.img), frame(nofront), frame(bare.img), frame(bare_floor.img), floor_fn, seed, strip_fn is not None,
                      per_level=per_level, keep_clear=stand_bands(anchors))
     for look, px_ in over_by_look.items():
         _write_over(ROOT, name, look, px_)
-    sheet = Image.new('RGBA', (W * 2, H * 2 * 3), (0, 0, 0, 255))
-    for i, im in enumerate((full.img, runs[2], runs[3])):
-        sheet.paste(im.resize((W * 2, H * 2), Image.NEAREST), (0, H * 2 * i))
+    sheet = Image.new('RGBA', (MW * 2, H * 2 * 3), (0, 0, 0, 255))
+    for i, im in enumerate((frame(full.img), runs[2], runs[3])):
+        sheet.paste(im.resize((MW * 2, H * 2), Image.NEAREST), (0, H * 2 * i))
     os.makedirs(os.path.join(prev, 'runs'), exist_ok=True)
     sheet.save(os.path.join(prev, 'runs', name + '_runs.png'))
     write_scene(name, room_type, anchors, strip=strip_fn is not None, lights=lights, anims=main_anims)
@@ -1302,7 +1329,8 @@ def _node_overlay(img, anchors, path):
     import os
     from PIL import ImageDraw
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    im = img.convert('RGBA').resize((W * 4, H * 4), Image.NEAREST)
+    im = img.convert('RGBA')
+    im = im.resize((im.width * 4, im.height * 4), Image.NEAREST)
     d = ImageDraw.Draw(im)
     for (an, x, y, fl_) in anchors:
         c = (80, 160, 255) if 'bp' in fl_ else (255, 200, 40)
@@ -1353,6 +1381,7 @@ def _floor_grime(img, y0, level, dirt):
 def run_looks(name, root, main_img, full_img, bare_wall_img, bare_floor_img, floor_fn, seed, has_strip,
               per_level=None, keep_clear=(), debris_y0=103):
     import os
+    W = main_img.width                       # the MODULE's width (the images handed in are already framed)
     out = {}
     for level in (2, 3):
         d = DECAY[level]

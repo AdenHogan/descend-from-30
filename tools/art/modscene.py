@@ -34,6 +34,7 @@ BALCONY_TYPES = ('study', 'dining_room')
 def write_scene(name, room_type, anchors, strip=False, lights=(), anims=()):
     """anchors: [(node_name, x, y, flags)] — flags a string containing 'bp' (back plane) and/or
     's' (balcony strip)."""
+    from pixlib import MW                  # the module's width (docs/MODULE_WIDTH.md)
     path = os.path.join(ROOT, 'scenes', 'Room_Modules', name + '.tscn')
     uid = ''
     if os.path.exists(path):
@@ -54,9 +55,9 @@ def write_scene(name, room_type, anchors, strip=False, lights=(), anims=()):
         out.append('[ext_resource type="Script" path="res://scripts/module_anim.gd" id="4_anim"]')
     out += ['', '[node name="Node2D" type="Node2D"]', '',
             '[node name="ColorRect" type="ColorRect" parent="."]',
-            'offset_right = 320.0', 'offset_bottom = 144.0', 'color = Color(0.4, 0.4, 0.4, 1)', '',
+            'offset_right = %d.0' % MW, 'offset_bottom = 144.0', 'color = Color(0.4, 0.4, 0.4, 1)', '',
             '[node name="Label" type="Label" parent="ColorRect"]',
-            'layout_mode = 0', 'offset_right = 318.0', 'offset_bottom = 100.0',
+            'layout_mode = 0', 'offset_right = %d.0' % (MW - 2), 'offset_bottom = 100.0',
             'theme_override_font_sizes/font_size = 32', 'visible = false',
             'text = "%s"' % LABELS[room_type], 'horizontal_alignment = 1', 'vertical_alignment = 1', '',
             '[node name="Art" type="Sprite2D" parent="."]',

@@ -12,7 +12,10 @@ import hashlib
 import json
 import os
 
-W, H = 320, 144
+import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from pixlib import MW as W          # the MODULE's width (pixlib.MW)
+H = 144
 MIN_PX = 60                         # smaller than this is a speck (a nail, a crumb), not an object
 SHADOW_LO, SHADOW_HI = 0.30, 0.97   # a pixel that is the bare one scaled by this much, hue unchanged, is shadow
 HUE_TOL = 14                        # ... within this many 0-255 steps of the scaled colour

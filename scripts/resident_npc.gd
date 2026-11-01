@@ -24,6 +24,7 @@ extends Area2D
 # cans) ever touches it.
 
 const ENEMY_PLANE := preload("res://scripts/enemy_plane.gd")
+const ModuleGeo := preload("res://scripts/module_geo.gd")
 const UI_FONT := preload("res://assets/fonts/PixelOperator8.ttf")
 const ART := "res://assets/homeless-character-pixel-art-pack/%d/%s.png"
 const FRAME := 48
@@ -121,7 +122,7 @@ static func spawn_x(apt_id: String, record: Dictionary, entrance_side: String) -
 	if x >= 0.0:
 		return x
 	var far_mod: int = (WorldState.apartment_span(apt_id) - 1) if entrance_side == "left" else 0
-	return 113.0 + far_mod * 320.0 + 70.0 + float(record.get("spot", 0.5)) * 180.0
+	return float(ModuleGeo.LEFT_WALL_X) + far_mod * float(ModuleGeo.WIDTH) + 70.0 + float(record.get("spot", 0.5)) * (float(ModuleGeo.WIDTH) - 140.0)
 
 
 func _ready() -> void:

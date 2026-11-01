@@ -16,7 +16,10 @@ Written by pixlib.finish_module into assets/rooms/growth_meta.json (one entry pe
 import json
 import os
 
-W, H = 320, 144
+import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from pixlib import MW as W          # the MODULE's width (pixlib.MW)
+H = 144
 BASE_FLOOR = 116
 BASE_WALL = 97
 CEIL_Y = 12
