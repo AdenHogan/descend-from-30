@@ -57,6 +57,7 @@
       "husband": {"role": "patient", "look": 3, "hp": 4, "name": "her husband", "dx": 52}
     },
     "giver": "ethel",
+    "listen": "An old woman's voice, pleading. Under it, a man breathing wrong.",
     "start": "offer",
     "on_giver_died": "lost",
     "states": {

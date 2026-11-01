@@ -38,7 +38,7 @@ Edit the data in `scripts/world_state.gd` `UPGRADE_POOL` (the merchant's own upg
 | `U_tinker` | Tinkerer | Upgrade | Dismantling at a workbench yields 1.6x the scrap | 3 | 4 | 275 |
 | `U_nightvision` | Night Eyes | Upgrade | See much further in the dark (matters most at night) | 3 | 4 | 275 |
 | `U_fortune` | Fortune's Favour | Upgrade | Offers lean toward the perks worth keeping | 1 | 4 | 400 |
-| `U_db_slotstam` | Pack Mule | Upgrade (drawback) | +1 inventory slot, but -25% max stamina | 2 | 4 | 350 |
+| `U_db_slotstam` | Pack Mule | Upgrade (drawback) | +1 inventory slot, but -25% max stamina | 1 | 4 | 350 |
 | `U_db_glass` | Glass Cannon | Upgrade (drawback) | +2 melee damage, but -30% max stamina | 2 | 2 | 250 |
 | `U_db_speedquiet` | Reckless Dash | Upgrade (drawback) | +20% move speed, but +40% movement noise | 2 | 2 | 250 |
 | `U_db_headslow` | Aim Down | Upgrade (drawback) | +18% headshot chance, but -20% move speed | 2 | 1 | 250 |

@@ -20,7 +20,7 @@ extends Control
 const RingGeo := preload("res://scripts/ring_geo.gd")
 
 const OPEN_TIME := 0.16
-const RING_R := 160.0                   # room for a card of 22 px type in the middle (owner round 48l: "way too small and unreadable"); lamp_test measures it clear of every slot
+const RING_R := 170.0                   # room for a card of 22 px type in the middle (owner round 48l: "way too small and unreadable"); 170 so a SEVENTH wedge (Deep Pockets + Pack Mule) still clears the widest card; lamp_test measures it clear of every slot for 3-7
 const DISC := 64.0
 const DISC_SEL := 76.0
 const DEAD_ZONE := 36.0
@@ -340,7 +340,8 @@ func _slot_inst(k: int):
 
 
 const LOCKED_SLOT := -1                 # the ring's marker for the slot a pack upgrade opens
-const MAX_RING_SLOTS := 6               # the most a pack holds (WorldState.get_inventory_slots caps at 6)
+const MAX_RING_SLOTS := WorldState.SLOT_CAP   # the most a pack holds (WorldState.get_inventory_slots caps at it)
+const LOCKED_SHOWN_UP_TO := 6           # the locked marker hints at the 6th slot (Deep Pockets) only — a 7th (Pack Mule) is a surprise
 
 
 func is_locked(k: int) -> bool:
@@ -466,7 +467,7 @@ func build_slots() -> Array:
 	var cap: int = WorldState.get_inventory_slots()
 	for i in range(cap):
 		out.append(i)
-	if cap < MAX_RING_SLOTS:
+	if cap < LOCKED_SHOWN_UP_TO:
 		out.append(LOCKED_SLOT)
 	return out
 

@@ -384,3 +384,6 @@ rates, fog strength and burn/choke cadences all want in-editor feel-tuning.
 - **StairPan:** the seamless-pan path is disabled (fade fallback in use); the
   pry commits through `_perform_transition` which handles both, but the milling
   visual has only been exercised on the fade path.
+
+## A barricaded staircase holds no stair enemy (round 49i)
+`WorldState.stair_enemy_count` is 0 for a choke that `is_stair_blocked` (owner screenshot: a zombie standing among the crates). Pried open, the stairwell gets its seeded enemies as before; the dev "force stair enemies" switch is still literal. `stair_block_test` sweeps 40 buildings.

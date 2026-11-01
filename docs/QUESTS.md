@@ -115,3 +115,6 @@ bandages**, **put him out of his misery**, **leave**.
 
 Numbers (bullet supply vs Johnny's ask, his survival odds — the survival half is moot since round 41): `docs/NPC_BALANCE.md`. Locked by `tests/quest_test.gd` (site rules + 160-seed coverage, Johnny's trades incl. a full pack refusing the completing instalment whole, the gun never re-issued to a later character and lootable from the dead one's body, upgrades folding into the stat sheet,
 Ethel's three outcomes across all three runs, kills remembered, the giver dying, save/load round-trip, the journal).
+
+## What a quest flat sounds like (round 49i)
+A flat quest may carry a `listen` line in `data/quests.json` (Ethel's is a placeholder): `Quests.listen_state(apt)` gives the people still alive in it and the dead still in it, and `WorldState.get_listen_report_for_apartment` says the line at the door instead of "silent". The report also hears a rescue under way and a hider (`listen_event_for_apartment`).

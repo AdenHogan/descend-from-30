@@ -8,7 +8,7 @@ extends RefCounted
 # random in a way that hides the pattern; the few dice that exist (a hider's nerve, a gun's aim) are seeded.
 #
 # These are pure helpers over plain nodes, so they are unit-testable without a scene:
-#   gap()      horizontal distance between two actors on the SAME plane (INF when they can't touch)
+#   gap()      horizontal distance between two actors on the SAME plane of the SAME world scene (INF when they can't touch)
 #   nearest()  the closest living candidate within a gap
 #   facing()   -1 / +1 toward a point
 
@@ -36,12 +36,24 @@ static func present(n: Node) -> bool:
 	return true
 
 
+## True when both actors stand in the SAME world scene — one live floor, one flat, or one pan BACKDROP. (Owner playtest: "the neighbour
+## on 13 was recognising the enemy on floor 12… it's the same instance spliced into two floors". During a stair pan the floor below hangs
+## in the tree under the live one, its dead frozen at their seeded x; the senses below only ever measured the horizontal gap, so a hallway
+## survivor "saw" and fought the dead of the other floor, and the dead there flashed from a swing aimed at nothing.) The same
+## nearest-scene-root test `EnemyPlane` / the player's targets already use (`WorldState.owning_scene_root`): a pan backdrop is its own
+## scene root, a live floor another. Two bare test nodes with no scene above them are in one world.
+static func same_world(a: Node, b: Node) -> bool:
+	return WorldState.owning_scene_root(a) == WorldState.owning_scene_root(b)
+
+
 ## Horizontal gap between two actors, or NO_REACH when they are not on one plane (room floor vs balcony, or
-## mid-step) or either is not present. Lane-only: the vertical origin gap between rigs is ignored.
+## mid-step), not in one world (two floors of a pan), or either is not present. Lane-only: the vertical origin gap between rigs is ignored.
 static func gap(a: Node, b: Node) -> float:
 	if not present(a) or not present(b):
 		return NO_REACH
 	if not ENEMY_PLANE.same_plane(a, b):
+		return NO_REACH
+	if not same_world(a, b):
 		return NO_REACH
 	return absf((a as Node2D).global_position.x - (b as Node2D).global_position.x)
 

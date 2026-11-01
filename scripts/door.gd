@@ -165,6 +165,39 @@ func _apply_door_style() -> void:
 		door_sprite.frame = 0
 
 
+## THE DOOR'S OWN MARKS (owner playtest: "the bullet holes on the door remain in place when the door swings open and closed"). A mark is a decal laid on the door's FACE
+## (scripts/corridor_decals.gd, layer "door"), but the leaf is a strip of frames: frame 0 is the shut door, 1-4 the leaf swung in on the dark hall, so a mark left on
+## the wall hung in mid-air over the opening. Each mark that sits on this door shows only while the door is SHUT (frame 0) and not wrecked.
+var _marks: Array = []
+
+
+func _bind_marks() -> void:
+	var host := get_parent()
+	if host == null or not is_instance_valid(door_sprite):
+		return
+	var layer := host.get_node_or_null("CorridorDoorDecals")
+	if layer == null:
+		return
+	for m in layer.get_children():
+		if not (m is Sprite2D) or m.texture == null or _marks.has(m):
+			continue
+		var cx: float = layer.global_position.x + m.position.x + m.texture.get_size().x * 0.5
+		if absf(cx - global_position.x) <= DOOR_SIZE.x * 0.5 + 2.0:
+			_marks.append(m)
+	if _marks.is_empty():
+		return
+	if not door_sprite.frame_changed.is_connected(_sync_marks):
+		door_sprite.frame_changed.connect(_sync_marks)
+	_sync_marks()
+
+
+func _sync_marks() -> void:
+	var shut: bool = door_sprite.frame == 0 and not _breached()
+	for m in _marks:
+		if is_instance_valid(m):
+			m.visible = shut
+
+
 func _swing_to(frame_to: int, time: float) -> Tween:
 	if _swing != null and _swing.is_valid():
 		_swing.kill()
@@ -223,6 +256,7 @@ func _ready() -> void:
 	_migrate_legacy_progress()
 	_setup_progress_overlay()
 	_apply_door_state()
+	call_deferred("_bind_marks")           # the corridor's door marks are laid by the floor AFTER its doors are ready
 	sfx_player = AudioStreamPlayer2D.new()
 	sfx_player.max_distance = 700.0
 	add_child(sfx_player)

@@ -343,9 +343,27 @@ func _test_stair_enemy_seeding() -> void:
 			multi += 1
 		total += n
 	check(with_enemies > 0 and with_enemies < 28, "some (not all) stairwells have enemies (%d/28)" % with_enemies)
-	# Not coupled to hazards: a barricaded stairwell can still be seeded with enemies.
-	check(true, "stair enemies are independent of barricades/fire (no mutual-exclusion)")
-	# Dev force puts one on every eligible stairwell.
+	# A BARRICADED staircase is full of debris: nothing lurks in it, rises up it or steps off it onto the landing (owner playtest: "this enemy managed to come up
+	# the barricaded stairs"). Swept over many buildings so it holds on the NATURAL rolls too — the old rule left ~40% of the barricaded ones with an enemy.
+	var blocked_with_enemy := 0
+	var blocked_n := 0
+	var open_with_enemy := 0
+	for sd in range(1, 41):
+		WorldState.master_seed = sd * 7919
+		WorldState.stair_blocks_cleared.clear()
+		for f in range(2, 30):
+			if WorldState.is_stair_blocked(f):
+				blocked_n += 1
+				if WorldState.stair_enemy_count(f) > 0:
+					blocked_with_enemy += 1
+			elif WorldState.stair_enemy_count(f) > 0:
+				open_with_enemy += 1
+	check(blocked_n > 20 and open_with_enemy > 20, "(setup) the sweep meets barricaded stairwells (%d) and open ones with enemies (%d)" % [blocked_n, open_with_enemy])
+	check(blocked_with_enemy == 0, "no barricaded staircase holds an enemy (%d of %d do)" % [blocked_with_enemy, blocked_n])
+	# Dev force puts one on every eligible stairwell (the switch is literal — it is a test aid, not a roll).
+	WorldState.master_seed = 1337
+	WorldState.dev_hazard_mode = WorldState.DEV_HAZARD_NONE
+	WorldState.stair_blocks_cleared.clear()
 	WorldState.dev_force_stair_enemies = true
 	check(WorldState.stair_enemy_count(15) == 1 and WorldState.stair_enemy_count(30) == 0,
 		"dev_force_stair_enemies forces one per eligible stairwell")

@@ -293,7 +293,12 @@ func _test_ring_actions() -> void:
 	await _reset()
 	# closing by a click in the world
 	await _open_pack()
-	await _click(Vector2(60, 300))
+	# a point in the world well clear of the ring, on whichever side of it has more room (a fixed screen point was only 3 px outside the ring once it grew)
+	var wc: Vector2 = HUD.pack_wheel.centre
+	var clear_x: float = (wc.x - HUD.pack_wheel.RING_R - HUD.pack_wheel.DISC_SEL - 80.0) if wc.x > HUD.SCREEN_W * 0.5 else (wc.x + HUD.pack_wheel.RING_R + HUD.pack_wheel.DISC_SEL + 80.0)
+	var world_pt := Vector2(clampf(clear_x, 20.0, HUD.SCREEN_W - 20.0), 300.0)
+	check(not HUD.pack_wheel.owns_point(world_pt) and not HUD.pointer_over_widget(world_pt), "the click point is truly out in the world, off the ring and every widget (%s, ring at %s)" % [world_pt, wc])
+	await _click(world_pt)
 	check(p.pack_phase == "stand" or p.pack_phase == "", "a click out in the world closes it")
 	await _reset()
 	# a click on a HUD widget is NOT the world's: it neither closes nor equips

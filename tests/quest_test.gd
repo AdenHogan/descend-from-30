@@ -29,6 +29,7 @@ func _ready() -> void:
 	await _test_ethel_supplied()
 	await _test_ethel_mercy()
 	await _test_ethel_ignored()
+	await _test_ethel_leave_and_return()
 	_test_persistence_and_journal()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -615,6 +616,65 @@ func _test_ethel_mercy() -> void:
 	check(rev != null and rev.mag_count == 5 and rev.perks.has("G_durable"), "five rounds in a tough gun")
 	await _close(room)
 	WorldState.god_mode = false
+
+
+# OWNER PLAYTEST: "I selected to leave in order to come back with bandages, but the husband died immediately… and there's no further
+# conversation with Ethel when pressing E." Leave must change NOTHING; coming back with bandages must find them both alive and Ethel
+# talking, with the gift open to her.
+func _test_ethel_leave_and_return() -> void:
+	print("[ETHEL — you leave to fetch bandages: nothing happens to them, and she talks again when you return]")
+	_fresh()
+	WorldState.god_mode = true
+	var apt := str(Quests.site("ethel")["apt"])
+	var heard: Dictionary = WorldState.get_listen_report_for_apartment(apt)
+	check(str(heard["event"]) == "quest" and str(heard["line"]).contains("old woman"), "listening at her door hears her (%s)" % str(heard["line"]))
+	var room = await _open_flat(apt)
+	var e := _person(room, "ethel")
+	var h := _person(room, "husband")
+	var p = get_tree().get_first_node_in_group("player")
+	p.global_position.x = e.global_position.x - 40.0
+	await _frames(20)
+	e.talk()
+	check(e.has_choices() and Quests.choices("ethel").size() == 4, "she asks, with four answers")
+	var ok := Quests.choose(e, 3)                      # "Leave"
+	check(ok and not e.has_choices(), "Leave closes the question (%s)" % str(ok))
+	check(Quests.stage("ethel") == "offer" and Quests.outcome("ethel") == "", "…and changes nothing in the quest (%s / '%s')" % [Quests.stage("ethel"), Quests.outcome("ethel")])
+	check(not h.is_dead and not e.is_dead, "…nor in the room: both alive straight after")
+	p.global_position.x = e.global_position.x + 700.0
+	await _frames(900)                                  # fifteen seconds of the player being off fetching things
+	check(not h.is_dead and not e.is_dead, "fifteen seconds on, both are still alive (%s / %s)" % [str(h.is_dead), str(e.is_dead)])
+	check(h.behaviour == "lie" and e.behaviour == "plead", "…lying and pleading as before (%s / %s)" % [h.behaviour, e.behaviour])
+	check(_zombies_in(room).is_empty(), "…and nothing came in on them (%d dead)" % _zombies_in(room).size())
+	# the player walks OUT (the flat is freed), fetches bandages, and walks back IN: the same two people, alive, in the same state
+	var hx0: float = h.global_position.x
+	await _close(room)
+	await _frames(30)
+	room = await _open_flat(apt)
+	e = _person(room, "ethel")
+	h = _person(room, "husband")
+	check(e != null and h != null and not e.is_dead and not h.is_dead, "walking back in: both of them are alive and home (%s / %s)" % [str(e != null and e.is_dead), str(h != null and h.is_dead)])
+	check(h != null and absf(h.global_position.x - hx0) < 2.0, "…he is where he lay (%s vs %s)" % [str(h.global_position.x if h != null else -1), str(hx0)])
+	check(Quests.stage("ethel") == "offer", "…and the question is still open (%s)" % Quests.stage("ethel"))
+	await _frames(300)
+	check(not h.is_dead and not e.is_dead, "five seconds after walking in they are still alive")
+	p = get_tree().get_first_node_in_group("player")
+	# back with bandages: she talks again, offers the gift, and takes it
+	WorldState.add_to_inventory("006")
+	p.global_position.x = e.global_position.x - 40.0
+	await _frames(30)
+	check(e.can_talk(), "she can be talked to again (%s)" % e.behaviour)
+	check(e._player_gap() <= Survivor.TALK_RANGE, "…the player stands in her talk range (%s)" % str(e._player_gap()))
+	Input.action_press("interact")
+	await _frames(3)
+	Input.action_release("interact")
+	await _frames(3)
+	check(e.has_choices(), "pressing [interact] opens her question again")
+	var ch := Quests.choices("ethel")
+	check(ch.size() == 4 and ch[1]["enabled"], "…with 'Give her bandages' open to the player")
+	Quests.choose(e, 1)
+	check(Quests.outcome("ethel") == "supplied" and not h.is_dead, "she takes the bandages; he lives")
+	WorldState.god_mode = false
+	await _close(room)
 
 
 func _test_ethel_ignored() -> void:

@@ -451,13 +451,13 @@ func _test_rings() -> void:
 		{"row": true, "label": "c", "text": "1", "delta": "", "tone": 0}, {"word": "BROKEN"}])
 	var card := Rect2(-worst * 0.5, worst)
 	var clear := true
-	for n in [3, 4, 5, 6]:
+	for n in [3, 4, 5, 6, 7]:
 		for k in range(n):
 			var p: Vector2 = RingGeo.slot_position(Vector2.ZERO, k, n, pw.RING_R)
 			var box := Rect2(p - Vector2(pw.DISC, pw.DISC) * 0.5, Vector2(pw.DISC, pw.DISC))
 			if card.intersects(box):
 				clear = false
-	check(clear, "the card in the middle (up to %dx%d) never overlaps a slot, for any pack from 3 wedges to 6" % [int(worst.x), int(worst.y)])
+	check(clear, "the card in the middle (up to %dx%d) never overlaps a slot, for any pack from 3 wedges to 7" % [int(worst.x), int(worst.y)])
 	# one word, everywhere
 	WorldState.inventory.clear()
 	for id in ["001", "014", "006", "009", "024"]:

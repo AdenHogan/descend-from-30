@@ -277,3 +277,6 @@ and `quest_test` do); an old save has no key = off.
 Locked by `tests/survivor_ai_test.gd` (every behaviour edge, half damage maths — switch off — and the theatre — switch on, placement
 census over 300 seeds × 3 runs, persistence, pan scenery, and the rescues: status by run, the overrun clock, saved + gift + next run, a flat's) and `tests/enemy_mind_test.gd` (investigate / search / give up / lose / spot / prey, the noise change, spitters). The older
 `enemy`, `gun`, `listen`, `crowd`, `can_throw`, `softlock` and `plane` suites were run against the enemy changes (see the commit report).
+
+## One world at a time (round 49i — the floor bleed)
+A seamless stair pan hangs the floor being panned TO under the live one, its dead frozen at their seeded x. Every sense in this layer goes through `AiMind.gap`, which used to measure only the horizontal gap on a shared plane, so a survivor on one floor saw (and "was bitten by") the dead of the other. `gap` now returns `NO_REACH` unless both actors share `WorldState.owning_scene_root` (`AiMind.same_world`). Any NEW sense must go through `gap` / `same_world`, never a bare `global_position.x` difference between nodes found by a global group query. Locked by `survivor_ai_test._test_floor_bleed`.

@@ -58,6 +58,7 @@ var balcony_arrival_hurt: bool = false
 # the HP/portrait drop is synced with the hurt flare, not the fall's start).
 var balcony_pending_injury: int = 0
 const MAX_INVENTORY_SLOTS = 5
+const SLOT_CAP = 7                    # the most a pack can ever hold: 5, +1 Deep Pockets, +1 Pack Mule — an offered slot is a GIVEN slot (owner playtest: Pack Mule "offered a 7th and gave nothing")
 ## Without a backpack a character can only hold what fits in their hands and pockets (docs/BACKPACK.md).
 const POCKET_SLOTS = 2
 ## …but only ONE of those is carried comfortably: a second item without a backpack OVERLOADS the character —
@@ -2444,7 +2445,7 @@ const UPGRADE_POOL = {
 	# `d` desirability) — merchant pairs, run boons and the end-of-game Valour offer alike.
 	"U_fortune": {"name": "Fortune's Favour", "desc": "Offers lean toward the perks worth keeping", "w": 1, "d": 4, "drawback": false, "mods": {"perk_luck": {"add": 1.0}}},
 	# ---- Drawbacks (rarer; both halves stated — legibility is absolute) ----
-	"U_db_slotstam": {"name": "Pack Mule", "desc": "+1 inventory slot, but -25% max stamina", "w": 2, "d": 4, "drawback": true, "mods": {"inventory_slots": {"add": 1}, "max_stamina": {"mult": 0.75}}},
+	"U_db_slotstam": {"name": "Pack Mule", "desc": "+1 inventory slot, but -25% max stamina", "w": 1, "d": 4, "drawback": true, "mods": {"inventory_slots": {"add": 1}, "max_stamina": {"mult": 0.75}}},
 	"U_db_glass": {"name": "Glass Cannon", "desc": "+2 melee damage, but -30% max stamina", "w": 2, "d": 2, "drawback": true, "mods": {"melee_damage": {"add": 2}, "max_stamina": {"mult": 0.7}}},
 	"U_db_speedquiet": {"name": "Reckless Dash", "desc": "+20% move speed, but +40% movement noise", "w": 2, "d": 2, "drawback": true, "mods": {"move_speed": {"mult": 1.2}, "noise_mult": {"mult": 1.4}}},
 	"U_db_headslow": {"name": "Aim Down", "desc": "+18% headshot chance, but -20% move speed", "w": 2, "d": 1, "drawback": true, "mods": {"headshot_bonus": {"add": 0.18}, "move_speed": {"mult": 0.8}}},
@@ -2581,7 +2582,7 @@ func sync_overload() -> void:
 func get_inventory_slots() -> int:
 	if not has_backpack:
 		return POCKET_SLOTS
-	return int(clamp(MAX_INVENTORY_SLOTS + _upgrade_stat_add("inventory_slots"), 1, 6))
+	return int(clamp(MAX_INVENTORY_SLOTS + _upgrade_stat_add("inventory_slots"), 1, SLOT_CAP))
 
 ## Pockets full and a backpack somewhere to be found? (The tutorial's "overloaded" beat.)
 func pockets_full() -> bool:
@@ -2747,6 +2748,57 @@ const LISTEN_LINES_BELOW = {
 }
 
 
+# NEIGHBOURS' EVENTS heard through a door (owner playtest: "I pressed R on a room, the prompt said silent inside, but when I went in an NPC was being attacked by two enemies").
+# The ordinary count is the flat's own dead; the people in it — a rescue under way, a hider holding their breath, a quest's couple — are not in it, so the report
+# said "silent" over a room with a survivor and three of the dead walking at them. (The player's inner voice; placeholders until the owner writes them.)
+const LISTEN_LINES_EVENT = {
+	"rescue": "Someone's screaming in there. Begging. And the dead are on them.",
+	"rescue_clear": "Someone sobbing in there, quietly. Still alive.",
+	"hider": "Someone in there, holding their breath. Trying not to be heard.",
+}
+
+
+## Does this flat's room lay the ORDINARY roll of dead (`get_apartment_zombie_count`)? Mirrors room.gd's spawn chain: a quest's flat, a resident's, a
+## flat with a rescue under way, a safe room you earned, a burning or burnt one all lay their own people / dead (or none) instead (the tutorial's flats keep the roll, as before). The
+## listen report used to read the raw roll, so Ethel's flat — which holds no ordinary dead at all — answered "three in there".
+func flat_lays_ordinary_dead(apt_id: String) -> bool:
+	var f := _apartment_floor(apt_id)
+	var col := int(apt_id.substr(apt_id.length() - 2))
+	if apartment_fire_stage(f, col) in [FIRE_CHARRED, FIRE_BLAZE]:
+		return false
+	if Quests.is_quest_flat(apt_id) or not resident_for(apt_id).is_empty():
+		return false
+	var rec: Dictionary = SurvivorPlan.hider_for(apt_id)
+	if not rec.is_empty() and SurvivorPlan.rescue_status(rec) == "open" and not bool(rec.get("dead", false)):
+		return false
+	return not haven_flat(apt_id)
+
+
+## {kind: "" | "rescue" | "hider" | "quest", dead: the dead that event holds (not in the ordinary count), line: what it sounds like ("" = nothing to say)}.
+func listen_event_for_apartment(apt_id: String) -> Dictionary:
+	var out := {"kind": "", "dead": 0, "line": ""}
+	var qs: Dictionary = Quests.listen_state(apt_id)
+	if int(qs["people"]) > 0 or int(qs["dead"]) > 0:
+		out["kind"] = "quest"
+		out["dead"] = int(qs["dead"])
+		out["line"] = str(qs["line"])
+		return out
+	var rec: Dictionary = SurvivorPlan.hider_for(apt_id)
+	if rec.is_empty() or bool(rec.get("dead", false)):
+		return out
+	match SurvivorPlan.rescue_status(rec):
+		"open":
+			out["kind"] = "rescue"
+			out["dead"] = SurvivorPlan.rescue_remaining(rec)
+			out["line"] = LISTEN_LINES_EVENT["rescue"] if int(out["dead"]) > 0 else LISTEN_LINES_EVENT["rescue_clear"]
+		"lost":
+			pass                                  # a body now — nothing left to hear
+		_:
+			out["kind"] = "hider"
+			out["line"] = LISTEN_LINES_EVENT["hider"]
+	return out
+
+
 const _COUNT_WORDS := ["No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"]
 
 
@@ -2783,7 +2835,7 @@ func get_listen_report_for_apartment(apt_id: String) -> Dictionary:
 		# Breach rooms are horde + leader by construction — read as many + big.
 		count = 4
 	else:
-		count = get_apartment_zombie_count(apt_id) + (0 if revenant_for(apt_id).is_empty() else 1)
+		count = (get_apartment_zombie_count(apt_id) if flat_lays_ordinary_dead(apt_id) else 0) + (0 if revenant_for(apt_id).is_empty() else 1)
 	for key in killed_zombies:
 		var entry = killed_zombies[key]
 		if entry.get("apartment_id", "") == apt_id and str(entry.get("scene", "")).contains("room"):
@@ -2793,20 +2845,30 @@ func get_listen_report_for_apartment(apt_id: String) -> Dictionary:
 	if breached and killed_zombies.has(breach_leader_key(apt_id)):
 		has_big = false                          # whatever led it is dead
 	count = max(count, 0)
+	var ev := listen_event_for_apartment(apt_id) if not breached else {"kind": "", "dead": 0, "line": ""}
+	count += int(ev["dead"])                             # the dead a rescue / a quest holds are in there too
 	var category = _listen_category(count, has_big)
 	var line: String = LISTEN_LINES_APARTMENT[category]
+	if str(ev["line"]) != "" and (int(ev["dead"]) > 0 or count == 0):
+		line = str(ev["line"])                           # someone is in there — say so, rather than "silent" (or a bare count of the dead on them)
 	if breached and has_big:
 		line = BREACH_LISTEN_LINES.get(breach_leader(apt_id), line)
 	# A breach room's count is a stand-in (horde + boss by construction), so even exact hearing
 	# keeps the "something big" read there rather than state a number it can't know.
 	if has_trait_flag("exact_hearing") and not has_big:
-		line = _exact_listen_line(count, "apartment")
+		if str(ev["line"]) != "" and count == 0:
+			line = str(ev["line"])                       # (nothing of the dead to count — just the person)
+		else:
+			line = _exact_listen_line(count, "apartment")
+			if str(ev["line"]) != "":
+				line += " " + str(ev["line"])            # (the Super counts them AND hears the person)
 	return {
 		"count": count,
 		"has_big": has_big,
 		"category": category,
 		"line": line,
 		"nearness": get_listen_nearness("apartment", apt_id),
+		"event": str(ev["kind"]),
 	}
 
 
@@ -3557,7 +3619,9 @@ func stair_enemy_count(floor_num: int) -> int:
 	if haven_floor(floor_num) or haven_floor(floor_num - 1):
 		return 0                       # a staircase is seen from the two floors it joins: a haven's two are empty (havens)
 	if dev_force_stair_enemies:
-		return 1
+		return 1                       # (a dev / test switch is literal: one on every eligible stairwell, barricaded or not)
+	if is_stair_blocked(floor_num):
+		return 0                       # a BARRICADED staircase is full of debris — nothing lurks, rises or comes up it (owner playtest: "this enemy managed to come up the barricaded stairs")
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "stairenemycount" + str(floor_num) + str(current_run))
 	var r := rng.randf()

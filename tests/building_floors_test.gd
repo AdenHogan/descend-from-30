@@ -1652,6 +1652,33 @@ func _test_door_swing() -> void:
 	check(door.door_sprite.frame == D.DOOR_FRAMES - 1, "close_behind starts from open")
 	await get_tree().create_timer(0.3 + D.DOOR_CLOSE_TIME + 0.2).timeout
 	check(door.door_sprite.frame == 0, "...and swings shut (frame %d)" % door.door_sprite.frame)
+	# THE DOOR'S OWN MARKS (owner playtest: "the bullet holes on the door remain in place when the door swings open and closed"): a mark laid on the
+	# door's face shows only while the door is shut; a mark on the wall between the doors never goes.
+	var mark_layer = bf.get_node_or_null("CorridorDoorDecals")
+	check(mark_layer != null, "(setup) the floor has its door-mark layer")
+	if mark_layer != null:
+		var mtex: Texture2D = load("res://assets/corridor/decals/door_bullets.png")
+		var on_door := Sprite2D.new()
+		on_door.texture = mtex
+		on_door.centered = false
+		on_door.position = Vector2(door.global_position.x - mark_layer.global_position.x - mtex.get_width() * 0.5, 60.0)
+		mark_layer.add_child(on_door)
+		var on_wall := Sprite2D.new()
+		on_wall.texture = mtex
+		on_wall.centered = false
+		on_wall.position = Vector2(door.global_position.x + 63.0 - mark_layer.global_position.x - mtex.get_width() * 0.5, 60.0)
+		mark_layer.add_child(on_wall)
+		door._bind_marks()
+		check(door._marks.has(on_door) and not door._marks.has(on_wall), "the door claims the mark on its face and not the one on the wall beside it")
+		check(on_door.visible and on_wall.visible, "shut: both marks show")
+		door.open_door()
+		await get_tree().create_timer(D.DOOR_OPEN_TIME * 0.5).timeout
+		check(door.door_sprite.frame > 0 and not on_door.visible, "mid-swing the door's marks are gone with the closed face (frame %d)" % door.door_sprite.frame)
+		await get_tree().create_timer(D.DOOR_OPEN_TIME * 0.5 + 0.15).timeout
+		check(not on_door.visible and on_wall.visible, "swung open: the door's marks stay hidden, the wall's mark stays")
+		door.close_behind()
+		await get_tree().create_timer(0.3 + D.DOOR_CLOSE_TIME + 0.25).timeout
+		check(door.door_sprite.frame == 0 and on_door.visible, "shut again: the marks are back on the face")
 	var door_x: float = door.global_position.x
 	var door_name: String = door.name
 	bf.free()

@@ -42,6 +42,7 @@ func _ready() -> void:
 	_test_safety_and_dialogue()
 	AllyCombat.performative = true                   # …and the shipped behaviour
 	await _test_theatre()
+	await _test_floor_bleed()
 	await _test_weapon_in_hand()
 	await _test_rescue_rules()
 	await _test_rescue_overrun()
@@ -886,6 +887,67 @@ func _test_theatre() -> void:
 	await _finish(bf)
 
 
+# --- THE FLOOR BLEED (owner playtest: "the neighbour on 13 was recognising the enemy on floor 12… the same instance spliced into two floors") ----
+# During a seamless stair pan the floor being panned TO hangs in the tree under the live one (StairPan: a holder + a passive `building_floors`),
+# its dead frozen at their seeded x. The AI's senses only measured the HORIZONTAL gap, so a hallway survivor on one floor saw, fought and was
+# "attacked" by the dead of the other — it cried out, flinched red, and the frozen enemy below flashed from a swing aimed at nothing.
+
+func _backdrop_under(bf: Node, floor_num: int) -> Node:
+	var holder := Node2D.new()
+	bf.add_child(holder)
+	var bd = load("res://scenes/building_floors.tscn").instantiate()
+	bd.setup_floor = floor_num
+	bd.passive = true
+	holder.add_child(bd)
+	await get_tree().physics_frame
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if bd.is_ancestor_of(z):
+			z.free()
+	for sv in get_tree().get_nodes_in_group("survivor"):
+		if bd.is_ancestor_of(sv):
+			sv.free()
+	return bd
+
+
+func _test_floor_bleed() -> void:
+	print("[FLOOR BLEED: a floor panned to is not the same world as the one you are on]")
+	var bf = await _corridor(14)
+	var bd = await _backdrop_under(bf, WorldState.current_floor - 1)
+	_player(bf).global_position = Vector2(1180.0, 386.0)
+	var d := _survivor(bf, "defender", "014", 0, 600.0)
+	var below = _zombie(bd, 640.0, 100, true)                  # the other floor's dead, 40 px off the post along x
+	var live = _zombie(bf, 640.0, 100, true)                   # a control: the same x on THIS floor
+	await _frames(2)
+	check(not AiMind.same_world(d, below) and AiMind.same_world(d, live), "the survivor shares a world with the dead of its own floor and not with the floor below")
+	check(AiMind.gap(d, below) == AiMind.NO_REACH, "the dead of the other floor are out of reach however near they stand along x (gap %s)" % str(AiMind.gap(d, below)))
+	check(AiMind.gap(d, live) < 100.0, "…while the dead of this floor 40 px away are in reach (gap %s)" % str(AiMind.gap(d, live)))
+	check(AiMind.gap(_player(bf), below) == AiMind.NO_REACH, "…and the player does not share a world with them either")
+	live.free()
+	await _frames(2)
+	check(d._threats(500.0).is_empty(), "with nobody on its own floor the survivor sees no threat at all (%d)" % d._threats(500.0).size())
+	var flashed := false
+	var calm := true
+	for i in 240:
+		await get_tree().physics_frame
+		if ENEMY_HURT.is_blinking(below):
+			flashed = true
+		if not (d.behaviour in ["hold", "idle", "watch"]) and d.behaviour != "":
+			calm = false
+	check(not flashed, "the dead below never flash from a swing aimed at nothing")
+	check(calm and not d.is_hurt() and d.current_hp == d.max_hp, "the survivor stays at its post — no alert, no engage, no flinch (%s, hp %d/%d)" % [d.behaviour, d.current_hp, d.max_hp])
+	# the other way: the dead of THIS floor do not go for a survivor standing on the floor below
+	d.free()                                                   # (its own floor's survivor would be the meal — leave only the one below)
+	var sb := Survivor.spawn(bd, _rec("defender", "014", 0, 700.0), Survivor.FEET_CORRIDOR, 700.0)
+	var hunter = _zombie(bf, 690.0, 100, true)
+	await _frames(2)
+	check(EnemyMind.pick_prey(hunter, 600.0, INF, false) == null, "a live zombie never picks the other floor's survivor as its meal")
+	var near_one := Survivor.spawn(bf, _rec("defender", "014", 0, 720.0), Survivor.FEET_CORRIDOR, 720.0)
+	await _frames(2)
+	check(EnemyMind.pick_prey(hunter, 600.0, INF, false) == near_one, "…and still picks one on its own floor")
+	check(is_instance_valid(sb), "(the backdrop survivor stood the whole time)")
+	await _finish(bf)
+
+
 # --- RESCUES --------------------------------------------------------------------------------------------------
 
 func _rescue_rec(weapon: String, role: String = "defender", appears: int = 1) -> Dictionary:
@@ -1103,6 +1165,11 @@ func _test_rescue_in_a_flat() -> void:
 	seeded["peril"] = SurvivorPlan.RESCUE_HOLD
 	WorldState.survivors[key] = seeded
 	WorldState.set_door_state(apt, WorldState.DoorState.OPEN)
+	# OWNER PLAYTEST: "I pressed R on a room, the prompt said silent inside, but when I went in an NPC was being attacked by two enemies."
+	# The door's listen report must hear a rescue under way — the person AND the dead on them.
+	var rep: Dictionary = WorldState.get_listen_report_for_apartment(apt)
+	check(str(rep["line"]).contains(WorldState.LISTEN_LINES_EVENT["rescue"]) and str(rep["event"]) == "rescue", "listening at the door hears the rescue (%s)" % str(rep["line"]))
+	check(int(rep["count"]) == SurvivorPlan.RESCUE_DEAD and str(rep["category"]) != "none", "…and counts the dead on them (%d, %s)" % [int(rep["count"]), str(rep["category"])])
 	WorldState.current_apartment_id = apt
 	WorldState.current_floor = f
 	WorldState.spawn_source = ""
@@ -1132,6 +1199,8 @@ func _test_rescue_in_a_flat() -> void:
 			z.receive_damage(999, "blunt")
 		await _frames(25)
 		check(not h.rescuing and str(seeded["rescue"]) == "saved" and h.behaviour == "trust", "kill them and the flat's hider is saved, and trusts you (%s)" % h.behaviour)
+		var rep2: Dictionary = WorldState.get_listen_report_for_apartment(apt)
+		check(str(rep2["event"]) == "hider" and int(rep2["count"]) == 0, "…and afterwards the door only gives away someone holding their breath (%s / %d)" % [str(rep2["event"]), int(rep2["count"])])
 	room.queue_free()
 	await get_tree().process_frame
 	await get_tree().process_frame

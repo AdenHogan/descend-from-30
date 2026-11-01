@@ -311,6 +311,37 @@ static func populate_flat(room: Node, apt: String, entrance_side: String) -> Arr
 	return spawned
 
 
+## What a quest's flat gives away through its door (the listen report, WorldState.get_listen_report_for_apartment): how many of its
+## people are still alive in it, how many of the dead are still in it, and the quest's own line (`listen` in its data) while someone is.
+static func listen_state(apt: String) -> Dictionary:
+	var out := {"people": 0, "dead": 0, "line": ""}
+	var qid := quest_for_flat(apt)
+	if qid == "":
+		return out
+	var d := def(qid)
+	var specs: Array = []
+	if WorldState.current_run <= 1:
+		for npc in d.get("npcs", {}):
+			specs.append({"npc": npc})
+	else:
+		var table: Dictionary = d.get("world", {})
+		specs = table.get(outcome(qid), table.get("", {})).get(str(clampi(WorldState.current_run, 1, 3)), [])
+	for spec in specs:
+		if spec.has("npc"):
+			var r: Dictionary = WorldState.survivors.get(_npc_key(qid, str(spec["npc"])), {})
+			if not bool(r.get("dead", false)):
+				out["people"] = int(out["people"]) + 1
+		elif spec.has("zombies"):
+			var zkey: String = str(spec.get("key", "z"))
+			for i in int(spec["zombies"]):
+				var skey := "q:%s:%s:%d" % [qid, zkey, i]
+				if not (flag(qid, "slain:" + skey) or WorldState.killed_zombies.has(skey)):
+					out["dead"] = int(out["dead"]) + 1
+	if int(out["people"]) > 0:
+		out["line"] = str(d.get("listen", ""))
+	return out
+
+
 ## The quest's zombie that was killed this run is gone for good (the kill memory is wiped at the time skip).
 static func settle_time_skip() -> void:
 	for qid in ids():

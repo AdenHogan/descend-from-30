@@ -30,6 +30,7 @@ func _ready() -> void:
 	_clear_valour()
 	await _test_milestones()
 	_test_boon_offer_and_fold()
+	_test_seventh_slot()
 	_test_boons_are_per_character()
 	_test_valour_sources()
 	_test_valour_maths()
@@ -133,6 +134,42 @@ func _test_boon_offer_and_fold() -> void:
 	WorldState.upgrade_offers.clear()
 	check(WorldState.get_upgrade_offer(5).size() == 2, "two left → an offer of two")
 	WorldState.permanent_perks = kept
+
+
+# OWNER PLAYTEST: "I had already chosen a +1 inventory slot perk, giving me the full six slots. Pack Mule offered another with the stamina tradeoff, but I still only
+# have 6 slots and now the -25% stamina debuff. If we are offering a seventh slot, we should give it. But this should be equally rare [sic]. I am getting both of
+# these perks in a first run game."
+func _test_seventh_slot() -> void:
+	print("[the seventh slot is real, and the perk that gives it is the rarest kind]")
+	WorldState.new_game()
+	WorldState.has_backpack = true
+	WorldState.active_upgrades = []
+	check(WorldState.get_inventory_slots() == WorldState.MAX_INVENTORY_SLOTS, "no perks: the classic five (%d)" % WorldState.get_inventory_slots())
+	WorldState.active_upgrades = ["U_slot"]
+	check(WorldState.get_inventory_slots() == 6, "Deep Pockets: six (%d)" % WorldState.get_inventory_slots())
+	WorldState.active_upgrades = ["U_slot", "U_db_slotstam"]
+	check(WorldState.get_inventory_slots() == 7, "Deep Pockets AND Pack Mule: SEVEN — the offered slot is given (%d)" % WorldState.get_inventory_slots())
+	WorldState.inventory.clear()
+	var held := 0
+	for i in 9:
+		if WorldState.add_to_inventory("008"):
+			held += 1
+	WorldState.sync_overload()
+	check(WorldState.inventory.size() == 7 and held >= 7, "…and seven things really fit in the pack (%d)" % WorldState.inventory.size())
+	var with_mule: float = WorldState.get_max_stamina()
+	WorldState.active_upgrades = ["U_slot"]
+	var without_mule: float = WorldState.get_max_stamina()
+	check(absf(with_mule - without_mule * 0.75) < 0.51, "…at the price the card promised: -25%% max stamina (%s vs %s)" % [str(with_mule), str(without_mule)])
+	WorldState.active_upgrades = ["U_db_slotstam"]
+	WorldState.active_upgrades = ["U_db_slotstam"]
+	check(WorldState.get_inventory_slots() == 6, "Pack Mule alone is still just the sixth slot (%d)" % WorldState.get_inventory_slots())
+	var mule_w: int = int(WorldState.UPGRADE_POOL["U_db_slotstam"]["w"])
+	var lowest := 99
+	for id in WorldState.UPGRADE_POOL:
+		lowest = mini(lowest, int(WorldState.UPGRADE_POOL[id]["w"]))
+	check(mule_w == lowest and mule_w < int(WorldState.UPGRADE_POOL["U_slot"]["w"]), "Pack Mule is in the rarest tier of the pool (w %d, the pool's lowest %d; Deep Pockets %d)" % [mule_w, lowest, int(WorldState.UPGRADE_POOL["U_slot"]["w"])])
+	WorldState.active_upgrades = []
+	WorldState.inventory.clear()
 
 
 func _test_boons_are_per_character() -> void:
