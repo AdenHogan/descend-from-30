@@ -42,3 +42,15 @@ The flip (changing the committed `PAD`) is **one commit**: assets, scenes, plann
 ## Not decided / owner's eye
 Where each piece ends up in a baked room is a first pass (the owner will eyeball and adjust); the planned rooms' recipes need the same look; scavenge-node positions of baked rooms move with
 their pieces and need a play-through; module width could still be tuned (the frame is one constant).
+
+## Where the work stands (updated as it goes)
+* **On `main` (pushed):** steps 1 and 2 above — the plumbing, still at 320, no behaviour change (`2c6871f6`, `2c54e073`).
+* **The flip is built in a LOCAL git worktree, `/home/user/flip` (branch `flip-240`, never pushed)** so `main` keeps working: constants flipped (`scripts/module_geo.gd` `WIDTH` 240 / `DESIGN_PAD` 40 / `WINDOW_INSET` 54; `tools/art/pixlib.py` `PAD` 40 / `WIN_INSET` 54), shells regenerated at 240, tests that hard-coded 320 read `ModuleGeo`. It lands on `main` as ONE squashed commit when the gate passes. **If the container is fresh that worktree is gone: redo steps from "Planned rooms" below** (the recipe / planner changes are small and listed here).
+* **Window inset 54** (the proportional one) after measuring 54 / 60 / 66 on the planned rooms: a bigger inset roughly doubles the styles that cannot be laid (kitchens and bathrooms run fixtures along the wall and the window box is a keep-out), a smaller one starves the baked rooms' end zones (28 / 87 / 27 px of wall where tall furniture may stand, because the baked art keeps BOTH window boxes bare).
+* **Planned rooms at 240** (30 plans a style): living, dining, study and bedrooms lay with 0 fallbacks; the wet rooms needed planner / recipe work, all small and measured with `tools/furniture_dump.tscn`:
+  * `centre.mirror` (planner): the centre piece's x range is for the left wall and a seeded half of the rooms stand it against the right one; bathrooms use it (a bath against a wall leaves a run for the toilet and basin).
+  * a bathroom's centre is `bath|shower` (a walk-in shower is allowed in the avocado / pink styles too).
+  * `sill` (a piece flag, planner `_sill_allow`): a basin / vanity / washstand may rise into the bottom of the window box (a basin under a bathroom window), unlike `under_window` it is not required to stand there.
+  * country kitchen's run may start further in (`x` 60..190 design).
+  * `furniture_dump -- --fallbacks=1` validates every recipe's hand-set fallback with the window on either side (25 broke at 240: they are authored in design coordinates and several stood in the outer 40 px).
+  * `furn_build.py --recipes` rewrites only the recipes / module meta of `data/furniture.json` (no sprite is rendered) for quick tuning; a plain run and `--check` stay the truth.
