@@ -5,13 +5,13 @@
 [node name="Node2D" type="Node2D"]
 
 [node name="ColorRect" type="ColorRect" parent="."]
-offset_right = 320.0
+offset_right = 240.0
 offset_bottom = 144.0
 color = Color(0.4, 0.4, 0.4, 1)
 
 [node name="Label" type="Label" parent="ColorRect"]
 layout_mode = 0
-offset_right = 318.0
+offset_right = 238.0
 offset_bottom = 100.0
 theme_override_font_sizes/font_size = 32
 visible = false
@@ -25,27 +25,27 @@ texture = ExtResource("1_art")
 centered = false
 
 [node name="anchor_living_records" type="Marker2D" parent="."]
-position = Vector2(27, 90)
+position = Vector2(19, 90)
 metadata/back_plane = true
 
 [node name="anchor_living_teak_shelf" type="Marker2D" parent="."]
-position = Vector2(35, 76)
+position = Vector2(27, 76)
 metadata/back_plane = true
 
 [node name="anchor_living_kidney_table" type="Marker2D" parent="."]
-position = Vector2(76, 100)
+position = Vector2(62, 100)
 
 [node name="anchor_centre_sofaleft" type="Marker2D" parent="."]
-position = Vector2(128, 100)
+position = Vector2(102, 100)
 
 [node name="anchor_centre_sofaright" type="Marker2D" parent="."]
-position = Vector2(172, 98)
+position = Vector2(146, 98)
 
 [node name="anchor_living_armchair" type="Marker2D" parent="."]
-position = Vector2(240, 104)
+position = Vector2(188, 104)
 
 [node name="Lights" type="Node2D" parent="."]
 
 [node name="lamp_0" type="Node2D" parent="Lights"]
-position = Vector2(124, 67)
+position = Vector2(98, 67)
 metadata/kind = "table"

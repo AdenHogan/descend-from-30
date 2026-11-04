@@ -119,10 +119,10 @@ def b_wall(c):
 def b_decor(c):
     # a mid-century print above the sofa, behind glass in a thin black frame with a card mat
     import wallart
-    wallart.picture_print(c, 176, 30, 218, 56, 'black')
+    wallart.picture_print(c, 100, 30, 142, 56, 'black')
     # a starburst clock (between the left window and the TV) — the furniture library's own (one drawing per thing)
     import furn_embed as FE
-    FE.lay(c, 'clock_sunburst', 'brass', 100, 30, floor=False)
+    FE.lay(c, 'clock_sunburst', 'brass', 52, 12, floor=False)
 
 
 @persp
@@ -181,7 +181,7 @@ def b_furniture(c):
     # against the back wall on a teak sideboard, the rust sofa faces it with its BACK to us (straight,
     # full width), the armchair on the right turned toward the set; the kidney table on the left,
     # the shelving + rubber plant at the ends — evenly spaced.
-    CX = 150
+    CX = 164                                                                    # (the module is 240 wide, docs/MODULE_WIDTH.md: everything moves in)
     with flat_piece(c):
         c.ellipse(CX, 121, 88, 12, hexc('8d6a2c'))                       # an oval mustard rug
         c.ellipse(CX, 121, 85, 10, hexc('b58a3a'))
@@ -203,7 +203,7 @@ def b_furniture(c):
         c.rect(32, 68, 42, 75, hexc('3d5c63'))                                  # a boxed set
         c.rect(18, 53, 30, 59, hexc('b58a3a'))                                  # books lying flat
         c.rect(34, 55, 44, 59, hexc('a8453a'))
-    setback(c, lambda l: lr.shifted(l, _shelving, 0, -3), depth=4, top=44, x_range=(9, 45))
+    setback(c, lambda l: lr.shifted(l, _shelving, 0, 32), depth=4, top=44, x_range=(44, 80))
     # the sideboard + the wooden TV on it (screen cracked), rabbit ears — tall enough that the
     # sideboard's top shows over the sofa (else the set reads as perched on the sofa's back)
     TEAK, TEAK_DK, TEAK_LT = hexc('7c5a3b'), hexc('3f2a1b'), hexc('9e7550')
@@ -220,7 +220,7 @@ def b_furniture(c):
             c.line(lx, 104, lx - 2, 116, hexc('2a2a2c'))
         c.rect(206, 95, 210, 99, hexc('d9cfb8'))
         c.ellipse(222, 99, 4, 1, hexc('c8783b'))
-    lr.shifted(c, _table, 0, -140)
+    lr.shifted(c, _table, 0, -114)
     # the rust sofa, its back to us, facing the set
     sofa_back(c, CX, 118, (hexc('a4532e'), hexc('843f22'), hexc('bd6a41'), hexc('4a2412')))
     # a big rubber plant in the corner, some leaves browning (clear of the side-wall column x 316)
@@ -230,7 +230,7 @@ def b_furniture(c):
         for i, (lx, ly) in enumerate(((294, 70), (300, 62), (307, 72), (292, 84), (309, 86), (301, 80))):
             c.ellipse(lx, ly, 4, 6, hexc('4d6a3c') if i % 3 else hexc('7c6a38'))
             c.line(302, 99, lx, ly + 5, hexc('3e5530'))
-    lr.shifted(c, plant, -10, 0)
+    lr.shifted(c, plant, -10, -40)
 
 
 def _sideboard_tv(c, CX, TEAK, TEAK_DK, TEAK_LT):
@@ -387,7 +387,7 @@ def travel_poster(c, x0, y0, x1, y1):
 
 def c_decor(c):
     gig_poster(c, 104, 26, 128, 58)
-    travel_poster(c, 282, 30, 298, 54)          # clear of the TV and the window box
+    travel_poster(c, 254, 30, 270, 54)          # clear of the TV and the window box
 
 
 @persp
@@ -411,11 +411,11 @@ def c_furniture(c):
             col = lr.BOOKS[i % len(lr.BOOKS)]
             c.rect(bx, 88, bx + 1, 98, col)
         c.rect(15, 66, 26, 73, hexc('1f1f22'))                                 # records
-    setback(c, lambda l: lr.shifted(l, _crates, 0, -3), depth=4, top=57, x_range=(9, 45))
+    setback(c, lambda l: lr.shifted(l, _crates, 0, 32), depth=4, top=57, x_range=(44, 80))      # (the module is 240 wide: docs/MODULE_WIDTH.md)
     # WATCHING THE TELLY FROM BEHIND (owner round 13b): the CRT on two crates centred against the
     # back wall, the slumped grey sofa facing it with its back to us; the pallet table on the left,
     # a guitar against the wall and a beanbag on the right — evenly spaced.
-    CX = 176
+    CX = 172
 
     def _pallet(c):
         # a pallet table: pizza box, cans
@@ -429,7 +429,7 @@ def c_furniture(c):
         for cx_ in (220, 225, 229):
             c.rect(cx_, 98, cx_ + 2, 103, hexc('9aa3a8'))
             c.hline(cx_, cx_ + 2, 98, hexc('c9d0d4'))
-    lr.shifted(c, _pallet, 0, -126)
+    lr.shifted(c, _pallet, 0, -108)
     # THE TV ON THE WALL (owner round 22): a wide flat screen on a bracket over a low crate that holds
     # the console; its cable hangs down behind. The screen's live detail ('tv', scripts/module_anim.gd):
     # snow, now and then a flash, a big crack with a dead patch and colour bleeding from it, and every so
@@ -454,11 +454,11 @@ def c_furniture(c):
     sofa_back(c, CX, 118, (hexc('6d6e70'), hexc('555658'), hexc('848587'), hexc('2c2d2f')), wear=True)
     # a slumped beanbag by the sofa, under window R
     import beanbag3d
-    beanbag3d.draw(c, 248, 112, hexc('7a2e28'), 32, 21, 3, 5)
+    beanbag3d.draw(c, 228, 112, hexc('7a2e28'), 32, 21, 3, 5)
     # the guitar, dropped on the floor in the corner after it was swung at something (round 22)
-    guitar_on_floor(c, 280, 119, 3.26)
+    guitar_on_floor(c, 250, 119, 3.26)
     import furn as F
-    F.bare_bulb(c, 216, 30)                                          # a bare bulb on a flex
+    F.bare_bulb(c, 138, 30)                                          # a bare bulb on a flex
 
 
 # --- D: GRANDMOTHER'S PARLOUR ------------------------------------------------------------------
@@ -511,16 +511,16 @@ def d_furniture(c):
     # an ornate green carpet with a gold border
     top, bot = 106, 130
     with flat_piece(c):                                   # it lies flat: the dead may lie on it (nest.py)
-        c.poly([(74, top), (246, top), (258, bot), (62, bot)], hexc('b58f4a'))
-        c.poly([(78, top + 2), (242, top + 2), (253, bot - 2), (67, bot - 2)], hexc('3f5a45'))
-        for cx_ in (104, 160, 216):
+        c.poly([(100, top), (266, top), (277, bot), (89, bot)], hexc('b58f4a'))                      # (the module is 240 wide: docs/MODULE_WIDTH.md — the group sits further in)
+        c.poly([(104, top + 2), (262, top + 2), (272, bot - 2), (94, bot - 2)], hexc('3f5a45'))
+        for cx_ in (132, 184, 236):
             c.ellipse(cx_, 118, 12, 4, hexc('5a7a5e'))
             c.ellipse(cx_, 118, 5, 2, hexc('a0505a'))
-        for x in range(63, 258, 2):
+        for x in range(90, 277, 2):
             c.vline(x, bot + 1, bot + 2, hexc('d9cfb8'))
     # LEFT: an upright piano against the wall — a real one, not a box (owner round 18): its keyboard
     # comes out toward the room on the keybed; photos and a metronome on top
-    piano3d(c)
+    piano3d(c, 60.0, 100.0)
     _d_rest(c)
 
 
@@ -603,11 +603,11 @@ def piano3d(c, wx0=24.0, wx1=64.0):
 def _d_rest(c):
     # the chintz sofa: cream with a REGULAR rose print (a scatter of random dots read as spatter —
     # owner round 14), small roses with a leaf on a half-drop grid, only on the upholstery
-    sofa_as(c, (hexc('c8b89a'), hexc('a99a7c'), hexc('d9cbb0'), hexc('5e5040')), dx=66)
+    sofa_as(c, (hexc('c8b89a'), hexc('a99a7c'), hexc('d9cbb0'), hexc('5e5040')), dx=96)
     cream = ((0xc8, 0xb8, 0x9a), (0xd9, 0xcb, 0xb0), (0xa9, 0x9a, 0x7c))
     for y in range(80, 112, 6):
         off = 4 if (y // 6) % 2 else 0
-        for x in range(152 + off, 240, 8):
+        for x in range(182 + off, 270, 8):
             if all(c.px[x + dx, y + dy][:3] in cream for dx in (-1, 0, 1, 2) for dy in (0, 1)):
                 c.put(x, y, hexc('a0505a'))
                 c.put(x + 1, y, hexc('b8686e'))
@@ -637,10 +637,9 @@ def _d_rest(c):
         c.rect(219, 95, 222, 97, POT)                                     # cup
         c.put(223, 96, POT_DK)
         c.hline(219, 222, 95, POT_LT)
-    lr.shifted(c, _tea, 0, -90)
-    setback(c, lambda l: lr.shifted(l, _china_cabinet, 0, 3), depth=5, top=66, x_range=(263, 303), rake=1.2)
+    lr.shifted(c, _tea, 0, -54)
     import furn as F
-    F.pendant(c, 196, 22, 'cream', dome=True)
+    F.pendant(c, 172, 22, 'cream', dome=True)
 
 
 def _china_cabinet(c):
@@ -706,8 +705,8 @@ def e_wall(c):
 def e_decor(c):
     # the antlers on their shield plaque and the hunting-lodge landscape are the furniture library's own pieces (tools/art/furn_embed.py: one drawing per thing)
     import furn_embed as FE
-    FE.lay(c, 'stag_head', 'twelve', 140, 14, floor=False)
-    FE.lay(c, 'picture_landscape', 'hills_green', 196, 26, floor=False)
+    FE.lay(c, 'stag_head', 'twelve', 130, 14, floor=False)
+    FE.lay(c, 'picture_landscape', 'hills_green', 98, 26, floor=False)
 
 
 CAB_STATE = 'locked'     # the gun cabinet's look: locked | open | smashed | open_empty | smashed_empty
@@ -761,7 +760,8 @@ def _cabinet_floor(c):
 def e_furniture(c):
     import furn as F
     import furn_embed as FE
-    FX = 160
+    FX = 150                                                          # the fireplace's centre (design x; 160 in the 320 room — the room is 240 now, docs/MODULE_WIDTH.md)
+    CAB_DX = 39                                                       # the cabinet stands 39 px in from where it stood: the window is on the RIGHT wall only, so the left wall may carry it
 
     def _gun_cabinet(c):
         # THE GUN CABINET (owner round 20b: the racks read as "a trophy case for billiards sticks").
@@ -941,25 +941,25 @@ def e_furniture(c):
                 c.put(x, y, hexc('a6844a'))
 
     # with depth (owner round 14): the cabinet 3px left of where it stood flat (clear of window L)
-    setback(c, lambda l: lr.shifted(l, _gun_cabinet, 0, -3), depth=5, top=22, x_range=(5, 41), rake=1.0)
+    setback(c, lambda l: lr.shifted(l, _gun_cabinet, 0, CAB_DX), depth=5, top=22, x_range=(5 + CAB_DX, 41 + CAB_DX), rake=1.0)
     _cabinet_floor(c)
     setback(c, _fireplace, depth=4, top=52, x_range=(FX - 30, FX + 30))
     FE.lay(c, 'log_basket', 'wicker', FX - 50, 99)                    # the library's log basket on the hearth, left (a set-back scavenge spot)
     setback(c, _poker, depth=3)
     # a chesterfield in oxblood leather, and a bear-skin rug before it
-    FE.lay(c, 'sofa', 'oxblood', 216, 116)
+    FE.lay(c, 'sofa', 'oxblood', 192, 116)
     import props3d
     with flat_piece(c):                                              # the bear-skin: the pelt and its head (tools/art/props3d.py bearskin — fur, a rolled edge, a domed head)
-        props3d.bearskin(c, [(118, 126), (128, 120), (132, 116), (140, 120), (170, 119), (178, 115), (184, 120), (196, 124),
-                             (184, 128), (178, 132), (170, 128), (140, 129), (132, 133), (128, 129)],
-                         [(194, 124), (203, 118), (213, 120), (218, 126), (212, 131), (201, 129)], eye=(206, 122), nose=(216, 125))
+        props3d.bearskin(c, [(96, 126), (106, 120), (110, 116), (118, 120), (148, 119), (156, 115), (162, 120), (174, 124),
+                             (162, 128), (156, 132), (148, 128), (118, 129), (110, 133), (106, 129)],
+                         [(172, 124), (181, 118), (191, 120), (196, 126), (190, 131), (179, 129)], eye=(184, 122), nose=(194, 125))
     import furn as F
-    F.pendant(c, 296, 22, 'mustard')                                 # over the chesterfield
+    F.pendant(c, 262, 22, 'mustard')                                 # over the chesterfield
 
 
-E_ANCHORS = [('anchor_living_gun_cabinet', 23, 56, 'bp'), ('anchor_living_fireplace', 160, 90, 'bp'),
-             ('anchor_living_log_basket', 120, 92, 'bp'), ('anchor_centre_sofaleft', 239, 103, ''),
-             ('anchor_centre_sofaright', 274, 101, ''), ('anchor_living_armchair', 78, 104, '')]
+E_ANCHORS = [('anchor_living_gun_cabinet', 62, 56, 'bp'), ('anchor_living_fireplace', 150, 90, 'bp'),
+             ('anchor_living_log_basket', 110, 92, 'bp'), ('anchor_centre_sofaleft', 215, 103, ''),
+             ('anchor_centre_sofaright', 250, 101, '')]                  # the reading chair is gone: no room for it in 240 px
 
 
 # Turned armchairs (tools/art/chair3d.py — built in 3D so the angle is right), each grouped with
@@ -969,12 +969,12 @@ import chair3d as C3
 
 
 def b_chair(c):
-    C3.armchair(c, 240, 118, 110, {'fab': hexc('a8843a'), 'fab_lt': hexc('b8944a'), 'wood': hexc('3a2618')},
+    C3.armchair(c, 228, 118, 110, {'fab': hexc('a8843a'), 'fab_lt': hexc('b8944a'), 'wood': hexc('3a2618')},
                 style='club', plan={3: 'tipped'}, key='living_b')              # mustard, facing the telly
 
 
 def d_chair(c):
-    C3.armchair(c, 82, 118, -35, {'fab': hexc('6a7a5a'), 'fab_lt': hexc('7a8a68'), 'wood': hexc('4a2e1e')},
+    C3.armchair(c, 122, 118, -35, {'fab': hexc('6a7a5a'), 'fab_lt': hexc('7a8a68'), 'wood': hexc('4a2e1e')},
                 style='wing', plan={2: 'side', 3: 'side'}, key='living_d')      # sage tall-back, at the rug's end
 
 
@@ -1003,28 +1003,30 @@ def _variant(wall, decor, floor, furniture, seed):
     return bare, floor, build
 
 
-B_ANCHORS = [('anchor_living_records', 27, 86, 'bp'), ('anchor_living_teak_shelf', 35, 72, 'bp'),
-             ('anchor_living_kidney_table', 76, 100, ''),
-             ('anchor_centre_sofaleft', 128, 100, ''), ('anchor_centre_sofaright', 172, 98, ''),
-             ('anchor_living_armchair', 240, 104, '')]
-C_ANCHORS = [('anchor_living_crates', 19, 68, 'bp'), ('anchor_living_crate_books', 33, 92, 'bp'),
-             ('anchor_living_pallet_table', 79, 101, ''), ('anchor_centre_sofaleft', 154, 100, ''),
-             ('anchor_centre_sofaright', 198, 98, ''), ('anchor_living_beanbag', 248, 102, '')]
-D_ANCHORS = [('anchor_living_piano', 22, 74, 'bp'), ('anchor_living_tea_table', 124, 99, ''),
-             ('anchor_centre_sofaleft', 177, 103, ''), ('anchor_centre_sofaright', 212, 101, ''),
-             ('anchor_living_china_cabinet', 283, 76, 'bp'), ('anchor_living_cabinet_cupboard', 277, 90, 'bp'),
-             ('anchor_living_armchair', 82, 104, '')]
+B_ANCHORS = [('anchor_living_records', 59, 86, 'bp'), ('anchor_living_teak_shelf', 67, 72, 'bp'),
+             ('anchor_living_kidney_table', 102, 100, ''),
+             ('anchor_centre_sofaleft', 142, 100, ''), ('anchor_centre_sofaright', 186, 98, ''),
+             ('anchor_living_armchair', 228, 104, '')]
+C_ANCHORS = [('anchor_living_crates', 51, 68, 'bp'), ('anchor_living_crate_books', 65, 92, 'bp'),
+             ('anchor_living_pallet_table', 97, 101, ''), ('anchor_centre_sofaleft', 150, 100, ''),
+             ('anchor_centre_sofaright', 194, 98, ''), ('anchor_living_beanbag', 228, 102, '')]
+D_ANCHORS = [('anchor_living_piano', 58, 74, 'bp'), ('anchor_living_tea_table', 160, 99, ''),
+             ('anchor_centre_sofaleft', 207, 103, ''), ('anchor_centre_sofaright', 242, 101, ''),
+             ('anchor_living_armchair', 122, 104, '')]
+
+# which wall's window box each variant keeps bare (the other wall may carry tall furniture): docs/MODULE_WIDTH.md
+WINDOW_SIDE = {'b': 'R', 'c': 'R', 'd': 'R', 'e': 'R'}
 
 VARIANTS = {
     'b': ('living_room_b', 21, (b_wall, b_decor, b_floor, _with(b_furniture, b_chair)), B_ANCHORS),
     'c': ('living_room_c', 33, (c_wall, c_decor, c_floor, c_furniture), C_ANCHORS),
     'd': ('living_room_d', 44, (d_wall, d_decor, d_floor, _with(d_furniture, d_chair)), D_ANCHORS),
-    'e': ('living_room_e', 45, (e_wall, e_decor, e_floor, _with(e_furniture, e_chair)), E_ANCHORS),
+    'e': ('living_room_e', 45, (e_wall, e_decor, e_floor, e_furniture), E_ANCHORS),
 }
 
 
 CAB_STATES = ('open', 'smashed', 'open_empty', 'smashed_empty', 'looted')
-CAB_BOX = (0, 10, 50, 120)        # where the cabinet's looks differ (clear of window box L, x >= 50)
+CAB_BOX = (44, 10, 100, 120)      # where the cabinet's looks differ (design x: the cabinet 46..90 and its open door; the log basket starts at 102)
 
 
 def _cabinet_overlays():
@@ -1074,6 +1076,7 @@ def _cabinet_overlays():
                         n += 1
             if n == 0:
                 sys.exit('cabinet %s run %d: no change from the locked look' % (st, r))
+            ov = PL.frame(ov)                                                          # the module is the central 240 columns of the design canvas
             ov.save(os.path.join(ROOT, 'assets', 'rooms', 'living_room_e_cabinet_%s%s.png'
                                  % (st, '' if r == 1 else '_r%d' % r)))
     CAB_STATE = 'locked'
@@ -1085,6 +1088,6 @@ if __name__ == '__main__':
         name, seed, fns, anchors = VARIANTS[v]
         bare, floor, build = _variant(*fns, seed)
         finish_module(name, 'living_room', seed, bare, floor, build, anchors,
-                      per_run=lambda r: setattr(C3, 'RUN', r))
+                      per_run=lambda r: setattr(C3, 'RUN', r), window=WINDOW_SIDE.get(v, 'LR'))
         if v == 'e':
             _cabinet_overlays()

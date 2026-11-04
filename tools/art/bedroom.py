@@ -190,6 +190,17 @@ def dressing_table(c):
     c.rect(19, top - 2, 27, top - 1, hexc('3d2a1c'))              # hairbrush
 
 
+def wall_mirror(c):
+    # the dressing table's cracked mirror, hung on the wall on its own: the 240 px module has no room for the table (docs/MODULE_WIDTH.md)
+    c.box(12, 30, 40, 63, WOOD, WOOD_OUT)
+    c.rect(14, 32, 38, 61, MIRROR)
+    c.dither(14, 50, 38, 61, MIRROR_DK, 0.5)
+    c.line(16, 58, 24, 34, MIRROR_HI)
+    c.line(18, 59, 26, 35, MIRROR_HI)
+    c.line(27, 44, 36, 58, shade(MIRROR, 0.8))          # a crack
+    c.line(27, 44, 31, 40, shade(MIRROR, 0.8))
+
+
 def bedside(c):
     # against the wall; the lamp stays below the L window box (its top row y >= 67)
     x0, x1, top, base = 52, 74, 80, 100
@@ -217,7 +228,7 @@ def bed(c):
     # lengthwise along the wall, coming forward to the walking lane (legs on 114 like the sofa), drawn
     # in perspective (owner round 16): the headboard and footboard run back to the wall, the mattress
     # top narrows toward it, the duvet drapes over the front edge
-    F.persp_bed(c, 78, 214, 114, head='left', head_top=68, foot_top=80,
+    F.persp_bed(c, 78, 190, 114, head='left', head_top=68, foot_top=80,
                 board=(BED_WOOD, BED_WOOD_LT, WOOD_OUT), duvet=(DUVET, DUVET_DK, DUVET_LT))
     # a dark stain soaking into the sheet by the pillow
     c.ellipse(108, 91, 2, 1, BLOOD)
@@ -340,10 +351,10 @@ def build(c=None):
     # WITH DEPTH (owner round 14): the dressing table (its mirror stands on it), the bedside table,
     # the wardrobe (5px right of where it stood flat, so its side clears window R)
     from pixlib import setback
-    setback(c, dressing_table, depth=5, top=66, x_range=(5, 47), rake=1.0)
+    setback(c, lambda l: _moved(l, wall_mirror, 184), depth=2, top=30, x_range=(196, 225), rake=1.0)
     setback(c, bedside, depth=4, top=80, x_range=(51, 75))
-    setback(c, lambda l: _moved(l, wardrobe, 5), depth=4, top=28, x_range=(276, 312), rake=1.0)
-    floor_clutter(c)
+    setback(c, lambda l: _moved(l, wardrobe, -36), depth=4, top=28, x_range=(236, 275), rake=1.0)
+    _moved(c, floor_clutter, -24)
     bed(c)
     return c
 
@@ -358,11 +369,11 @@ def bare(c):
     decay(c)
 
 
-ANCHORS = [('anchor_wall_left', 37, 60, 'bp'), ('anchor_bedside', 63, 87, 'bp'),
+ANCHORS = [('anchor_wall_left', 210, 52, 'bp'), ('anchor_bedside', 63, 87, 'bp'),
            ('anchor_bed_pillow', 99, 88, ''), ('anchor_floor_underbed', 152, 110, ''),
-           ('anchor_wall_right_upper', 302, 40, 'bp'), ('anchor_wall_right_lower', 294, 91, 'bp'),
-           ('anchor_bedroom_clothes', 236, 112, '')]
+           ('anchor_wall_right_upper', 261, 40, 'bp'), ('anchor_wall_right_lower', 253, 91, 'bp'),
+           ('anchor_bedroom_clothes', 212, 112, '')]
 
 
 if __name__ == '__main__':
-    finish_module('bedroom', 'bedroom', 21, bare, floor, build, ANCHORS)
+    finish_module('bedroom', 'bedroom', 21, bare, floor, build, ANCHORS, window='L')

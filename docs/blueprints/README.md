@@ -16,15 +16,16 @@ then run `python3 tools/gen_module_blueprint.py`.
 |---|---|---|
 | `template/module_template.png` | the blank module, annotated: every plane, every zone, the player to scale | read first: where things go |
 | `template/module_template_balcony.png` | the same for balcony-capable rooms (study, dining room), with the balcony strip | those two room types |
-| `template/module_guide_1x.png` | a **320 × 144 transparent guide layer**, pixel-exact | put it on a layer in your editor over your canvas |
+| `template/module_guide_1x.png` | a **240 × 144 transparent guide layer**, pixel-exact | put it on a layer in your editor over your canvas |
 | `template/module_guide_balcony_1x.png` | the guide layer with the balcony strip | study / dining room |
 | `rooms/<type>/<module>_blueprint.png` | every existing room (30): its art dimmed, planes, nodes, light fixtures, step-up spots checked | worked examples, and a record of each room's node layout |
 | `rooms/<type>/<type>_sheet.png` | a room type's five variants on one page | comparing variants |
 
 ## The canvas
 
-- A module is exactly **320 × 144 px**, origin top-left. Three sit side by side in an apartment;
-  in the world a module sits at `(113 + slot × 320, 224)`, so **world y = local y + 224**.
+- A module is exactly **240 × 144 px** (it was 320 until round 49h — owner: "modules are 20-25 % too wide"), origin top-left. Three sit side by side in an apartment;
+  in the world a module sits at `(113 + slot × 240, 224)`, so **world y = local y + 224**. (Our own art tools draw each room on a 320 px DESIGN canvas whose vanishing point is x 160 and keep the
+  central 240 columns — `docs/MODULE_WIDTH.md`; an outside artist simply delivers the 240 px module.)
 - One art pixel = one game pixel (native scale, no upscaling). Fully **opaque** — no transparent
   pixels in the room art (they show as grey in game).
 - The view is straight on, looking slightly down: depth recedes UP the screen (a table shows a top
@@ -95,7 +96,7 @@ furniture they belong to (a chest, a desk, a bedside table) — never loose on t
 
 ## Layout rules (owner rounds 9–13)
 
-- **Spread it out**: one piece every ~50–60 px across the whole 320, so the nodes spread with it.
+- **Spread it out**: one piece every ~45–55 px across the whole 240, so the nodes spread with it.
   Don't pile the furniture into one end. Leave a lamp or plant out rather than squeeze it in.
 - **Loose things never stand alone mid-floor** (bags, boxes, bottles, toys, papers): against the wall
   or with the furniture they belong to (clothes at the foot of the bed, a basket on a table).
@@ -134,11 +135,11 @@ furniture they belong to (a chest, a desk, a bedside table) — never loose on t
 
 ## What an artist delivers, per room
 
-1. `<type>_<variant>.png` — 320 × 144, opaque, drawn over the guide layer.
-2. The FLOOR ALONE, drawn FLAT, rows 100–143 (320 × 44), repeating every 32 px across. The pipeline
+1. `<type>_<variant>.png` — 240 × 144, opaque, drawn over the guide layer.
+2. The FLOOR ALONE, drawn FLAT, rows 100–143 (240 × 44), repeating every 32 px across. The pipeline
    (`pixlib.persp`) puts it in perspective and exports `_floor.png` / `_floor_ext.png` (the end walls
    run it on past the module edge) — so a floor is authored flat and never drawn converging by hand.
-3. Study / dining only: `<type>_<variant>_strip.png` — 320 × 144, transparent except the strip's
+3. Study / dining only: `<type>_<variant>_strip.png` — 240 × 144, transparent except the strip's
    furniture (x 4–96).
 4. A node list: `name, x, y, kind` (front / back / strip), in the room's local pixels — and a light
    list: `x, y, kind` at each fixture's bulb (strip fixtures marked).

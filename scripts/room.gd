@@ -97,7 +97,7 @@ const MODULE_WIDTH = ModuleGeo.WIDTH                  # (docs/MODULE_WIDTH.md: M
 const LEFT_WALL_X = ModuleGeo.LEFT_WALL_X
 var _arrived_by_balcony: bool = false   # the player came down a balcony, not through the front door (set in _ready before spawn_source is cleared)
 const ARRIVAL_X_LEFT := 140.0           # where the player stands on arrival (the two `player.position.x =` lines in _ready)
-const ARRIVAL_X_RIGHT := 1050.0         # (of a three-room flat — `_arrival_x_right()` is the one the code asks)
+const ARRIVAL_X_RIGHT := 810.0          # (of a three-room flat at 240 px modules — `_arrival_x_right()` is the one the code asks)
 const ARRIVAL_PLAYER_HALF := 13.0       # the player's capsule half-width
 const ARRIVAL_MARGIN := 14.0            # + clear air between them and a body stepped off the arrival point
 # Wall-window placement inside a module. Y sits the whole window ON THE WALLPAPER band of the
@@ -135,6 +135,22 @@ func _x_hi() -> float:
 
 func _arrival_x_right() -> float:
 	return _right_x() - 23.0                                      # where the player stands arriving by a right-hand door (1050)
+
+
+## The flat's lengthwise mirror: x' = (left wall + right wall) - x. The tutorial's flats (always three rooms) lay their beats out for a left-hand door and mirror them for a right-hand one.
+func _mirror_x(x: float) -> float:
+	return float(LEFT_WALL_X) + _right_x() - x
+
+
+## The middle of the flat (which half of it an x is in).
+func _flat_mid() -> float:
+	return (float(LEFT_WALL_X) + _right_x()) * 0.5
+
+
+## An x authored for the old 320 px, three-room flat (113..1073), carried along the flat's length to today's module width. Positions measured from a WALL (a body's inset from the end, the
+## backpack beside the door) are screen distances and are NOT scaled — only the ones laid out ALONG the flat.
+func _along(x_320: float) -> float:
+	return float(LEFT_WALL_X) + (x_320 - float(LEFT_WALL_X)) * float(MODULE_WIDTH) / 320.0
 
 
 var wall_foot_left := 0.0    # where each end wall meets the floor at the lane (set by _fit_view_and_walls)
@@ -997,7 +1013,7 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 		lamps.setup(instance, apartment_id, i, WorldState.current_run,
 			WorldState.apartment_fire_stage(_apt_floor(), _apt_index()), has_balcony)
 		if not has_balcony:
-			var side := WorldState.apartment_window_side(apartment_id, i)
+			var side := WorldState.window_side_of(scene_path if fplan.is_empty() else baked_scene_for(apartment_id, i, layout[i]), apartment_id, i)
 			var wlx: float = MODULE_WINDOW_INSET if side == "left" else MODULE_WIDTH - MODULE_WINDOW_INSET
 			var window = load("res://scripts/apartment_window.gd").new()
 			# The window is part of the MODULE (just above its art, below its scavenge nodes) so a piece of furniture drawn in
@@ -1182,7 +1198,7 @@ static func furniture_plan_for(apt: String, slot: int, room_type: String, breach
 	var style := FurniturePlanner.pick_style(room_type, seed_)
 	if style == "":
 		return {}
-	var side := "" if WorldState.is_balcony_slot(apt, slot) else WorldState.apartment_window_side(apt, slot)
+	var side := "" if WorldState.is_balcony_slot(apt, slot) else WorldState.window_side_of(baked_scene_for(apt, slot, room_type), apt, slot)
 	var key := "%s|%s|%d|%s" % [room_type, style, seed_, side]            # a plan is a pure function of these: a live room and its pan backdrop share it
 	if not _furniture_plans.has(key):
 		if _furniture_plans.size() > 200:
@@ -1764,7 +1780,7 @@ func _spawn_tutorial_zombie(entrance_side: String) -> Node:
 		return null
 	var zombie = preload("res://scenes/enemy_zombie_standard.tscn").instantiate()
 	# Almost at the back wall (the far wall from the entrance door).
-	var back_x = 1035.0 if entrance_side == "left" else 155.0
+	var back_x = (_right_x() - 38.0) if entrance_side == "left" else 155.0
 	zombie.global_position = Vector2(back_x, 321)
 	zombie.spawn_key = key
 	zombie.tutorial_scripted = true
@@ -1778,7 +1794,7 @@ func _spawn_tutorial_zombie(entrance_side: String) -> Node:
 	else:
 		# First time in: she is a BODY on the floor — one of the flat's dead — head toward the room. A little way in from the
 		# back wall (not against it): up against the wall she sat at the very edge of the screen, behind the HUD portrait.
-		var lie_x: float = back_x + (-TUT_BODY_INSET if back_x > 600.0 else TUT_BODY_INSET)
+		var lie_x: float = back_x + (-TUT_BODY_INSET if back_x > _flat_mid() else TUT_BODY_INSET)
 		zombie.global_position = Vector2(lie_x, ROOM_STD_ORIGIN_Y)
 	add_child(zombie)
 	if saved_pos:
@@ -1786,7 +1802,7 @@ func _spawn_tutorial_zombie(entrance_side: String) -> Node:
 		zombie.animated_sprite.flip_h = entrance_side != "left"
 	else:
 		zombie.riser_scripted = true
-		var head_dir: float = -1.0 if back_x > 600.0 else 1.0
+		var head_dir: float = -1.0 if back_x > _flat_mid() else 1.0
 		zombie.start_riser(head_dir, str(WorldState.master_seed) + key, 0.0)
 	return zombie
 
@@ -1802,14 +1818,14 @@ func _setup_tutorial() -> void:
 	# the encounter at the back toward the entrance, so the nodes line up along
 	# that path — junk (025, the panicked wasted search) is met first, then
 	# bandages (006) mid-apartment, then the golf club (012) nearest the
-	# entrance. Interior spans x 113..1073; targets mirror for a right-side
-	# entrance (x' = 1186 - x). The spread also sets the pacing: three 3s
+	# entrance. Interior spans x 113..(right wall, 833 at 240 px a module); targets mirror for a right-side
+	# entrance (x' = left + right wall - x, `_mirror_x`). The spread also sets the pacing: three 3s
 	# searches + walking against the neighbour's post-push shamble.
 	var entrance_side = WorldState.get_entrance_side(apartment_id)
 	var wants = [
-		{"tag": "025", "x": 690.0},
-		{"tag": "006", "x": 480.0},
-		{"tag": "012", "x": 300.0},
+		{"tag": "025", "x": _along(690.0)},
+		{"tag": "006", "x": _along(480.0)},
+		{"tag": "012", "x": _along(300.0)},
 	]
 	var anchors: Array = []
 	for module in get_tree().get_nodes_in_group("room_module"):
@@ -1818,7 +1834,7 @@ func _setup_tutorial() -> void:
 				anchors.append(child)
 
 	for want in wants:
-		var target_x: float = want["x"] if entrance_side == "left" else 1186.0 - want["x"]
+		var target_x: float = want["x"] if entrance_side == "left" else _mirror_x(want["x"])
 		var chosen: Node = _pick_anchor(anchors, target_x)
 		if chosen != null:
 			# With only pockets (2 slots) the panicked search must not eat one: the magazine becomes an
@@ -2113,7 +2129,7 @@ func _spawn_tutorial_backpack(entrance_side: String) -> void:
 	if not WorldState.packless_rule or WorldState.has_backpack:
 		return
 	var pack = load("res://scripts/backpack_pickup.gd").new()
-	var x: float = 235.0 if entrance_side == "left" else 1186.0 - 235.0
+	var x: float = 235.0 if entrance_side == "left" else _mirror_x(235.0)
 	pack.on_taken = _on_tut_pack_taken
 	pack.name = "BackpackPickup"
 	add_child(pack)
@@ -2304,7 +2320,8 @@ func _spawn_hider(entrance_side: String) -> void:
 	var x: float = float(rec.get("x", -1.0))
 	if x < 0.0:
 		var far_mod := (_span - 1) if entrance_side == "left" else 0
-		x = float(LEFT_WALL_X) + far_mod * MODULE_WIDTH + 70.0 + float(rec.get("spot", 0.5)) * 180.0
+		var k: float = float(MODULE_WIDTH) / 320.0          # the hider's spot was laid out across 70..250 of a 320 px room: the same share of today's room
+		x = float(LEFT_WALL_X) + far_mod * MODULE_WIDTH + 70.0 * k + float(rec.get("spot", 0.5)) * 180.0 * k
 		rec["post"] = x
 	hider = Survivor.spawn(self, rec, ROOM_FEET_Y, x)
 	if SurvivorPlan.rescue_status(rec) == "open" and not bool(rec.get("dead", false)):

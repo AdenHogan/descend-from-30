@@ -98,20 +98,20 @@ YEL = (hexc('d9b84a'), hexc('e8cc6a'), hexc('b89830'), hexc('5e4a18'))
 def b_wall(c):
     F.wall_plain(c, B_WALL, hexc('8a9a80'), hexc('3a3a36'))
     # a band of small square tiles behind the counter (x < 150), grease-streaked
-    c.rect(0, 56, 150, 93, hexc('e6e2d4'))
+    c.rect(0, 56, 172, 93, hexc('e6e2d4'))
     for y in range(56, 94, 6):
-        c.hline(0, 150, y, hexc('c8c2b0'))
-    for x in range(0, 151, 6):
+        c.hline(0, 172, y, hexc('c8c2b0'))
+    for x in range(0, 173, 6):
         c.vline(x, 56, 93, hexc('c8c2b0'))
-    c.ellipse(78, 64, 14, 6, hexc('c8b890', 70))                                            # grease behind the hob,
-    c.ellipse(80, 66, 8, 3, hexc('b8a478', 70))                                             # soaked into the grout
+    c.ellipse(136, 64, 14, 6, hexc('c8b890', 70))                                           # grease behind the hob,
+    c.ellipse(138, 66, 8, 3, hexc('b8a478', 70))                                            # soaked into the grout
     for i in range(5):
         c.ellipse(180 + i * 6, 14 + (i % 2) * 3, 7, 5, hexc('8a9a70', 60))
 
 
 def b_decor(c):
     import furn_embed as FE
-    FE.lay(c, 'clock_wall', 'brass', 161, 23, floor=False)                                  # the furniture library's wall clock (one drawing per thing)
+    FE.lay(c, 'clock_wall', 'brass', 176, 23, floor=False)                                  # the furniture library's wall clock (one drawing per thing)
 
 
 @persp
@@ -120,50 +120,49 @@ def b_floor(c):
 
 
 def b_furniture(c):
-    # WITH DEPTH (owner round 14): the wall units, the counter run (a real worktop), the larder
-    setback(c, lambda l: wall_units(l, 8, 46, 22, 50, YEL, open_door=1), depth=3, top=22, rake=1.0)
-    setback(c, lambda l: wall_units(l, 100, 146, 22, 50, YEL), depth=3, top=22, rake=1.0)
+    # WITH DEPTH (owner round 14): the wall unit, the counter run (a real worktop), the larder.
+    # 240 px module (docs/MODULE_WIDTH.md): the window is on the LEFT wall only (design box x 72..116), so the sink stands left of it, the cooker right of it, and the larder at the right end.
+    setback(c, lambda l: wall_units(l, 120, 156, 22, 50, YEL, open_door=1), depth=3, top=22, rake=1.0)
 
     def _run(c):
-        base_units(c, 8, 150, 70, YEL, hexc('d6d2c4'), hexc('8a8678'), doors=6, open_door=2)
-        cooker(c, 98, 70, hexc('ece8dc'), hexc('c9c5b8'), hexc('5e5a50'))
-        c.rect(102, 66, 112, 69, hexc('9aa1a3')); c.rect(114, 67, 120, 69, hexc('b0453a'))   # a kettle, a pan
-        a_frame_sink(c, 20, 44, 70)
-        c.rect(128, 63, 142, 69, hexc('d9c24a'))                                                # a bread bin
-        c.hline(128, 142, 63, hexc('b89830'))
-    setback(c, _run, depth=7, top=69, x_range=(7, 151), rake=1.0)
-    # the dinette: a formica table with chrome legs, two chairs pulled out, side-on
+        base_units(c, 48, 170, 70, YEL, hexc('d6d2c4'), hexc('8a8678'), doors=6, open_door=2)
+        cooker(c, 122, 70, hexc('ece8dc'), hexc('c9c5b8'), hexc('5e5a50'))
+        c.rect(126, 67, 135, 69, hexc('9aa1a3')); c.rect(137, 67, 143, 69, hexc('b0453a'))   # a kettle, a pan (low: the window's box ends at row 66)
+        a_frame_sink(c, 50, 70, 70)
+        c.rect(152, 63, 166, 69, hexc('d9c24a'))                                                # a bread bin
+        c.hline(152, 166, 63, hexc('b89830'))
+    setback(c, _run, depth=7, top=69, x_range=(47, 171), rake=1.0)
+    # the dinette: a formica table with chrome legs, a chair pulled out, side-on (the second chair went with the 80 px)
     chr_ = (CHROME, hexc('c9ced0'), CHROME_DK, hexc('4a4e50'))
-    F.table_front(c, 170, 230, 92, 120, chr_, depth=5, cloth=hexc('d86a5a'), cloth_dk=hexc('b0453a'), hem=101)
+    F.table_front(c, 178, 232, 92, 120, chr_, depth=5, cloth=hexc('d86a5a'), cloth_dk=hexc('b0453a'), hem=101)
     for y in range(93, 97):
-        for x in range(170, 231, 4):
+        for x in range(178, 233, 4):
             c.put(x + (y % 2) * 2, y, hexc('e8a090'))
-    F.side_chair(c, 152, 120, chr_, facing_right=True)
-    c.rect(152, 101, 165, 103, hexc('d86a5a'))
-    F.side_chair(c, 234, 120, chr_, facing_right=False)
-    c.rect(235, 101, 248, 103, hexc('d86a5a'))
-    c.rect(182, 87, 190, 91, hexc('ece8dc')); c.rect(206, 88, 212, 91, hexc('6f8fa0'))       # a plate, a cup
-    c.ellipse(200, 90, 3, 1, BLOOD)
-    # a tall larder cupboard on the right (x > 270; a touch narrower so its side clears window R)
+    F.side_chair(c, 160, 120, chr_, facing_right=True)
+    c.rect(160, 101, 173, 103, hexc('d86a5a'))
+    c.rect(186, 87, 194, 91, hexc('ece8dc')); c.rect(210, 88, 216, 91, hexc('6f8fa0'))       # a plate, a cup
+    c.ellipse(204, 90, 3, 1, BLOOD)
+    # a tall larder cupboard at the right end (x 237..270, clear of the edge column)
     def _larder(c):
-        c.shadow(293, 100, 17, 2, 100)
-        c.box(277, 16, 310, 99, YEL[0], YEL[3])
-        c.box(280, 19, 307, 56, YEL[0], YEL[2])
-        c.rect(280, 58, 307, 96, DARK)                                                      # its lower door open
+        d = -40
+        c.shadow(293 + d, 100, 17, 2, 100)
+        c.box(277 + d, 16, 310 + d, 99, YEL[0], YEL[3])
+        c.box(280 + d, 19, 307 + d, 56, YEL[0], YEL[2])
+        c.rect(280 + d, 58, 307 + d, 96, DARK)                                              # its lower door open
         for sy in (68, 80):
-            c.hline(280, 307, sy, YEL[2])
+            c.hline(280 + d, 307 + d, sy, YEL[2])
         for (x, h, col) in ((282, 8, hexc('c0a060')), (288, 6, hexc('b0453a')), (294, 9, hexc('6a8a5a')), (301, 5, hexc('c0a060'))):
-            c.rect(x, 67 - h, x + 4, 67, col)
+            c.rect(x + d, 67 - h, x + 4 + d, 67, col)
         for (x, col) in ((282, hexc('9aa3a8')), (287, hexc('9aa3a8')), (297, hexc('c9b86a'))):
-            c.rect(x, 74, x + 3, 79, col)
-        c.poly([(310, 58), (314, 60), (314, 94), (310, 96)], YEL[0])                         # the door, swung
-        c.rect(304, 36, 305, 42, CHROME)
-    setback(c, _larder, depth=4, top=16, x_range=(277, 310), rake=1.0)
-    F.pendant(c, 132, 24, 'orange', dome=True)                                    # over the table (clear of the clock)
+            c.rect(x + d, 74, x + 3 + d, 79, col)
+        c.poly([(310 + d, 58), (314 + d, 60), (314 + d, 94), (310 + d, 96)], YEL[0])         # the door, swung
+        c.rect(304 + d, 36, 305 + d, 42, CHROME)
+    setback(c, _larder, depth=4, top=16, x_range=(237, 270), rake=1.0)
+    F.pendant(c, 205, 24, 'orange', dome=True)                                    # over the table (clear of the clock)
 
-B_ANCHORS = [('anchor_kitchen_wall_units', 28, 42, 'bp'), ('anchor_kitchen_base_units', 60, 84, 'bp'),
-             ('anchor_centre_oven', 111, 88, 'bp'), ('anchor_kitchen_formica_table', 196, 94, ''),
-             ('anchor_kitchen_dinette_chair', 158, 102, ''), ('anchor_kitchen_larder', 292, 74, 'bp')]
+B_ANCHORS = [('anchor_kitchen_wall_units', 138, 42, 'bp'), ('anchor_kitchen_base_units', 98, 84, 'bp'),
+             ('anchor_centre_oven', 136, 88, 'bp'), ('anchor_kitchen_formica_table', 206, 94, ''),
+             ('anchor_kitchen_dinette_chair', 166, 102, ''), ('anchor_kitchen_larder', 252, 74, 'bp')]
 
 
 # ============================================================================================
@@ -175,24 +174,24 @@ BRICK = hexc('9a5a3e')
 
 def c_wall(c):
     F.wall_plain(c, C_WALL, hexc('a89a78'), hexc('5e4a3a'), texture=hexc('c9bda0'))
-    # the chimney breast recess for the range (x 124..196): brick, sooty at the top
-    c.rect(124, 26, 196, 99, hexc('3a2a22'))
+    # the chimney breast recess for the range (x 127..199; 240 px module — it stays left of the R window box, x 204): brick, sooty at the top
+    c.rect(127, 26, 199, 99, hexc('3a2a22'))
     for y in range(28, 99, 4):
         off = 0 if (y // 4) % 2 == 0 else 4
-        for x in range(124 + off, 197, 8):
-            c.rect(x, y, x + 6, y + 2, BRICK)
-    c.dither(126, 28, 194, 44, hexc('2a1e18', 150), 0.5, pattern='random')
-    c.rect(118, 22, 202, 26, hexc('6b4a31'))                                                # the mantel beam
-    c.hline(118, 202, 22, hexc('8a6443'))
+        for x in range(127 + off, 200, 8):
+            c.rect(x, y, min(x + 6, 199), y + 2, BRICK)
+    c.dither(129, 28, 197, 44, hexc('2a1e18', 150), 0.5, pattern='random')
+    c.rect(121, 22, 201, 26, hexc('6b4a31'))                                                # the mantel beam
+    c.hline(121, 201, 22, hexc('8a6443'))
     for y in range(27, 99):
-        c.put(123, y, shade(C_WALL, 0.8)); c.put(197, y, shade(C_WALL, 0.8))
+        c.put(126, y, shade(C_WALL, 0.8)); c.put(200, y, shade(C_WALL, 0.8))
 
 
 def c_decor(c):
     # copper pans hanging on a rail over the range
-    c.hline(130, 190, 30, hexc('3a3a36'))
+    c.hline(133, 193, 30, hexc('3a3a36'))
     import props3d
-    for (x, r) in ((138, 6), (156, 8), (176, 5)):
+    for (x, r) in ((141, 6), (159, 8), (179, 5)):
         props3d.copper_pot(c, x, 30, r)
 
 
@@ -229,9 +228,9 @@ def range_cooker(c, x0, x1, top):
 
 def c_furniture(c):
     # WITH DEPTH (owner round 14): the dresser (3px left, clear of window L), the butler sink, the range
-    setback(c, lambda l: F.moved(l, _dresser, -3, 0), depth=5, top=20, x_range=(5, 43), rake=1.0)
-    butler_sink(c)
-    setback(c, lambda l: range_cooker(l, 132, 188, 70), depth=6, top=67, rake=1.0)
+    setback(c, lambda l: F.moved(l, _dresser, 39, 0), depth=5, top=20, x_range=(44, 82), rake=1.0)
+    F.moved(c, butler_sink, 40, 0)                                                          # (240 px module: everything left of the range moved 36-39 px in)
+    setback(c, lambda l: range_cooker(l, 135, 191, 70), depth=6, top=67, rake=1.0)
     _c_rest(c)
 
 
@@ -282,18 +281,18 @@ def butler_sink(c):
 
 def _c_rest(c):
     # the long pine table with a bench, out in the room
-    F.table_front(c, 206, 292, 94, 121, F.PINE, depth=6)
-    F.chair_back(c, 222, 80, 94, F.PINE, width=16)
-    F.chair_back(c, 262, 80, 94, F.PINE, width=16)
-    c.rect(210, 112, 288, 114, F.PINE[1])                                                   # the bench
-    c.hline(210, 288, 112, F.PINE[3])
-    for lx in (214, 284):
+    F.table_front(c, 204, 270, 94, 121, F.PINE, depth=6)
+    F.chair_back(c, 214, 80, 94, F.PINE, width=16)
+    F.chair_back(c, 246, 80, 94, F.PINE, width=16)
+    c.rect(207, 112, 267, 114, F.PINE[1])                                                   # the bench
+    c.hline(207, 267, 112, F.PINE[3])
+    for lx in (210, 262):
         c.rect(lx, 115, lx + 1, 121, F.PINE[2])
-    c.ellipse(236, 92, 7, 2, hexc('e6ddc8'))                                                # a loaf, a jug, a knife
-    c.rect(232, 88, 240, 91, hexc('c9904a'))
-    c.rect(254, 86, 259, 93, hexc('5f7896'))
-    c.line(266, 93, 276, 92, hexc('b9bfc1'))
-    c.ellipse(270, 95, 3, 1, BLOOD)
+    c.ellipse(232, 92, 7, 2, hexc('e6ddc8'))                                                # a loaf, a jug, a knife
+    c.rect(228, 88, 236, 91, hexc('c9904a'))
+    c.rect(246, 86, 251, 93, hexc('5f7896'))
+    c.line(254, 93, 262, 92, hexc('b9bfc1'))
+    c.ellipse(258, 95, 3, 1, BLOOD)
     def _veg(c):
         # a basket of veg set down on the table
         c.shadow(112, 121, 10, 2, 110)
@@ -303,12 +302,12 @@ def _c_rest(c):
         c.ellipse(108, 108, 3, 2, hexc('c9904a')); c.ellipse(115, 108, 3, 2, hexc('7a8a3a'))
         c.poly([(117, 106), (124, 100), (122, 108)], hexc('4e7e3a'))
     F.moved(c, _veg, 108, -27)
-    F.pendant(c, 290, 24, 'green')                                                # over the pine table
+    F.pendant(c, 258, 24, 'green')                                                # over the pine table (right of the R window box)
 
-C_ANCHORS = [('anchor_kitchen_pine_dresser', 23, 40, 'bp'), ('anchor_kitchen_dresser_drawer', 24, 88, 'bp'),
-             ('anchor_kitchen_butler_sink', 72, 78, 'bp'), ('anchor_kitchen_veg_basket', 220, 86, ''),
-             ('anchor_centre_oven', 146, 84, 'bp'), ('anchor_kitchen_pine_table', 248, 97, ''),
-             ('anchor_kitchen_bench', 238, 113, '')]
+C_ANCHORS = [('anchor_kitchen_pine_dresser', 62, 40, 'bp'), ('anchor_kitchen_dresser_drawer', 63, 88, 'bp'),
+             ('anchor_kitchen_butler_sink', 112, 78, 'bp'), ('anchor_kitchen_veg_basket', 218, 86, ''),
+             ('anchor_centre_oven', 163, 84, 'bp'), ('anchor_kitchen_pine_table', 240, 97, ''),
+             ('anchor_kitchen_bench', 234, 113, '')]
 
 
 # ============================================================================================
@@ -330,7 +329,7 @@ def d_wall(c):
 
 def d_decor(c):
     # (owner round 17: things on the wall say something) — the flatmates' notes
-    F.note(c, 196, 24, ['RENT', 'DUE', 'FRI!'], fix='tape')
+    F.note(c, 177, 24, ['RENT', 'DUE', 'FRI!'], fix='tape')                          # (moved left of the R window box)
     F.sticky(c, 104, 30, 'MILK')
     F.sticky(c, 122, 34, 'EGGS', col=hexc('e88aa0'))
 
@@ -346,12 +345,12 @@ def d_floor(c):
 
 def d_furniture(c):
     # WITH DEPTH (owner round 14): the fridge (3px left; its open door just moves), the counter run
-    setback(c, lambda l: F.moved(l, _d_fridge, -3, 0), depth=5, top=34, x_range=(5, 37), rake=1.0)
+    setback(c, lambda l: F.moved(l, _d_fridge, 37, 0), depth=5, top=34, x_range=(45, 77), rake=1.0)
     _d_fridge_door(c)                                                  # after the setback, so it isn't extruded
     # the spilt milk, run out over the fridge's sill into a puddle on the lino (nobody came back to it)
-    for (px_, py_, rx, ry) in ((13, 109, 7, 2), (19, 111, 5, 1.6), (9, 111, 3, 1)):
+    for (px_, py_, rx, ry) in ((53, 109, 7, 2), (59, 111, 5, 1.6), (49, 111, 3, 1)):
         c.ellipse(px_, py_, rx, ry, hexc('d8d4c8')); c.ellipse(px_ - 0.5, py_ - 0.3, rx - 1, max(0.6, ry - 0.6), hexc('f2efe4'))
-    c.put(11, 108, hexc('ffffff')); c.put(18, 110, hexc('ffffff'))
+    c.put(51, 108, hexc('ffffff')); c.put(58, 110, hexc('ffffff'))
     setback(c, _d_run, depth=7, top=72, x_range=(99, 233), rake=1.0)
     _d_rest(c)
 
@@ -419,7 +418,7 @@ def _d_fridge(c):
 # The open door is drawn in TRUE perspective about that plane (owner round 34: "the fridge door is
 # lacking proportion") — see door_quad / pixlib.quad_cols. It is hinged on the front-right edge,
 # full fridge width, swung 145 degrees (any wider and its free edge runs into the window box): its free edge is NEARER the camera, so it is taller and lower.
-FRIDGE_FRONT = (5, 37, 42, 107)
+FRIDGE_FRONT = (45, 77, 42, 107)
 FRIDGE_DOOR_ANGLE = 145.0
 
 
@@ -472,15 +471,20 @@ def _d_run(c):
     c.line(155, 65, 163, 61, hexc('3a3a38')); c.line(155, 66, 163, 62, hexc('2a2a28'))    # its handle
     c.rect(157, 66, 160, 71, hexc('5f7896')); c.put(161, 68, hexc('5f7896'))                # a mug
     c.hline(157, 160, 66, hexc('7f98b6'))
-    c.box(190, 56, 222, 71, hexc('3a3a3d'), hexc('1c1c1e'))                                 # microwave
-    c.rect(193, 59, 212, 68, hexc('22302c'))
-    c.rect(214, 59, 220, 68, hexc('26262a'))
-    c.put(217, 61, hexc('4e8a5a'))
+    c.box(168, 56, 200, 71, hexc('3a3a3d'), hexc('1c1c1e'))                                 # microwave (left of the R window box)
+    c.rect(171, 59, 190, 68, hexc('22302c'))
+    c.rect(192, 59, 198, 68, hexc('26262a'))
+    c.put(195, 61, hexc('4e8a5a'))
     c.rect(106, 66, 114, 71, hexc('c9b58a')); c.rect(116, 65, 120, 71, hexc('9aa3a8'))       # cereal, a can
 
 
 def _d_rest(c):
-    # the camping table out in the room: a kettle, mugs, an ashtray
+    # the camping table out in the room: a kettle, mugs, an ashtray (240 px module: it stands in front of the counter's left end, 28 px right of where it was)
+    F.moved(c, _d_camp_table, 28, 0)
+    _d_rest_floor(c)
+
+
+def _d_camp_table(c):
     c.shadow(84, 121, 18, 2, 110)
     c.poly([(69, 92), (99, 92), (102, 98), (66, 98)], hexc('b9c0c2'))             # its top, from above
     c.hline(69, 99, 92, hexc('8a9294'))
@@ -490,27 +494,30 @@ def _d_rest(c):
     c.line(90, 101, 98, 121, hexc('7b8083')); c.line(98, 101, 90, 121, hexc('7b8083'))
     c.rect(72, 90, 80, 97, hexc('9aa3a8')); c.put(81, 92, hexc('9aa3a8'))
     c.rect(86, 93, 90, 97, hexc('e6ddc8')); c.rect(93, 94, 97, 97, hexc('4e6ea0'))
+
+
+def _d_rest_floor(c):
     # two pizza boxes on the floor against the wall, between the counter and the bins (owner round 17:
     # the old stack of four with its lid up against the wall clipped the counter and looked messy) —
     # flat square boxes seen from above, a grease ring through the top lid
     from pixlib import pbox, pellipse
-    wx0, wx1 = 240.0, 258.0
+    wx0, wx1 = 224.0, 242.0
     card, card_dk, card_out = hexc('c9b58a'), hexc('a8946a'), hexc('7a6a45')
-    c.shadow(254, 111, 13, 2, 110)
+    c.shadow(238, 111, 13, 2, 110)
     for i in range(2):
         jx = (0, 1.5)[i]
         pbox(c, wx0 + jx, 100 - 2.6 * (i + 1), wx1 + jx, 100 - 2.6 * i, 1, 10, card, shade(card, 1.1), card_dk, card_out)
     y_top = 100 - 2.6 * 2
     pellipse(c, (wx0 + wx1) / 2 + 2, y_top, 3, 8, 5, hexc('b39a6a'))                   # the grease ring
     pellipse(c, (wx0 + wx1) / 2 + 2, y_top, 4, 7, 3.5, shade(card, 1.1))
-    F.bin_bag(c, 288, 105, 22, 24, seed=11)                                    # standing out on the floor
-    F.bin_bag(c, 303, 106, 16, 18, seed=5)
+    F.bin_bag(c, 255, 105, 22, 24, seed=11)                                    # standing out on the floor
+    F.bin_bag(c, 267, 106, 14, 16, seed=5)
     F.bare_bulb(c, 160, 26)
 
-D_ANCHORS = [('anchor_centre_fridge', 21, 60, 'bp'), ('anchor_kitchen_camp_table', 88, 95, ''),
+D_ANCHORS = [('anchor_centre_fridge', 61, 60, 'bp'), ('anchor_kitchen_camp_table', 116, 95, ''),
              ('anchor_kitchen_dishes', 146, 70, 'bp'), ('anchor_kitchen_student_cupboard', 186, 84, 'bp'),
-             ('anchor_kitchen_microwave', 202, 64, 'bp'), ('anchor_kitchen_pizza_boxes', 254, 99, 'bp'), ('anchor_kitchen_kettle', 76, 94, ''),
-             ('anchor_right_trashcan', 292, 90, 'bp')]
+             ('anchor_kitchen_microwave', 184, 64, 'bp'), ('anchor_kitchen_pizza_boxes', 236, 99, 'bp'), ('anchor_kitchen_kettle', 104, 94, ''),
+             ('anchor_right_trashcan', 257, 90, 'bp')]
 
 
 # ============================================================================================
@@ -533,10 +540,10 @@ def e_decor(c):
     # (owner round 17: the pinned clippings + red string read as a conspiracy board; round 47i: the event is
     # brand new, so nothing here is about it) the notes of someone who keeps everything: a note for whoever
     # feeds the cat, the gas bill, the calendar crossed off to the day it stopped, a reminder to ring the vet
-    F.note(c, 108, 24, ['CAT', 'FOOD', 'TUES'], fix='tape')
-    F.note(c, 146, 24, ['PAY', 'GAS', 'BILL'], paper=hexc('e4dcc4'))
-    F.calendar(c, 176, 24)
-    F.note(c, 201, 30, ['RING', 'VET'], paper=hexc('e4dcc4'))
+    F.note(c, 100, 24, ['CAT', 'FOOD', 'TUES'], fix='tape')
+    F.note(c, 126, 24, ['PAY', 'GAS', 'BILL'], paper=hexc('e4dcc4'))
+    F.calendar(c, 152, 24)
+    F.note(c, 178, 30, ['RING', 'VET'], paper=hexc('e4dcc4'))              # (240 px module: all of them left of the R window box, x 204)
 
 
 @persp
@@ -571,39 +578,39 @@ def paper_stack(c, x0, base, h, w=16, lean=0):
 
 def e_furniture(c):
     # WITH DEPTH (owner round 14): the counter run + cooker, the newspaper stacks
-    setback(c, _e_run, depth=7, top=71, x_range=(99, 229), rake=1.0)
-    setback(c, _e_stacks, depth=4, rake=1.0, x_range=(6, 62))
+    setback(c, _e_run, depth=7, top=71, x_range=(99, 211), rake=1.0)
+    setback(c, _e_stacks, depth=4, rake=1.0, x_range=(46, 102))
     _e_rest(c)
 
 
 def _e_run(c):
     # the old cooker + a counter buried in stuff, against the wall
-    base_units(c, 100, 200, 72, (hexc('d6cfb8'), hexc('e6e0cc'), hexc('b9b29a'), hexc('5e584a')),
-               hexc('8a8270'), hexc('4a4638'), doors=5, open_door=3)
-    cooker(c, 202, 72, hexc('e6e0cc'), hexc('c9c2b1'), hexc('5e584a'))
+    base_units(c, 100, 182, 72, (hexc('d6cfb8'), hexc('e6e0cc'), hexc('b9b29a'), hexc('5e584a')),
+               hexc('8a8270'), hexc('4a4638'), doors=4, open_door=2)
+    cooker(c, 184, 72, hexc('e6e0cc'), hexc('c9c2b1'), hexc('5e584a'))
     for (x, h, col) in ((104, 10, hexc('9aa3a8')), (110, 14, hexc('c9b86a')), (118, 8, hexc('b0453a')),
                         (126, 16, hexc('d8cfb4')), (140, 12, hexc('9aa3a8')), (150, 6, hexc('7a8a5a')),
-                        (160, 18, hexc('d8cfb4')), (176, 9, hexc('c9b86a')), (186, 13, hexc('9aa3a8'))):
+                        (160, 9, hexc('d8cfb4')), (172, 9, hexc('c9b86a'))):
         if col == hexc('d8cfb4'):                                                # a carton / a roll of papers
             c.rect(x, 71 - h, x + 7, 71, col)
             c.hline(x, x + 7, 71 - h, shade(col, 1.15))
             c.vline(x + 7, 71 - h, 71, shade(col, 0.75))
         else:                                                                    # tins and jars: cylinders
             F.tin(c, x + 3, 71, 3, h, col, label=shade(col, 0.8) if h > 8 else None, handle=False)
-    c.rect(206, 64, 220, 69, hexc('7a6a58'))                                     # a pile of pans on the hob
-    c.rect(208, 59, 218, 63, hexc('5a5249'))
+    c.rect(188, 64, 202, 69, hexc('7a6a58'))                                     # a pile of pans on the hob (left of the R window box)
+    c.rect(190, 59, 200, 63, hexc('5a5249'))
 
 
 def _e_stacks(c):
     # newspaper stacks along the left wall
-    for (x, h, lean) in ((8, 40, 1), (26, 52, -1), (44, 30, 0)):
+    for (x, h, lean) in ((48, 40, 1), (66, 52, -1), (84, 30, 0)):
         paper_stack(c, x, 99, h, 16, lean)
 
 
 def _e_rest(c):
     # a stack slid off the pile: newspapers FANNED across the floor at its foot, print showing (a flat
     # slab read as planks — owner round 14)
-    for i, (sx, sy, dx) in enumerate(((60, 104, 0), (68, 102, 1), (77, 105, -1), (84, 101, 1))):
+    for i, (sx, sy, dx) in enumerate(((98, 104, 0), (106, 102, 1), (115, 105, -1), (122, 101, 1))):
         pts = [(sx, sy), (sx + 16, sy - 2 + dx), (sx + 17, sy + 3 + dx), (sx + 1, sy + 5)]
         c.poly(pts, hexc('d8cfb4') if i % 2 else hexc('cfc6aa'))
         c.line(sx, sy, sx + 16, sy - 2 + dx, hexc('e8e0c8'))
@@ -612,8 +619,8 @@ def _e_rest(c):
             for xx in range(sx + 2, sx + 15, 4):
                 c.hline(xx, xx + 2, y + (xx - sx) * (dx - 2) // 32, hexc('a89e86'))
     # a table out in the room buried in plastic carrier bags + cat food tins
-    F.table_front(c, 236, 296, 96, 121, F.WOOD, depth=5)
-    for (x, col) in ((238, hexc('e6e0cc')), (252, hexc('c0453a')), (266, hexc('e6e0cc')), (280, hexc('4e6ea0'))):
+    F.table_front(c, 214, 274, 96, 121, F.WOOD, depth=5)
+    for (x, col) in ((216, hexc('e6e0cc')), (230, hexc('c0453a')), (244, hexc('e6e0cc')), (258, hexc('4e6ea0'))):
         # a full carrier bag: wider at the base, creased, two LOOP handles standing up
         dk = shade(col, 0.8)
         c.poly([(x + 1, 88), (x + 11, 88), (x + 12, 96), (x, 96)], col)
@@ -625,19 +632,19 @@ def _e_rest(c):
     # (round 18: nine tins in a perfect row read as a pattern) cat food tins under the table: a
     # stack, two by it, one rolled over on its side
     tin_c, lab = hexc('b9bfc1'), hexc('c9763a')
-    for (x, base) in ((250, 120), (250, 115), (258, 120)):
+    for (x, base) in ((228, 120), (228, 115), (236, 120)):
         F.tin(c, x, base, 3, 4, tin_c, label=lab, handle=False)
-    F.tin(c, 266, 121, 3, 4, tin_c, label=hexc('4e7aa0'), handle=False)
-    c.rect(272, 117, 279, 120, tin_c); c.rect(274, 117, 277, 120, lab)                       # on its side
-    c.ellipse(279, 118.5, 1.2, 1.8, shade(tin_c, 1.1))
+    F.tin(c, 244, 121, 3, 4, tin_c, label=hexc('4e7aa0'), handle=False)
+    c.rect(250, 117, 257, 120, tin_c); c.rect(252, 117, 255, 120, lab)                       # on its side
+    c.ellipse(257, 118.5, 1.2, 1.8, shade(tin_c, 1.1))
     # a cat bowl by the cooker, a cat nowhere to be seen
     c.ellipse(190, 102, 6, 2, hexc('a8322c'))
     c.ellipse(190, 101, 4, 1, hexc('6a4a2a'))
-    F.bare_bulb(c, 300, 24)
+    F.bare_bulb(c, 262, 24)
 
-E_ANCHORS = [('anchor_kitchen_paper_stacks', 32, 70, 'bp'), ('anchor_kitchen_toppled_papers', 76, 102, 'bp'),
-             ('anchor_kitchen_buried_counter', 150, 80, 'bp'), ('anchor_centre_oven', 214, 88, 'bp'),
-             ('anchor_kitchen_bag_table', 258, 90, ''), ('anchor_kitchen_cat_tins', 254, 116, '')]
+E_ANCHORS = [('anchor_kitchen_paper_stacks', 72, 70, 'bp'), ('anchor_kitchen_toppled_papers', 116, 102, 'bp'),
+             ('anchor_kitchen_buried_counter', 140, 80, 'bp'), ('anchor_centre_oven', 197, 88, 'bp'),
+             ('anchor_kitchen_bag_table', 250, 92, ''), ('anchor_kitchen_cat_tins', 234, 116, '')]
 
 
 VARIANTS = {
@@ -646,6 +653,10 @@ VARIANTS = {
     'd': ('kitchen_d', 36, (d_wall, d_decor, d_floor, d_furniture), D_ANCHORS),
     'e': ('kitchen_e', 37, (e_wall, e_decor, e_floor, e_furniture), E_ANCHORS),
 }
+
+
+# which wall's window box each variant keeps bare (the other wall may carry tall furniture): docs/MODULE_WIDTH.md
+WINDOW_SIDE = {'b': 'L', 'c': 'R', 'd': 'R', 'e': 'R'}
 
 
 def make(fns):
@@ -667,4 +678,4 @@ if __name__ == '__main__':
     for v in (sys.argv[1:] or sorted(VARIANTS)):
         name, seed, fns, anchors = VARIANTS[v]
         bare, floor, build = make(fns)
-        finish_module(name, 'kitchen', seed, bare, floor, build, anchors)
+        finish_module(name, 'kitchen', seed, bare, floor, build, anchors, window=WINDOW_SIDE.get(v, 'LR'))

@@ -5,10 +5,10 @@ extends RefCounted
 ## "a module's width", "the flat's right wall" or "where a window sits" asks here, so the change from 320 to 240 is one constant and a regenerate.
 ## (Not a class_name: preload it, like BalconyGeo.)
 
-const WIDTH := 320                 # a module's width in px (the 144 px height and every Y plane are unchanged)
+const WIDTH := 240                 # a module's width in px (the 144 px height and every Y plane are unchanged)
 const LEFT_WALL_X := 113           # world x of the flat's left wall
-const WINDOW_INSET := 72.0         # how far in from a module's edge a wall window's centre sits (tools/art/pixlib.WIN_INSET)
-const DESIGN_PAD := 0              # columns the ART's design canvas (320 wide, vanishing point x 160) has beyond the module on each side: design x = module x + DESIGN_PAD
+const WINDOW_INSET := 54.0         # how far in from a module's edge a wall window's centre sits (tools/art/pixlib.WIN_INSET)
+const DESIGN_PAD := 40              # columns the ART's design canvas (320 wide, vanishing point x 160) has beyond the module on each side: design x = module x + DESIGN_PAD
                                    # (tools/art/pixlib.PAD — must be equal; furniture lean buckets are keyed by DESIGN x)
 
 

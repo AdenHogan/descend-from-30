@@ -1,0 +1,170 @@
+{
+"bathroom_b|anchor_bathroom_radio_stool": [
+-18,
+0
+],
+"bathroom_b|anchor_bathroom_vanity": [
+40,
+0
+],
+"bathroom_c|anchor_bathroom_champagne": [
+10,
+0
+],
+"bathroom_c|anchor_bathroom_towel_stand": [
+6,
+0
+],
+"bathroom_e|anchor_bathroom_frosted_cabinet": [
+-36,
+0
+],
+"bathroom_e|anchor_bathroom_hamper": [
+-3,
+0
+],
+"bedroom_b|anchor_bedroom_desk": [
+37,
+0
+],
+"bedroom_b|anchor_bedroom_desk_drawer": [
+37,
+0
+],
+"bedroom_c|anchor_bedroom_med_trolley": [
+-17,
+0
+],
+"bedroom_c|anchor_bedroom_pill_cabinet": [
+-31,
+0
+],
+"bedroom_d|anchor_bedroom_boxes": [
+-31,
+-1
+],
+"bedroom_e|anchor_bed_pillow": [
+14,
+0
+],
+"bedroom_e|anchor_bedroom_dollhouse": [
+37,
+0
+],
+"bedroom|anchor_bedside": [
+0,
+0
+],
+"bedroom|anchor_floor_underbed": [
+0,
+0
+],
+"bedroom|anchor_wall_right_upper": [
+-41,
+0
+],
+"dining_room_b|anchor_dining_record_player": [
+-23,
+0
+],
+"dining_room_b|anchor_table_left": [
+12,
+0
+],
+"dining_room_c|anchor_dining_candelabra": [
+23,
+0
+],
+"dining_room_c|anchor_dining_grandfather_clock": [
+34,
+0
+],
+"dining_room_e|anchor_table_left": [
+22,
+0
+],
+"dining_room|anchor_right_lowerdrawers": [
+-41,
+0
+],
+"dining_room|anchor_right_upperdrawers": [
+-41,
+0
+],
+"kitchen_b|anchor_centre_oven": [
+25,
+0
+],
+"kitchen_b|anchor_kitchen_larder": [
+-40,
+-1
+],
+"kitchen_c|anchor_centre_oven": [
+17,
+0
+],
+"kitchen_c|anchor_kitchen_pine_table": [
+-8,
+0
+],
+"kitchen_d|anchor_kitchen_microwave": [
+-18,
+0
+],
+"kitchen_d|anchor_kitchen_pizza_boxes": [
+-18,
+0
+],
+"kitchen_e|anchor_centre_oven": [
+-17,
+-4
+],
+"kitchen|anchor_centre_fridge": [
+37,
+-1
+],
+"kitchen|anchor_centre_oven": [
+-10,
+0
+],
+"living_room_b|anchor_centre_sofaleft": [
+14,
+0
+],
+"living_room_c|anchor_centre_sofaleft": [
+-4,
+0
+],
+"living_room_d|anchor_living_tea_table": [
+36,
+0
+],
+"living_room|anchor_centre_coffeetable": [
+14,
+0
+],
+"study_b|anchor_centre_desk": [
+37,
+0
+],
+"study_b|anchor_study_desk_drawer": [
+37,
+0
+],
+"study_d|anchor_study_radio": [
+34,
+-2
+],
+"study_e|anchor_study_trestle": [
+-4,
+0
+],
+"study|anchor_centre_desk": [
+22,
+0
+],
+"study|anchor_study_desk_drawer": [
+22,
+0
+]
+}

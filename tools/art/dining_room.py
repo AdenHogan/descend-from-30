@@ -147,7 +147,7 @@ def sideboard(c):
     c.rect(29, top + 13, 30, top + 15, BRASS)
     c.rect(x0 + 1, base - 4, x0 + 3, base - 1, WOOD_DK)
     c.rect(x1 - 3, base - 4, x1 - 1, base - 1, WOOD_DK)
-    for cx in (13, 41):                                       # candlesticks
+    for cx in (13, 22):                                       # candlesticks (a pair: the window box's x 72 is just right of the sideboard's 85)
         c.rect(cx - 2, top - 1, cx + 2, top - 1, BRASS)
         c.vline(cx, top - 6, top - 2, BRASS)
         c.rect(cx - 1, top - 11, cx + 1, top - 7, CANDLE)
@@ -167,18 +167,18 @@ def radiator(c):
 # --- the room ---------------------------------------------------------------------------------
 def pictures(c):
     # a pendant lamp over the table, a landscape and a small portrait either side of it
-    c.box(104, 22, 132, 42, FRAME, FRAME_DK)                  # landscape
+    c.box(140, 22, 168, 42, FRAME, FRAME_DK)                  # landscape (240 px module: right of the balcony strip)
     import wall_art3d                                          # the furniture library's landscape in the frame (one drawing per thing)
-    wall_art3d.landscape(c, 107, 25, 129, 39, seed=7)
-    c.line(118, 16, 104, 22, FRAME_DK); c.line(118, 16, 132, 22, FRAME_DK)
+    wall_art3d.landscape(c, 143, 25, 165, 39, seed=7)
+    c.line(154, 16, 140, 22, FRAME_DK); c.line(154, 16, 168, 22, FRAME_DK)
     # the family on their wedding day (round 17: a scratched-out blank read as nothing)
     import furn as F
-    F.photo(c, 186, 26, 198, 42, [(hexc('e0c0a0'), hexc('6a4a2a'), hexc('f4f0e4'), 10),
+    F.photo(c, 208, 26, 220, 42, [(hexc('e0c0a0'), hexc('6a4a2a'), hexc('f4f0e4'), 10),
                                   (hexc('d8b89a'), hexc('3a2a1e'), hexc('2a2a30'), 11)],
             bg=hexc('c9c2b1'), ground=hexc('a8a090'), frame=FRAME)
-    c.line(187, 24, 192, 19, FRAME_DK); c.line(197, 24, 192, 19, FRAME_DK)
+    c.line(209, 24, 214, 19, FRAME_DK); c.line(219, 24, 214, 19, FRAME_DK)
     # the pendant lamp: a cord from the ceiling, a fabric shade — the shared shaded pendant (furn.pendant), a cream shade on a long flex
-    F.pendant(c, 158, 42, 'cream')
+    F.pendant(c, 185, 42, 'cream')
 
 
 CHAIR_PAL = {'wood': hexc('6a4630'), 'seat': hexc('7e5638')}
@@ -195,8 +195,8 @@ def back_chairs(c):
 def table(c):
     # pulled forward to the lane (base 114); we look down onto the cloth-covered top (86..95), the
     # cloth hangs over the front edge; a meal left half-eaten (nodes: either end of the top)
-    x0, x1, top, front, base = 118, 214, 86, 95, 114
-    c.shadow(159, base + 1, 58, 3, 110)
+    x0, x1, top, front, base = 118, 208, 86, 95, 114        # (90 px wide: it was 96 — the 240 px module)
+    c.shadow(163, base + 1, 47, 3, 110)
     c.rect(x0 + 4, front, x0 + 7, base, WOOD_DK)                 # legs
     c.rect(x1 - 7, front, x1 - 4, base, WOOD_DK)
     c.rect(x0 + 20, front, x0 + 22, base - 4, shade(WOOD_DK, 0.8))   # the far legs, set back
@@ -331,9 +331,11 @@ def dresser(c):
 
 
 def strip(c):
+    # (240 px module, docs/MODULE_WIDTH.md: the balcony strip is design x 44..136 now, so its pieces stand 40 px right of where they were drawn)
     from pixlib import setback
-    setback(c, sideboard, depth=4, top=70, x_range=(7, 47), rake=1.0)     # with depth (owner round 14)
-    setback(c, radiator, depth=2, top=76, x_range=(56, 90))              # stands off the wall on its brackets
+    import furn as F
+    setback(c, lambda l: F.moved(l, sideboard, 40, 0), depth=4, top=70, x_range=(47, 87), rake=1.0)     # with depth (owner round 14)
+    setback(c, lambda l: F.moved(l, radiator, 40, 0), depth=2, top=76, x_range=(96, 130))              # stands off the wall on its brackets
 
 
 def build(c=None):
@@ -342,15 +344,12 @@ def build(c=None):
     decay(c)
     floor(c)
     pictures(c)
-    back_chairs(c)
-    table(c)
-    import chair3d as C3
-    C3.draw_model(c, 110, 117, C3.dining_chair('ladder'), -68, CHAIR_PAL, srad=10)   # pulled out, facing the table
-    trolley(c, 224, 118)
-    # the dresser with depth (owner round 14), 3px right of where it stood flat (clear of window R)
-    from pixlib import setback
     import furn as F
-    setback(c, lambda l: F.moved(l, dresser, 3, 0), depth=4, top=12, x_range=(276, 314), rake=1.0)
+    F.moved(c, back_chairs, 21, 0)                      # the table and its chairs stand right of the balcony strip (the pulled-out chair and the trolley went with the 80 px)
+    F.moved(c, table, 21, 0)
+    # the dresser with depth (owner round 14)
+    from pixlib import setback
+    setback(c, lambda l: F.moved(l, dresser, -38, 0), depth=4, top=12, x_range=(232, 274), rake=1.0)
     return c
 
 
@@ -359,10 +358,10 @@ def bare(c):
     decay(c)
 
 
-ANCHORS = [('anchor_table_left', 128, 90, ''), ('anchor_table_right', 192, 90, ''),
-           ('anchor_dining_trolley', 238, 106, ''), ('anchor_right_upperdrawers', 287, 65, 'bp'),
-           ('anchor_right_lowerdrawers', 303, 85, 'bp'), ('anchor_dining_sideboard', 20, 80, 'bp s')]
+ANCHORS = [('anchor_table_left', 149, 90, ''), ('anchor_table_right', 207, 90, ''),
+           ('anchor_right_upperdrawers', 246, 65, 'bp'),
+           ('anchor_right_lowerdrawers', 262, 85, 'bp'), ('anchor_dining_sideboard', 60, 80, 'bp s')]
 
 
 if __name__ == '__main__':
-    finish_module('dining_room', 'dining_room', SEED, bare, floor, build, ANCHORS, strip_fn=strip)
+    finish_module('dining_room', 'dining_room', SEED, bare, floor, build, ANCHORS, strip_fn=strip, window='L')

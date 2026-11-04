@@ -87,7 +87,7 @@ _BASINS = {
 }
 
 
-@_fixture('basin', 46, 40, rooms={'bathroom': 8}, styles={'tub': 8, 'pink': 8, 'wetroom': 8, 'avocado': 0.01, 'gilded': 0.01},
+@_fixture('basin', 46, 40, sill=True, rooms={'bathroom': 8}, styles={'tub': 8, 'pink': 8, 'wetroom': 8, 'avocado': 0.01, 'gilded': 0.01},
           tags=('basin', 'wet'), variants={k: {'t': k, 'for': v['forr']} for k, v in _BASINS.items()},
           anchors=({'name': 'basin', 'dx': 10, 'dy': -48, 'if': {'t': 'pedestal'}}, {'name': 'wall_sink', 'dx': 29, 'dy': -38, 'if': {'t': 'pedestal'}},
                    {'name': 'basin', 'dx': 10, 'dy': -48, 'if': {'t': 'pink'}}, {'name': 'wall_sink', 'dx': 29, 'dy': -38, 'if': {'t': 'pink'}},
@@ -108,7 +108,7 @@ def basin(c, ox, oy, p):
 
 
 # ================================================================================================================================ the vanity and the washstand
-@_fixture('vanity', 62, 40, rooms={'bathroom': 7}, styles={'avocado': 9}, tags=('basin', 'wet', 'storage'),
+@_fixture('vanity', 62, 40, sill=True, rooms={'bathroom': 7}, styles={'avocado': 9}, tags=('basin', 'wet', 'storage'),
           variants={'avocado': {'for': ['avocado']}},
           anchors=({'name': 'vanity', 'dx': 3, 'dy': -24}, {'name': 'worktop', 'dx': 52, 'dy': -38}),
           note='a vanity unit standing out from the wall: a tiled upstand, a worktop slab with an avocado basin set into it, two panelled doors over a recessed plinth — one open on bleach and sponges — and a tumbler on the slab')
@@ -118,7 +118,7 @@ def vanity(c, ox, oy, p):
     BR.rim_things(c, cx + 30, 76, mug=hexc('e8a0b0'))
 
 
-@_fixture('washstand', 60, 42, rooms={'bathroom': 7}, styles={'gilded': 9}, tags=('basin', 'wet', 'storage'),
+@_fixture('washstand', 60, 42, sill=True, rooms={'bathroom': 7}, styles={'gilded': 9}, tags=('basin', 'wet', 'storage'),
           variants={'gilt': {'for': ['gilded']}},
           anchors=({'name': 'washstand', 'dx': 5, 'dy': -34}, {'name': 'trinket_dish', 'dx': 48, 'dy': -39}),
           note='a gilt washstand: a marble slab on cabriole legs with a gold basin set into it, a drawer in the apron, a perfume bottle, and a gilt trinket dish with a string of pearls spilling over its lip')
@@ -235,7 +235,7 @@ def bath(c, ox, oy, p):
 
 
 # ================================================================================================================================ the shower
-@_fixture('shower_walkin', 44, 56, rooms={'bathroom': 6}, styles={'tub': 9, 'wetroom': 2}, tags=('wet', 'shower'),
+@_fixture('shower_walkin', 44, 56, rooms={'bathroom': 6}, styles={'tub': 9, 'wetroom': 2, 'avocado': 9, 'pink': 5}, tags=('wet', 'shower'),
           variants={'glass': {'for': ['tub', 'wetroom']}}, anchors=({'name': 'wall_shower', 'dx': 24, 'dy': -18},),
           note='a walk-in shower standing out into the room: a tiled back wall with its head and riser, a tray coming out with its drain and two bottles, a glass side screen in perspective — soap on a ledge, black mould along the tray')
 def shower_walkin(c, ox, oy, p):

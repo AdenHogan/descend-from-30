@@ -1,5 +1,7 @@
 extends Node
 
+const MG := preload("res://scripts/module_geo.gd")        # the module width (docs/MODULE_WIDTH.md)
+
 # NODE REACTIONS (owner round 34 + 45c): a drawer opens / a door swings / a glass tips / a screen goes dark the moment the player PRESSES interact on
 # its node (not when the search ends), every other node puffs + makes a sound for what it is made of, and a search walked away from leaves it open.
 # (Round 34's note follows.) A drawer opens / a door swings once its node has been
@@ -49,7 +51,7 @@ func _test_meta() -> void:
 		for anchor in meta[art].keys():
 			total += 1
 			var d: Dictionary = meta[art][anchor]
-			var fits: bool = int(d["x"]) >= 0 and int(d["y"]) >= 0 and int(d["x"]) + int(d["w"]) <= 320 and int(d["y"]) + int(d["h"]) <= 144
+			var fits: bool = int(d["x"]) >= 0 and int(d["y"]) >= 0 and int(d["x"]) + int(d["w"]) <= MG.WIDTH and int(d["y"]) + int(d["h"]) <= 144
 			var tex: Texture2D = OF._texture_for(art, anchor, 1)
 			if not fits or tex == null or tex.get_width() != int(d["w"]) * int(d["frames"]) or tex.get_height() != int(d["h"]):
 				all_ok = false
@@ -89,7 +91,9 @@ func _test_meta() -> void:
 	check(unknown.is_empty(), "every opening has a known kind (%s)" % str(kinds))
 	check(int(kinds.get("screen_off", 0)) >= 6 and int(kinds.get("topple", 0)) >= 8 and int(kinds.get("door_h", 0)) >= 8 and int(kinds.get("lid", 0)) >= 3,
 		"the round-45c reactions are in: screens, things that tip over, doors and lids (%s)" % str(kinds))
-	check(total >= 45, "at least 45 nodes have a specific animation — the rest puff and sound (%d)" % total)
+	# 60 on a 320 px module; the 240 px flip (docs/MODULE_WIDTH.md) dropped 18 whose piece left the room (clothes rail, trolley, china cabinet ...) or no longer matches the rect the tool
+	# was given — their nodes keep the generic dust-and-sound reaction. 42 are left; 40 is the floor that says "the tool broke" rather than "the owner has not re-rigged them yet".
+	check(total >= 40, "at least 40 nodes have a specific animation — the rest puff and sound (%d)" % total)
 	check(all_ok, "every opening fits its 320x144 module and its sheet is frames x patch size")
 	check(near_ok, "every opening belongs to a real anchor sitting on that furniture")
 	check(run_files, "every opening has a look for runs 2 and 3 (they fall back to run 1 at worst)")

@@ -7,6 +7,7 @@ extends Node
 #   godot --headless res://tests/breach_test.tscn
 
 const RoomScript := preload("res://scripts/room.gd")
+const MG := preload("res://scripts/module_geo.gd")
 
 var failures: int = 0
 
@@ -92,10 +93,10 @@ func _test_breach_rules() -> void:
 		for f in range(2, 25):
 			for i in range(1, 6):
 				var apt := str(f) + "0" + str(i)
-				var pack: Array = WorldState.get_breached_room_enemies(apt, 150.0, 1030.0, 321.0)
+				var pack: Array = WorldState.get_breached_room_enemies(apt, 150.0, MG.right_x(3) - 43.0, 321.0)      # the dead's real limits in a three-room flat (room.gd `_x_hi()`)
 				sizes.append(pack.size())
 				var left: bool = WorldState.get_entrance_side(apt) == "left"
-				var arrive: float = RoomScript.ARRIVAL_X_LEFT if left else RoomScript.ARRIVAL_X_RIGHT
+				var arrive: float = RoomScript.ARRIVAL_X_LEFT if left else MG.right_x(3) - 23.0                       # = room.gd `_arrival_x_right()`
 				if left:
 					left_rooms += 1
 				else:
@@ -109,7 +110,8 @@ func _test_breach_rules() -> void:
 	check(sizes.min() >= 3 and sizes.max() <= 6, "a pack is 3 to 6 bodies (was 4 to 9): %d..%d" % [sizes.min(), sizes.max()])
 	check(mean <= 6.5 * 0.75, "…about 30%% fewer on average (%.2f against the old 6.5)" % mean)
 	check(left_rooms > 50 and right_rooms > 50, "both entrance sides were measured (%d left / %d right)" % [left_rooms, right_rooms])
-	check(nearest >= 400.0, "no body stands within 400 px of the arrival point, either side — the nearest is %.0f px (a standard senses 100, a long arm 120)" % nearest)
+	# 400 on a 320 px module (nearest ~490); the flat is 25 % shorter now (nearest ~367) — what the rule is FOR is "beyond every sense range but the spitter's 320", so the floor is 340
+	check(nearest >= 340.0, "no body stands within 340 px of the arrival point, either side — the nearest is %.0f px (a standard senses 100, a long arm 120, a spitter spits from 320)" % nearest)
 
 
 func _find(kind: String) -> String:

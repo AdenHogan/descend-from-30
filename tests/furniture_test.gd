@@ -215,7 +215,8 @@ func _test_plans_obey_the_rules() -> void:
 			check(wrong == 0, "%s/%s: every placed piece belongs in a %s %s (%d strays)" % [room, style, style, room, wrong])
 			check(few_front == 0, "%s/%s: always at least 2 nodes reachable from the walking lane" % [room, style])
 			check(float(fb) / float(n) < 0.05, "%s/%s: the hand-set fallback is the rare exception (%d of %d)" % [room, style, fb, n])
-			check(seen_ids.size() >= 12, "%s/%s: draws on a real range of pieces (%d different)" % [room, style, seen_ids.size()])
+			var min_range := 10 if room == "bathroom" else 12                      # a 240 px bathroom is full once its bath, toilet and basin stand (212 px of ~230): less room for variety than any other
+			check(seen_ids.size() >= min_range, "%s/%s: draws on a real range of pieces (%d different, at least %d)" % [room, style, seen_ids.size(), min_range])
 			total += n
 	print("  (%d plans in %.1f s)" % [total, (Time.get_ticks_msec() - t0) / 1000.0])
 	# every fallback layout is itself valid (it must be safe for either window side)
@@ -224,7 +225,7 @@ func _test_plans_obey_the_rules() -> void:
 			for side in ["left", "right"]:
 				var rcp := FurniturePlanner.recipe(room, style)
 				var items: Array = []
-				for e in rcp["fallback"]:
+				for e in FurniturePlanner.fallback_layout(rcp, side):
 					var rec := FurniturePlanner.piece(String(e["id"]))
 					items.append({"id": e["id"], "variant": e["variant"], "x": e["x"], "y": e["y"], "plane": rec["plane"], "host_plane": rec["plane"], "w": rec["w"]})
 				var v := FurniturePlanner.validate({"room": room, "style": style, "items": items, "fallback": true}, {"window": side})      # (a fallback is one fixed picture: the under-the-window preference is skipped for it)
@@ -449,6 +450,23 @@ func _test_designers_eye() -> void:
 					if not ids.has("stool_dressing"):
 						wrong.append("%s/%s dressing table with no stool" % [room, style])
 	check(wrong.is_empty(), "in %d kitchens and every other planned room: the sink and the radiator under the window, a stool at every piano and dressing table %s" % [int(seen["kitchens"]), str(wrong.slice(0, 4))])
+	for k in range(60):                                                                  # a dressing table and its stool need ~65 px of wall: at 240 they are the minority of adult bedrooms, so look at enough of them
+		var adult := FurniturePlanner.plan("bedroom", "adult", 880000 + k * 53, {"window": "left" if k % 2 == 0 else "right"})
+		if not adult.is_empty() and not bool(adult["fallback"]):
+			for it in adult["items"]:
+				if String(it["id"]) == "dressing_table":
+					seen["dressing"] += 1
+	for k in range(60):                                                                  # a piano is the widest piece: at 240 the 8-seed sweep above deals it only twice, so look at enough parlours (and check its stool in every one)
+		var parlour := FurniturePlanner.plan("living_room", "parlour", 990000 + k * 41, {"window": "left" if k % 2 == 0 else "right"})
+		if not parlour.is_empty() and not bool(parlour["fallback"]):
+			var ids2 := {}
+			for it in parlour["items"]:
+				ids2[String(it["id"])] = true
+			if ids2.has("piano_upright"):
+				seen["piano"] += 1
+				if not ids2.has("stool_piano"):
+					wrong.append("living_room/parlour piano with no stool (seed %d)" % (990000 + k * 41))
+	check(wrong.is_empty(), "…and no parlour dealt a piano without its stool %s" % str(wrong.slice(0, 4)))
 	check(int(seen["radiator"]) > 5 and int(seen["piano"]) > 2 and int(seen["dressing"]) > 2, "…and they really were dealt (%d radiators, %d sinks, %d pianos, %d dressing tables)" % [int(seen["radiator"]), int(seen["sink"]), int(seen["piano"]), int(seen["dressing"])])
 	check(int(seen["fallback"]) <= 2, "…without kitchens falling back to the hand-set layout (%d of %d)" % [int(seen["fallback"]), int(seen["kitchens"])])
 
@@ -468,7 +486,7 @@ func _violations(pl: Dictionary, side: String = "left") -> String:
 
 func _test_rules_can_fail() -> void:
 	print("[each rule fails on a plan that breaks it]")
-	var ok := _plan_of("adult", [["bed_wood", "l_sage", 110, 115], ["wardrobe_wood", "walnut", 256, 106]])
+	var ok := _plan_of("adult", [["bed_wood", "l_sage", 20, 115], ["wardrobe_wood", "walnut", 176, 106]])
 	check(FurniturePlanner.validate(ok, {"window": "left"}).is_empty(), "a sane layout passes (left window) %s" % str(FurniturePlanner.validate(ok, {"window": "left"})))
 	var win := _plan_of("adult", [["wardrobe_wood", "walnut", 60, 106]])
 	check("window" in _violations(win, "left"), "a wardrobe standing in front of the left window is refused")
@@ -819,7 +837,7 @@ func _test_reach() -> void:
 	check(unreachable == 0 and spots > 100, "every set-back node of the planned rooms is within arm's length (50 px) of its spot's centre (%d spots, %d out of reach)" % [spots, unreachable])
 	var high_node := _plan_of("adult", [["wardrobe_wood", "walnut", 120, 90]])
 	check("out of reach" in _violations(high_node, "right"), "a piece whose node would hang above the reach line is refused")
-	check(FurniturePlanner.validate(_plan_of("adult", [["wardrobe_wood", "walnut", 120, 106]]), {"window": "right"}).is_empty(), "…and the same wardrobe at its proper height passes")
+	check(FurniturePlanner.validate(_plan_of("adult", [["wardrobe_wood", "walnut", 80, 106]]), {"window": "right"}).is_empty(), "…and the same wardrobe at its proper height passes")
 	var tall := _plan_of("adult", [["wardrobe_wood", "walnut", 120, 106], ["suitcase", "tan", 123, 34, "wall"]])
 	check(FurniturePlanner.validate(tall, {"window": "left"}).is_empty(), "a suitcase on a wardrobe is scenery and passes (it has no node to strand)")
 
@@ -1262,6 +1280,7 @@ func _test_bathroom() -> void:
 			var toilet := false
 			var basin := false
 			var bath := false
+			var shower := false
 			var washer := false
 			for it in pl["items"]:
 				var tags: Array = FurniturePlanner.piece(String(it["id"]))["tags"]
@@ -1273,17 +1292,19 @@ func _test_bathroom() -> void:
 					basin = true
 				if "bath" in tags:
 					bath = true
+				if "shower" in tags:
+					shower = true
 			if not toilet:
 				no_toilet += 1
 			if not basin and style != "wetroom":                        # the squalid wetroom may have lost its basin (it has its washing machine instead)
 				no_basin += 1
 			if style == "wetroom" and not washer:
 				no_washer += 1
-			if not bath:
+			if not bath and not shower:
 				no_bath += 1
 	check(no_toilet <= rooms / 25, "a bathroom has its toilet (%d of %d without)" % [no_toilet, rooms])
 	check(no_basin <= rooms / 25, "…and its basin (%d without)" % no_basin)
-	check(no_bath == 0, "…and always the bath it is built round (%d without)" % no_bath)
+	check(no_bath == 0, "…and always the bath (or walk-in shower) it is built round (%d without)" % no_bath)
 	check(no_washer == 0, "…and the wetroom always has its washing machine (%d without)" % no_washer)
 	var rules: Dictionary = FurniturePlanner.data().get("rules", {}).get("tag_rooms", {})
 	check(rules.get("toilet", []) == ["bathroom"], "a toilet is a bathroom thing, only")

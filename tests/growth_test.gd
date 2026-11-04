@@ -1,5 +1,7 @@
 extends Node
 
+const MG := preload("res://scripts/module_geo.gd")        # the module width (docs/MODULE_WIDTH.md)
+
 # OVERGROWTH — the building changing (owner round 26). How much (depth × run), where it grows in a
 # corridor, that it only ever adds, that fire wins, and that what moves sways.
 # Run:  godot --headless res://tests/growth_test.tscn
@@ -269,7 +271,7 @@ func _test_rooms() -> void:
 	for a in arts:
 		var m: Dictionary = RG.map_for(a)
 		for k in ["up_floor", "up_wall", "down_ceil"]:
-			if not (m.get(k) is Array) or (m[k] as Array).size() != 320:
+			if not (m.get(k) is Array) or (m[k] as Array).size() != MG.WIDTH:
 				bad_map.append(a + ":" + k)
 	check(bad_map.is_empty(), "all 30 module variants carry a growth map %s" % str(bad_map.slice(0, 4)))
 	# furniture really shows up as blocked columns: not every column of every room is wide open
@@ -309,12 +311,12 @@ func _test_rooms() -> void:
 			for d in p3:
 				var tex: Texture2D = RG._tex(d["name"])
 				var sz := tex.get_size()
-				if d["pos"].x < RG.MARGIN - 1 or d["pos"].x + sz.x > 320 - RG.MARGIN + 1:
+				if d["pos"].x < RG.MARGIN - 1 or d["pos"].x + sz.x > MG.WIDTH - RG.MARGIN + 1:
 					margin = false
 				var sky: Array = m.get(RG.FIT.get(d["kind"], "up_floor"), [])
 				if d["kind"] == "potted":
 					sky = m["up_floor"]
-				if sky.size() == 320:
+				if sky.size() == MG.WIDTH:
 					# ivy / vines / moss / fungus need the full height bare; a standing plant its footing
 					var need: int = int(sz.y * 0.75) - 1 if d["kind"] in ["creeper", "hang"] else (int(sz.y) - 1 if d["kind"] in ["moss", "fungus"] else RG.FOOTING)
 					if RG.clear_over(sky, int(d["pos"].x), int(sz.x)) < need:

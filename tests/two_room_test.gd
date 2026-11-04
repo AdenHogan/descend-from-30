@@ -1,4 +1,5 @@
 extends Node
+const ModuleGeo := preload("res://scripts/module_geo.gd")        # the module width (docs/MODULE_WIDTH.md)
 
 # TWO-ROOM FLATS (owner round 49f: "I like the idea of two room apartments mixed among the three room seeds, so the building has more variety").
 #   • about three flats in ten have two rooms, chosen by the seed and the flat's number alone — not by the run, so a flat is the same size all three runs;
@@ -130,7 +131,7 @@ func _test_the_rules() -> void:
 			a3 = id
 		if WorldState.get_apartment_layout(id).size() == 2 and a2 == "":
 			a2 = id
-	check(a3 != "" and a2 != "" and is_equal_approx(WorldState.flat_x_hi(a3), 1030.0) and is_equal_approx(WorldState.flat_x_hi(a2), 710.0), "the dead's range ends at 1030 in a three-room flat and 710 in a two-room one")
+	check(a3 != "" and a2 != "" and is_equal_approx(WorldState.flat_x_hi(a3), ModuleGeo.right_x(3) - 43.0) and is_equal_approx(WorldState.flat_x_hi(a2), ModuleGeo.right_x(2) - 43.0), "the dead's range ends 43 px inside the right wall: %.0f in a three-room flat and %.0f in a two-room one" % [ModuleGeo.right_x(3) - 43.0, ModuleGeo.right_x(2) - 43.0])
 
 
 ## The dead are dealt for a three-room flat; a two-room flat gets that count x 2/3 (rounded, never below one) so it is not crowded for being shorter (owner round 49f).

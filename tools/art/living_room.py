@@ -487,21 +487,20 @@ def build(c=None):
     clock(c)
     floor(c)
     with flat_piece(c):                                   # the rug lies flat (tools/art/nest.py)
-        shifted(c, rug, -8, -6)
+        shifted(c, rug, -8, 8)
     from pixlib import setback
     # 3px left of where it stood flat: its side panel now reaches toward the room, clear of window L
-    setback(c, lambda l: shifted(l, bookshelf, 0, -3), depth=4, top=50, x_range=(9, 45))
+    setback(c, lambda l: shifted(l, bookshelf, 0, 34), depth=4, top=50, x_range=(46, 82))      # the module is 240 wide (docs/MODULE_WIDTH.md): the bookshelf moves in from the edge
     # EVEN SPACING (owner round 13b — "good even spacing across the modules is essential for our
     # scavenge nodes"): bookshelf | sofa | coffee table | armchair turned back to the sofa | drawers,
     # one piece every ~55px, nodes spread the whole width (no lamp / plant crowding the right end).
-    shifted(c, sofa, -10, -18)
-    setback(c, lambda l: shifted(l, chest_of_drawers, 0, 6), depth=5, top=68)
-    shifted(c, coffee_table, 0, -26)
+    shifted(c, sofa, -10, -4)
+    shifted(c, coffee_table, 0, -12)
     import chair3d as C3                  # an oxblood club chair across the table, turned to the sofa
-    C3.armchair(c, 238, 118, 40, {'fab': hexc('7a302b'), 'fab_lt': hexc('8e3a33'), 'wood': hexc('3a2618')},
+    C3.armchair(c, 252, 118, 40, {'fab': hexc('7a302b'), 'fab_lt': hexc('8e3a33'), 'wood': hexc('3a2618')},
                 style='club', plan={2: 'blood', 3: 'tipped'}, key='living_a')
     import furn as F
-    F.pendant(c, 168, 22, 'rose')          # a pendant over the sofa and table (clear of the picture + clock)
+    F.pendant(c, 164, 22, 'rose')          # a pendant over the sofa and table (clear of the picture + clock)
     return c
 
 
@@ -510,13 +509,12 @@ def bare(c):
     decay(c)
 
 
-ANCHORS = [('anchor_left_bookshelf_upper', 19, 58, 'bp'), ('anchor_left_bookshelf_lower', 32, 86, 'bp'),
-           ('anchor_centre_sofaleft', 96, 103, ''), ('anchor_centre_sofaright', 131, 101, ''),
-           ('anchor_centre_coffeetable', 188, 98, ''), ('anchor_right_chair', 281, 78, 'bp'),
-           ('anchor_living_armchair', 238, 104, '')]
+ANCHORS = [('anchor_left_bookshelf_upper', 56, 58, 'bp'), ('anchor_left_bookshelf_lower', 69, 86, 'bp'),
+           ('anchor_centre_sofaleft', 110, 103, ''), ('anchor_centre_sofaright', 145, 101, ''),
+           ('anchor_centre_coffeetable', 202, 98, ''), ('anchor_living_armchair', 252, 104, '')]
 
 
 if __name__ == '__main__':
     import chair3d
     finish_module('living_room', 'living_room', 7, bare, floor, build, ANCHORS,
-                  per_run=lambda r: setattr(chair3d, 'RUN', r))
+                  per_run=lambda r: setattr(chair3d, 'RUN', r), window='R')

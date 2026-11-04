@@ -1,5 +1,7 @@
 extends Node
 
+const MG := preload("res://scripts/module_geo.gd")        # the module width (docs/MODULE_WIDTH.md)
+
 # Headless test for balcony generation (THREE_RUN_ARC balcony descent, Phase 2).
 # Run:  godot --headless res://tests/balcony_test.tscn
 # Covers the column-continuity seed and the layout-conform rule. The descent
@@ -471,7 +473,7 @@ func _test_balcony_geometry() -> void:
 	if imgs[0] == null:
 		return
 	var im: Image = imgs[0]
-	check(im.get_width() == 320 and im.get_height() == 144, "a full module layer (320 x 144)")
+	check(im.get_width() == MG.WIDTH and im.get_height() == 144, "a full module layer (%d x 144)" % MG.WIDTH)
 	check(im.get_pixel(cx, 4).a == 0.0, "above the doorway it's the room's own wall (transparent)")
 	check(im.get_pixel(cx, int(BalconyGeo.THRESHOLD_Y) - 224).a == 1.0, "the sill sits on the wall/floor seam")
 	check(im.get_pixel(cx, int(BalconyGeo.THRESHOLD_Y) - 224 + 6).a == 0.0, "…and the room's floor shows below it")

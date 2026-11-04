@@ -161,13 +161,16 @@ def mirror_cabinet(c, x0, y0, x1, y1, frame, frame_out, open_door=True):
     top_base, mid_base, low_base = shelves[0] - 1, shelves[1] - 1, iy1
     _bottle(c, ix0 + 2, top_base, 7, hexc('c8562e'), hexc('f4f2ec'))                # top shelf: an orange pill bottle, a tin, a blue bottle
     _tin(c, ix0 + 7, top_base, 5, 3, hexc('d8d2c0'), hexc('9aa8b0'))
-    _bottle(c, ix0 + 14, top_base, 6, hexc('5a8ab0'), hexc('2a3a4a'))
+    if ix0 + 16 <= ix1:                                                              # (a narrow cabinet — the 240 px baked bathroom's — leaves the right-hand things out)
+        _bottle(c, ix0 + 14, top_base, 6, hexc('5a8ab0'), hexc('2a3a4a'))
     _carton(c, ix0 + 2, mid_base, 5, 6, hexc('e0d6a8'))                              # middle: a carton, a tube lying, a jar
     c.hline(ix0 + 8, ix0 + 12, mid_base, hexc('c8c4b8')); c.hline(ix0 + 8, ix0 + 12, mid_base - 1, hexc('ece6d6')); c.put(ix0 + 13, mid_base - 1, hexc('3a7ab0')); c.put(ix0 + 13, mid_base, hexc('3a7ab0'))
-    _tin(c, ix0 + 15, mid_base, 5, 4, hexc('6a9a82'), hexc('d8d2c0'))
+    if ix0 + 19 <= ix1:
+        _tin(c, ix0 + 15, mid_base, 5, 4, hexc('6a9a82'), hexc('d8d2c0'))
     c.rect(ix0 + 2, low_base - 3, ix0 + 9, low_base, hexc('d9c38a'))               # bottom: a folded flannel and a roll of plasters
     c.hline(ix0 + 2, ix0 + 9, low_base - 3, hexc('ece0b0')); c.hline(ix0 + 2, ix0 + 9, low_base - 1, shade(hexc('d9c38a'), 0.8))
-    _tin(c, ix0 + 12, low_base, 4, 3, hexc('b0b4b8'), hexc('d84a4a'))
+    if ix0 + 16 <= ix1:
+        _tin(c, ix0 + 12, low_base, 4, 3, hexc('b0b4b8'), hexc('d84a4a'))
     if open_door:
         sgn = -1 if open_door == 'left' else 1
         hx = x0 if sgn < 0 else x1                                                  # the hinge edge
@@ -343,30 +346,37 @@ def _ell_half_widths(rx, ry):
     return {dy: int(round(rx * math.sqrt(max(0.0, 1.0 - (dy / float(ry)) ** 2)))) for dy in range(-ry, ry + 1)}
 
 
+BASIN_HALF = 9.0           # the basin's half-width in WALL units: a classic RECTANGULAR basin ~20 px across (owner: "they look like giant toilet bowls… a classic basin, rectangular, not oval, not as wide")
+BASIN_D0, BASIN_D1 = 3.0, 15.0
+
+
+def _basin_geo(wcx, rim=70):
+    return S3.ell_geo(wcx, rim, BASIN_D0, BASIN_D1, BASIN_HALF)
+
+
 def basin_axis(wcx, rim=70):
-    """THE screen column a basin built at wall x `wcx` is symmetric about: its rim's centre (10 px out from the wall). Everything of the basin —
-    pedestal, bowl, rim, tap, deck — is built about this one column, so both sides are the same by construction."""
-    return int(round(S3.ell_geo(wcx, rim, 1.0, 19.0, 15.0)[0]))
+    """THE screen column a basin built at wall x `wcx` is symmetric about: the centre of its slab. Everything of the basin — column, slab, rim, tap, deck — is built about this one
+    column, so both sides are the same by construction."""
+    return int(round(_basin_geo(wcx, rim)[0]))
 
 
 def basin_rows(wcx, rim=70):
-    """The rows and columns a basin at wall x `wcx` is built on (`basin3d` and tools/art/symmetry_audit.py both read them): the axis `sx`, the rim ellipse's centre row `ry` and
-    half-sizes `erx` / `ery`, its back row `r_top`, front row `r_lip`, the bowl's lowest row `r_bot`, the pedestal's `foot` row and the back deck's top row `yt`."""
-    ex_, ey_, erx_, ery_ = S3.ell_geo(wcx, rim, 1.0, 19.0, 15.0)
+    """The rows and columns a basin at wall x `wcx` is built on (`basin3d` and tools/art/symmetry_audit.py both read them): the axis `sx`, the slab's centre row `ry` and half-sizes
+    `erx` / `ery` (the rim is a RECTANGLE about them), its back row `r_top`, front row `r_lip`, the underside's lowest row `r_bot`, the column's `foot` row and the back deck's top row `yt`."""
+    ex_, ey_, erx_, ery_ = _basin_geo(wcx, rim)
     ry, erx, ery = int(round(ey_)), int(round(erx_)), max(3, int(round(ery_)))
-    return dict(sx=basin_axis(wcx, rim), ry=ry, erx=erx, ery=ery, r_top=ry - ery, r_lip=ry + ery, r_bot=ry + ery + 8, foot=int(round(pp(wcx, 100, 8)[1])), yt=ry - ery - 4)
+    return dict(sx=basin_axis(wcx, rim), ry=ry, erx=erx, ery=ery, r_top=ry - ery, r_lip=ry + ery, r_bot=ry + ery + 5, foot=int(round(pp(wcx, 100, 8)[1])), yt=ry - ery - 4)
 
 
 def basin3d(c, wcx, rim=70, porc=PORC, out=PORC_OUT, tap=CHROME, pedestal=True, inside=None, drip=False, things=None):
-    """A basin coming ~18 px out from the wall, hung / stood on WALL x `wcx` (hang the mirror over the same x). (Owner round 49f, twice: "they need to be structurally looking sound on
-    both sides, no lopsidedness… that bar above is clipping, move it up a bit".) It is built about ONE column `sx` = `basin_axis(wcx)` and every outline is a symmetric integer row
-    profile, so the left and right edges of the pedestal, the bowl, the rim and the deck are mirror images; only the SHADING is lit from the left. Top to bottom: a back deck (a
-    slab the taps and the tumbler stand on, wider than the bowl by the same amount each side, wholly ABOVE the rim — it touches the rim's back edge and never crosses it), the rim
-    (a ring about the opening), the opening (far wall lit, a mid band, the floor in shade, the overflow slot and the plughole), the bowl (a round underside) and then either a pedestal
-    (a neck and a flared foot) or a P-trap and a waste pipe running back to the wall, on two iron brackets. Returns (sx, spot) — the axis and the node spot of the things on the deck."""
+    """A classic basin coming ~12 px out from the wall, hung / stood on WALL x `wcx` (hang the mirror over the same x). (Owner round 49k: "those basins are enormously wide — they look like
+    giant toilet bowls… a central column rising from the floor to hold the basin, a more classic rectangular style rather than the oval, and not as wide".) Built about ONE column `sx`
+    = `basin_axis(wcx)` from integer row profiles, so every edge is a mirror image; only the SHADING is lit from the left. Top to bottom: a back upstand (the strip the taps and the
+    tumbler stand on, a little wider than the slab, wholly ABOVE the rim), the SLAB — a rectangle seen from above, its front corners rounded a pixel, a rim two pixels thick round a
+    rectangular opening (far wall lit, the floor in shade, overflow slot, plughole) — a tapering apron under it, and then either a CENTRAL COLUMN (a collar, a straight shaft with a
+    highlight, a plinth on the floor) or a P-trap and a waste pipe running back to the wall, on two iron brackets. Returns (sx, spot) — the axis and the node spot of the things on the deck."""
     g = basin_rows(wcx, rim)
     sx, ry, erx, ery, r_top, r_lip, r_bot, foot = g['sx'], g['ry'], g['erx'], g['ery'], g['r_top'], g['r_lip'], g['r_bot'], g['foot']
-    lit, dk = shade(porc, 1.12), shade(porc, 0.78)
 
     def tone(h_, dx):
         u = dx / float(max(1, h_))
@@ -378,11 +388,11 @@ def basin3d(c, wcx, rim=70, porc=PORC, out=PORC_OUT, tap=CHROME, pedestal=True, 
             for x in range(sx - h_, sx + h_ + 1):
                 L.put(x, y, tone_fn(h_, x - sx))
 
-    # -- what hangs under a wall basin (drawn first: the bowl covers its top): a P-trap, a pipe back to the wall and down it, two iron brackets
+    # -- what hangs under a wall basin (drawn first: the slab covers its top): a P-trap, a pipe back to the wall and down it, two iron brackets
     if not pedestal:
         for side in (-1, 1):
-            bx = sx + side * 9
-            c.rect(bx - 1, r_bot - 2, bx + 1, r_bot + 4, IRON)                          # a bracket's arm under each side of the bowl, the same distance from the axis
+            bx = sx + side * (erx - 3)
+            c.rect(bx - 1, r_bot - 2, bx + 1, r_bot + 4, IRON)                          # a bracket's arm under each side of the slab, the same distance from the axis
             c.hline(bx - 1, bx + 1, r_bot + 4, shade(IRON, 1.5))
         wx = int(round(wcx))
         pipe = (shade(IRON, 1.5), IRON, shade(IRON, 0.75))                              # a 3-px pipe, lit on its left
@@ -394,12 +404,12 @@ def basin3d(c, wcx, rim=70, porc=PORC, out=PORC_OUT, tap=CHROME, pedestal=True, 
         c.rect(wx - 3, 92, wx + 3, 94, hexc('7a5232'))                                # a rust-stained joint on it
         c.hline(wx - 3, wx + 3, 92, hexc('9a6a42'))
     else:
-        c.shadow(sx, foot + 1, 10, 2, 100)
+        c.shadow(sx, foot + 1, 8, 2, 100)
 
     lay = S3.Layer()
     L = lay.c
-    # -- the back deck: ABOVE the rim, 4 rows: a lit top, a two-row front face, a dark under-edge touching the rim's back
-    dw = erx + 3
+    # -- the back upstand: ABOVE the rim, 4 rows: a lit top, a two-row front face, a dark under-edge touching the rim's back
+    dw = erx + 2
     yt = g['yt']
     for x in range(sx - dw, sx + dw + 1):
         u = (x - sx) / float(dw)
@@ -408,56 +418,51 @@ def basin3d(c, wcx, rim=70, porc=PORC, out=PORC_OUT, tap=CHROME, pedestal=True, 
         L.put(x, yt + 1, shade(porc, 1.0 * k)); L.put(x, yt + 2, shade(porc, 0.86 * k))
         L.put(x, yt + 3, shade(porc, 0.62))
 
-    # -- the pedestal (a neck with a collar under the bowl and a flared foot) — or the bowl alone on its brackets
+    # -- the central column (a collar under the apron, a straight shaft, a plinth on the floor) — or the slab alone on its brackets
     if pedestal:
-        fl = 8                                                                      # rows of flare at the foot
+        pl = 3                                                                      # rows of plinth at the foot
 
-        def hw_ped(y):
+        def hw_col(y):
             if y <= r_bot + 2:
-                return 4                                                            # the collar under the bowl
-            if y > foot - fl:
-                t = (y - (foot - fl)) / float(fl)
-                return 3 + int(round(4 * t ** 1.7))
-            return 3
-        rows(L, r_bot + 1, foot, hw_ped, tone)
-        for y in range(r_bot + 3, foot - fl):                                       # a highlight down the neck
+                return 4                                                            # the collar under the apron
+            if y > foot - pl:
+                return 6                                                            # the plinth, 13 wide
+            return 3                                                                # the shaft, 7 wide
+        rows(L, r_bot + 1, foot, hw_col, tone)
+        for y in range(r_bot + 3, foot - pl):                                       # a highlight down the shaft
             L.put(sx - 1, y, shade(porc, 1.2))
+        L.hline(sx - 6, sx + 6, foot - pl + 1, shade(porc, 1.14))                   # the plinth's lit top edge
+        L.hline(sx - 3, sx + 3, r_bot + 3, shade(porc, 0.7))                        # the shadow the collar throws on the shaft
 
-    def hw_bowl(y):
-        u = min(1.0, (y - ry) / float(r_bot - ry))
-        return 4 + int(round((erx - 4) * math.sqrt(max(0.0, 1.0 - u * u))))
-    rows(L, ry, r_bot, hw_bowl, tone)
-    for y in range(r_lip + 2, r_bot - 1):                                           # a soft highlight down the bowl's lit side
-        L.put(sx - int(round(hw_bowl(y) * 0.55)), y, shade(porc, 1.22))
+    # -- the apron: the slab's front face, tapering inward toward its underside
+    def hw_apron(y):
+        u = min(1.0, (y - r_lip) / float(max(1, r_bot - r_lip)))
+        return erx - int(round(3 * u))
+    rows(L, r_lip, r_bot, hw_apron, tone)
+    for y in range(r_lip + 1, r_bot):                                               # a soft highlight down the lit side of the apron
+        L.put(sx - int(round(hw_apron(y) * 0.6)), y, shade(porc, 1.22))
+    L.hline(sx - erx + 2, sx + erx - 2, r_lip + 1, shade(porc, 0.72))              # the shadow under the lip
 
-    # -- the rim: a ring about the opening, lit left, in shade right
-    ring = _ell_half_widths(erx, ery)
-    low = {}
-    for dy, h_ in ring.items():
-        for x in range(sx - h_, sx + h_ + 1):
+    # -- the rim: a rectangle (its front corners rounded a pixel), lit left, in shade right
+    for y in range(ry - ery, ry + ery + 1):
+        cut = 1 if y == ry + ery else 0
+        for x in range(sx - erx + cut, sx + erx - cut + 1):
             u = (x - sx) / float(max(1, erx))
-            L.put(x, ry + dy, shade(porc, 1.22) if u < -0.4 else (shade(porc, 1.1) if u < 0.25 else (shade(porc, 1.0) if u < 0.6 else shade(porc, 0.9))))
-            low[x] = max(low.get(x, -99), ry + dy)
-    for x, y in low.items():                                                         # the shadow the lip throws on the bowl under it (curved, from the ring's own front arc)
-        if y >= ry and x != sx - erx and x != sx + erx:
-            L.put(x, y + 1, shade(porc, 0.74))
-    # -- the opening
+            L.put(x, y, shade(porc, 1.22) if u < -0.4 else (shade(porc, 1.1) if u < 0.25 else (shade(porc, 1.0) if u < 0.6 else shade(porc, 0.9))))
+    # -- the opening: a rectangle inside a two-pixel rim, far wall lit, a mid band, the floor in shade
     inside = inside or shade(porc, 0.86)
-    irx, iry = erx - 3, ery - 2
-    op = _ell_half_widths(irx, iry)
-    for dy, h_ in op.items():
-        t = dy / float(iry)
-        col = shade(inside, 1.14) if t < -0.35 else (inside if t < 0.3 else shade(inside, 0.82))
-        for x in range(sx - h_, sx + h_ + 1):
+    irx = erx - 2
+    for y in range(ry - ery + 1, ry + ery):
+        t = (y - ry) / float(max(1, ery))
+        col = shade(inside, 1.14) if t < -0.4 else (inside if t < 0.35 else shade(inside, 0.8))
+        cut = 1 if y == ry + ery - 1 else 0
+        for x in range(sx - irx + cut, sx + irx - cut + 1):
             u = (x - sx) / float(max(1, irx))
-            L.put(x, ry + dy, shade(col, 1.04) if u < -0.62 else (shade(col, 0.92) if u > 0.62 else col))
-    fl_ = _ell_half_widths(max(2, int(irx * 0.5)), max(1, iry - 2))                    # the floor of the bowl, a darker oval toward the front
-    for dy, h_ in fl_.items():
-        for x in range(sx - h_, sx + h_ + 1):
-            L.put(x, ry + 1 + dy, shade(inside, 0.74))
-    L.hline(sx - 1, sx + 1, ry - iry + 1, shade(inside, 0.45))                        # the overflow slot, high on the back wall
+            L.put(x, y, shade(col, 1.04) if u < -0.62 else (shade(col, 0.92) if u > 0.62 else col))
+    L.hline(sx - 3, sx + 3, ry + ery - 2, shade(inside, 0.7))                          # the bowl's floor, a darker strip toward the front
+    L.hline(sx - 1, sx + 1, ry - ery + 1, shade(inside, 0.45))                        # the overflow slot, high on the back wall
     L.put(sx, ry + 1, shade(porc, 0.3))                                                # the plughole
-    L.hline(sx - erx + 4, sx + erx - 4, ry + ery - 1, shade(porc, 1.26))               # the lit front lip
+    L.hline(sx - erx + 3, sx + erx - 3, ry + ery, shade(porc, 1.26))                   # the lit front lip
 
     # -- taps on the deck: a mixer pillar on the axis with a spout over the bowl, and a hot and a cold cross-head the same distance either side
     base = yt + 1
@@ -468,7 +473,7 @@ def basin3d(c, wcx, rim=70, porc=PORC, out=PORC_OUT, tap=CHROME, pedestal=True, 
     L.vline(sx, base + 2, r_top + 1, shade(tap, 0.7))
     L.hline(sx - 1, sx + 1, r_top + 2, shade(tap, 0.55))                               # ... to a wider tip hanging over the bowl
     for side, dot in ((-1, hexc('c84a4a')), (1, hexc('4a7ac8'))):
-        hx = sx + side * 9
+        hx = sx + side * 7
         L.hline(hx - 1, hx + 1, base - 2, shade(tap, 1.15))
         L.vline(hx, base - 1, base, shade(tap, 0.85))
         L.put(hx, base - 3, dot)
@@ -476,9 +481,9 @@ def basin3d(c, wcx, rim=70, porc=PORC, out=PORC_OUT, tap=CHROME, pedestal=True, 
 
     spot = (sx, base)
     if things is not None:                                                         # what lives on the deck, at its left end
-        spot = rim_things(c, sx - dw + 5, yt + 1, **things)
+        spot = rim_things(c, sx - dw + 4, yt + 1, **things)
     if drip:                                                                       # a tap nobody will fix now
-        PX.anim(sx, r_top + 4, 'drip', fall=max(2, ry + 3 - (r_top + 4)), color='c8dce4')
+        PX.anim(sx, r_top + 4, 'drip', fall=max(2, ry + 2 - (r_top + 4)), color='c8dce4')
     return sx, spot
 
 
@@ -934,19 +939,19 @@ def wicker_basket(c, x0, x1, top, base):
 def a_build(c):
     a_wall(c)
     a_floor(c)
-    mirror_cabinet(c, 24, 24, 48, 54, hexc('d6d2c4'), PORC_OUT, open_door='left')   # over the tap
-    _mirror_glass(c, 'cabinet')
-    sx_, _ = basin3d(c, 36, rim=70, things={})
+    mirror_cabinet(c, 51, 24, 70, 54, hexc('d6d2c4'), PORC_OUT, open_door='left')   # over the tap
+    _mirror_glass(c, 'cabinet', dx=27)
+    sx_, _ = basin3d(c, 74, rim=74, things={})                                  # (240 px module: the washing end moved in from the edge)
     c.ellipse(sx_ - 3, 78, 2, 1, BLOOD)
-    toilet3d(c, 72)
-    toilet_roll(c, 96, 80)                                              # the roll on its holder by the cistern
+    toilet3d(c, 100)
+    toilet_roll(c, 119, 80)                                              # the roll on its holder by the cistern
     # a short roll-top bath standing out in the room on its claw feet; the hand shower on the wall
     # over it, its hose hanging down to the tap end
     x0 = 112
-    c.rect(186, 50, 187, 70, CHROME_DK)                                   # the riser + hand shower
-    c.rect(184, 48, 189, 50, CHROME)
-    c.line(187, 71, 182, 80, CHROME_DK)
-    wx0, wx1, opening = clawfoot3d(c, 150, 64, 80, PORC, PORC_LT, PORC_DK, PORC_OUT, IRON, hexc('4d5a52'),
+    c.rect(202, 50, 203, 70, CHROME_DK)                                   # the riser + hand shower
+    c.rect(200, 48, 205, 50, CHROME)
+    c.line(203, 71, 198, 80, CHROME_DK)
+    wx0, wx1, opening = clawfoot3d(c, 166, 64, 80, PORC, PORC_LT, PORC_DK, PORC_OUT, IRON, hexc('4d5a52'),
                                    water=WATER_BLUE, ripple=('r', 12), seed=11)
     tp = _P3(wx1 - 3, 80, 13)                                             # standing taps at the right end
     c.rect(tp[0] - 1, tp[1] - 6, tp[0] + 1, tp[1] - 1, CHROME)
@@ -957,14 +962,13 @@ def a_build(c):
     c.poly([(e0[0] - 2, e0[1] - 2), (e0[0] + 8, e0[1] - 3), (e0[0] + 9, e0[1] + 13), (e0[0] - 1, e0[1] + 15)], TOWELS[3])
     c.vline(e0[0] + 8, e0[1] - 2, e0[1] + 13, shade(TOWELS[3], 0.8))
     c.hline(e0[0] - 1, e0[0] + 8, e0[1] - 2, shade(TOWELS[3], 1.15))
-    c.line(152, 102, 154, 112, BLOOD)
-    setback(c, lambda l: wicker_basket(l, 198, 222, 84, 100), depth=3, top=83)   # against the wall, under the rail (its rim is part of it)
-    towel_rail(c, 232, 262, 70)
+    c.line(168, 102, 170, 112, BLOOD)
+    setback(c, lambda l: wicker_basket(l, 210, 232, 84, 100), depth=3, top=83)   # against the wall, under the rail (its rim is part of it)
     def _inside(c_):
-        mould_bloom(c_, 291, 97, 16, 7, seed=13, up=True)                # black mould along the shower's tray
-        c_.rect(278, 56, 283, 62, hexc('d7c2a0'))                        # soap on the ledge
-        c_.rect(276, 62, 285, 63, CHROME_DK)
-    shower3d(c, 274, 302, 16, shade(A_TILE, 0.95), A_GROUT, behind_glass=_inside)
+        mould_bloom(c_, 253, 97, 14, 7, seed=13, up=True)                # black mould along the shower's tray
+        c_.rect(242, 56, 247, 62, hexc('d7c2a0'))                        # soap on the ledge
+        c_.rect(240, 62, 249, 63, CHROME_DK)
+    shower3d(c, 238, 264, 16, shade(A_TILE, 0.95), A_GROUT, behind_glass=_inside)
     import furn as F
     F.flush_light(c, 130)                                               # a ceiling dome
     return c
@@ -974,10 +978,10 @@ def a_bare(c):
     a_wall(c)
 
 
-A_ANCHORS = [('anchor_basin_rim', 8, 66, ''), ('anchor_wall_sink', 27, 76, ''),
-             ('anchor_centre_toilet', 70, 92, ''), ('anchor_bath_left', 132, 88, ''),
-             ('anchor_bath_right', 168, 88, ''), ('anchor_floor_laundrybag', 210, 88, ''),
-             ('anchor_wall_shower', 298, 96, '')]
+A_ANCHORS = [('anchor_basin_rim', 58, 74, ''), ('anchor_wall_sink', 69, 79, ''),
+             ('anchor_centre_toilet', 99, 92, ''), ('anchor_bath_left', 148, 88, ''),
+             ('anchor_bath_right', 184, 88, ''), ('anchor_floor_laundrybag', 221, 88, ''),
+             ('anchor_wall_shower', 255, 96, '')]
 
 
 # ============================================================================================
@@ -1120,19 +1124,18 @@ def b_build(c):
     b_wall(c)
     b_floor(c)
     # a round mirror over the vanity's tap
-    c.ellipse(39, 38, 9.5, 9.5, hexc('9a8660'))
-    c.ellipse(39, 38, 7.5, 7.5, MIRROR)
-    c.line(34, 43, 42, 32, MIRROR_HI)
-    c.line(35, 33, 44, 42, shade(MIRROR, 0.8))                           # cracked
-    _mirror_glass(c, 'round')
-    vanity3d(c, 6, 50, 72)
-    rim_things(c, 55, 76, mug=hexc('e8a0b0'))
-    toilet3d(c, 84, porc=AVO, out=AVO_OUT, lid_up=True, seat=hexc('d9cfa8'))
-    toilet_roll(c, 106, 78)                                              # a roll on its holder by the cistern
-    mop_bucket(c, 110, 100)                                              # by the toilet, against the wall
+    c.ellipse(79, 38, 9.5, 9.5, hexc('9a8660'))
+    c.ellipse(79, 38, 7.5, 7.5, MIRROR)
+    c.line(74, 43, 82, 32, MIRROR_HI)
+    c.line(75, 33, 84, 42, shade(MIRROR, 0.8))                           # cracked
+    _mirror_glass(c, 'round', dx=40)
+    vanity3d(c, 46, 90, 72)                                              # (240 px module: the window is on the right, so the washing end can stand in from the edge)
+    rim_things(c, 95, 76, mug=hexc('e8a0b0'))
+    toilet3d(c, 126, porc=AVO, out=AVO_OUT, lid_up=True, seat=hexc('d9cfa8'))
+    toilet_roll(c, 148, 78)                                              # a roll on its holder by the cistern
     # the panelled bath along the wall, its front 20 px out, a glass screen standing on its front edge
     # at the tap end; a shaggy mat on the floor in front of it
-    x0, x1, rim = 152, 248, 78
+    x0, x1, rim = 160, 236, 78
     tx = int(round(S3.wall_x(x0, 20)))
     wx0, wx1, f = bath3d(c, x0, x1, rim, body=AVO, lit=AVO_LT, dk=AVO_DK, out=AVO_OUT, inside=hexc('5f6a34'), water=WATER_BLUE, ripple=('l', 11), seed=13)
     c.rect(tx + 4, rim - 7, tx + 6, rim - 1, CHROME)                       # taps on the wall at the left end
@@ -1154,12 +1157,11 @@ def b_build(c):
     c.hline(s0[0], s1[0], s0[1], CHROME_DK)
     c.vline(s0[0], s0[1], s1[1] - 1, CHROME_DK)
     c.line(s0[0] + 4, s1[1] - 8, s0[0] + 12, s0[1] + 8, hexc('dde6e6'))
-    c.poly([(158, 123), (226, 123), (230, 129), (154, 129)], hexc('d9a24a'))  # the mat, flat on the floor
-    c.dither(158, 124, 228, 128, hexc('b8863a'), 0.5)
-    stool_radio3d(c, 276)                                                # a radio on a stool by the bath
-    wicker_hamper3d(c, 300)                                              # the laundry hamper in the corner
+    c.poly([(166, 123), (222, 123), (226, 129), (162, 129)], hexc('d9a24a'))  # the mat, flat on the floor
+    c.dither(166, 124, 224, 128, hexc('b8863a'), 0.5)
+    stool_radio3d(c, 258)                                                # a radio on a stool by the bath
     import furn as F
-    F.flush_light(c, 120)
+    F.flush_light(c, 150)
     return c
 
 
@@ -1167,10 +1169,10 @@ def b_bare(c):
     b_wall(c)
 
 
-B_ANCHORS = [('anchor_bathroom_vanity', 24, 90, ''), ('anchor_bathroom_worktop', 53, 74, ''),
-             ('anchor_bathroom_avocado_toilet', 82, 92, ''), ('anchor_bathroom_mop_bucket', 118, 92, ''),
-             ('anchor_bathroom_bath_taps', 176, 76, ''), ('anchor_bathroom_bath_panel', 226, 106, ''),
-             ('anchor_bathroom_radio_stool', 278, 83, '')]
+B_ANCHORS = [('anchor_bathroom_vanity', 64, 90, ''), ('anchor_bathroom_worktop', 93, 74, ''),
+             ('anchor_bathroom_avocado_toilet', 124, 92, ''),
+             ('anchor_bathroom_bath_taps', 184, 76, ''), ('anchor_bathroom_bath_panel', 200, 106, ''),
+             ('anchor_bathroom_radio_stool', 260, 83, '')]
 
 
 # ============================================================================================
@@ -1240,11 +1242,12 @@ def chandelier(c, cx):
     light(cx, 18, 'chandelier')
 
 
-def _mirror_glass(c, kind):
+def _mirror_glass(c, kind, dx=0, dy=0):
     """Turn the flat mirror a baked bathroom just drew into glass with a moulding — the SAME passes the furniture library's `mirror_bath` piece applies after drawing these very fixtures
     (wall_art3d.glass_shade / convex_ring / bevel_frame), at the origin the piece uses for each kind: one drawing per thing."""
     import wall_art3d
     ox, oy = {'cabinet': (17, 24), 'round': (28, 27), 'gilt': (20, 15), 'tile': (20, 30), 'pink': (24, 19)}[kind]
+    ox, oy = ox + dx, oy + dy                                                   # (240 px module: where this room hangs its mirror)
     wall_art3d.glass_shade(c, ox, oy, 36, 36)
     if kind == 'round':
         wall_art3d.convex_ring(c, ox + 11, oy + 11, 9.5, 7.5, hexc('9a8660'))
@@ -1277,27 +1280,27 @@ def champagne(c, x0, base):
 def c_build(c):
     c_wall(c)
     c_floor(c)
-    gilt_mirror(c, 24, 20, 48, 50)                                        # over the washstand's tap
-    _mirror_glass(c, 'gilt')
-    washstand3d(c, 9, 47, 72)
+    gilt_mirror(c, 58, 20, 82, 50)                                        # over the washstand's tap
+    _mirror_glass(c, 'gilt', dx=34)
+    washstand3d(c, 47, 79, 72)                                          # (240 px module: the window is on the right, the washstand stands in from the edge)
     # a gilt trinket dish at the slab's right end, a string of pearls spilling over its lip (owner round 33: the node used to sit
     # up on the mirror, too high to reach from the walking line — it's here now, at hand height)
-    tq = _P3(S3.wall_x(47, 14), 72, 6)
+    tq = _P3(S3.wall_x(79, 14), 72, 6)
     c.ellipse(tq[0], tq[1] - 1, 4, 1.5, GOLD_OUT)
     c.ellipse(tq[0], tq[1] - 1, 3, 1, GOLD)
     c.put(tq[0] - 1, tq[1] - 2, GOLD_LT)
     for (px_, py_) in ((-2, -2), (0, -2), (2, -1), (3, 0), (4, 1), (5, 2), (5, 3)):
         c.put(tq[0] + px_, tq[1] + py_, hexc('f4efe4'))
-    toilet3d(c, 84, porc=GOLD, out=GOLD_OUT, seat=hexc('7a1f2a'), lever=GOLD_LT, crest=hexc('7a1f2a'))   # a red velvet seat
+    toilet3d(c, 108, porc=GOLD, out=GOLD_OUT, seat=hexc('7a1f2a'), lever=GOLD_LT, crest=hexc('7a1f2a'))   # a red velvet seat
     chandelier(c, 160)
     # a leopard rug flat on the floor under the tub, then the GOLD roll-top out in the room
-    rug = S3.rrect_plan(118, 202, 1, 27, 6, 4)
+    rug = S3.rrect_plan(126, 200, 1, 27, 6, 4)
     with flat_piece(c):
         c.poly([S3.P(x, 100, d) for (x, d) in rug], hexc('c89a4a'))
-        for (sx, sd) in ((124, 6), (138, 20), (150, 9), (166, 24), (182, 12), (194, 22), (130, 13), (176, 4), (158, 16)):
+        for (sx, sd) in ((132, 6), (146, 20), (158, 9), (174, 24), (188, 12), (196, 22), (138, 13), (180, 4), (166, 16)):
             q = S3.P(sx, 100, sd)
             c.rect(q[0], q[1], q[0] + 2, q[1] + 1, hexc('4a3220'))
-    wx0, wx1, opening = clawfoot3d(c, 160, 62, 82, GOLD, GOLD_LT, GOLD_DK, GOLD_OUT, GOLD_DK, hexc('6a5418'),
+    wx0, wx1, opening = clawfoot3d(c, 166, 62, 82, GOLD, GOLD_LT, GOLD_DK, GOLD_OUT, GOLD_DK, hexc('6a5418'),
                                    water=mix(WATER_BLUE, hexc('d8e8f4'), 0.35), ripple=('r', 14), seed=12)
     for (bx, bd) in ((wx0 + 12, 8), (wx0 + 20, 12), (wx0 + 28, 7), (wx0 + 36, 13), (wx0 + 44, 9), (wx1 - 12, 11)):   # bubbles heaped up
         q = S3.P(bx, 81, bd)
@@ -1305,13 +1308,13 @@ def c_build(c):
         c.put(q[0] - 1, q[1] - 2, hexc('ffffff'))
     dk_ = S3.P(wx1 - 10, 81, 15)
     rubber_duck(c, dk_[0] - 6, dk_[1] - 8)                                # a rubber duck, afloat in the bubbles
-    champagne(c, 205, 118)                                                # on its stand by the tub
+    champagne(c, 211, 118)                                                # on its stand by the tub
     # a potted palm (right of the R window box) + a gold towel stand
-    c.shadow(292, 100, 10, 2, 90)
-    c.poly([(286, 86), (298, 86), (296, 99), (288, 99)], GOLD)
-    for (tx, ty) in ((280, 58), (286, 50), (294, 48), (304, 56), (300, 66), (282, 68)):
-        c.line(292, 86, tx, ty, hexc('4a6a34'))
-        c.line(292, 85, tx + 1, ty + 2, hexc('5e8240'))
+    c.shadow(264, 100, 10, 2, 90)
+    c.poly([(258, 86), (270, 86), (268, 99), (260, 99)], GOLD)
+    for (tx, ty) in ((252, 58), (258, 50), (266, 48), (274, 56), (272, 66), (254, 68)):
+        c.line(264, 86, tx, ty, hexc('4a6a34'))
+        c.line(264, 85, tx + 1, ty + 2, hexc('5e8240'))
     c.rect(238, 67, 239, 99, GOLD_DK)
     c.hline(232, 245, 99, GOLD_DK)
     c.hline(232, 245, 67, GOLD)  # (the rail tops out under the R window box)
@@ -1323,10 +1326,10 @@ def c_bare(c):
     c_wall(c)
 
 
-C_ANCHORS = [('anchor_bathroom_trinket_dish', 55, 75, ''), ('anchor_bathroom_washstand', 30, 80, ''),
-             ('anchor_bathroom_gold_throne', 82, 92, ''), ('anchor_bathroom_gold_tub', 142, 92, ''),
-             ('anchor_bathroom_bubbles', 176, 88, ''), ('anchor_bathroom_champagne', 212, 96, ''),
-             ('anchor_bathroom_towel_stand', 239, 78, '')]
+C_ANCHORS = [('anchor_bathroom_trinket_dish', 87, 75, ''), ('anchor_bathroom_washstand', 62, 80, ''),
+             ('anchor_bathroom_gold_throne', 108, 92, ''), ('anchor_bathroom_gold_tub', 148, 92, ''),
+             ('anchor_bathroom_bubbles', 182, 88, ''), ('anchor_bathroom_champagne', 222, 96, ''),
+             ('anchor_bathroom_towel_stand', 245, 78, '')]
 
 
 # ============================================================================================
@@ -1636,25 +1639,25 @@ def d_build(c):
     d_wall(c)
     d_floor(c)
     # a cracked mirror tile over a small basin on iron brackets — the basin comes out to us
-    c.box(25, 30, 49, 52, hexc('7a8480'), hexc('3a403e'))                 # over the tap
-    c.rect(27, 32, 47, 50, MIRROR)
-    c.line(29, 48, 44, 34, MIRROR_HI)
-    c.line(34, 34, 40, 48, shade(MIRROR, 0.75)); c.line(40, 48, 45, 42, shade(MIRROR, 0.75))
-    _mirror_glass(c, 'tile')
-    basin3d(c, 37, rim=66, pedestal=False, inside=hexc('b9b09a'), drip=True)   # (its own trap + waste pipe run back to the wall)
-    grime_patch(c, 18, 69, 36, 72, hexc('8a7a5a'), seed=31, cover=0.55)  # grime in the basin
-    mould_bloom(c, 62, 92, 12, 22, seed=14, up=True)                    # mould creeping up behind the pan
-    standing_rolls(c, 97, 102)                                           # spare rolls by the pan
-    toilet3d(c, 70, lid_up=True, seat=hexc('b9b4a4'))
+    c.box(46, 30, 70, 52, hexc('7a8480'), hexc('3a403e'))                 # over the tap
+    c.rect(48, 32, 68, 50, MIRROR)
+    c.line(50, 48, 65, 34, MIRROR_HI)
+    c.line(55, 34, 61, 48, shade(MIRROR, 0.75)); c.line(61, 48, 66, 42, shade(MIRROR, 0.75))
+    _mirror_glass(c, 'tile', dx=21)
+    basin3d(c, 75, rim=74, pedestal=False, inside=hexc('b9b09a'), drip=True)   # (its own trap + waste pipe run back to the wall)
+    grime_patch(c, 55, 77, 73, 80, hexc('8a7a5a'), seed=31, cover=0.55)  # grime in the basin
+    mould_bloom(c, 93, 92, 12, 22, seed=14, up=True)                    # mould creeping up behind the pan
+    standing_rolls(c, 122, 102)                                           # spare rolls by the pan
+    toilet3d(c, 101, lid_up=True, seat=hexc('b9b4a4'))
     # the bath along the wall, its front 20 px out; the curtain hangs from its rail INSIDE the tub,
     # drawn nearly shut — one corner pulled aside, the dark tub behind
-    x0, x1, rim = 110, 200, 80
+    x0, x1, rim = 130, 206, 80                                                # (240 px module: a shorter tub)
     wx0, wx1, f = bath3d(c, x0, x1, rim, inside=hexc('8a8a70'), water=WATER_BLUE, ripple=('l', 14), seed=14)
     d_r, rail_y = 11, 13
     shower_rail(c, wx0, wx1, rail_y, d_r)
     cur = hexc('c9c48a')
     xa, xb, top, hem = curtain_in_tub(c, wx0, wx1, rim, d_r, rail_y, cur, wx0 + 13, wx1, wx0 + 13)
-    for (fx, fy, fl_) in ((xa + 14, top + 10, False), (xa + 40, top + 6, True), (xa + 26, top + 26, True), (xa + 52, top + 28, False)):   # ducks printed on it
+    for (fx, fy, fl_) in ((xa + 10, top + 10, False), (xa + 30, top + 6, True), (xa + 20, top + 26, True), (xa + 42, top + 28, False)):   # ducks printed on it
         rubber_duck(c, fx, fy, printed=True, flip=fl_, fold=(xa, 7))
     grime_patch(c, xa, hem - 20, xb, hem - 8, hexc('7a7a4a'), seed=32, cover=0.28)   # grime low down
     c.line(xa + 3, top + 40, xa + 9, top + 58, BLOOD)                   # a smear down the plastic
@@ -1665,11 +1668,9 @@ def d_build(c):
     c.box(fl[0] + 4, fl[1] + 5, fbr[0] - 4, fbr[1] - 4, PORC, PORC_DK)       # the bath panel
     c.hline(fl[0] + 5, fbr[0] - 5, fl[1] + 6, PORC_LT)
     grime_patch(c, fl[0] + 1, fbr[1] - 6, fbr[0] - 1, fbr[1] - 1, hexc('8a8a70'), seed=33, cover=0.3)   # scum at its foot
-    c.line(150, fl[1] + 8, 152, fl[1] + 18, BLOOD)
-    # the washing machine standing out on the right, the wash dragged out onto the floor; a laundry
-    # basket against the wall beside it (loose things go with what they belong to)
-    laundry_basket3d(c, 248, d_c=7)
-    cx_, cy_, fl, fr, fbr = washing_machine3d(c, 272, top=68)
+    c.line(170, fl[1] + 8, 172, fl[1] + 18, BLOOD)
+    # the washing machine standing out on the right, the wash dragged out onto the floor (240 px module: the laundry basket that stood beside it is gone)
+    cx_, cy_, fl, fr, fbr = washing_machine3d(c, 244, top=68)
     machine_laundry3d(c, cx_, cy_, fbr[1], int(round((fr[0] - fl[0]) * 0.40)))
     import furn as F
     F.bare_bulb(c, 220, 22)
@@ -1680,10 +1681,10 @@ def d_bare(c):
     d_wall(c)
 
 
-D_ANCHORS = [('anchor_bathroom_small_sink', 28, 72, ''), ('anchor_bathroom_grim_toilet', 70, 92, ''),
-             ('anchor_bathroom_toilet_rolls', 101, 96, ''), ('anchor_bathroom_behind_curtain', 158, 70, ''),
-             ('anchor_bathroom_curtain_corner', 124, 88, ''), ('anchor_bathroom_laundry_basket', 248, 90, ''),
-             ('anchor_bathroom_washer', 290, 86, '')]
+D_ANCHORS = [('anchor_bathroom_small_sink', 65, 78, ''), ('anchor_bathroom_grim_toilet', 101, 92, ''),
+             ('anchor_bathroom_toilet_rolls', 125, 96, ''), ('anchor_bathroom_behind_curtain', 172, 70, ''),
+             ('anchor_bathroom_curtain_corner', 146, 88, ''),
+             ('anchor_bathroom_washer', 262, 86, '')]
 
 
 # ============================================================================================
@@ -1732,16 +1733,16 @@ def e_build(c):
     e_wall(c)
     e_floor(c)
     # a round mirror with a pink frame over the pink basin's tap
-    c.ellipse(37, 32, 11, 11, PINK_DK)
-    c.ellipse(37, 32, 9, 9, MIRROR)
-    c.line(32, 38, 41, 25, MIRROR_HI)
-    _mirror_glass(c, 'pink')
-    basin3d(c, 37, rim=70, porc=PINK, out=PINK_OUT, things=dict(mug=hexc('e0d9b8'), bottle=hexc('c07a3a')))
-    toilet3d(c, 84, porc=PINK, out=PINK_OUT, seat=hexc('26262a'))
-    toilet_roll(c, 106, 78, hexc('efe8d8'))
+    c.ellipse(60, 32, 11, 11, PINK_DK)
+    c.ellipse(60, 32, 9, 9, MIRROR)
+    c.line(55, 38, 64, 25, MIRROR_HI)
+    _mirror_glass(c, 'pink', dx=23)
+    basin3d(c, 75, rim=74, porc=PINK, out=PINK_OUT, things=dict(mug=hexc('e0d9b8'), bottle=hexc('c07a3a')))
+    toilet3d(c, 104, porc=PINK, out=PINK_OUT, seat=hexc('26262a'))
+    toilet_roll(c, 126, 78, hexc('efe8d8'))
     # a short pink tub on a tiled plinth, its front 20 px out; the curtain drawn back to the right end,
     # hanging from its rail INSIDE the tub
-    x0, x1, rim = 118, 206, 80
+    x0, x1, rim = 130, 200, 80                                                # (240 px module: a shorter tub; the window is on the right)
     wx0, wx1, f = bath3d(c, x0, x1, rim, body=PINK, lit=PINK_LT, dk=shade(PINK, 0.8), out=PINK_OUT, water=WATER_BLUE, ripple=('l', 10), seed=15,
                          inside=hexc('b07a86'))
     tx = int(round(wx0))
@@ -1760,33 +1761,29 @@ def e_build(c):
         c.hline(fl[0] + 1, fbr[0] - 1, y, E_TUB_GROUT)
     for x in range(fl[0] + 6, fbr[0], 8):
         c.vline(x, fl[1] + 2, fbr[1] - 1, E_TUB_GROUT)
-    c.line(154, fl[1] + 8, 156, fl[1] + 18, BLOOD)
+    c.line(166, fl[1] + 8, 168, fl[1] + 18, BLOOD)
     # a pink fluffy bath mat on the floor in front of it
-    c.poly([(132, 123), (186, 123), (189, 129), (129, 129)], PINK_LT)
-    c.dither(132, 124, 186, 128, PINK, 0.5)
+    c.poly([(144, 123), (188, 123), (191, 129), (141, 129)], PINK_LT)
+    c.dither(144, 124, 188, 128, PINK, 0.5)
     def _hamper(c):
-        c.shadow(222, 100, 12, 2, 100)
-        c.poly([(210, 81), (234, 81), (232, 100), (212, 100)], hexc('efe8d8'))
+        c.shadow(219, 100, 11, 2, 100)
+        c.poly([(209, 81), (229, 81), (227, 100), (211, 100)], hexc('efe8d8'))
         for y in range(84, 100, 3):
-            c.hline(211, 233, y, hexc('d0c8b4'))
-        c.rect(208, 78, 236, 81, PINK_DK)
-        c.poly([(214, 78), (220, 72), (224, 78)], TOWELS[1])
-    setback(c, _hamper, depth=3, top=78, x_range=(208, 236))
-    # a vanity stool against the wall + the linen cupboard on the right
-    c.shadow(252, 100, 8, 1, 90)
-    c.ellipse(252, 84, 8, 3, PINK)
-    for lx in (246, 258):
-        c.vline(lx, 86, 99, CHROME_DK)
-    setback(c, _linen_cupboard, depth=5, top=44, x_range=(277, 309), rake=1.0)
+            c.hline(210, 228, y, hexc('d0c8b4'))
+        c.rect(207, 78, 231, 81, PINK_DK)
+        c.poly([(212, 78), (218, 72), (222, 78)], TOWELS[1])
+    setback(c, _hamper, depth=3, top=78, x_range=(207, 231))
+    # the linen cupboard on the right (240 px module: the vanity stool that stood beside it is gone)
+    setback(c, _linen_cupboard, depth=5, top=44, x_range=(241, 271), rake=1.0)
     import furn as F
-    F.flush_light(c, 100)
+    F.flush_light(c, 120)
     return c
 
 
 def _linen_cupboard(c):
-    x0, x1, top = 278, 308, 46
+    x0, x1, top = 242, 270, 46
     body, body_dk, trim = hexc('efe8d8'), hexc('c9c0ae'), PINK_DK
-    c.shadow(293, 100, 17, 2, 100)
+    c.shadow(256, 100, 16, 2, 100)
     c.rect(x0 - 1, top - 2, x1 + 1, top, trim)                                  # the cornice
     c.hline(x0 - 1, x1 + 1, top - 2, shade(trim, 1.2))
     c.box(x0, top + 1, x1, 95, body, PINK_OUT)
@@ -1815,10 +1812,14 @@ def e_bare(c):
     e_wall(c)
 
 
-E_ANCHORS = [('anchor_bathroom_basin_rim', 9, 66, ''), ('anchor_wall_sink', 28, 76, ''),
-             ('anchor_centre_toilet', 82, 92, ''), ('anchor_bathroom_pink_tub', 160, 92, ''),
-             ('anchor_bathroom_hamper', 222, 88, ''), ('anchor_bathroom_pink_taps', 130, 76, ''),
-             ('anchor_bathroom_frosted_cabinet', 292, 82, 'bp')]
+E_ANCHORS = [('anchor_bathroom_basin_rim', 58, 70, ''), ('anchor_wall_sink', 67, 80, ''),
+             ('anchor_centre_toilet', 104, 92, ''), ('anchor_bathroom_pink_tub', 166, 92, ''),
+             ('anchor_bathroom_hamper', 219, 88, ''), ('anchor_bathroom_pink_taps', 140, 76, ''),
+             ('anchor_bathroom_frosted_cabinet', 256, 82, 'bp')]
+
+
+# which wall's window box each variant keeps bare (docs/MODULE_WIDTH.md): the room's own end that has no fixture standing in the window's rows
+WINDOW_SIDE = {'a': 'L', 'b': 'R', 'c': 'R', 'd': 'L', 'e': 'L'}
 
 
 VARIANTS = {
@@ -1833,4 +1834,4 @@ VARIANTS = {
 if __name__ == '__main__':
     for v in (sys.argv[1:] or sorted(VARIANTS)):
         name, seed, bare, floor, build, anchors = VARIANTS[v]
-        finish_module(name, 'bathroom', seed, bare, floor, build, anchors)
+        finish_module(name, 'bathroom', seed, bare, floor, build, anchors, window=WINDOW_SIDE.get(v, 'L'))

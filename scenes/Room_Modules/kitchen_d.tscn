@@ -6,13 +6,13 @@
 [node name="Node2D" type="Node2D"]
 
 [node name="ColorRect" type="ColorRect" parent="."]
-offset_right = 320.0
+offset_right = 240.0
 offset_bottom = 144.0
 color = Color(0.4, 0.4, 0.4, 1)
 
 [node name="Label" type="Label" parent="ColorRect"]
 layout_mode = 0
-offset_right = 318.0
+offset_right = 238.0
 offset_bottom = 100.0
 theme_override_font_sizes/font_size = 32
 visible = false
@@ -26,45 +26,45 @@ texture = ExtResource("1_art")
 centered = false
 
 [node name="anchor_centre_fridge" type="Marker2D" parent="."]
-position = Vector2(21, 68)
+position = Vector2(21, 65)
 metadata/back_plane = true
 
 [node name="anchor_kitchen_camp_table" type="Marker2D" parent="."]
-position = Vector2(88, 95)
+position = Vector2(76, 106)
 
 [node name="anchor_kitchen_dishes" type="Marker2D" parent="."]
-position = Vector2(146, 75)
+position = Vector2(106, 75)
 metadata/back_plane = true
 
 [node name="anchor_kitchen_student_cupboard" type="Marker2D" parent="."]
-position = Vector2(186, 95)
+position = Vector2(146, 95)
 metadata/back_plane = true
 
 [node name="anchor_kitchen_microwave" type="Marker2D" parent="."]
-position = Vector2(202, 69)
+position = Vector2(144, 69)
 metadata/back_plane = true
 
 [node name="anchor_kitchen_pizza_boxes" type="Marker2D" parent="."]
-position = Vector2(254, 99)
+position = Vector2(196, 99)
 metadata/back_plane = true
 
 [node name="anchor_kitchen_kettle" type="Marker2D" parent="."]
-position = Vector2(76, 94)
+position = Vector2(64, 105)
 
 [node name="anchor_right_trashcan" type="Marker2D" parent="."]
-position = Vector2(292, 90)
+position = Vector2(217, 90)
 metadata/back_plane = true
 
 [node name="Lights" type="Node2D" parent="."]
 
 [node name="lamp_0" type="Node2D" parent="Lights"]
-position = Vector2(160, 26)
+position = Vector2(120, 26)
 metadata/kind = "bulb"
 
 [node name="Anims" type="Node2D" parent="."]
 
 [node name="anim_0" type="Node2D" parent="Anims"]
-position = Vector2(13, 92)
+position = Vector2(13, 89)
 script = ExtResource("4_anim")
 metadata/kind = "drip"
 metadata/fall = 11

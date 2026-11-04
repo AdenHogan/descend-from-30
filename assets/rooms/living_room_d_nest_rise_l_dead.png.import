@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dplqj5tt61cxf"
-path="res://.godot/imported/kitchen_e__anchor_kitchen_cat_tins.png-7e5de96d1ad43c93afb4359c6fcc51f2.ctex"
+uid="uid://dhoeaw85vcivb"
+path="res://.godot/imported/living_room_d_nest_rise_l_dead.png-a2c37e92a49eb89e079e40961f13a821.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/rooms/open/kitchen_e__anchor_kitchen_cat_tins.png"
-dest_files=["res://.godot/imported/kitchen_e__anchor_kitchen_cat_tins.png-7e5de96d1ad43c93afb4359c6fcc51f2.ctex"]
+source_file="res://assets/rooms/living_room_d_nest_rise_l_dead.png"
+dest_files=["res://.godot/imported/living_room_d_nest_rise_l_dead.png-a2c37e92a49eb89e079e40961f13a821.ctex"]
 
 [params]
 

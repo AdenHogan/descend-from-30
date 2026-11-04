@@ -7,13 +7,13 @@
 [node name="Node2D" type="Node2D"]
 
 [node name="ColorRect" type="ColorRect" parent="."]
-offset_right = 320.0
+offset_right = 240.0
 offset_bottom = 144.0
 color = Color(0.4, 0.4, 0.4, 1)
 
 [node name="Label" type="Label" parent="ColorRect"]
 layout_mode = 0
-offset_right = 318.0
+offset_right = 238.0
 offset_bottom = 100.0
 theme_override_font_sizes/font_size = 32
 visible = false
@@ -39,24 +39,24 @@ texture = ExtResource("3_balcony")
 centered = false
 
 [node name="anchor_dining_broken_chairs" type="Marker2D" parent="."]
-position = Vector2(28, 86)
+position = Vector2(24, 86)
 metadata/back_plane = true
 metadata/balcony_strip = true
 
 [node name="anchor_dining_handbag" type="Marker2D" parent="."]
-position = Vector2(73, 91)
+position = Vector2(69, 91)
 metadata/back_plane = true
 metadata/balcony_strip = true
 
 [node name="anchor_dining_behind_table" type="Marker2D" parent="."]
-position = Vector2(168, 90)
+position = Vector2(148, 90)
 
 [node name="anchor_table_right" type="Marker2D" parent="."]
-position = Vector2(204, 110)
+position = Vector2(184, 110)
 
 [node name="anchor_dining_mattress" type="Marker2D" parent="."]
-position = Vector2(283, 64)
+position = Vector2(214, 64)
 metadata/back_plane = true
 
 [node name="anchor_dining_hammer" type="Marker2D" parent="."]
-position = Vector2(228, 116)
+position = Vector2(196, 116)

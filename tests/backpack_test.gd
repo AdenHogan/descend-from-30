@@ -238,7 +238,8 @@ func _test_tutorial_beats() -> void:
 		return
 	var tz = room.tut_zombie
 	var entrance: String = WorldState.get_entrance_side("3003")
-	var far_from_zombie: bool = absf(pack.global_position.x - tz.global_position.x) > 500.0
+	# "far" = more than half the flat's interior: 500 of 960 px at 320 px modules, 360 of 720 at 240 (the pack is 488 px from the lying neighbour here)
+	var far_from_zombie: bool = absf(pack.global_position.x - tz.global_position.x) > 360.0
 	check(far_from_zombie, "…by the entrance, far from the neighbour at the back (x %.0f)" % pack.global_position.x)
 	check(entrance in ["left", "right"], "(entrance side known: %s)" % entrance)
 	check(absf(pack.global_position.y - room.ROOM_FEET_Y) < 1.0, "…on the apartment floor line")

@@ -15,7 +15,7 @@ its own centre, so the floor rows and the side walls converge like the rest of t
 Every number that the GAME uses lives in scripts/balcony_geo.gd (read below and checked) — the art is
 drawn from them, so the player / enemies / descent line up with what's drawn.
 
-Writes assets/rooms/balcony.png (+ _r2, _r3): a 320 x 144 layer, transparent except the doorway
+Writes assets/rooms/balcony.png (+ _r2, _r3): a module-wide (pixlib.MW = 240) x 144 layer, transparent except the doorway
 (module x 8..92), drawn over the module art by room.gd on a balcony slot. Preview:
 docs/art_reference/modules/balcony_runs.png.
 Run:  python3 tools/art/balcony.py
@@ -28,6 +28,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from PIL import Image  # noqa: E402
 from pixlib import Canvas, hexc, mix, shade, W, H, DECAY  # noqa: E402
+import pixlib as PX  # noqa: E402
 
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
 
@@ -310,8 +311,9 @@ def main():
     for run in (1, 2, 3):
         c, metas[run] = build(run)
         name = 'balcony' + ('' if run == 1 else '_r%d' % run)
-        c.img.save(os.path.join(out_dir, name + '.png'))
-        prev.append(c.img)
+        art = c.img.crop((0, 0, PX.MW, c.img.height))             # the layer is module-local and the doorway is in the first ~100 px: a 240 px module keeps all of it
+        art.save(os.path.join(out_dir, name + '.png'))
+        prev.append(art)
     _export_fx(metas)
     # preview: each run over the study wall, with the player to scale on the plane and on the rail
     study = [Image.open(os.path.join(out_dir, n)).convert('RGBA')

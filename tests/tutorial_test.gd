@@ -191,7 +191,7 @@ func _test_3003_scripted_content() -> void:
 		check(not tz.get_collision_layer_value(1) and (tz.z_index == 0 or tz.z_index == CorpseDepth.Z), "…lying on the floor (z %d, sorted against the player by CorpseDepth), no collision (she can't block anyone)" % tz.z_index)
 		check(tz.drops_key and tz.key_target_apartment == "3002", "neighbour yields the 3002 key on death")
 		var zx = tz.global_position.x
-		check(absf(zx - (1035.0 - room.TUT_BODY_INSET)) < 10.0 or absf(zx - (155.0 + room.TUT_BODY_INSET)) < 10.0,
+		check(absf(zx - (room._right_x() - 38.0 - room.TUT_BODY_INSET)) < 10.0 or absf(zx - (155.0 + room.TUT_BODY_INSET)) < 10.0,
 			"neighbour lies in the back of the flat (x=%.0f)" % zx)
 		# Node order along the retreat path: junk is met first (nearest her),
 		# the golf club last (nearest the entrance).

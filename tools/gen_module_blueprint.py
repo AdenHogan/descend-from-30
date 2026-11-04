@@ -23,7 +23,7 @@ Run:  python3 tools/gen_module_blueprint.py            (everything: templates, 3
       python3 tools/gen_module_blueprint.py study_b    (one room)
       python3 tools/gen_module_blueprint.py --check    (the gate: are the committed files current?)
 Out:  docs/blueprints/template/  module_template.png, module_template_balcony.png (blank, annotated),
-                                 module_guide_1x.png, module_guide_balcony_1x.png (320x144 guide LAYERS
+                                 module_guide_1x.png, module_guide_balcony_1x.png (240x144 guide LAYERS
                                  to draw over — transparent, pixel-exact)
       docs/blueprints/rooms/<type>/<module>_blueprint.png + <type>_sheet.png
 """
@@ -41,9 +41,9 @@ TYPES = ["living_room", "bedroom", "kitchen", "bathroom", "study", "dining_room"
 BALCONY_TYPES = ("study", "dining_room")             # tools/art/modscene.py
 
 # --- the room's geometry (module-local y = world y - 224; module box 320 x 144 at world y 224) ------
-MW, MH, TILE = 320, 144, 16
+MW, MH, TILE = 240, 144, 16          # the module (docs/MODULE_WIDTH.md: 320 -> 240; the art tools' design canvas is still 320, `pixlib.MW` is the same number)
 WORLD_TOP = 224
-WIN_L, WIN_R = (50, 10, 94, 66), (226, 10, 270, 66)  # pixlib.WIN_L / WIN_R (pane + frame, bare wall)
+WIN_L, WIN_R = (32, 10, 76, 66), (164, 10, 208, 66)  # pixlib.WIN_L / WIN_R less the pad (pane + frame, bare wall; module-local)
 EDGE_COLS = (3, MW - 4)                              # pixlib.EDGE_COLS (module_walls samples the walls)
 STRIP_X = (4, 96)                                    # pixlib.BALCONY_BOX
 NODE_MIN_Y = 40                                      # pixlib: nodes sit at y >= 40
@@ -254,7 +254,7 @@ def build(name, template=None):
     title = name if template is None else ("MODULE TEMPLATE — " + ("balcony-capable room (study, dining room)"
                                                                      if template == "balcony" else "any room"))
     d.text((ML, 22), title + ("  —  behind the scenes" if template is None else ""), font=F_T, fill=INK)
-    d.text((ML, 62), "module 320 x 144 · local (0,0) top-left · world = (113 + slot x 320 + x, 224 + y) · "
+    d.text((ML, 62), "module 240 x 144 · local (0,0) top-left · world = (113 + slot x 240 + x, 224 + y) · "
                      "player %d px tall, body %d px (measured)" % (PLAYER_H, PLAYER_W), font=F_S, fill=SUB)
 
     for gx in range(0, MW + 1, TILE):                                  # the tile grid
@@ -391,7 +391,7 @@ def build(name, template=None):
     # bottom key, two columns
     keys = ((C_FRONT, "front node (reached from the walking lane)"), (C_BACK, "back-plane node / clear stand zone"),
             ((230, 70, 70), "stand zone BLOCKED by a front piece"), (C_STRIP, "balcony-strip node / the strip"),
-            ((240, 196, 96), "window box (kept bare wall)"), ((214, 110, 214), "wall-face sample columns x 3 / 316"),
+            ((240, 196, 96), "window box (kept bare wall)"), ((214, 110, 214), "wall-face sample columns x 3 / 236"),
             (C_LAMP, "light fixture (the bulb; lit by the game)"))
     for i, (col, txt) in enumerate(keys):
         kx, ky = ML + (i // 4) * 470, Y(MH) + 30 + (i % 4) * 18
@@ -401,7 +401,7 @@ def build(name, template=None):
 
 
 def guide_layer(balcony):
-    """A 320 x 144 TRANSPARENT guide layer, pixel-exact at 1x — put it on a layer over (or under) the
+    """A 240 x 144 TRANSPARENT guide layer, pixel-exact at 1x — put it on a layer over (or under) the
     art in any editor: the planes, the kept-bare boxes and columns, the stand-zone band."""
     g = Image.new("RGBA", (MW, MH), (0, 0, 0, 0))
     d = ImageDraw.Draw(g)

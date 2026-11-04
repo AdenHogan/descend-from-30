@@ -1,5 +1,7 @@
 extends Node
 
+const MG := preload("res://scripts/module_geo.gd")        # the module width (docs/MODULE_WIDTH.md)
+
 # Apartment WALL WINDOWS: every non-balcony module gets one window at a seeded LEFT/RIGHT
 # wall slot, sitting in the anchor-free top wall band (no overlap with scavenge nodes).
 # Natural light by run; night adds the rain/lightning storm. Run:
@@ -167,9 +169,9 @@ func _test_windows_day() -> void:
 		var r_edge: float = rw.position.x + rcol.position.x - rcol.shape.size.x / 2.0
 		check(absf(l_edge - room.wall_foot_left) < 0.5 and absf(r_edge - room.wall_foot_right) < 0.5,
 			"wall collision = the drawn wall's foot (L %.1f/%.1f, R %.1f/%.1f)" % [l_edge, room.wall_foot_left, r_edge, room.wall_foot_right])
-		var short_by: float = 320.0 * float(3 - WorldState.apartment_span(APT))          # a two-room flat's right wall is a module nearer
-		check(room.wall_foot_left < 100.0 and room.wall_foot_right > 1086.0 - short_by,
-			"the player reaches further than the old tile walls (112 / 1074): %.1f / %.1f" % [room.wall_foot_left, room.wall_foot_right])
+		var tile_right: float = MG.right_x(WorldState.apartment_span(APT)) + 1.0          # the old hidden tile walls stood at 112 and the flat's right wall + 1 (1074 for three 320 px rooms)
+		check(room.wall_foot_left < 100.0 and room.wall_foot_right > tile_right + 12.0,
+			"the player reaches further than the old tile walls (112 / %.0f): %.1f / %.1f" % [tile_right, room.wall_foot_left, room.wall_foot_right])
 		var door = room.get_node("Area2D")
 		var foot_entry: float = room.wall_foot_left if WorldState.get_entrance_side(APT) == "left" else room.wall_foot_right
 		check(absf(door.position.x - foot_entry) <= 2.5, "the exit trigger sits at the drawn front door (%.1f vs %.1f)" % [door.position.x, foot_entry])
@@ -182,7 +184,7 @@ func _test_windows_day() -> void:
 		# Walk the player into the solid (non-entrance) end: it stops with its body at the drawn wall.
 		var p = room.get_node("Player")
 		var solid_left := WorldState.get_entrance_side(APT) != "left"
-		p.global_position.x = 200.0 if solid_left else 986.0
+		p.global_position.x = 200.0 if solid_left else room.wall_foot_right - 114.0          # (114 px in from the drawn wall, as 200 is from the left one)
 		var act := "move_left" if solid_left else "move_right"
 		Input.action_press(act)
 		for i in range(150):
@@ -375,18 +377,18 @@ func _test_floor_boundary() -> void:
 					continue
 				var fl: Image = _img(fp)
 				var ex: Image = _img(xp)
-				check(fl.get_width() == 320 and fl.get_height() == 44, "%s: a floor-only export, 320x44" % fp.get_file())
-				check(ex.get_width() == 320 + 2 * m_ext and ex.get_height() == 44, "%s: %dx44" % [xp.get_file(), 320 + 2 * m_ext])
-				check(ex.get_region(Rect2i(m_ext, 0, 320, 44)).get_data() == fl.get_data(), "%s: its middle IS the room's floor" % xp.get_file())
+				check(fl.get_width() == MG.WIDTH and fl.get_height() == 44, "%s: a floor-only export, %dx44" % [fp.get_file(), MG.WIDTH])
+				check(ex.get_width() == MG.WIDTH + 2 * m_ext and ex.get_height() == 44, "%s: %dx44" % [xp.get_file(), MG.WIDTH + 2 * m_ext])
+				check(ex.get_region(Rect2i(m_ext, 0, MG.WIDTH, 44)).get_data() == fl.get_data(), "%s: its middle IS the room's floor" % xp.get_file())
 	# the tiles recede: on the kitchen's checker the tile edges lean toward the middle further forward,
 	# so a row near the front is a squeezed-out copy of the back row, not the same row (that read as
 	# "standing on glass… the tiles go directly down")
 	var kb: Image = _img("res://assets/rooms/kitchen_b_floor.png")
 	var same_cols := 0
-	for x in range(320):
+	for x in range(MG.WIDTH):
 		if kb.get_pixel(x, 2) == kb.get_pixel(x, 42):
 			same_cols += 1
-	check(same_cols < 250, "kitchen B's checker isn't the same column all the way down (%d/320 alike)" % same_cols)
+	check(same_cols < int(MG.WIDTH * 0.78), "kitchen B's checker isn't the same column all the way down (%d/%d alike)" % [same_cols, MG.WIDTH])
 	# the end-wall wedge paints from that extended export
 	var m = load("res://scenes/Room_Modules/kitchen.tscn").instantiate()
 	add_child(m)
@@ -554,7 +556,7 @@ func _test_module_variants() -> void:
 					var sc = a.get_script()
 					check(sc != null and sc.resource_path == "res://scripts/module_anim.gd", "%s: %s runs module_anim" % [nm, a.name])
 					check(str(a.get_meta("kind", "")) in ["drip", "drop", "blink", "static", "spin", "tv", "lava", "smoke", "pendulum"], "%s: %s has a known kind" % [nm, a.name])
-					check(a.position.x >= 0 and a.position.x < 320 and a.position.y >= 0 and a.position.y < 144, "%s: %s sits in the module" % [nm, a.name])
+					check(a.position.x >= 0 and a.position.x < MG.WIDTH and a.position.y >= 0 and a.position.y < 144, "%s: %s sits in the module" % [nm, a.name])
 					check(int(a.get_meta("w", 0)) >= 1 and int(a.get_meta("h", 0)) >= 1, "%s: %s has a size" % [nm, a.name])
 			inst.free()
 	check(n_anims >= 10, "the modules carry live details (%d)" % n_anims)
@@ -890,7 +892,7 @@ func _test_front_layer() -> void:
 	var strip_img: Image = load("res://assets/rooms/dining_room_e_front_strip.png").get_image()
 	var in_box := 0
 	for y in range(10, 67):
-		for x in range(50, 95):
+		for x in range(int(MG.WINDOW_INSET) - 22, int(MG.WINDOW_INSET) + 22):          # the left window box: its centre is the module's window inset, 22 px either side
 			if strip_img.get_pixel(x, y).a > 0.0:
 				in_box += 1
 	check(in_box >= 40, "the gift table's front piece really overlaps the left window box (%d px)" % in_box)
@@ -946,7 +948,7 @@ func _test_front_layer() -> void:
 			var in_room: Vector2 = room.to_local(win.global_position)
 			check(absf(in_room.y - room.MODULE_WINDOW_Y) < 0.5 and absf(in_room.x - (mod.position.x + room.MODULE_WINDOW_INSET)) < 0.5,
 				"the window kept its place in the room (%.1f, %.1f)" % [in_room.x, in_room.y])
-			check(absf(front.global_position.x - mod.global_position.x) < 0.5 and front.texture.get_size() == Vector2(320, 144),
+			check(absf(front.global_position.x - mod.global_position.x) < 0.5 and front.texture.get_size() == Vector2(MG.WIDTH, 144),
 				"the front layer is the module's own 320x144 frame")
 		# the strip's front piece follows the balcony strip; a charred flat shows the burnt husk
 		room._add_front_art(mod, true, true)

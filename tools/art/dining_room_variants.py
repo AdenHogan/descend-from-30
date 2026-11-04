@@ -64,29 +64,30 @@ def b_wall(c):
 def b_decor(c):
     # a framed geometric print + a snapshot of the family who ate here
     import wallart                                                                            # behind glass, a card mat, a thin black frame
-    wallart.picture_print(c, 104, 24, 138, 54, 'black')
-    F.photo(c, 145, 30, 161, 44, [(hexc('e0c0a0'), hexc('3a2a1e'), hexc('d9662e'), 9), (hexc('d8b89a'), hexc('6a4a2a'), hexc('2f6a6a'), 10),
+    F.photo(c, 142, 30, 158, 44, [(hexc('e0c0a0'), hexc('3a2a1e'), hexc('d9662e'), 9), (hexc('d8b89a'), hexc('6a4a2a'), hexc('2f6a6a'), 10),
                                   (hexc('e8c8a8'), hexc('b08a50'), hexc('e8b83a'), 6)], frame=hexc('3a2718'))
     # the serving hatch to the kitchen: folding louvred doors open onto the dim kitchen beyond
-    c.box(168, 28, 216, 62, hexc('efe8d6'), hexc('7a7262'))
-    c.rect(170, 30, 214, 60, hexc('2e2c26'))
-    c.rect(170, 30, 214, 32, hexc('1e1c18'))
-    c.hline(183, 201, 42, hexc('4a4034'))                                                     # a shelf of jars
-    for (jx, col) in ((185, hexc('5a5a44')), (189, hexc('6a4a34')), (193, hexc('4a5448')), (198, hexc('5a4a3a'))):
-        c.rect(jx, 37, jx + 2, 41, col)
-    c.vline(196, 44, 47, hexc('4a4a48')); c.ellipse(196, 50, 3, 3, hexc('3e3e3c'))           # a pan on a hook
-    c.rect(170, 55, 214, 57, hexc('3a362e'))
-    c.rect(168, 58, 216, 62, hexc('f2ede2'))                                                 # its sill
-    c.hline(168, 216, 62, hexc('bdb4a0'))
-    for (d0, d1) in ((171, 181), (203, 213)):
-        c.rect(d0, 31, d1, 57, hexc('efe8d6'))
-        for y in range(33, 56, 3):
-            c.hline(d0 + 1, d1 - 1, y, hexc('c9bfa6'))
-    c.rect(186, 52, 192, 57, PLATE)                                                           # a plate left on the sill
-    c.put(191, 51, hexc('d9662e'))
+    def _hatch(c):
+        c.box(168, 28, 216, 62, hexc('efe8d6'), hexc('7a7262'))
+        c.rect(170, 30, 214, 60, hexc('2e2c26'))
+        c.rect(170, 30, 214, 32, hexc('1e1c18'))
+        c.hline(183, 201, 42, hexc('4a4034'))                                                     # a shelf of jars
+        for (jx, col) in ((185, hexc('5a5a44')), (189, hexc('6a4a34')), (193, hexc('4a5448')), (198, hexc('5a4a3a'))):
+            c.rect(jx, 37, jx + 2, 41, col)
+        c.vline(196, 44, 47, hexc('4a4a48')); c.ellipse(196, 50, 3, 3, hexc('3e3e3c'))           # a pan on a hook
+        c.rect(170, 55, 214, 57, hexc('3a362e'))
+        c.rect(168, 58, 216, 62, hexc('f2ede2'))                                                 # its sill
+        c.hline(168, 216, 62, hexc('bdb4a0'))
+        for (d0, d1) in ((171, 181), (203, 213)):
+            c.rect(d0, 31, d1, 57, hexc('efe8d6'))
+            for y in range(33, 56, 3):
+                c.hline(d0 + 1, d1 - 1, y, hexc('c9bfa6'))
+        c.rect(186, 52, 192, 57, PLATE)                                                           # a plate left on the sill
+        c.put(191, 51, hexc('d9662e'))
+    F.moved(c, _hatch, 28, 0)                                                                 # (240 px module: the hatch, the photo and the clock hang right of the balcony strip)
     # a sunburst clock over the sideboard — the furniture library's starburst clock (one drawing per thing)
     import furn_embed as FE
-    FE.lay(c, 'clock_sunburst', 'brass', 280, 24, floor=False)
+    FE.lay(c, 'clock_sunburst', 'brass', 250, 24, floor=False)
 
 
 @persp
@@ -114,61 +115,63 @@ def b_floor(c):
 
 
 def b_strip(c):
-    setback(c, lambda l: F.moved(l, _drinks, -3, 0), depth=4, top=62, x_range=(5, 45), rake=1.0)
+    setback(c, lambda l: F.moved(l, _drinks, 33, 0), depth=4, top=62, x_range=(45, 67), rake=1.0)           # (240 px module: the balcony strip is design x 44..136; the cabinet is narrower so it stays left of the L window box)
     _pouffe_at(c)
 
 
 def _drinks(c):
     # a mustard-lacquered drinks cabinet, its flap down, bottles inside
     out = hexc('6a4a18')
-    c.shadow(28, 100, 20, 2, 100)
-    c.box(10, 62, 46, 99, MUSTARD, out)
-    c.hline(11, 45, 63, shade(MUSTARD, 1.15))
-    c.rect(12, 64, 44, 80, hexc('2a1d14'))
-    for (x, h, col) in ((14, 12, hexc('3a5a3a')), (20, 10, hexc('7a4a2a')), (26, 13, hexc('c9c2b1')), (34, 11, hexc('5a1a22'))):
+    c.shadow(23, 100, 16, 2, 100)
+    c.box(11, 62, 34, 99, MUSTARD, out)
+    c.hline(12, 33, 63, shade(MUSTARD, 1.15))
+    c.rect(13, 64, 32, 80, hexc('2a1d14'))
+    for (x, h, col) in ((14, 12, hexc('3a5a3a')), (20, 10, hexc('7a4a2a')), (26, 13, hexc('c9c2b1'))):
         c.rect(x, 80 - h, x + 3, 79, col)
         c.rect(x + 1, 80 - h - 3, x + 2, 80 - h - 1, col)
-    c.rect(38, 76, 39, 79, hexc('d8e0e0'))                                                   # a tumbler
-    c.box(12, 82, 44, 97, MUSTARD, shade(MUSTARD, 0.7))
-    c.rect(26, 88, 30, 88, F.BRASS)
-    c.poly([(12, 80), (44, 80), (48, 84), (8, 84)], shade(MUSTARD, 1.1))                     # the drop flap
+    c.rect(30, 76, 31, 79, hexc('d8e0e0'))                                                   # a tumbler
+    c.box(13, 82, 32, 97, MUSTARD, shade(MUSTARD, 0.7))
+    c.rect(21, 88, 25, 88, F.BRASS)
+    c.poly([(13, 80), (32, 80), (34, 84), (11, 84)], shade(MUSTARD, 1.1))                     # the drop flap
 
 
 def _pouffe_at(c):
     # a round velvet pouffe beside the cabinet (real 3D, like the chairs)
     m = C3.Model()
     C3.prism(m, 0, 0, 9.0, 0, 9.5, 'pouffe', 'fab', 18)
-    C3.draw_model(c, 62, 106, m, 0, {'fab': hexc('2f6a6a')}, srad=10)
-    for x in (58, 62, 66):
+    C3.draw_model(c, 102, 106, m, 0, {'fab': hexc('2f6a6a')}, srad=10)
+    for x in (98, 102, 106):
         c.put(x, 96, hexc('1f4a4a'))                                                          # its buttons
 
 
 def b_furniture(c):
     # the round tulip table + chairs, rendered in 3D (owner round 21c — "flat and small"): one chair
     # pulled round behind, one on the left, one knocked over on its side — dinner didn't finish
-    cx, base = 158, 118
-    C3.draw_model(c, cx, 105, C3.tulip_chair(), 0, TULIP, srad=9)                              # behind the table
-    C3.draw_model(c, cx, base, C3.tulip_table(), 0, TULIP, srad=26)
-    C3.draw_model(c, 110, 121, C3.tulip_chair(), -62, TULIP, srad=9)                          # at its left
+    def _tbl(c):
+        cx, base = 158, 118
+        C3.draw_model(c, cx, 105, C3.tulip_chair(), 0, TULIP, srad=9)                              # behind the table
+        C3.draw_model(c, cx, base, C3.tulip_table(), 0, TULIP, srad=26)
+        # what was on the table: two places laid, a vase of tulips going over, a glass knocked down,
+        # the wine running off the edge
+        top = base - 24
+        for (px, py) in ((142, top - 1), (172, top + 1)):
+            c.ellipse(px, py, 6, 1.6, PLATE_DK); c.ellipse(px, py, 5, 1.1, PLATE)
+        c.ellipse(172, top + 1, 2, 0.8, hexc('b0653a'))                                          # food left on it
+        c.line(135, top + 1, 137, top - 1, SILVER); c.line(149, top + 1, 150, top - 2, SILVER)      # cutlery
+        c.rect(156, top - 7, 160, top - 1, hexc('b8d0d0')); c.hline(156, 160, top - 7, hexc('dfeeee'))   # the vase
+        for (dx, dy, col) in ((-4, -12, hexc('d9662e')), (0, -14, hexc('e8b83a')), (4, -11, hexc('c0453a')), (6, -8, hexc('d9662e'))):
+            c.line(158, top - 7, 158 + dx, top - 7 + dy + 3, hexc('4d6a3c'))
+            c.ellipse(158 + dx + (1 if dx > 0 else -1 if dx < 0 else 0), top - 7 + dy + 2, 1.5, 1.5, col)   # tulips, drooping
+        c.put(165, top - 1, hexc('d9662e')); c.put(163, top, hexc('c0453a'))                     # dropped petals
+        c.line(178, top - 3, 184, top - 2, hexc('d8e0e0')); c.put(185, top - 2, hexc('d8e0e0'))    # a wine glass on its side
+        c.ellipse(186, top + 1, 5, 1, hexc('6a1a22'))                                             # its wine, spreading
+        c.vline(181, top + 3, top + 5, hexc('6a1a22'))
+        PX.anim(181, top + 5, 'drip', 22, color='6a1a22')                                         # still dripping
+        c.ellipse(181, base + 5, 4, 1, hexc('5a1a22'))                                            # a puddle below
+    F.moved(c, _tbl, 12, 0)                                                                  # the table stands 12 px right of where it was (the chair that stood at its left went with the 80 px)
     fallen = C3.fall(C3.tulip_chair(), 'side', 8.0)
     C3.draw_model(c, 212, 121, fallen, 35, TULIP, shadow='footprint')                         # knocked over — behind the walking line (base row 121; owner round 45b)
-    # what was on the table: two places laid, a vase of tulips going over, a glass knocked down,
-    # the wine running off the edge
-    top = base - 24
-    for (px, py) in ((142, top - 1), (172, top + 1)):
-        c.ellipse(px, py, 6, 1.6, PLATE_DK); c.ellipse(px, py, 5, 1.1, PLATE)
-    c.ellipse(172, top + 1, 2, 0.8, hexc('b0653a'))                                          # food left on it
-    c.line(135, top + 1, 137, top - 1, SILVER); c.line(149, top + 1, 150, top - 2, SILVER)      # cutlery
-    c.rect(156, top - 7, 160, top - 1, hexc('b8d0d0')); c.hline(156, 160, top - 7, hexc('dfeeee'))   # the vase
-    for (dx, dy, col) in ((-4, -12, hexc('d9662e')), (0, -14, hexc('e8b83a')), (4, -11, hexc('c0453a')), (6, -8, hexc('d9662e'))):
-        c.line(158, top - 7, 158 + dx, top - 7 + dy + 3, hexc('4d6a3c'))
-        c.ellipse(158 + dx + (1 if dx > 0 else -1 if dx < 0 else 0), top - 7 + dy + 2, 1.5, 1.5, col)   # tulips, drooping
-    c.put(165, top - 1, hexc('d9662e')); c.put(163, top, hexc('c0453a'))                     # dropped petals
-    c.line(178, top - 3, 184, top - 2, hexc('d8e0e0')); c.put(185, top - 2, hexc('d8e0e0'))    # a wine glass on its side
-    c.ellipse(186, top + 1, 5, 1, hexc('6a1a22'))                                             # its wine, spreading
-    c.vline(181, top + 3, top + 5, hexc('6a1a22'))
-    PX.anim(181, top + 5, 'drip', 22, color='6a1a22')                                         # still dripping
-    c.ellipse(181, base + 5, 4, 1, hexc('5a1a22'))                                            # a puddle below
+    cx, base = 158, 118
     # a plate smashed on the floor by the fallen chair, a napkin dropped
     for (sx, sy) in ((196, 131), (199, 133), (193, 134), (202, 130), (190, 132)):
         c.rect(sx, sy, sx + 1, sy, PLATE); c.put(sx + 2, sy, PLATE_DK)
@@ -176,8 +179,8 @@ def b_furniture(c):
     c.hline(227, 235, 136, hexc('d8d0bc'))
     # a white-lacquered sideboard with a record player on the right (with depth)
     def _sb(c):
-        F.chest(c, 244, 310, 72, 100, LACQUER, drawers=2, open_row=1)
-        c.rect(243, 72, 311, 73, hexc('b07a4a'))                                               # its teak top
+        F.chest(c, 244, 294, 72, 100, LACQUER, drawers=2, open_row=1)
+        c.rect(243, 72, 295, 73, hexc('b07a4a'))                                               # its teak top
         c.ellipse(257, 70, 6, 1.8, hexc('d86a3a')); c.ellipse(257, 69, 5, 1, hexc('f0a060'))
         for (fx, col) in ((255, hexc('e8b83a')), (258, hexc('6a9a3a')), (260, hexc('b0453a'))):
             c.ellipse(fx, 68, 1.5, 1.2, col)
@@ -196,16 +199,13 @@ def b_furniture(c):
         PX.anim(281, 67, 'spin', color='8a8a94', w=6, h=1)
         c.put(292, 67, SILVER); c.line(292, 67, 285, 68, SILVER)
         c.rect(289, 69, 291, 70, hexc('d9c24a'))
-        for (x, col) in ((299, hexc('d86a3a')), (302, hexc('2f4a63')), (305, hexc('d9c24a'))):
-            c.rect(x, 58, x + 2, 71, col)
-    setback(c, _sb, depth=4, top=72, x_range=(243, 311))
-    F.potted_plant(c, 232, 99)                                                               # a plant by the sideboard
-    F.pendant(c, cx, 22, 'orange', dome=True)                                                # a 70s dome pendant
+    setback(c, lambda l: F.moved(l, _sb, -23, 0), depth=4, top=72, x_range=(220, 274))
+    F.pendant(c, cx + 12, 22, 'orange', dome=True)                                           # a 70s dome pendant
 
-B_ANCHORS = [('anchor_dining_drinks_cabinet', 23, 72, 'bp s'), ('anchor_dining_pouffe', 62, 97, 's'),
-             ('anchor_table_left', 142, 93, ''), ('anchor_table_right', 172, 95, ''),
-             ('anchor_dining_tulip_chair', 110, 105, ''), ('anchor_dining_record_player', 281, 67, 'bp'),
-             ('anchor_right_lowerdrawers', 276, 88, 'bp')]
+B_ANCHORS = [('anchor_dining_drinks_cabinet', 56, 72, 'bp s'), ('anchor_dining_pouffe', 102, 97, 's'),
+             ('anchor_table_left', 154, 93, ''), ('anchor_table_right', 184, 95, ''),
+             ('anchor_dining_record_player', 258, 67, 'bp'),
+             ('anchor_right_lowerdrawers', 253, 88, 'bp')]
 
 
 # ============================================================================================
@@ -222,6 +222,10 @@ def c_wall(c):
 
 
 def c_decor(c):
+    F.moved(c, _c_portraits, 30, 0)                  # (240 px module: the portraits hang over the table, right of the balcony strip)
+
+
+def _c_portraits(c):
     # three generations in oils (round 17: blank ovals read as nothing): grandfather, grandmother —
     # her canvas slashed — and their son
     gilt = hexc('b58f4a')
@@ -256,112 +260,117 @@ def grandfather_clock(c, x0, base):
 
 def c_strip(c):
     # the china cabinet with depth (owner round 14), 3px left of where it stood flat (clear of window L)
-    setback(c, lambda l: F.moved(l, _china, -3, 0), depth=4, top=27, x_range=(4, 44), rake=1.0)
+    setback(c, lambda l: F.moved(l, _china, 36, 0), depth=3, top=27, x_range=(44, 68), rake=1.0)
 
 
 def _china(c):
-    c.shadow(28, 100, 20, 2, 100)
-    c.box(8, 30, 46, 99, F.WOOD[0], F.WOOD[3])
-    c.rect(7, 27, 47, 30, F.WOOD[1])
-    c.box(11, 34, 43, 72, hexc('9fb3b0'), F.WOOD[2])
-    c.vline(27, 34, 72, F.WOOD[2])
+    # (240 px module: 26 px wide so it stays left of the L window box)
+    c.shadow(20, 100, 14, 2, 100)
+    c.box(9, 30, 32, 99, F.WOOD[0], F.WOOD[3])
+    c.rect(9, 27, 32, 30, F.WOOD[1])
+    c.box(11, 34, 29, 72, hexc('9fb3b0'), F.WOOD[2])
+    c.vline(20, 34, 72, F.WOOD[2])
     for py in (44, 58):
-        c.hline(12, 42, py + 6, F.WOOD[2])
-        for px in range(15, 42, 7):
+        c.hline(12, 28, py + 6, F.WOOD[2])
+        for px in range(15, 28, 7):
             c.ellipse(px, py, 2, 3, PLATE)
             c.put(px, py, hexc('7ea0b8'))
-    c.line(13, 36, 21, 52, hexc('d6e2e0'))
-    c.box(11, 76, 43, 96, F.WOOD[0], F.WOOD[2])
-    c.vline(27, 76, 96, F.WOOD[2])
-    c.put(25, 86, F.BRASS); c.put(29, 86, F.BRASS)
+    c.line(13, 36, 19, 52, hexc('d6e2e0'))
+    c.box(11, 76, 29, 96, F.WOOD[0], F.WOOD[2])
+    c.vline(20, 76, 96, F.WOOD[2])
+    c.put(18, 86, F.BRASS); c.put(22, 86, F.BRASS)
 
 
 def c_furniture(c):
-    setback(c, lambda l: grandfather_clock(l, 104, 100), depth=3, rake=1.0)
-    # the long table, high-backed chairs behind it, a candelabra
+    setback(c, lambda l: F.moved(l, lambda l2: grandfather_clock(l2, 104, 100), 34, 0), depth=3, rake=1.0)
+    def _c_table(c):
+        # the long table, high-backed chairs behind it, a candelabra
+        HIGH = {'wood': hexc('4a2c1c'), 'seat': hexc('5a3622'), 'fab': hexc('6a2a2e')}
+        for (x, yaw) in ((148, 180), (178, 180)):                                                # high-backs, backs to us
+            C3.draw_model(c, x, 100, C3.dining_chair('high'), yaw, HIGH, srad=10)
+        pass                                                                                       # (the toppled chair is drawn after the group moves, at its true place)   # (base row 121, behind the walking line — owner round 45b) the third, knocked flying — CLEAR of the table's legs (owner round 34) AND of the sideboard's step-up spot (owner round 36i: the player walked over it)
+        F.table_front(c, 126, 206, 92, 120, F.WOOD, depth=6)                                       # (80 px wide: it was 110 — the 240 px module)
+        c.rect(125, 92, 207, 98, F.WOOD[1])
+        c.hline(125, 207, 92, F.WOOD[3])
+        c.rect(140, 91, 198, 93, hexc('d6d0bf'))                                                 # a runner
+        c.line(195, 93, 199, 95, hexc('d6d0bf'))                                                 # dragged askew at one end
+        cx = 166                                                                                  # the candelabra
+        c.rect(cx - 3, 88, cx + 3, 90, SILVER)
+        c.vline(cx, 76, 88, SILVER)
+        c.hline(cx - 10, cx + 10, 80, SILVER)
+        for dx in (-10, 0, 10):
+            c.vline(cx + dx, 76, 80, SILVER)
+        F.candle(c, cx - 10, 75, 5)                                                               # burnt down unevenly,
+        F.candle(c, cx, 75, 2)                                                                    # one guttered to a stub
+        c.put(cx + 10, 75, hexc('d8cfb4')); c.put(cx + 11, 76, hexc('d8cfb4'))                   # the third knocked out —
+        c.rect(176, 89, 181, 90, hexc('e3dcc6')); c.put(182, 89, hexc('3a2a1a'))                 # — lying on the runner
+        c.hline(176, 181, 90, hexc('c8bfa6'))
+        # a DINNER LEFT MID-MEAL (owner round 20: "a broken cup and a puddle… says way more than four
+        # generic cups in a row"): one plate still served, one shoved back, a chair's place bare, a wine
+        # glass knocked over — the wine runs to the edge and still drips to the floor
+        def plate(px, py, food=False):
+            c.ellipse(px, py, 6, 1.4, PLATE_DK); c.ellipse(px, py - 0.3, 5, 1, PLATE)
+            c.ellipse(px, py - 0.3, 3, 0.6, shade(PLATE, 0.9))
+            if food:
+                c.ellipse(px - 1, py - 1, 2.2, 0.9, hexc('7a4a2a')); c.put(px + 2, py - 1, hexc('5e8240'))
+                c.put(px + 1, py - 1, hexc('5e8240')); c.put(px - 2, py - 2, hexc('9a6a3a'))
+        plate(141, 95, food=True)
+        c.line(134, 96, 136, 93, SILVER); c.line(147, 97, 150, 95, SILVER)                       # its knife + fork, put down
+        plate(163, 93)                                                                            # shoved back, empty
+        c.line(157, 97, 161, 97, SILVER)
+        c.ellipse(186, 94, 3, 0.8, BLOOD)                                                         # someone bled here
+        c.put(189, 95, BLOOD)
+        wine, wine_lt = hexc('6a1620'), hexc('9a2e36')
+        c.ellipse(199, 96, 5, 1.2, wine); c.ellipse(196, 97, 3, 1, wine)                          # the spill, to the edge
+        c.rect(193, 97, 196, 98, wine); c.put(197, 95, wine_lt); c.put(201, 96, wine_lt)
+        c.vline(194, 99, 101, wine); c.vline(195, 99, 100, shade(wine, 0.8))                     # down the apron
+        c.line(200, 95, 205, 94, hexc('d8e2e4')); c.put(205, 93, hexc('eef4f4'))                  # the glass on its side
+        c.vline(206, 92, 95, hexc('b8c8cc')); c.put(199, 95, hexc('c8d4d6'))                      # its foot, its rim
+        PX.anim(194, 101, 'drip', fall=15, color='7a1c26')
+        c.ellipse(194, 117, 3, 0.8, wine); c.put(193, 117, wine_lt)                               # the drip's pool below
+    F.moved(c, _c_table, 37, 0)                                                               # the table stands 37 px right of where it was drawn (right of the clock's spot)
     HIGH = {'wood': hexc('4a2c1c'), 'seat': hexc('5a3622'), 'fab': hexc('6a2a2e')}
-    for (x, yaw) in ((148, 180), (178, 180)):                                                # high-backs, backs to us
-        C3.draw_model(c, x, 100, C3.dining_chair('high'), yaw, HIGH, srad=10)
-    C3.draw_model(c, 182, 121, C3.fall(C3.dining_chair('high'), 'side', -8.0), -30, HIGH, shadow='footprint')   # (base row 121, behind the walking line — owner round 45b) the third, knocked flying — CLEAR of the table's legs (owner round 34) AND of the sideboard's step-up spot (owner round 36i: the player walked over it)
-    F.table_front(c, 126, 236, 92, 120, F.WOOD, depth=6)
-    c.rect(125, 92, 237, 98, F.WOOD[1])
-    c.hline(125, 237, 92, F.WOOD[3])
-    c.rect(150, 91, 210, 93, hexc('d6d0bf'))                                                 # a runner
-    c.line(207, 93, 211, 95, hexc('d6d0bf'))                                                 # dragged askew at one end
-    cx = 180                                                                                  # the candelabra
-    c.rect(cx - 3, 88, cx + 3, 90, SILVER)
-    c.vline(cx, 76, 88, SILVER)
-    c.hline(cx - 10, cx + 10, 80, SILVER)
-    for dx in (-10, 0, 10):
-        c.vline(cx + dx, 76, 80, SILVER)
-    F.candle(c, cx - 10, 75, 5)                                                               # burnt down unevenly,
-    F.candle(c, cx, 75, 2)                                                                    # one guttered to a stub
-    c.put(cx + 10, 75, hexc('d8cfb4')); c.put(cx + 11, 76, hexc('d8cfb4'))                   # the third knocked out —
-    c.rect(186, 89, 191, 90, hexc('e3dcc6')); c.put(192, 89, hexc('3a2a1a'))                 # — lying on the runner
-    c.hline(186, 191, 90, hexc('c8bfa6'))
-    # a DINNER LEFT MID-MEAL (owner round 20: "a broken cup and a puddle… says way more than four
-    # generic cups in a row"): one plate still served, one shoved back, a chair's place bare, a wine
-    # glass knocked over — the wine runs to the edge and still drips to the floor
-    def plate(px, py, food=False):
-        c.ellipse(px, py, 6, 1.4, PLATE_DK); c.ellipse(px, py - 0.3, 5, 1, PLATE)
-        c.ellipse(px, py - 0.3, 3, 0.6, shade(PLATE, 0.9))
-        if food:
-            c.ellipse(px - 1, py - 1, 2.2, 0.9, hexc('7a4a2a')); c.put(px + 2, py - 1, hexc('5e8240'))
-            c.put(px + 1, py - 1, hexc('5e8240')); c.put(px - 2, py - 2, hexc('9a6a3a'))
-    plate(141, 95, food=True)
-    c.line(134, 96, 136, 93, SILVER); c.line(147, 97, 150, 95, SILVER)                       # its knife + fork, put down
-    plate(163, 93)                                                                            # shoved back, empty
-    c.line(157, 97, 161, 97, SILVER)
-    plate(223, 96, food=True)
-    c.ellipse(212, 96, 3, 0.8, BLOOD)                                                         # someone bled here
-    c.put(215, 97, BLOOD)
-    wine, wine_lt = hexc('6a1620'), hexc('9a2e36')
-    c.ellipse(199, 96, 5, 1.2, wine); c.ellipse(196, 97, 3, 1, wine)                          # the spill, to the edge
-    c.rect(193, 97, 196, 98, wine); c.put(197, 95, wine_lt); c.put(201, 96, wine_lt)
-    c.vline(194, 99, 101, wine); c.vline(195, 99, 100, shade(wine, 0.8))                     # down the apron
-    c.line(200, 95, 205, 94, hexc('d8e2e4')); c.put(205, 93, hexc('eef4f4'))                  # the glass on its side
-    c.vline(206, 92, 95, hexc('b8c8cc')); c.put(199, 95, hexc('c8d4d6'))                      # its foot, its rim
-    PX.anim(194, 101, 'drip', fall=15, color='7a1c26')
-    c.ellipse(194, 117, 3, 0.8, wine); c.put(193, 117, wine_lt)                               # the drip's pool below
+    C3.draw_model(c, 215, 121, C3.fall(C3.dining_chair('high'), 'side', -8.0), -30, HIGH, shadow='footprint')   # the third chair, knocked over (base row 121, behind the walking line — owner round 45b)
     # a sideboard with the TEA SET — someone was pouring when it happened (round 20: it stood in a
     # tidy row): the tray pushed askew, the teapot's lid off beside it, one cup still on its saucer,
     # the sugar bowl tipped, the other cup on its side in its own spill (added after the setback, on
     # the top face) and its twin smashed on the floor
     def _sb(c):
-        F.chest(c, 250, 310, 72, 100, F.WOOD, drawers=2)
-        F.silver(c, 'cup', 265, 71, hexc('e6ddc8'))
-        c.line(268, 71, 271, 70, SILVER)                                                      # a spoon on its saucer
-        F.silver(c, 'sugar', 279, 71, SILVER)
-        for (gx, gy) in ((274, 71), (275, 70), (273, 71), (271, 71), (283, 71)):               # sugar spilt round it
+        F.chest(c, 250, 290, 72, 100, F.WOOD, drawers=2)                                       # (40 px wide: it was 60 — the 240 px module)
+        F.silver(c, 'cup', 262, 71, hexc('e6ddc8'))
+        c.line(265, 71, 268, 70, SILVER)                                                      # a spoon on its saucer
+        F.silver(c, 'sugar', 272, 71, SILVER)
+        for (gx, gy) in ((267, 71), (268, 70), (266, 71), (264, 71), (276, 71)):               # sugar spilt round it
             c.put(gx, gy, hexc('f2efe6'))
-        c.ellipse(293, 71, 11, 1.4, shade(SILVER, 0.7)); c.line(282, 70, 303, 69, SILVER)    # the tray, pushed askew
-        F.silver(c, 'teapot', 288, 70, SILVER)
-        c.hline(286, 290, 64, hexc('3a3a40')); c.put(288, 63, SILVER)                          # its lid off —
-        c.ellipse(297, 69, 2.2, 0.8, shade(SILVER, 1.1)); c.put(297, 68, shade(SILVER, 0.66))   # — lying on the tray
-        F.silver(c, 'coffee', 304, 71, SILVER)
-    setback(c, _sb, depth=4, top=72, x_range=(249, 311))
-    cup, cup_dk, cup_lt = hexc('e6ddc8'), hexc('b0a690'), hexc('f6f0e2')
-    coffee, coffee_lt = hexc('3a2010'), hexc('7a5030')
-    c.ellipse(253, 77, 4, 1, coffee); c.rect(249, 77, 254, 77, coffee)                        # the spill, to the edge
-    c.put(252, 77, coffee_lt); c.put(256, 77, coffee)
-    c.hline(256, 259, 72, cup_lt); c.rect(255, 73, 260, 75, cup)                              # the cup, on its side:
-    c.hline(256, 259, 76, cup_dk); c.vline(261, 73, 75, cup_dk)                               # a round body,
-    c.vline(254, 73, 75, cup_dk); c.put(254, 74, coffee); c.put(255, 74, coffee)              # its mouth to the spill,
-    c.put(257, 71, cup_dk); c.put(258, 70, cup_dk); c.put(259, 71, cup_dk)                    # its handle up
-    c.vline(250, 78, 84, coffee); c.vline(251, 78, 81, shade(coffee, 1.3))                    # run down the front
-    PX.anim(250, 85, 'drip', fall=18, color='4a2c16')
-    c.ellipse(251, 104, 6, 1.3, coffee); c.ellipse(254, 105, 3, 0.8, coffee)                  # a puddle on the boards —
-    c.put(248, 104, coffee_lt); c.put(253, 104, coffee_lt)
-    shard, shard_dk = hexc('c8bea8'), hexc('7e7662')                                          # — its twin smashed in it
-    for (sx, sy, sw) in ((256, 104, 2), (259, 106, 1), (246, 106, 1)):
-        c.hline(sx, sx + sw, sy, shard); c.put(sx, sy + 1, shard_dk)
-    c.put(262, 104, shard_dk); c.put(263, 103, shard); c.put(263, 105, shard_dk)              # its snapped-off handle
-    F.flush_light(c, 177)                                                         # above the portraits
+        c.ellipse(282, 71, 8, 1.4, shade(SILVER, 0.7)); c.line(274, 70, 290, 69, SILVER)    # the tray, pushed askew
+        F.silver(c, 'teapot', 281, 70, SILVER)
+        c.hline(279, 283, 64, hexc('3a3a40')); c.put(281, 63, SILVER)                          # its lid off —
+        c.ellipse(288, 69, 2.2, 0.8, shade(SILVER, 1.1)); c.put(288, 68, shade(SILVER, 0.66))   # — lying on the tray
+    def _coffee(c):
+        cup, cup_dk, cup_lt = hexc('e6ddc8'), hexc('b0a690'), hexc('f6f0e2')
+        coffee, coffee_lt = hexc('3a2010'), hexc('7a5030')
+        c.ellipse(253, 77, 4, 1, coffee); c.rect(249, 77, 254, 77, coffee)                        # the spill, to the edge
+        c.put(252, 77, coffee_lt); c.put(256, 77, coffee)
+        c.hline(256, 259, 72, cup_lt); c.rect(255, 73, 260, 75, cup)                              # the cup, on its side:
+        c.hline(256, 259, 76, cup_dk); c.vline(261, 73, 75, cup_dk)                               # a round body,
+        c.vline(254, 73, 75, cup_dk); c.put(254, 74, coffee); c.put(255, 74, coffee)              # its mouth to the spill,
+        c.put(257, 71, cup_dk); c.put(258, 70, cup_dk); c.put(259, 71, cup_dk)                    # its handle up
+        c.vline(250, 78, 84, coffee); c.vline(251, 78, 81, shade(coffee, 1.3))                    # run down the front
+        PX.anim(250, 85, 'drip', fall=18, color='4a2c16')
+        c.ellipse(251, 104, 6, 1.3, coffee); c.ellipse(254, 105, 3, 0.8, coffee)                  # a puddle on the boards —
+        c.put(248, 104, coffee_lt); c.put(253, 104, coffee_lt)
+        shard, shard_dk = hexc('c8bea8'), hexc('7e7662')                                          # — its twin smashed in it
+        for (sx, sy, sw) in ((256, 104, 2), (259, 106, 1), (246, 106, 1)):
+            c.hline(sx, sx + sw, sy, shard); c.put(sx, sy + 1, shard_dk)
+        c.put(262, 104, shard_dk); c.put(263, 103, shard); c.put(263, 105, shard_dk)              # its snapped-off handle
+    setback(c, lambda l: F.moved(l, _sb, -18, 0), depth=4, top=72, x_range=(232, 273))
+    F.moved(c, _coffee, -18, 0)
+    F.flush_light(c, 207)                                                         # above the portraits
 
-C_ANCHORS = [('anchor_dining_china_cabinet', 25, 52, 'bp s'), ('anchor_dining_cabinet_cupboard', 17, 86, 'bp s'),
-             ('anchor_dining_grandfather_clock', 113, 70, 'bp'), ('anchor_table_left', 142, 95, ''),
-             ('anchor_table_right', 222, 95, ''), ('anchor_dining_candelabra', 180, 84, ''),
-             ('anchor_right_upperdrawers', 280, 80, 'bp')]
+C_ANCHORS = [('anchor_dining_china_cabinet', 55, 52, 'bp s'), ('anchor_dining_cabinet_cupboard', 53, 86, 'bp s'),
+             ('anchor_dining_grandfather_clock', 147, 70, 'bp'), ('anchor_table_left', 179, 95, ''),
+             ('anchor_table_right', 232, 95, ''), ('anchor_dining_candelabra', 203, 84, ''),
+             ('anchor_right_upperdrawers', 260, 80, 'bp')]
 
 
 # ============================================================================================
@@ -411,10 +420,10 @@ def d_decor(c):
     _board(c, 142, 32, 188, 36, 4)
     _board(c, 140, 44, 190, 48, 4)
     with PX.wall_mark(c):                  # a mark on the wall: it can run down behind the sideboard
-        for i in range(4):                                                                    # a bloody handprint
-            c.line(118 + i * 2, 58, 117 + i * 2, 50 - i, BLOOD)
-        c.ellipse(121, 60, 4, 3, BLOOD)
-        c.line(121, 63, 122, 80, BLOOD)
+        for i in range(4):                                                                    # a bloody handprint (240 px module: right of the hole, over the table)
+            c.line(198 + i * 2, 58, 197 + i * 2, 50 - i, BLOOD)
+        c.ellipse(201, 60, 4, 3, BLOOD)
+        c.line(201, 63, 202, 80, BLOOD)
 
 
 @persp
@@ -423,6 +432,11 @@ def d_floor(c):
 
 
 def d_strip(c):
+    F.moved(c, _d_chairs, 36, 0)                      # (240 px module: the balcony strip is design x 44..136)
+    F.moved(c, _d_handbag, 36, -21)
+
+
+def _d_chairs(c):
     # a heap of broken chairs piled against the wall (bits to barricade with, pulled over in a panic)
     c.shadow(30, 100, 22, 2, 100)
     for (a, b) in (((10, 99), (40, 72)), ((16, 99), (46, 80)), ((8, 84), (44, 90)), ((24, 70), (30, 99))):
@@ -430,8 +444,10 @@ def d_strip(c):
         c.line(a[0] + 1, a[1], b[0] + 1, b[1], F.WOOD[2])
     c.rect(14, 86, 34, 88, F.WOOD[1])                                                         # a seat
     c.rect(26, 74, 44, 76, F.WOOD[1])
-    c.line(38, 70, 38, 62, F.WOOD[0]); c.line(44, 72, 44, 64, F.WOOD[0])
-    def _handbag(c):
+    c.line(30, 70, 30, 62, F.WOOD[0]); c.line(34, 72, 34, 64, F.WOOD[0])                       # (the legs stand up left of the L window box's x 72)
+
+
+def _d_handbag(c):
         # a handbag dropped by whoever dragged the chairs over, its things spilled beside the broken chairs
         c.shadow(72, 120, 10, 2, 110)
         leather, leather_dk = hexc('7a4a32'), hexc('4a2c1e')
@@ -444,50 +460,42 @@ def d_strip(c):
         c.rect(84, 117, 88, 119, hexc('b0453a'))                                   # a lipstick, rolled out
         c.rect(88, 118, 91, 119, hexc('c9c7bd'))
         c.rect(92, 115, 96, 120, hexc('2a2a30')); c.hline(92, 96, 115, hexc('5a5a64'))   # a phone, face down
-    F.moved(c, _handbag, -4, -21)
 
 
 def d_furniture(c):
     # the table flipped onto its side across the room: its top faces us, its legs sticking straight
     # BACK toward the wall (round 17: they poked straight up like sticks) — seen from above, they
     # run in toward the vanishing point, and the tabletop's edge shows along the top
-    x0, x1, top, base = 118, 216, 80, 121
-    wood_top = shade(F.WOOD[0], 1.15)
-    F.chair_back(c, 152, 60, 80, F.WOOD, width=16)                                            # a chair wedged behind it
-    c.shadow((x0 + x1) // 2, base + 1, (x1 - x0) // 2 + 4, 3, 120)
-    for lx in (x0 + 6, x1 - 10):                                                              # the legs, running back
-        ax, ay = lx, top
-        bx, by = _ipt(pp(160 + (lx - 160) / 1.21, 66, 5))
-        c.poly([(ax, ay), (ax + 4, ay), (bx + 3, by), (bx, by)], F.WOOD[2])
-        c.line(ax, ay, bx, by, shade(F.WOOD[2], 1.2))
-        c.line(ax + 4, ay, bx + 3, by, F.WOOD[3])
-        c.hline(bx, bx + 3, by, shade(F.WOOD[2], 1.25))                                        # the foot, end-on
-    c.poly([(x0, top), (x1, top), (x1 - 2, top - 2), (x0 + 2, top - 2)], wood_top)             # the tabletop's edge
-    c.hline(x0 + 2, x1 - 2, top - 2, F.WOOD[3])
-    c.box(x0, top, x1, base, F.WOOD[0], F.WOOD[3])                                            # the underside of the top
-    c.rect(x0 + 4, top + 4, x1 - 4, top + 7, F.WOOD[2])                                       # its apron rails
-    c.rect(x0 + 4, base - 7, x1 - 4, base - 4, F.WOOD[2])
-    for y in range(top + 10, base - 8, 5):
-        c.hline(x0 + 2, x1 - 2, y, shade(F.WOOD[0], 0.9))
-    for (x, y) in ((140, 94), (176, 100), (196, 90)):                                        # gouges, something clawed at it
-        c.line(x, y, x + 6, y + 8, hexc('2a1a10'))
-        c.line(x + 3, y, x + 9, y + 8, hexc('2a1a10'))
-    c.ellipse(160, 104, 5, 3, BLOOD_DK)
-    c.line(158, 106, 157, 118, BLOOD)
-    # planks leaning up in the corner, then a MATTRESS dragged off a bed and propped in front of them —
-    # both leaning: their tops against the wall, their feet out on the floor (round 17: the mattress
-    # was a flat pale box painted on the wall)
-    for (wx, col) in ((297, hexc('8a6a44')), (302, hexc('9a7a4e')), (307, hexc('7a5a38'))):
-        a_, b_ = _ipt(pp(wx, 40, 0)), _ipt(pp(wx, 100, 3))
-        c.shadow(b_[0] + 2, b_[1] + 1, 3, 1, 100)
-        c.poly([(a_[0], a_[1]), (a_[0] + 3, a_[1]), (b_[0] + 3, b_[1]), (b_[0], b_[1])], col)
-        c.line(a_[0], a_[1], b_[0], b_[1], shade(col, 1.2))
-        c.line(a_[0] + 3, a_[1], b_[0] + 3, b_[1], shade(col, 0.6))
-        c.hline(a_[0], a_[0] + 3, a_[1], shade(col, 1.3))
-    _leaning_mattress(c, 272, 291, 30, 100)
-    c.shadow(228, 120, 8, 1, 110)                                             # the hammer, dropped at the table's foot
-    c.rect(218, 116, 236, 118, F.WOOD[1])
-    c.rect(232, 112, 238, 118, hexc('5a5a52'))
+    def _d_table(c):
+        x0, x1, top, base = 118, 214, 80, 121
+        wood_top = shade(F.WOOD[0], 1.15)
+        F.chair_back(c, 152, 60, 80, F.WOOD, width=16)                                            # a chair wedged behind it
+        c.shadow((x0 + x1) // 2, base + 1, (x1 - x0) // 2 - 4, 3, 120)
+        for lx in (x0 + 6, x1 - 10):                                                              # the legs, running back
+            ax, ay = lx, top
+            bx, by = _ipt(pp(160 + (lx - 160) / 1.21, 66, 5))
+            c.poly([(ax, ay), (ax + 4, ay), (bx + 3, by), (bx, by)], F.WOOD[2])
+            c.line(ax, ay, bx, by, shade(F.WOOD[2], 1.2))
+            c.line(ax + 4, ay, bx + 3, by, F.WOOD[3])
+            c.hline(bx, bx + 3, by, shade(F.WOOD[2], 1.25))                                        # the foot, end-on
+        c.poly([(x0, top), (x1, top), (x1 - 2, top - 2), (x0 + 2, top - 2)], wood_top)             # the tabletop's edge
+        c.hline(x0 + 2, x1 - 2, top - 2, F.WOOD[3])
+        c.box(x0, top, x1, base, F.WOOD[0], F.WOOD[3])                                            # the underside of the top
+        c.rect(x0 + 4, top + 4, x1 - 4, top + 7, F.WOOD[2])                                       # its apron rails
+        c.rect(x0 + 4, base - 7, x1 - 4, base - 4, F.WOOD[2])
+        for y in range(top + 10, base - 8, 5):
+            c.hline(x0 + 2, x1 - 2, y, shade(F.WOOD[0], 0.9))
+        for (x, y) in ((140, 94), (176, 100), (196, 90)):                                        # gouges, something clawed at it
+            c.line(x, y, x + 6, y + 8, hexc('2a1a10'))
+            c.line(x + 3, y, x + 9, y + 8, hexc('2a1a10'))
+        c.ellipse(160, 104, 5, 3, BLOOD_DK)
+        c.line(158, 106, 157, 118, BLOOD)
+    F.moved(c, _d_table, 20, 0)                                                              # (240 px module: the table stands 20 px right of where it was, clear of the balcony strip)
+    # a MATTRESS dragged off a bed and propped against the wall (the planks that leaned beside it went with the 80 px): its top against the wall, its foot out on the floor
+    _leaning_mattress(c, 243, 260, 30, 100)
+    c.shadow(236, 120, 8, 1, 110)                                             # the hammer, dropped at the table's foot
+    c.rect(226, 116, 244, 118, F.WOOD[1])
+    c.rect(240, 112, 246, 118, hexc('5a5a52'))
 
 
 def _leaning_mattress(c, wx0, wx1, wtop, wbot, lean=6, thick=4):
@@ -527,9 +535,9 @@ def _leaning_mattress(c, wx0, wx1, wtop, wbot, lean=6, thick=4):
     c.line(btl[0], btl[1], btr[0], btr[1], shade(tick, 0.7))
 
 
-D_ANCHORS = [('anchor_dining_broken_chairs', 28, 86, 'bp s'), ('anchor_dining_handbag', 73, 91, 'bp s'),
-             ('anchor_dining_behind_table', 168, 90, ''), ('anchor_table_right', 204, 110, ''),
-             ('anchor_dining_mattress', 283, 64, 'bp'), ('anchor_dining_hammer', 228, 116, '')]
+D_ANCHORS = [('anchor_dining_broken_chairs', 64, 86, 'bp s'), ('anchor_dining_handbag', 109, 91, 'bp s'),
+             ('anchor_dining_behind_table', 188, 90, ''), ('anchor_table_right', 224, 110, ''),
+             ('anchor_dining_mattress', 254, 64, 'bp'), ('anchor_dining_hammer', 236, 116, '')]
 
 
 # ============================================================================================
@@ -548,7 +556,7 @@ def e_wall(c):
 
 def e_decor(c):
     # bunting strung across the wall, a hand-painted banner, a few balloons gone soft
-    for (x0, x1, sag) in ((100, 222, 8),):
+    for (x0, x1, sag) in ((142, 258, 8),):                                        # (240 px module: right of the balcony strip, left of the edge)
         prev = None
         for x in range(x0, x1 + 1):
             t = (x - x0) / float(x1 - x0)
@@ -560,10 +568,10 @@ def e_decor(c):
                 col = PARTY[((x - x0) // 10) % len(PARTY)]
                 c.poly([(x - 3, y + 1), (x + 3, y + 1), (x, y + 7)], col)
     import wallart as WA                                                         # the banner: a sheet of paper (grain, a soft light-to-shade gradient, a curling corner) taped at both ends, hand-painted
-    WA.sheet(c, 122, 34, 200, 44, hexc('efe8d8'), seed=3, fold=None, curl='br', grain=0.05)
-    WA.tape(c, 122, 33, 6, 3, 0); WA.tape(c, 195, 33, 6, 3, 0)
+    WA.sheet(c, 140, 34, 218, 44, hexc('efe8d8'), seed=3, fold=None, curl='br', grain=0.05)
+    WA.tape(c, 140, 33, 6, 3, 0); WA.tape(c, 213, 33, 6, 3, 0)
     word = 'HAPPY BIRTHDAY'
-    x = 122 + (79 - F.text3_width(word)) // 2
+    x = 140 + (79 - F.text3_width(word)) // 2
     for i, ch in enumerate(word):
         g = F.FONT3.get(ch, F.FONT3[' '])
         F.text3(c, x, 37, ch, PARTY[i % len(PARTY)] if ch != ' ' else PARTY[0])
@@ -584,7 +592,14 @@ def e_strip(c):
 G_TOP = 72.0            # wall y of the gift table's top surface (a tall little table: the stack reaches the window's sill)
 
 
+STRIP_DX = 15           # (240 px module: the stack stands in front of the left window, whose box is now design x 72..116)
+
+
 def e_front_strip(c):
+    F.moved(c, _e_front_strip, STRIP_DX, 0)
+
+
+def _e_front_strip(c):
     """The presents, owner round 36e: SMALLER (they were huge), on a TABLE, standing in front of the left wall's window — a
     stack reaching up across the window's lower pane — and the torn-open box on the floor under the table. Drawn in the FRONT
     layer so the window sits behind them (it is only there when this slot has no balcony, exactly when the strip shows)."""
@@ -604,7 +619,8 @@ def e_front_strip(c):
 
 
 # --- the party table ---------------------------------------------------------------------------------------
-T_X0, T_X1, T_D0, T_D1, T_TOP = 123.0, 218.0, 8.0, 20.0, 75.0
+T_X0, T_X1, T_D0, T_D1, T_TOP = 123.0, 199.0, 8.0, 20.0, 75.0
+PARTY_DX = 25           # (240 px module: a shorter table 25 px right, clear of the balcony strip and of the sideboard; the head and end chairs went)
 CLOTH, CLOTH_DK = hexc('efe8d8'), hexc('cfc6b0')
 
 
@@ -612,7 +628,7 @@ def _e_balloons(c):
     # balloons TIED to the chair backs (round 17: their strings ended in mid-air; round 23: drawn in FRONT of the chairs,
     # the string knotted round the top rail instead of vanishing behind it). The LEFT one is part of the room; the cluster
     # over the right-hand chair is a front-layer piece (e_front) so it can drift across the window beside it.
-    for (x, y, col, top) in ((139, 53, PARTY[1], 70),):
+    for (x, y, col, top) in ((136, 53, PARTY[1], 70),):
         _balloon(c, x, y, col, top)
 
 
@@ -627,39 +643,37 @@ def _balloon(c, x, y, col, top, tie=None):
 
 def e_front(c):
     # a bunch of balloons rising off the right-hand chair — the last one drifts out over the window on that side
-    for (x, y, col) in ((221, 54, PARTY[0]), (231, 47, PARTY[2]), (238, 38, PARTY[3])):
-        _balloon(c, x, y, col, 70, tie=221)
+    for (x, y, col) in ((201 + PARTY_DX, 54, PARTY[0]), (211 + PARTY_DX, 47, PARTY[2]), (218 + PARTY_DX, 38, PARTY[3])):
+        _balloon(c, x, y, col, 70, tie=201 + PARTY_DX)
 
 
-def e_furniture(c):
+def _party(c):
     # the party table out in the room: a cake with the candles burnt down, paper plates, hats
     PINEP = {'wood': hexc('b58a55'), 'seat': hexc('c9a06a')}
     mdl = C3.dining_chair('spindle')
-    for (x, yaw) in ((139, 168), (183, 198), (221, 184)):                                    # spindle-backs round the table, none square-on
+    for (x, yaw) in ((136, 168), (171, 198), (201, 184)):                                    # spindle-backs round the table, none square-on
         C3.draw_model(c, x, 100, mdl, yaw, PINEP, srad=10)
-    C3.draw_model(c, 107, 114, mdl, 78, PINEP, srad=9)                                       # the head chair, turned toward the table (a whole side shows)
-    C3.draw_model(c, 241, 113, mdl, 282, PINEP, srad=9)                                      # and one at the other end, turned the other way
     _e_balloons(c)
     t = P3.table3d(c, T_X0, T_X1, T_D0, T_D1, T_TOP, F.PINE[0], F.PINE[1], F.PINE[2], F.PINE[3],
                    cloth=CLOTH, cloth_dk=CLOTH_DK, hem=13)
     top = T_TOP
-    for xw in range(129, 226, 8):                                                  # a paper cloth, printed (dots in perspective)
+    for xw in range(128, 196, 8):                                                  # a paper cloth, printed (dots in perspective)
         for dd in (10.5, 14.5, 18.5):
             px, py = P3.scr(xw + (4 if dd == 14.5 else 0), top, dd)
             c.put(px, py, PARTY[(xw // 8 + int(dd)) % len(PARTY)])
         px, py = P3.scr(xw, top + 4.5, T_D1 + 1.2)
         c.put(px, py, PARTY[(xw // 8) % len(PARTY)])
     # plates + the hats left on them
-    for (xw, dd, col, dk) in ((141, 13.5, PARTY[0], shade(PARTY[0], 0.7)), (157, 17.0, PARTY[1], shade(PARTY[1], 0.7)),
-                              (203, 12.5, PARTY[3], shade(PARTY[3], 0.7)), (219, 16.5, PARTY[4], shade(PARTY[4], 0.7))):
+    for (xw, dd, col, dk) in ((137, 13.5, PARTY[0], shade(PARTY[0], 0.7)), (150, 17.0, PARTY[1], shade(PARTY[1], 0.7)),
+                              (187, 12.5, PARTY[3], shade(PARTY[3], 0.7)), (199, 16.5, PARTY[4], shade(PARTY[4], 0.7))):
         P3.disc(c, xw, top, dd, 6.0, hexc('efe8d8'), edge=hexc('c3beb0'))
         P3.cone(c, xw, top, 10.0, dd, 3.6, col, dk, stripe=hexc('efe8d8'), pom=PARTY[2])
     # paper cups
-    for (xw, dd) in ((167, 18.0), (193, 11.5)):
+    for (xw, dd) in ((159, 18.0), (178, 11.5)):
         P3.cyl(c, xw, top, 4.5, dd, 2.3, hexc('efe8d8'), hexc('f8f4ea'), hexc('d0c8b4'), rim=hexc('b8b0a0'))
         c.hline(*(lambda b: (b[0] - 2, b[0] + 2, b[1] - 2))(P3.scr(xw, top, dd)), PARTY[1])
     # the cake: a plate, a pink-iced sponge with a slice cut from it, candles burnt down
-    cx_, cd = 177.0, 14.0
+    cx_, cd = 166.0, 14.0
     P3.disc(c, cx_, top, cd, 11.5, hexc('efe8d8'), edge=hexc('c3beb0'))
     bx, by, ty, rx, ry = P3.cyl(c, cx_, top - 0.4, 7.0, cd, 8.4, hexc('d98aa0'), hexc('f4d6de'), hexc('b86880'), rim=hexc('f0d0dc'))
     for xx in range(int(bx - rx) + 1, int(bx + rx), 2):                            # the icing's drips down the side
@@ -673,42 +687,39 @@ def e_furniture(c):
         c.vline(px, py - 3, py, PARTY[(k * 2 + 1) % 5])
         c.put(px, py - 4, hexc('3a2a1a'))
     # the blood on the cloth + a dropped knife
-    s_ = P3.disc(c, 211.0, top, 15.5, 4.2, BLOOD)
-    P3.disc(c, 214.0, top, 16.5, 2.2, BLOOD_DK)
-    P3.knife(c, 206.0, top, 17.0, ang=0.5)
+    s_ = P3.disc(c, 193.0, top, 15.5, 4.2, BLOOD)
+    P3.disc(c, 196.0, top, 16.5, 2.2, BLOOD_DK)
+    P3.knife(c, 188.0, top, 17.0, ang=0.5)
     # the toppled chair, clear of the table's legs (owner round 36e: a leg was clipping into it) and CLEAR OF THE WALKING LINE (owner round 45b:
     # at base row 131 it lay across the lane, so a player standing at it looked to be clipping through — 'the chair is way too close').
     # Its base is row 121, eight rows behind the lane (129): the player walks in front of it, and a body on the lane lies in front of it too.
-    C3.draw_model(c, 187, 121, C3.fall(mdl, 'side', 8.0), 40, PINEP, shadow='footprint')
-    # a sideboard with a cassette player and a stack of paper cups (with depth)
+    C3.draw_model(c, 175, 121, C3.fall(mdl, 'side', 8.0), 40, PINEP, shadow='footprint')
+
+
+def e_furniture(c):
+    F.moved(c, _party, PARTY_DX, 0)
+    # a sideboard with a cassette player (240 px module: a narrower chest against the right wall, the boombox on it)
     def _sb(c):
-        F.chest(c, 250, 310, 72, 100, F.PINE, drawers=2, open_row=0)
+        F.chest(c, 244, 274, 72, 100, F.PINE, drawers=2, open_row=0)
         # a boombox for the party (round 19: it read as a dark box): two speaker cones, the
-        # cassette deck between them, a carry handle, an aerial; a stack of paper cups beside it
-        c.ellipse(258, 70, 5, 1.6, hexc('c0453a')); c.ellipse(258, 69, 4, 1, hexc('e8b83a'))   # a bowl of crisps
-        c.put(256, 68, hexc('f0cf6a')); c.put(259, 68, hexc('f0cf6a'))
-        c.ellipse(268, 70.5, 5, 1.3, hexc('efe8d8'))                                           # a plate of sandwiches
-        for sx_ in (266, 269):
-            c.poly([(sx_ - 2, 70), (sx_ + 2, 70), (sx_, 67)], hexc('e6d2a0')); c.hline(sx_ - 1, sx_ + 1, 69, hexc('b0453a'))
-        c.box(274, 62, 296, 71, hexc('3a3a3d'), hexc('1c1c1e'))
-        c.hline(275, 295, 63, hexc('5a5a60'))
-        for sx in (279, 291):
+        # cassette deck between them, a carry handle, an aerial
+        c.ellipse(248, 70, 3.5, 1.4, hexc('c0453a')); c.ellipse(248, 69, 2.6, 0.9, hexc('e8b83a'))   # a bowl of crisps
+        c.put(247, 68, hexc('f0cf6a')); c.put(249, 68, hexc('f0cf6a'))
+        c.box(252, 62, 272, 71, hexc('3a3a3d'), hexc('1c1c1e'))
+        c.hline(253, 271, 63, hexc('5a5a60'))
+        for sx in (256, 268):
             c.ellipse(sx, 67, 3.5, 3.5, hexc('1c1c1e')); c.ellipse(sx, 67, 2.5, 2.5, hexc('6a6e72'))
             c.ellipse(sx - 0.5, 66.5, 1, 1, hexc('9aa3a8'))
-        c.rect(282, 65, 288, 69, hexc('9aa3a8')); c.rect(283, 66, 287, 68, hexc('2a2a2e'))     # the cassette deck
-        c.put(284, 67, hexc('d9c24a')); c.put(286, 67, hexc('d9c24a'))
-        c.line(276, 62, 278, 58, hexc('7a8083')); c.hline(278, 292, 58, hexc('7a8083')); c.line(292, 58, 294, 62, hexc('7a8083'))
-        c.line(295, 62, 300, 50, hexc('9aa3a8'))                                               # the aerial
-        for i, y in enumerate(range(70, 59, -2)):                                              # paper cups, stacked
-            c.hline(300, 306, y, hexc('efe8d8')); c.hline(300, 306, y + 1, hexc('d0c8b4'))
-        c.vline(306, 60, 71, hexc('b8b0a0')); c.vline(300, 60, 71, hexc('f8f4ea'))
-        c.ellipse(303, 60, 3, 1, hexc('b8b0a0'))
-    setback(c, _sb, depth=4, top=72, x_range=(249, 311))
+        c.rect(259, 65, 265, 69, hexc('9aa3a8')); c.rect(260, 66, 264, 68, hexc('2a2a2e'))     # the cassette deck
+        c.put(261, 67, hexc('d9c24a')); c.put(263, 67, hexc('d9c24a'))
+        c.line(254, 62, 256, 58, hexc('7a8083')); c.hline(256, 268, 58, hexc('7a8083')); c.line(268, 58, 270, 62, hexc('7a8083'))
+        c.line(271, 62, 274, 51, hexc('9aa3a8'))                                               # the aerial
+    setback(c, _sb, depth=4, top=72, x_range=(243, 275))
     F.flush_light(c, 160)
 
-E_ANCHORS = [('anchor_dining_presents', 66, 77, 's'), ('anchor_dining_torn_box', 82, 114, 's'),
-             ('anchor_table_left', 143, 90, ''), ('anchor_dining_cake', 177, 86, ''),
-             ('anchor_table_right', 219, 90, ''), ('anchor_right_upperdrawers', 280, 82, 'bp')]
+E_ANCHORS = [('anchor_dining_presents', 66 + STRIP_DX, 77, 's'), ('anchor_dining_torn_box', 82 + STRIP_DX, 114, 's'),
+             ('anchor_table_left', 140 + PARTY_DX, 90, ''), ('anchor_dining_cake', 166 + PARTY_DX, 86, ''),
+             ('anchor_table_right', 192 + PARTY_DX, 90, ''), ('anchor_right_upperdrawers', 259, 82, 'bp')]
 
 FRONTS = {'e': (e_front, e_front_strip)}
 
@@ -719,6 +730,10 @@ VARIANTS = {
     'd': ('dining_room_d', 64, (d_wall, d_decor, d_floor, d_furniture, d_strip), D_ANCHORS),
     'e': ('dining_room_e', 65, (e_wall, e_decor, e_floor, e_furniture, e_strip), E_ANCHORS),
 }
+
+
+# which wall's window box each variant keeps bare: the balcony strip is on the left, so a dining room's window is on the left (docs/MODULE_WIDTH.md)
+WINDOW_SIDE = {}
 
 
 def make(fns):
@@ -741,4 +756,4 @@ if __name__ == '__main__':
         name, seed, fns, anchors = VARIANTS[v]
         bare, floor, build, strip = make(fns)
         ff, fs = FRONTS.get(v, (None, None))
-        finish_module(name, 'dining_room', seed, bare, floor, build, anchors, strip_fn=strip, front_fn=ff, front_strip_fn=fs)
+        finish_module(name, 'dining_room', seed, bare, floor, build, anchors, strip_fn=strip, front_fn=ff, front_strip_fn=fs, window=WINDOW_SIDE.get(v, 'L'))

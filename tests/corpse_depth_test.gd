@@ -1,5 +1,7 @@
 extends Node
 
+const MG := preload("res://scripts/module_geo.gd")        # the module width (docs/MODULE_WIDTH.md)
+
 # THE DEAD LIE IN FRONT OF WHOEVER STANDS LEVEL WITH THEM (owner round 48h: "I am standing on top of bodies in an over clipping way, both for NPCs and
 # enemies… have those elements in front of players feet… so it looks like player is walking behind them"). Every body used to draw UNDER the living (z 0), so a
 # player level with a body had their legs painted over it. Now each body is sorted by its FEET ROW (corpse_depth.gd): level with the player or nearer (up to REACH)
@@ -259,7 +261,7 @@ func _test_baked_dead() -> void:
 		if not ResourceLoader.exists("res://assets/rooms/%s_dead.png" % key):
 			missing.append(key)
 		for r in dead:
-			if not (r.size() == 5 and r[0] >= 0 and r[1] >= 0 and r[2] < 320 and r[3] < 144 and r[0] <= r[2] and r[1] <= r[3] and r[1] <= r[4] and r[4] <= r[3]):
+			if not (r.size() == 5 and r[0] >= 0 and r[1] >= 0 and r[2] < MG.WIDTH and r[3] < 144 and r[0] <= r[2] and r[1] <= r[3] and r[1] <= r[4] and r[4] <= r[3]):
 				bad_rects.append(key)
 	check(with_dead > 150 and missing.is_empty(), "%d story overlays have a dead layer, none missing a file (%s)" % [with_dead, str(missing.slice(0, 3))])
 	check(bad_rects.is_empty(), "every body rect is inside its module and holds its feet row (%s)" % str(bad_rects.slice(0, 3)))

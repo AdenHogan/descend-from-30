@@ -135,8 +135,22 @@ def sheet(files, path, data=None, per_piece_variants=2, buckets=(0, 3, 6), scale
         k += 1
 
 
+def recipes_only():
+    """A QUICK rewrite of data/furniture.json's module / rules / recipes (no sprite is rendered): for tuning recipes. `--check` and a plain run remain the truth."""
+    import pixlib as PX
+    data = json.load(open(FL.DATA))
+    data['module'] = {'width': PX.MW, 'pad': PX.PAD, 'window_inset': PX.WIN_INSET}
+    data['rules'] = furn_rooms.rules()
+    data['recipes'] = furn_rooms.built_recipes()
+    open(FL.DATA, 'w').write(_json(data))
+    print('rewrote the recipes of data/furniture.json')
+
+
 def main():
     args = sys.argv[1:]
+    if '--recipes' in args:
+        recipes_only()
+        return
     only = None
     if '--only' in args:
         only = set(args[args.index('--only') + 1:])

@@ -1,5 +1,7 @@
 extends Node
 
+const MG := preload("res://scripts/module_geo.gd")        # the module width (docs/MODULE_WIDTH.md)
+
 # Headless test for the SURVIVORS (docs/NPC_AI.md): who is where, how they think, how they fight. Every pattern the doc
 # promises is asserted here by running the real thing. Since owner round 41 their fighting is THEATRE (AllyCombat.performative:
 # the flash of a blow, none of its weight) — the first half of this file runs the OLD half-damage fight with that switch OFF
@@ -776,7 +778,8 @@ func _test_hider_in_a_flat() -> void:
 	if h != null:
 		check(absf(h.position.y - 353.0) < 0.5, "on the flat's walking line (353)")
 		var side := WorldState.get_entrance_side(apt)
-		var far_ok: bool = (h.position.x > 113.0 + 2 * 320.0 + 60.0) if side == "left" else (h.position.x < 113.0 + 320.0 + 60.0 + 180.0)
+		var span: int = WorldState.apartment_span(apt)          # the far end is the LAST room of this flat (a two-room flat has no third)
+		var far_ok: bool = (h.position.x > MG.LEFT_WALL_X + (span - 1) * MG.WIDTH) if side == "left" else (h.position.x < MG.LEFT_WALL_X + MG.WIDTH)
 		check(far_ok, "as far from the front door as the flat goes (door %s, x %.0f)" % [side, h.position.x])
 		for zz in get_tree().get_nodes_in_group("zombie"):
 			if room.is_ancestor_of(zz):
@@ -1149,7 +1152,8 @@ func _test_rescue_in_a_flat() -> void:
 		WorldState.seed_floor_door_states(f)
 		for col in range(1, 6):
 			var a := "%d%02d" % [f, col]
-			if SurvivorPlan.hider_flat_ok(a) and WorldState.get_door_state(a) == WorldState.DoorState.OPEN:
+			# (a flat that ALSO lays ordinary dead, so "afterwards" has something to count — with none the three kills of the rescue cannot show in the count either way)
+			if SurvivorPlan.hider_flat_ok(a) and WorldState.get_door_state(a) == WorldState.DoorState.OPEN and WorldState.get_apartment_zombie_count(a) >= 1:
 				apt = a
 				break
 		if apt != "":
@@ -1200,7 +1204,7 @@ func _test_rescue_in_a_flat() -> void:
 		await _frames(25)
 		check(not h.rescuing and str(seeded["rescue"]) == "saved" and h.behaviour == "trust", "kill them and the flat's hider is saved, and trusts you (%s)" % h.behaviour)
 		var rep2: Dictionary = WorldState.get_listen_report_for_apartment(apt)
-		check(str(rep2["event"]) == "hider" and int(rep2["count"]) == 0, "…and afterwards the door only gives away someone holding their breath (%s / %d)" % [str(rep2["event"]), int(rep2["count"])])
+		check(str(rep2["event"]) == "hider" and int(rep2["count"]) == WorldState.get_apartment_zombie_count(apt), "…and afterwards the door only gives away someone holding their breath, and counts the flat's ordinary dead — not those three, killed or not (%s / %d, ordinary %d)" % [str(rep2["event"]), int(rep2["count"]), WorldState.get_apartment_zombie_count(apt)])
 	room.queue_free()
 	await get_tree().process_frame
 	await get_tree().process_frame

@@ -436,7 +436,7 @@ static func _blocked(rect: Rect2, ctx: Dictionary, allow: float = 0.0) -> bool:
 
 
 static func _sill_allow(rec: Dictionary) -> float:
-	return float(SILL_INTRUSION) if bool(rec.get("under_window", false)) else 0.0
+	return float(SILL_INTRUSION) if bool(rec.get("under_window", false)) or bool(rec.get("sill", false)) else 0.0
 
 
 static func _item_anchors(it: Dictionary) -> Array:
@@ -579,12 +579,20 @@ static func plan(room_type: String, style: String, seed_: int, ctx_in: Dictionar
 			return _result(st, room_type, style, rcp, seed_, attempt, false)
 	ctx["fallback"] = true
 	var fb := {"items": [], "rng": RandomNumberGenerator.new(), "ctx": ctx, "room": room_type, "style": style, "rcp": rcp}
-	for e in rcp.get("fallback", []):
+	for e in fallback_layout(rcp, String(ctx_in.get("window", ""))):
 		var vid_ := String(e["variant"])
 		var it := _make(String(e["id"]), vid_, int(e["x"]), int(e["y"]))
 		if not it.is_empty():
 			fb["items"].append(it)
 	return _result(fb, room_type, style, rcp, seed_, MAX_TRIES, true)
+
+
+## The hand-set layout a recipe falls back to: `fallback_left` / `fallback_right` for a room whose window is on that side (a narrow module leaves no layout that is clear of BOTH window boxes for a wide piece), else `fallback`.
+static func fallback_layout(rcp: Dictionary, window: String) -> Array:
+	var key := "fallback_" + window
+	if window != "" and rcp.has(key):
+		return rcp[key]
+	return rcp.get("fallback", [])
 
 
 static func _result(st: Dictionary, room_type: String, style: String, rcp: Dictionary, seed_: int, attempt: int, fallback: bool) -> Dictionary:
@@ -595,7 +603,7 @@ static func _result(st: Dictionary, room_type: String, style: String, rcp: Dicti
 	for i in range(items.size()):
 		var it: Dictionary = items[i]
 		var cx: float = float(it["x"]) + float(it["w"]) * 0.5
-		order.append([int(layer.get(String(it["plane"]), 2)), int(it["y"]) if _is_body(String(it["plane"])) or it["plane"] == "floor" else 0, -absf(cx - 160.0), i])
+		order.append([int(layer.get(String(it["plane"]), 2)), int(it["y"]) if _is_body(String(it["plane"])) or it["plane"] == "floor" else 0, -absf(cx - float(MODULE_W) * 0.5), i])
 	order.sort_custom(func(a, b):
 		for k in range(4):
 			if a[k] != b[k]:
@@ -795,9 +803,13 @@ static func _place_centre(st: Dictionary, cr: Dictionary) -> int:
 		return -1
 	var rec := piece(id)
 	var xr: Array = cr["x"]
+	var mirror: bool = bool(cr.get("mirror", false))       # the x range is for the LEFT wall: a seeded half of the rooms stand the piece against the right one instead (a bath that must leave a run of wall for the toilet and basin)
 	for t in range(12):
 		var vid := _vid(rng, rec, String(st["style"]))
-		var it := _make(id, vid, rng.randi_range(int(xr[0]), int(xr[1])), _feet(rng, rec))
+		var cx := rng.randi_range(int(xr[0]), int(xr[1]))
+		if mirror and rng.randf() < 0.5:
+			cx = MODULE_W - cx - int(rec["w"])
+		var it := _make(id, vid, cx, _feet(rng, rec))
 		if _fits(st, it):
 			return _add(st, it)
 	if bool(cr.get("anywhere", false)):                                      # then anywhere the room has space (a kitchen table goes wherever the run left room)
@@ -879,10 +891,12 @@ static func _fill_wall(st: Dictionary, wr: Dictionary) -> void:
 		for x in xs:
 			var it := _make(id, vid, int(x), _feet(rng, rec))
 			if _fits(st, it, gap):
+				var before: int = st["items"].size()
 				var idx := _add(st, it)
 				_place_needs(st, idx)
-				placed += 1
-				break
+				if st["items"].size() > before:                      # it stayed (a piece with no room for its companion at THIS spot is taken off again — try the next spot, not the next piece)
+					placed += 1
+					break
 
 
 ## The stretches of the wall line with no body standing on them: [Vector2(start, end)] wider than `min_w`, widest first. A blocked box (a balcony's doors) counts as taken.

@@ -5,13 +5,13 @@
 [node name="Node2D" type="Node2D"]
 
 [node name="ColorRect" type="ColorRect" parent="."]
-offset_right = 320.0
+offset_right = 240.0
 offset_bottom = 144.0
 color = Color(0.4, 0.4, 0.4, 1)
 
 [node name="Label" type="Label" parent="ColorRect"]
 layout_mode = 0
-offset_right = 318.0
+offset_right = 238.0
 offset_bottom = 100.0
 theme_override_font_sizes/font_size = 32
 visible = false
@@ -25,11 +25,11 @@ texture = ExtResource("1_art")
 centered = false
 
 [node name="anchor_kitchen_pine_dresser" type="Marker2D" parent="."]
-position = Vector2(23, 45)
+position = Vector2(22, 45)
 metadata/back_plane = true
 
 [node name="anchor_kitchen_dresser_drawer" type="Marker2D" parent="."]
-position = Vector2(24, 93)
+position = Vector2(23, 93)
 metadata/back_plane = true
 
 [node name="anchor_kitchen_butler_sink" type="Marker2D" parent="."]
@@ -37,20 +37,20 @@ position = Vector2(72, 78)
 metadata/back_plane = true
 
 [node name="anchor_kitchen_veg_basket" type="Marker2D" parent="."]
-position = Vector2(220, 86)
+position = Vector2(178, 86)
 
 [node name="anchor_centre_oven" type="Marker2D" parent="."]
-position = Vector2(146, 94)
+position = Vector2(123, 94)
 metadata/back_plane = true
 
 [node name="anchor_kitchen_pine_table" type="Marker2D" parent="."]
-position = Vector2(248, 97)
+position = Vector2(200, 97)
 
 [node name="anchor_kitchen_bench" type="Marker2D" parent="."]
-position = Vector2(238, 113)
+position = Vector2(194, 113)
 
 [node name="Lights" type="Node2D" parent="."]
 
 [node name="lamp_0" type="Node2D" parent="Lights"]
-position = Vector2(290, 25)
+position = Vector2(218, 25)
 metadata/kind = "pendant"

@@ -20,9 +20,9 @@ W, H = 320, 144          # the DESIGN canvas every generator draws on (vanishing
 # set-back pieces, lean buckets) stays valid — module x = design x - PAD, and a piece in the outer PAD columns is out of the room. finish_module crops
 # every export to the frame; PAD 0 = the old 320 px module. docs/MODULE_WIDTH.md.
 import os as _os
-PAD = int(_os.environ.get('DFT_PAD', '0'))            # (experiment switch while the width change is built: docs/MODULE_WIDTH.md)
+PAD = int(_os.environ.get('DFT_PAD', '40'))            # (experiment switch while the width change is built: docs/MODULE_WIDTH.md)
 MW = W - 2 * PAD         # the exported module width
-WIN_INSET = int(_os.environ.get('DFT_WIN_INSET', '72'))           # module-space inset of the runtime wall windows (room.MODULE_WINDOW_INSET)
+WIN_INSET = int(_os.environ.get('DFT_WIN_INSET', '54'))           # module-space inset of the runtime wall windows (room.MODULE_WINDOW_INSET)
 
 
 def frame(img):
@@ -303,11 +303,13 @@ def check_wall_decor(pre_floor, bare, final, min_px=4, gap=2, marks=()):
     return out
 
 
-def check_window_boxes(full, wall_only):
-    """The runtime wall windows (L/R) must land on bare wall: every pixel inside both boxes must
-    equal the wall-only render. Returns [] when clean, else a list of offending (box, x, y)."""
+def check_window_boxes(full, wall_only, sides='LR'):
+    """The runtime wall windows must land on bare wall: every pixel inside the box of each side the room allows (`sides` 'L', 'R' or 'LR' — a module variant may
+    declare the ONE wall its window is on, docs/MODULE_WIDTH.md) must equal the wall-only render. Returns [] when clean, else a list of offending (box, x, y)."""
     bad = []
     for name, (x0, y0, x1, y1) in (('L', WIN_L), ('R', WIN_R)):
+        if name not in sides:
+            continue
         for y in range(y0, y1 + 1):
             for x in range(x0, x1 + 1):
                 if full.getpixel((x, y)) != wall_only.getpixel((x, y)):
@@ -868,7 +870,7 @@ def _setback_anchor(ax, ay):
 
 
 # --- one entry point for every module script -------------------------------------------------
-BALCONY_BOX = (4, 0, 96, H - 1)      # where a balcony-capable module's balcony doors go (study/dining)
+BALCONY_BOX = (PAD + 4, 0, PAD + 96, H - 1)      # where a balcony-capable module's balcony doors go (study/dining): module x 4..96
 
 
 # The BACK (scavenge) PLANE (scripts/room.gd BACK_PLANE_RISE / back_plane_spot.gd): the player steps
@@ -950,6 +952,9 @@ FRONT_NODE_MIN_Y = 66
 
 
 def register_floor_piece(name, kind, pixels):
+    ox, oy = _LIGHT_OFF[-1]                      # a piece drawn inside furn.moved() / a shifted layer registers where it is finally SEEN (docs/MODULE_WIDTH.md)
+    if ox or oy:
+        pixels = {(x + ox, y + oy) for (x, y) in pixels}
     FLOOR_PIECES.append((name, kind, set(pixels)))
 
 
@@ -1039,7 +1044,7 @@ def _diff_layer(before, after):
 
 
 def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, strip_fn=None, per_run=None,
-                  front_fn=None, front_strip_fn=None):
+                  front_fn=None, front_strip_fn=None, window='LR'):
     """Render, check and export one module variant, and write its scene.
 
     wall_fn(c)  — the bare wall (wall + decay): the reference the window/edge checks compare to.
@@ -1159,7 +1164,7 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
                     if 0 <= x < W and full.img.getpixel((x, y)) != bare_floor.img.getpixel((x, y)):
                         n_ += 1
             print('  FRONT %s spot x%d: %d drawn px below the feet row' % (name, int(cx), n_))
-    bad = check_window_boxes(nofront, bare.img)
+    bad = check_window_boxes(nofront, bare.img, window)
     if bad:
         errs.append('furniture inside a runtime window box: %s' % bad[:6])
     edge = check_edge_columns(full.img, bare.img)
@@ -1199,9 +1204,9 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
         if ref.img.getpixel((ax, ay)) == bare_floor.img.getpixel((ax, ay)):
             errs.append('%s at (%d,%d) is not on anything drawn' % (an, ax, ay))
         if room_type in BALCONY_TYPES:
-            if in_strip and ax > 96:
-                errs.append('%s: a strip node must sit in x <= 96' % an)
-            if not in_strip and ax <= 100:
+            if in_strip and ax > PAD + 96:
+                errs.append('%s: a strip node must sit in x <= %d' % (an, PAD + 96))
+            if not in_strip and ax <= PAD + 100:
                 errs.append('%s: in the balcony strip — flag it "s"' % an)
         if not in_strip:
             n_main += 1
@@ -1244,6 +1249,12 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
     if bp:
         errs.append('front furniture stands where the player would step up to a back-plane spot '
                     '(spot x, blocked column): %s' % bp)
+    if os.environ.get('FRAME_PREVIEW'):               # design-canvas picture + nodes / lights for tools/art/frame_view.py (viewing a room against the module frame without exporting anything)
+        import json as _json
+        _d = os.environ['FRAME_PREVIEW']
+        os.makedirs(_d, exist_ok=True)
+        full.img.save(os.path.join(_d, name + '.png'))
+        _json.dump({'anchors': anchors, 'lights': lights, 'anims': [list(a_) for a_ in main_anims], 'errors': errs}, open(os.path.join(_d, name + '.json'), 'w'))
     if errs and os.environ.get('FRAME_REPORT'):          # audit: list what does not fit the frame, write nothing more, carry on with the next room
         print('FRAME %s: %d problems' % (name, len(errs)))
         for e_ in errs:
@@ -1325,9 +1336,27 @@ def finish_module(name, room_type, seed, wall_fn, floor_fn, build_fn, anchors, s
         sheet.paste(im.resize((MW * 2, H * 2), Image.NEAREST), (0, H * 2 * i))
     os.makedirs(os.path.join(prev, 'runs'), exist_ok=True)
     sheet.save(os.path.join(prev, 'runs', name + '_runs.png'))
+    _note_window_side(name, window)
     write_scene(name, room_type, anchors, strip=strip_fn is not None, lights=lights, anims=main_anims)
     print('wrote', name, '(%d nodes, %d front, %d lights)' % (len(anchors), n_front, len(lights)))
     return full
+
+
+def _note_window_side(name, window):
+    """assets/rooms/window_sides.json: which wall(s) a baked module variant keeps bare for the runtime window ('L', 'R' or 'LR'); the game takes a flat's window side from it."""
+    import json
+    import os
+    from modscene import ROOT as _R
+    path = os.path.join(_R, 'assets', 'rooms', 'window_sides.json')
+    data = {}
+    if os.path.exists(path):
+        try:
+            data = json.load(open(path))
+        except ValueError:
+            data = {}
+    data[name] = window
+    json.dump(data, open(path, 'w'), indent=1, sort_keys=True)
+    open(path, 'a').write('\n')
 
 
 def _node_overlay(img, anchors, path):

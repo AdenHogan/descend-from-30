@@ -8,13 +8,13 @@
 [node name="Node2D" type="Node2D"]
 
 [node name="ColorRect" type="ColorRect" parent="."]
-offset_right = 320.0
+offset_right = 240.0
 offset_bottom = 144.0
 color = Color(0.4, 0.4, 0.4, 1)
 
 [node name="Label" type="Label" parent="ColorRect"]
 layout_mode = 0
-offset_right = 318.0
+offset_right = 238.0
 offset_bottom = 100.0
 theme_override_font_sizes/font_size = 32
 visible = false
@@ -40,42 +40,42 @@ texture = ExtResource("3_balcony")
 centered = false
 
 [node name="anchor_dining_china_cabinet" type="Marker2D" parent="."]
-position = Vector2(25, 56)
+position = Vector2(15, 55)
 metadata/back_plane = true
 metadata/balcony_strip = true
 
 [node name="anchor_dining_cabinet_cupboard" type="Marker2D" parent="."]
-position = Vector2(17, 90)
+position = Vector2(13, 89)
 metadata/back_plane = true
 metadata/balcony_strip = true
 
 [node name="anchor_dining_grandfather_clock" type="Marker2D" parent="."]
-position = Vector2(113, 75)
+position = Vector2(107, 75)
 metadata/back_plane = true
 
 [node name="anchor_table_left" type="Marker2D" parent="."]
-position = Vector2(142, 95)
+position = Vector2(139, 95)
 
 [node name="anchor_table_right" type="Marker2D" parent="."]
-position = Vector2(222, 95)
+position = Vector2(192, 101)
 
 [node name="anchor_dining_candelabra" type="Marker2D" parent="."]
-position = Vector2(180, 84)
+position = Vector2(163, 84)
 
 [node name="anchor_right_upperdrawers" type="Marker2D" parent="."]
-position = Vector2(280, 86)
+position = Vector2(220, 86)
 metadata/back_plane = true
 
 [node name="Lights" type="Node2D" parent="."]
 
 [node name="lamp_0" type="Node2D" parent="Lights"]
-position = Vector2(177, 4)
+position = Vector2(167, 4)
 metadata/kind = "flush"
 
 [node name="Anims" type="Node2D" parent="."]
 
 [node name="anim_0" type="Node2D" parent="Anims"]
-position = Vector2(113, 59)
+position = Vector2(107, 59)
 script = ExtResource("4_anim")
 metadata/kind = "pendulum"
 metadata/fall = 26
@@ -84,7 +84,7 @@ metadata/w = 3
 metadata/h = 1
 
 [node name="anim_1" type="Node2D" parent="Anims"]
-position = Vector2(194, 101)
+position = Vector2(191, 101)
 script = ExtResource("4_anim")
 metadata/kind = "drip"
 metadata/fall = 15
@@ -93,7 +93,7 @@ metadata/w = 1
 metadata/h = 1
 
 [node name="anim_2" type="Node2D" parent="Anims"]
-position = Vector2(250, 85)
+position = Vector2(192, 85)
 script = ExtResource("4_anim")
 metadata/kind = "drip"
 metadata/fall = 18

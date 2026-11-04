@@ -6,13 +6,13 @@
 [node name="Node2D" type="Node2D"]
 
 [node name="ColorRect" type="ColorRect" parent="."]
-offset_right = 320.0
+offset_right = 240.0
 offset_bottom = 144.0
 color = Color(0.4, 0.4, 0.4, 1)
 
 [node name="Label" type="Label" parent="ColorRect"]
 layout_mode = 0
-offset_right = 318.0
+offset_right = 238.0
 offset_bottom = 100.0
 theme_override_font_sizes/font_size = 32
 visible = false
@@ -26,43 +26,35 @@ texture = ExtResource("1_art")
 centered = false
 
 [node name="anchor_left_bookshelf_upper" type="Marker2D" parent="."]
-position = Vector2(19, 62)
+position = Vector2(16, 62)
 metadata/back_plane = true
 
 [node name="anchor_left_bookshelf_lower" type="Marker2D" parent="."]
-position = Vector2(32, 90)
+position = Vector2(29, 90)
 metadata/back_plane = true
 
 [node name="anchor_centre_sofaleft" type="Marker2D" parent="."]
-position = Vector2(96, 103)
+position = Vector2(70, 103)
 
 [node name="anchor_centre_sofaright" type="Marker2D" parent="."]
-position = Vector2(131, 101)
+position = Vector2(105, 101)
 
 [node name="anchor_centre_coffeetable" type="Marker2D" parent="."]
-position = Vector2(188, 98)
-
-[node name="anchor_right_chair" type="Marker2D" parent="."]
-position = Vector2(281, 83)
-metadata/back_plane = true
+position = Vector2(162, 98)
 
 [node name="anchor_living_armchair" type="Marker2D" parent="."]
-position = Vector2(238, 104)
+position = Vector2(212, 104)
 
 [node name="Lights" type="Node2D" parent="."]
 
 [node name="lamp_0" type="Node2D" parent="Lights"]
-position = Vector2(294, 60)
-metadata/kind = "table"
-
-[node name="lamp_1" type="Node2D" parent="Lights"]
-position = Vector2(168, 23)
+position = Vector2(124, 23)
 metadata/kind = "pendant"
 
 [node name="Anims" type="Node2D" parent="."]
 
 [node name="anim_0" type="Node2D" parent="Anims"]
-position = Vector2(187, 99)
+position = Vector2(161, 99)
 script = ExtResource("4_anim")
 metadata/kind = "smoke"
 metadata/fall = 0

@@ -1,5 +1,7 @@
 extends Node
 
+const MG := preload("res://scripts/module_geo.gd")        # the module width (docs/MODULE_WIDTH.md)
+
 # APARTMENT LAMPS (scripts/apartment_lights.gd, owner round 14): the rooms' drawn fixtures are lit for
 # real in the afternoon and at night — seeded per flat, steady / flickering / cutting out — never in
 # the morning, never in a burnt flat (a battery lantern excepted). Run:
@@ -51,7 +53,7 @@ func _test_fixtures_in_modules() -> void:
 				total += 1
 				with_lights[t] = with_lights.get(t, 0) + (1 if l.get_index() == 0 else 0)
 				var ok: bool = l is Node2D and not (l is Marker2D) and str(l.get_meta("kind", "")) in KINDS \
-					and l.position.x >= 0 and l.position.x < 320 and l.position.y >= 0 and l.position.y < 144
+					and l.position.x >= 0 and l.position.x < MG.WIDTH and l.position.y >= 0 and l.position.y < 144
 				if not ok:
 					check(false, "%s: fixture %s is a Node2D with a known kind inside the module" % [f, l.name])
 		m.free()
@@ -139,7 +141,7 @@ func _expected_on(room) -> int:
 	var n := 0
 	var fire: int = WorldState.apartment_fire_stage(room._apt_floor(), room._apt_index())
 	for m in room.get_tree().get_nodes_in_group("room_module"):
-		var slot: int = int(round((m.position.x - 113.0) / 320.0))
+		var slot: int = int(round((m.position.x - MG.LEFT_WALL_X) / float(MG.WIDTH)))
 		var holder = m.get_node_or_null("Lights")
 		if holder == null:
 			continue

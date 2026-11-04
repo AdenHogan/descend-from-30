@@ -63,8 +63,7 @@ def audit():
             # the deck: wholly above the rim. Its under-edge is one dark row and the silhouette outline one more, so from the rim's back row + 2 down the only solid pixels left of / right of
             # the sx are the ring's own (its half-width at that row, plus the 1-px outline) — a deck row painted across the rim's top would show as solid pixels further out
             for y in range(g['r_top'] + 2, g['r_top'] + 5):
-                t = (y - g['ry']) / float(g['ery'])
-                ring_hw = int(round(g['erx'] * (max(0.0, 1.0 - t * t)) ** 0.5))
+                ring_hw = g['erx']                                         # the rim is a RECTANGLE (round 49k): its half-width is the same on every row
                 far = [x for x in range(w) if solid(x, y) and abs(x - sx) > ring_hw + 2]
                 if far:
                     bad.append('%s @%d: row %d (rim back row %d) has solid pixels %d px from the axis, past the ring (%d) — the deck is clipping the rim' % (kind, wcx, y, g['r_top'], abs(far[0] - sx), ring_hw))

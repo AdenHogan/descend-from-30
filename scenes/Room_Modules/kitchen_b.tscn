@@ -5,13 +5,13 @@
 [node name="Node2D" type="Node2D"]
 
 [node name="ColorRect" type="ColorRect" parent="."]
-offset_right = 320.0
+offset_right = 240.0
 offset_bottom = 144.0
 color = Color(0.4, 0.4, 0.4, 1)
 
 [node name="Label" type="Label" parent="ColorRect"]
 layout_mode = 0
-offset_right = 318.0
+offset_right = 238.0
 offset_bottom = 100.0
 theme_override_font_sizes/font_size = 32
 visible = false
@@ -25,29 +25,29 @@ texture = ExtResource("1_art")
 centered = false
 
 [node name="anchor_kitchen_wall_units" type="Marker2D" parent="."]
-position = Vector2(28, 45)
+position = Vector2(98, 47)
 metadata/back_plane = true
 
 [node name="anchor_kitchen_base_units" type="Marker2D" parent="."]
-position = Vector2(60, 95)
+position = Vector2(58, 95)
 metadata/back_plane = true
 
 [node name="anchor_centre_oven" type="Marker2D" parent="."]
-position = Vector2(111, 99)
+position = Vector2(96, 99)
 metadata/back_plane = true
 
 [node name="anchor_kitchen_formica_table" type="Marker2D" parent="."]
-position = Vector2(196, 94)
+position = Vector2(166, 94)
 
 [node name="anchor_kitchen_dinette_chair" type="Marker2D" parent="."]
-position = Vector2(158, 102)
+position = Vector2(126, 102)
 
 [node name="anchor_kitchen_larder" type="Marker2D" parent="."]
-position = Vector2(292, 79)
+position = Vector2(212, 78)
 metadata/back_plane = true
 
 [node name="Lights" type="Node2D" parent="."]
 
 [node name="lamp_0" type="Node2D" parent="Lights"]
-position = Vector2(132, 25)
+position = Vector2(165, 25)
 metadata/kind = "pendant"

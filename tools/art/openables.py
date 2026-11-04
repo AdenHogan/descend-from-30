@@ -46,7 +46,14 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
 ROOMS = os.path.join(ROOT, 'assets', 'rooms')
 OUT = os.path.join(ROOMS, 'open')
-VPX = 160.0
+VPX = 160.0                    # the DESIGN canvas's vanishing point (docs/MODULE_WIDTH.md): every spec below is authored on the 320 px design canvas
+import pixlib as PX  # noqa: E402
+PAD = PX.PAD                   # a module is the central 240 columns; the art is padded back to 320 for the maths and cropped again
+W_DESIGN = PX.W
+H_DESIGN = PX.H
+# Where each opening's piece moved when the module went 320 -> 240 (the baked rooms were re-fitted; docs/MODULE_WIDTH.md): [dx, dy] of its ANCHOR, old scene vs new, in design pixels.
+# An opening with no entry here does not exist in the new rooms (its piece was dropped from the frame) and is skipped.
+SHIFTS = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'openables_shift.json')))
 FRAMES = 3                     # opening animation frames; the last is the rest state
 RUN_SUFFIX = {1: '', 2: '_r2', 3: '_r3'}
 
@@ -643,11 +650,6 @@ for _art, _d in OPENINGS_45C.items():
 
 # --- round 45d: more of them — things that SWING or ROCK (a path of per-frame turns about a pivot), more doors, lids and tips ---
 OPENINGS_45D = {
-    'bedroom_d': {
-        # the library's clothes rail (furn_embed.lay 'clothes_rail' at x 220): the garments below the rail bar sway on their hangers; everything that is not the wall behind them moves
-        'anchor_bedroom_clothes_rail': dict(kind='shift', rect=(224, 73, 262, 101), pivot='top', thr=30, bg=[(270, 85), (270, 95)],
-                                            path=[(0, 0, 6), (0, 0, -5), (0, 0, 3), (0, 0, -2), (0, 0, 0)]),
-    },
     'bedroom_e': {
         'anchor_bed_pillow': dict(kind='topple', rect=(126, 78, 143, 99), dir='r', thr=10,           # the library's teddy (furn_beds._teddy): its ramp, ribbon and outline
                                   fg=[(192, 158, 126), (166, 117, 72), (124, 84, 46), (80, 54, 30), (63, 44, 27), (47, 31, 17), (30, 20, 11), (192, 74, 82), (214, 192, 171), (224, 122, 130), (72, 60, 47), (56, 25, 20), (30, 26, 22), (96, 79, 64), (76, 39, 28), (95, 52, 35), (123, 82, 68), (119, 89, 80)]),   # + its eyes and the smear across it
@@ -708,13 +710,37 @@ def render(art_img, spec, f, ref=None):
 DEFAULT_FRAMES = {'topple': 4, 'screen_off': 4, 'shift': 4}
 
 
+def _shifted(spec, dx, dy):
+    out = dict(spec)
+    for k in ('rect', 'front'):
+        if out.get(k) is not None:
+            r = out[k]
+            out[k] = (r[0] + dx, r[1] + dy, r[2] + dx, r[3] + dy)
+    if out.get('bg'):
+        out['bg'] = [((p[0] + dx, p[1] + dy) if len(p) == 2 else p) for p in out['bg']]      # (a 2-tuple is a sample POINT, a 3-tuple a colour)
+    if 'base' in out and dy:
+        out['base'] = out['base'] + dy
+    return out
+
+
+def _design_canvas(img):
+    """A module-width picture on the design canvas (the module is its central columns)."""
+    cv = Image.new('RGBA', (W_DESIGN, H_DESIGN), (0, 0, 0, 0))
+    cv.paste(img, (PAD, 0))
+    return cv
+
+
 def build_one(art_name, run, anchor, spec):
     path = os.path.join(ROOMS, art_name + RUN_SUFFIX[run] + '.png')
     if not os.path.exists(path):
         return None
-    base = Image.open(path).convert('RGBA')
+    sh = SHIFTS.get('%s|%s' % (art_name, anchor))
+    if sh is None:
+        return None
+    spec = _shifted(spec, sh[0], sh[1])
+    base = _design_canvas(Image.open(path).convert('RGBA'))
     first = os.path.join(ROOMS, art_name + '.png')
-    ref = Image.open(first).convert('RGBA') if run != 1 and os.path.exists(first) else None
+    ref = _design_canvas(Image.open(first).convert('RGBA')) if run != 1 and os.path.exists(first) else None
     nfr = len(spec['path']) if spec.get('path') else int(spec.get('frames', DEFAULT_FRAMES.get(spec['kind'], FRAMES)))
     fracs = [(i + 1) / float(nfr) for i in range(nfr)]
     frames = [render(base, spec, f, ref) for f in fracs]
@@ -729,8 +755,8 @@ def build_one(art_name, run, anchor, spec):
                     x0, y0, x1, y1 = min(x0, x), min(y0, y), max(x1, x), max(y1, y)
     if x1 < 0:
         raise SystemExit('%s %s: the opened look changes nothing' % (art_name, anchor))
-    if x0 < 0 or y0 < 0 or x1 >= base.width or y1 >= base.height:
-        raise SystemExit('%s %s: bounds %s' % (art_name, anchor, (x0, y0, x1, y1)))
+    if x0 < PAD or y0 < 0 or x1 >= base.width - PAD or y1 >= base.height:
+        raise SystemExit('%s %s: bounds %s (the module is design x %d..%d)' % (art_name, anchor, (x0, y0, x1, y1), PAD, base.width - PAD - 1))
     w, h = x1 - x0 + 1, y1 - y0 + 1
     sheet = Image.new('RGBA', (w * nfr, h), (0, 0, 0, 0))
     sp = sheet.load()
@@ -742,7 +768,10 @@ def build_one(art_name, run, anchor, spec):
                     sp[k * w + x, y] = fp[x0 + x, y0 + y]
     name = '%s__%s%s.png' % (art_name, anchor, RUN_SUFFIX[run])
     sheet.save(os.path.join(OUT, name))
-    return {'x': x0, 'y': y0, 'w': w, 'h': h, 'frames': nfr, 'kind': spec['kind']}, frames[-1], base
+    return {'x': x0 - PAD, 'y': y0, 'w': w, 'h': h, 'frames': nfr, 'kind': spec['kind']}, frames[-1], base      # (module coordinates: x is the design x less the pad)
+
+
+FAILED = []
 
 
 def main():
@@ -758,13 +787,22 @@ def main():
     for art, anchors in OPENINGS.items():
         for anchor, spec in anchors.items():
             for run in (1, 2, 3):
-                r = build_one(art, run, anchor, spec)
+                try:
+                    r = build_one(art, run, anchor, spec)
+                except SystemExit as e:
+                    FAILED.append('%s (run %d)' % (e, run))
+                    continue
                 if r is None:
                     continue
                 m, last, base = r
                 if run == 1:
                     meta.setdefault(art, {})[anchor] = m
                     preview.append((art + ' ' + anchor, base, last, m))
+    if FAILED:
+        print('OPENABLES: %d openings do not fit the 240 px module:' % len(FAILED))
+        for f in FAILED:
+            print('  ', f)
+        sys.exit(1)
     with open(os.path.join(OUT, 'open_meta.json'), 'w') as fh:
         json.dump(meta, fh, indent=1, sort_keys=True)
     # an opening that was dropped must not leave its sheet (or its .import — the engine would draw the cached texture) behind
@@ -800,8 +838,8 @@ def sheet_preview(items, zoom=4):
     cells = []
     for (title, base, last, m) in items:
         pad = 16
-        x0, y0 = max(0, m['x'] - pad), max(0, m['y'] - pad)
-        x1, y1 = min(320, m['x'] + m['w'] + pad), min(144, m['y'] + m['h'] + pad)
+        x0, y0 = max(PAD, m['x'] + PAD - pad), max(0, m['y'] - pad)             # (the preview crops the design canvas; m is in module coordinates)
+        x1, y1 = min(W_DESIGN - PAD, m['x'] + PAD + m['w'] + pad), min(144, m['y'] + m['h'] + pad)
         a = base.crop((x0, y0, x1, y1)).resize(((x1 - x0) * zoom, (y1 - y0) * zoom), Image.NEAREST)
         b = last.crop((x0, y0, x1, y1)).resize(((x1 - x0) * zoom, (y1 - y0) * zoom), Image.NEAREST)
         cell = Image.new('RGBA', (a.width * 2 + 8, a.height + 14), (24, 24, 26, 255))

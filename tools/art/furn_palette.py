@@ -21,6 +21,7 @@ AVOID = {
                  'club_teal_l58': ['mid'], 'club_teal_r58': ['mid'], 'club_teal_l35': ['mid'], 'club_teal_r35': ['mid'],
                  'wing_rose_l58': ['parlour'], 'wing_rose_r58': ['parlour'], 'wing_rose_l35': ['parlour'], 'wing_rose_r35': ['parlour'],
                  'wing_teal_l58': ['mid'], 'wing_teal_r58': ['mid'], 'wing_teal_l35': ['mid'], 'wing_teal_r35': ['mid']},
+    'coat_stand': {'green': ['den']},
     'filing_cabinet': {'green': ['den']},
     'loveseat': {'olive': ['cosy']},
     'piano_upright': {'ebonised': ['adult', 'formal']},

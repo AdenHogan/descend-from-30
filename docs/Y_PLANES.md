@@ -91,7 +91,7 @@ body floated ~27px above the floor. Records now carry `"feet": true`; an older r
 it is grounded on spawn by `WorldState.PLAYER_FEET_OFFSET` (33) so saved bodies are kept, not
 lost. Locked by `corpse_recovery_test` (`_test_grounding`).
 
-Apartment interiors (`room.tscn`): module ColorRect is 320×144 at instance y 224, so a
+Apartment interiors (`room.tscn`): module ColorRect is 240×144 (320×144 before round 49h) at instance y 224, so a
 module spans world Y 224..368; the interior floor is Y 352. **Apartment FEET line = 353** (measured: every actor's collision-bottom once settled). Enemies spawn at origin 321 and physics-settle UP onto it — standard → origin **304**, big/crawler → **308**; the player stands at **320**. Anything placed WITHOUT physics (burnt corpses, a recorded body, a floor drop = 353 − REST_LIFT, frozen BalconyPan backdrop scenery) goes straight onto those settled lines (`room.ROOM_FEET_Y` / `ROOM_STD_ORIGIN_Y` / `ROOM_BIG_ORIGIN_Y`) — at 321 they sat ~17px sunk into the floor. (These are ROOM-LOCAL: the room scene's root sits at
 (-1,-1), so global = local − 1.) **Breach-nest WALL CRAWLERS** (owner round 21, `enemy_zombie_crawler.
 start_on_wall`) hang off the settled 308 line: on the back wall at 308 − 38..52 (body upright, ×0.85
@@ -312,7 +312,7 @@ collision planes) but live here so any move is measured, not eyeballed.
 | cone cookie          | 192×384, apex-centred | downward spotlight; reaches ~`192×scale` px below the bulb |
 | `STAIR_WINDOW_*_X`   | 171 / 1179       | stairwell window daylight X (left / right)        |
 | `STAIR_WINDOW_Y`     | **300**          | stairwell window daylight Y                        |
-| balcony window       | (LEFT_WALL_X + slot·320 + 90, 210) | apartment balcony daylight (`room.gd`) |
+| balcony window       | (LEFT_WALL_X + slot·240 + BalconyGeo.CENTER_DX 50, LINTEL_Y 244 + 16) | apartment balcony daylight (`room.gd`) |
 | fire light Y         | 392 (= 426 − 34) | fire PointLight2D rides `FIRE_BASE_Y − 34`        |
 | player aura offset   | (0, −10)         | aura light offset from the player origin          |
 

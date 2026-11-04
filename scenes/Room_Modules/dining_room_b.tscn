@@ -8,13 +8,13 @@
 [node name="Node2D" type="Node2D"]
 
 [node name="ColorRect" type="ColorRect" parent="."]
-offset_right = 320.0
+offset_right = 240.0
 offset_bottom = 144.0
 color = Color(0.4, 0.4, 0.4, 1)
 
 [node name="Label" type="Label" parent="ColorRect"]
 layout_mode = 0
-offset_right = 318.0
+offset_right = 238.0
 offset_bottom = 100.0
 theme_override_font_sizes/font_size = 32
 visible = false
@@ -40,7 +40,7 @@ texture = ExtResource("3_balcony")
 centered = false
 
 [node name="anchor_dining_drinks_cabinet" type="Marker2D" parent="."]
-position = Vector2(23, 77)
+position = Vector2(16, 77)
 metadata/back_plane = true
 metadata/balcony_strip = true
 
@@ -49,32 +49,29 @@ position = Vector2(62, 97)
 metadata/balcony_strip = true
 
 [node name="anchor_table_left" type="Marker2D" parent="."]
-position = Vector2(142, 93)
+position = Vector2(114, 93)
 
 [node name="anchor_table_right" type="Marker2D" parent="."]
-position = Vector2(172, 95)
-
-[node name="anchor_dining_tulip_chair" type="Marker2D" parent="."]
-position = Vector2(110, 105)
+position = Vector2(144, 95)
 
 [node name="anchor_dining_record_player" type="Marker2D" parent="."]
-position = Vector2(281, 70)
+position = Vector2(218, 70)
 metadata/back_plane = true
 
 [node name="anchor_right_lowerdrawers" type="Marker2D" parent="."]
-position = Vector2(276, 94)
+position = Vector2(213, 94)
 metadata/back_plane = true
 
 [node name="Lights" type="Node2D" parent="."]
 
 [node name="lamp_0" type="Node2D" parent="Lights"]
-position = Vector2(158, 23)
+position = Vector2(130, 23)
 metadata/kind = "pendant"
 
 [node name="Anims" type="Node2D" parent="."]
 
 [node name="anim_0" type="Node2D" parent="Anims"]
-position = Vector2(181, 99)
+position = Vector2(153, 99)
 script = ExtResource("4_anim")
 metadata/kind = "drip"
 metadata/fall = 22
@@ -83,7 +80,7 @@ metadata/w = 1
 metadata/h = 1
 
 [node name="anim_1" type="Node2D" parent="Anims"]
-position = Vector2(281, 70)
+position = Vector2(218, 70)
 script = ExtResource("4_anim")
 metadata/kind = "spin"
 metadata/fall = 0

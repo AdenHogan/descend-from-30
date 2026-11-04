@@ -6,13 +6,13 @@
 [node name="Node2D" type="Node2D"]
 
 [node name="ColorRect" type="ColorRect" parent="."]
-offset_right = 320.0
+offset_right = 240.0
 offset_bottom = 144.0
 color = Color(0.4, 0.4, 0.4, 1)
 
 [node name="Label" type="Label" parent="ColorRect"]
 layout_mode = 0
-offset_right = 318.0
+offset_right = 238.0
 offset_bottom = 100.0
 theme_override_font_sizes/font_size = 32
 visible = false
@@ -26,35 +26,35 @@ texture = ExtResource("1_art")
 centered = false
 
 [node name="anchor_living_crates" type="Marker2D" parent="."]
-position = Vector2(19, 72)
+position = Vector2(11, 72)
 metadata/back_plane = true
 
 [node name="anchor_living_crate_books" type="Marker2D" parent="."]
-position = Vector2(33, 96)
+position = Vector2(25, 96)
 metadata/back_plane = true
 
 [node name="anchor_living_pallet_table" type="Marker2D" parent="."]
-position = Vector2(79, 101)
+position = Vector2(57, 101)
 
 [node name="anchor_centre_sofaleft" type="Marker2D" parent="."]
-position = Vector2(154, 100)
+position = Vector2(110, 100)
 
 [node name="anchor_centre_sofaright" type="Marker2D" parent="."]
-position = Vector2(198, 98)
+position = Vector2(154, 98)
 
 [node name="anchor_living_beanbag" type="Marker2D" parent="."]
-position = Vector2(248, 102)
+position = Vector2(188, 102)
 
 [node name="Lights" type="Node2D" parent="."]
 
 [node name="lamp_0" type="Node2D" parent="Lights"]
-position = Vector2(216, 30)
+position = Vector2(98, 30)
 metadata/kind = "bulb"
 
 [node name="Anims" type="Node2D" parent="."]
 
 [node name="anim_0" type="Node2D" parent="Anims"]
-position = Vector2(150, 36)
+position = Vector2(106, 36)
 script = ExtResource("4_anim")
 metadata/kind = "tv"
 metadata/fall = 0

@@ -152,22 +152,24 @@ def fridge(c):
 
 def counter(c):
     # the counter run along the back wall: x 48..262, worktop at 69..72 (below the window boxes)
-    x0, x1 = 48, 262
-    c.shadow(155, 100, 108, 2, 90)
+    x0, x1 = 94, 270                                          # 240 px module (docs/MODULE_WIDTH.md): the run starts right of the fridge
+    c.shadow(178, 100, 84, 2, 90)
     # base cabinets
     c.box(x0, 73, x1, 98, CAB, CAB_OUT)
     for dx0 in range(x0 + 2, x1 - 20, 22):
-        if 150 <= dx0 <= 186:                               # the cooker sits here
+        if 140 <= dx0 <= 176:                               # the cooker sits here
             continue
         import props3d
+        if dx0 == 228:
+            # one door hanging open (the centre cupboard node): the dark inside + a tin
+            c.rect(228, 75, 247, 96, CAB_IN)
+            c.hline(228, 247, 85, shade(CAB_IN, 1.4))
+            c.rect(232, 80, 236, 84, hexc('9c4a3a'))
+            c.poly([(228, 75), (222, 77), (222, 95), (228, 96)], CAB_LT)    # the door, swung
+            continue
         props3d.door_slab(c, dx0, 75, dx0 + 19, 96, CAB, CAB_LT, CAB_DK)
         c.rect(dx0 + 16, 83, dx0 + 16, 88, HANDLE)
         c.put(dx0 + 17, 83, shade(HANDLE, 0.5)); c.put(dx0 + 15, 83, shade(HANDLE, 1.4))
-    # one door hanging open (the centre cupboard node): the dark inside + a tin
-    c.rect(110, 75, 129, 96, CAB_IN)
-    c.hline(110, 129, 85, shade(CAB_IN, 1.4))
-    c.rect(114, 80, 118, 84, hexc('9c4a3a'))
-    c.poly([(110, 75), (104, 77), (104, 95), (110, 96)], CAB_LT)    # the door, swung
     # chips in the paint
     for (px, py) in ((60, 90), (88, 78), (140, 92), (236, 80)):
         c.put(px, py, CHIP); c.put(px + 1, py, CHIP)
@@ -181,25 +183,25 @@ def counter(c):
 
 def wall_cupboards(c):
     # between the two window boxes (x 98..222), above the splashback
-    x0, x1, top, bot = 98, 222, 16, 48
+    x0, x1, top, bot = 94, 202, 16, 48                         # left of the R window box (204..248)
     c.box(x0, top, x1, bot, CAB, CAB_OUT)
     c.hline(x0, x1, bot, shade(CAB, 0.7))
-    doors = [(x0 + 2, x0 + 40), (x0 + 42, x0 + 80), (x0 + 82, x1 - 2)]
+    doors = [(x0 + 2, x0 + 36), (x0 + 38, x0 + 72), (x0 + 74, x1 - 2)]
     for i, (a, b) in enumerate(doors):
-        if i == 0:
-            # the left door hangs open (the left cupboard node): shelves, a jar, a box of cereal
+        if i == 2:
+            # the right-hand door hangs open (the left cupboard node: it moved here when the room got 80 px narrower, so the table could stand under the others): shelves, a jar, a box of cereal
             c.rect(a, top + 2, b, bot - 2, CAB_IN)
             c.hline(a, b, top + 16, shade(CAB_IN, 1.5))
             c.rect(a + 4, top + 8, a + 9, top + 15, hexc('b7a36e'))
             c.rect(a + 12, top + 10, a + 16, top + 15, hexc('8a9aa0'))
-            c.rect(a + 22, top + 20, a + 30, top + 29, hexc('c05a3a'))
+            c.rect(a + 19, top + 20, a + 27, top + 29, hexc('c05a3a'))
             c.poly([(a, top + 2), (a - 3, top + 4), (a - 3, bot - 3), (a, bot - 2)], CAB_LT)
         else:
             import props3d
             props3d.door_slab(c, a, top + 2, b, bot - 2, CAB, CAB_LT, CAB_DK)
             c.rect(a + 3, bot - 8, a + 3, bot - 5, HANDLE)
             c.put(a + 4, bot - 8, shade(HANDLE, 0.5)); c.put(a + 2, bot - 8, shade(HANDLE, 1.4))
-    c.put(150, 30, CHIP); c.put(151, 30, CHIP)
+    c.put(140, 30, CHIP); c.put(141, 30, CHIP)
 
 
 def cooker(c):
@@ -242,9 +244,8 @@ def sink(c):
     c.put(209, 60, STEEL)
     PX.anim(209, 61, 'drip', fall=9, color='b8ccd4')             # still dripping into the dirty water
     # dishes stacked on the drainer
-    c.rect(214, 64, 222, 68, hexc('d8d2c2'))
-    c.hline(214, 222, 66, hexc('b8b1a0'))
-    c.rect(216, 62, 220, 63, hexc('d8d2c2'))
+    c.rect(214, 67, 222, 68, hexc('d8d2c2'))                      # (low: the stack stays under the R window box's sill, row 66)
+    c.hline(214, 222, 68, hexc('b8b1a0'))
     # the cupboard under the sink: doors, one ajar with a bucket inside (the sink cupboard node)
     c.rect(196, 75, 220, 96, CAB_IN)
     c.box(196, 75, 207, 96, CAB, CAB_DK)
@@ -253,37 +254,22 @@ def sink(c):
 
 
 def counter_end(c):
-    # right of the counter (x 264..316), on the wall: a tea towel on a hook, a calendar
-    # a checked tea towel folded over a hook (owner round 17: the striped slab read as a red stack)
-    c.rect(282, 31, 284, 33, CHROME_DK)                            # hook (right of the R box)
-    red, cream = hexc('b8594a'), hexc('e8dcc4')
-    c.rect(286, 36, 288, 55, shade(red, 0.7))                       # the back half, hanging lower
-    for y in range(35, 54):
-        for x in range(279, 287):
-            chk = ((x - 279) // 2 + (y - 35) // 2) % 2
-            c.put(x, y, red if chk else cream)
-    c.hline(279, 286, 34, shade(red, 1.15))                        # the fold over the hook
-    c.hline(279, 286, 35, shade(red, 0.75))
-    c.vline(278, 35, 53, shade(red, 0.8))
-    c.hline(279, 286, 54, shade(red, 0.7))                         # the hem
-    for x in range(279, 287, 2):
-        c.put(x, 55, shade(cream, 0.8))
-    # a calendar, pages curling
+    # right of the counter, on the wall (the 240 px module has no room for the tea towel any more): a calendar, pages curling, right of the R window box
     import furn as F
-    F.calendar(c, 291, 26)             # (owner round 17) every flat's calendar stops on the same day
+    F.calendar(c, 251, 26)             # (owner round 17) every flat's calendar stops on the same day
 
 
 def bin_bags(c):
     import furn as F
     # rubbish at the end of the counter, against the wall (the trash node): two tied black bin bags,
     # one split with rubbish spilling onto the lino
-    F.bin_bag(c, 278, 100, 20, 24, seed=3)
-    F.bin_bag(c, 293, 100, 18, 18, split=True, seed=7)
-    c.rect(283, 99, 287, 101, hexc('d8d2c2'))                              # paper
-    c.put(279, 101, hexc('c7b16a')); c.put(281, 102, hexc('7a8a5a'))
+    F.bin_bag(c, 256, 100, 20, 24, seed=3)
+    F.bin_bag(c, 267, 100, 14, 16, split=True, seed=7)
+    c.rect(260, 99, 264, 101, hexc('d8d2c2'))                              # paper
+    c.put(254, 101, hexc('c7b16a')); c.put(257, 102, hexc('7a8a5a'))
     # a broken plate dropped at the foot of the counter
-    c.rect(214, 101, 219, 102, hexc('d8d2c2'))
-    c.put(217, 100, hexc('d8d2c2')); c.put(222, 102, hexc('d8d2c2'))
+    c.rect(190, 101, 195, 102, hexc('d8d2c2'))
+    c.put(193, 100, hexc('d8d2c2')); c.put(198, 102, hexc('d8d2c2'))
 
 
 def table(c):
@@ -324,28 +310,20 @@ def table(c):
 
 
 def tin_box(c):
-    # a cardboard box of tins on the floor against the end of the counter (node: the box)
-    x0, x1, top, base = 236, 262, 88, 101
-    c.shadow(249, base, 15, 2, 110)
-    box, box_dk = hexc('a88a5c'), hexc('7d6440')
-    c.box(x0, top, x1, base, box, box_dk)
-    c.hline(x0 + 1, x1 - 1, top + 1, shade(box, 1.1))
-    c.poly([(x0, top), (x0 - 5, top - 4), (x0 - 4, top - 5), (x0 + 1, top - 1)], box_dk)     # flaps
-    c.poly([(x1, top), (x1 + 3, top + 1), (x1 + 3, top + 6), (x1 + 1, top + 5)], box)      # its flap folded down the side
+    # a row of tins on the worktop at the end of the counter (node: the tins) — right of the R window box (x 248). The cardboard box they stood in on the floor went when the room lost 80 px.
+    top = 69
     for i, col in enumerate((hexc('b0453a'), hexc('c9b86a'), hexc('6a8a5a'), hexc('b0453a'))):
-        tx = x0 + 3 + i * 5
-        c.rect(tx, top - 4, tx + 4, top, col)
-        c.hline(tx, tx + 4, top - 4, hexc('c9c7bd'))
-    c.rect(x0 + 6, top + 5, x1 - 6, top + 8, hexc('d8d2c2'))              # a label, scrawled
-    c.hline(x0 + 8, x1 - 9, top + 6, hexc('4a3a2a'))
-    c.rect(230, 98, 234, 101, hexc('c9b86a'))                             # a tin rolled off the pile
-    c.hline(230, 234, 98, hexc('c9c7bd'))
+        tx = 251 + i * 5
+        c.rect(tx, top - 6, tx + 4, top - 1, col)
+        c.hline(tx, tx + 4, top - 6, hexc('c9c7bd'))
+        c.hline(tx, tx + 4, top - 3, shade(col, 0.8))
 
 
 def _run(c):
     counter(c)
-    cooker(c)
-    sink(c)
+    shifted_x(c, cooker, -10)                                  # the sink's tap must stay left of the R window box (x 204): cooker + sink moved 10 px left
+    shifted_x(c, sink, -10)
+    tin_box(c)
 
 
 def build(c=None):
@@ -358,13 +336,12 @@ def build(c=None):
     decay(c)
     grease(c)
     floor(c)
-    setback(c, lambda l: shifted_x(l, fridge, -3), depth=6, top=24, x_range=(5, 41), rake=1.0)
-    setback(c, _run, depth=7, top=69, x_range=(46, 264))
+    setback(c, lambda l: shifted_x(l, fridge, 37), depth=6, top=24, x_range=(42, 78), rake=1.0)
+    setback(c, _run, depth=7, top=69, x_range=(92, 272))
     setback(c, wall_cupboards, depth=4, top=16)
     counter_end(c)
     setback(c, bin_bags, depth=0, forward=7)          # soft sacks: brought forward, never extruded
-    table(c)
-    setback(c, tin_box, depth=4, forward=7, top=88, x_range=(236, 262))
+    shifted_x(c, table, 44)                                   # the table stands in front of the cupboards now, not the (moved) fridge
     import furn as F
     F.tube_light(c, 160)                  # a fluorescent batten above the wall cupboards
     return c
@@ -390,13 +367,13 @@ def bare(c):
     decay(c)
 
 
-ANCHORS = [('anchor_centre_fridge', 23, 70, 'bp'), ('anchor_right_trashcan', 283, 88, 'bp'),
-           ('anchor_left_cupboard', 118, 40, 'bp'), ('anchor_centre_cupboard', 119, 88, 'bp'),
-           ('anchor_centre_oven', 170, 86, 'bp'), ('anchor_right_sink', 204, 70, 'bp'),
-           ('anchor_right_sinkcupboard', 214, 90, 'bp'),
-           ('anchor_kitchen_table', 84, 95, ''), ('anchor_kitchen_teapot', 68, 91, ''),
-           ('anchor_kitchen_tins', 249, 92, 'bp')]
+ANCHORS = [('anchor_centre_fridge', 60, 70, 'bp'), ('anchor_right_trashcan', 261, 88, 'bp'),
+           ('anchor_left_cupboard', 184, 40, 'bp'), ('anchor_centre_cupboard', 237, 88, 'bp'),
+           ('anchor_centre_oven', 160, 86, 'bp'), ('anchor_right_sink', 194, 70, 'bp'),
+           ('anchor_right_sinkcupboard', 204, 90, 'bp'),
+           ('anchor_kitchen_table', 128, 95, ''), ('anchor_kitchen_teapot', 112, 91, ''),
+           ('anchor_kitchen_tins', 262, 64, 'bp')]
 
 
 if __name__ == '__main__':
-    finish_module('kitchen', 'kitchen', 33, bare, floor, build, ANCHORS)
+    finish_module('kitchen', 'kitchen', 33, bare, floor, build, ANCHORS, window='R')

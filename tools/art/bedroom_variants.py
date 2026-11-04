@@ -42,12 +42,12 @@ def b_decor(c):
     # posters (owner round 38: "posters with generic words like SPACE… just image posters with better visuals and
     # poster / picture-frame borders") — pictures, no title words, each in its own paper margin held up with pins,
     # a roller map on its rods, and a pinned school timetable where the EXAM sticky was
-    F.poster_gig(c, 10, 18, 40, 48)
-    F.poster_film(c, 102, 22, 128, 58, torn=True)
-    F.poster_map(c, 180, 26, 216, 50)
-    F.poster_game(c, 278, 20, 308, 44)
+    F.poster_game(c, 52, 14, 82, 38)                       # (240 px module, docs/MODULE_WIDTH.md: the posters hang between the desk and the R window box, x 204)
+    F.poster_gig(c, 92, 18, 122, 48)
+    F.poster_film(c, 128, 22, 154, 58, torn=True)
+    F.poster_map(c, 160, 26, 196, 50)
     import wallart
-    wallart.draw_timetable(c, 189, 54)
+    wallart.draw_timetable(c, 170, 54)
 
 
 @persp
@@ -75,12 +75,12 @@ def _b_desk(c):
 
 def b_furniture(c):
     from pixlib import setback
-    shift = setback(c, _b_desk, depth=8, top=72, x_range=(9, 51), rake=1.0)
-    F.crt_on_top(c, shift, 30, 72)
+    shift = setback(c, lambda l: F.moved(l, _b_desk, 37, 0), depth=8, top=72, x_range=(46, 88), rake=1.0)
+    F.crt_on_top(c, shift, 67, 72)
     # the desk chair rolled back from the desk and swivelled toward the room (3D, like the study's) —
     # clear of the desk's back-plane spot, upright or knocked over (owner round 13b)
     import chair3d as C3
-    C3.office_chair_at(c, 66, 118, -40, {'fab': hexc('2e2e34'), 'metal': hexc('3a3a3d')},
+    C3.office_chair_at(c, 100, 118, -40, {'fab': hexc('2e2e34'), 'metal': hexc('3a3a3d')},
                        plan={3: 'down'}, key='bedroom_b_chair', outline=hexc('111114'))
     def _clothes(c):
         # a clothes pile + trainers dropped at the foot of the bed
@@ -88,17 +88,17 @@ def b_furniture(c):
         c.poly([(66, 118), (74, 112), (84, 114), (86, 120)], CLOTH[5])
         c.line(70, 113, 82, 117, shade(CLOTH[1], 0.8))
         c.rect(96, 116, 104, 119, hexc('e0dcd0')); c.hline(96, 104, 119, hexc('a8322c'))
-    F.moved(c, _clothes, 72, -4)                                  # against the bed's foot
+    F.moved(c, _clothes, 130, -4)                                 # on the floor in front of the bed
     def _beanbag(c):
         # a lounger bean bag against the wall under the posters (tools/art/beanbag3d.py: back rest, seat with its dip, gore seams, stitched hem)
         import beanbag3d
         beanbag3d.draw(c, 128, 121, hexc('a8522c'), 34, 22, -3, 3)
         c.rect(133, 108, 139, 110, hexc('3a3a3d'))                                             # a controller on the seat
         c.hline(133, 139, 108, hexc('5a5a60'))
-    F.moved(c, _beanbag, -12, -19)
+    F.moved(c, _beanbag, 8, -19)
     # the single bed on the RIGHT: headboard at the right end (kept clear of the crate's back-plane
     # spot in the corner)
-    x0, x1 = 160, 282
+    x0, x1 = 156, 242
     duvet = hexc('2f3a63')
     F.persp_bed(c, x0, x1, 114, head='right', head_top=70, foot_top=84,
                 board=(F.PINE[0], F.PINE[1], F.PINE[3]), duvet=(duvet, hexc('252e50'), hexc('3f4c7a')))
@@ -117,14 +117,14 @@ def b_furniture(c):
         F.light(298, 74, 'lava')
         c.box(302, 77, 306, 81, hexc('26262a'), hexc('111114'))
         c.put(304, 79, hexc('c0453a'))
-    setback(c, _crate, depth=3, top=82, x_range=(292, 310))
+    setback(c, lambda l: F.moved(l, _crate, -40, 0), depth=3, top=82, x_range=(252, 270))
     F.flush_light(c, 148)                                                                  # the ceiling dome
 
 
-B_ANCHORS = [('anchor_bedroom_desk', 31, 78, 'bp'), ('anchor_bedroom_desk_drawer', 17, 88, 'bp'),
-             ('anchor_bedroom_clothes_pile', 150, 109, ''), ('anchor_bedroom_beanbag', 118, 90, 'bp'),
-             ('anchor_bed_pillow', 260, 88, ''), ('anchor_floor_underbed', 210, 110, ''),
-             ('anchor_bedroom_crate', 301, 90, 'bp')]
+B_ANCHORS = [('anchor_bedroom_desk', 68, 78, 'bp'), ('anchor_bedroom_desk_drawer', 54, 88, 'bp'),
+             ('anchor_bedroom_clothes_pile', 204, 109, ''), ('anchor_bedroom_beanbag', 136, 90, 'bp'),
+             ('anchor_bed_pillow', 224, 88, ''), ('anchor_floor_underbed', 200, 110, ''),
+             ('anchor_bedroom_crate', 261, 90, 'bp')]
 
 
 # ============================================================================================
@@ -143,12 +143,12 @@ def c_wall(c):
 
 def c_decor(c):
     # (owner round 17: pictures of people, words you can read) the wedding photo, sepia
-    F.photo(c, 148, 32, 172, 50, [(hexc('e0c8a8'), hexc('5a4028'), hexc('f4f0e4'), 12),
+    F.photo(c, 136, 32, 160, 50, [(hexc('e0c8a8'), hexc('5a4028'), hexc('f4f0e4'), 12),
                                   (hexc('d8b89a'), hexc('2a2420'), hexc('2e2e33'), 13)],
             bg=hexc('c8b89a'), ground=hexc('a8987a'), frame=hexc('6b4a2c'))
-    c.line(160, 24, 146, 30, hexc('3b2718')); c.line(160, 24, 174, 30, hexc('3b2718'))
+    c.line(148, 24, 134, 30, hexc('3b2718')); c.line(148, 24, 162, 30, hexc('3b2718'))
     import furn_embed as FE
-    FE.lay(c, 'sampler_home', 'a', 191, 26, floor=False)                                  # a cross-stitch sampler — the furniture library's own
+    FE.lay(c, 'sampler_home', 'a', 170, 26, floor=False)                                  # a cross-stitch sampler — the furniture library's own
 
 
 @persp
@@ -227,9 +227,9 @@ def med_trolley(c, x0, base):
 def c_furniture(c):
     # WITH DEPTH (owner round 14): the wardrobe (3px left, clear of window L), the pill cabinet
     from pixlib import setback
-    setback(c, lambda l: F.moved(l, _c_wardrobe, -3, 0), depth=5, top=23, x_range=(4, 42), rake=1.0)
+    setback(c, lambda l: F.moved(l, _c_wardrobe, 38, 0), depth=5, top=23, x_range=(45, 83), rake=1.0)
     _c_rest(c)
-    setback(c, _c_cabinet, depth=4, top=76, x_range=(279, 305))
+    setback(c, lambda l: F.moved(l, _c_cabinet, -31, 0), depth=4, top=76, x_range=(248, 274))
     F.flush_light(c, 167)                                                                  # a dome over the bed
 
 
@@ -246,11 +246,11 @@ def _c_wardrobe(c):
 
 def _c_rest(c):
     import furn_embed as FE
-    FE.lay(c, 'wheelchair', 'purple_l', 57, 120)                                          # the furniture library's own wheelchair (one drawing per thing)
-    drip_stand(c, 104, 116)
-    iron_bed(c, 108, 226, 116)
+    FE.lay(c, 'wheelchair', 'purple_l', 82, 120)                                          # the furniture library's own wheelchair (one drawing per thing)
+    drip_stand(c, 112, 116)
+    iron_bed(c, 116, 212, 116)                                                            # (240 px module: the bed is 22 px shorter than it was)
     # the medicine trolley pulled up beside the foot of the bed
-    med_trolley(c, 230, 118)
+    med_trolley(c, 212, 118)
 
 
 def _c_cabinet(c):
@@ -262,9 +262,9 @@ def _c_cabinet(c):
     c.rect(300, 72, 303, 75, hexc('d9d0bc'))
 
 
-C_ANCHORS = [('anchor_bedroom_wardrobe', 15, 60, 'bp'), ('anchor_bedroom_wheelchair', 72, 99, ''),
-             ('anchor_bedroom_quilt', 170, 92, ''), ('anchor_bed_pillow', 124, 89, ''),
-             ('anchor_bedroom_med_trolley', 239, 88, ''), ('anchor_bedroom_pill_cabinet', 292, 86, 'bp')]
+C_ANCHORS = [('anchor_bedroom_wardrobe', 53, 60, 'bp'), ('anchor_bedroom_wheelchair', 100, 99, ''),
+             ('anchor_bedroom_quilt', 164, 92, ''), ('anchor_bed_pillow', 130, 89, ''),
+             ('anchor_bedroom_med_trolley', 222, 88, ''), ('anchor_bedroom_pill_cabinet', 261, 86, 'bp')]
 
 
 # ============================================================================================
@@ -299,15 +299,15 @@ def d_floor(c):
 def d_furniture(c):
     # WITH DEPTH (owner round 14): the crates (3px left, clear of window L), the boxes in the corner
     from pixlib import setback
-    setback(c, lambda l: F.moved(l, _d_crates, -3, 0), depth=4, top=62, x_range=(5, 43), rake=1.0)
-    setback(c, _d_boxes, depth=4, top=57, x_range=(274, 313))                     # top = the row of outline above the upper box's lit top face (box3d draws that above its front face)
+    setback(c, lambda l: F.moved(l, _d_crates, 37, 0), depth=4, top=62, x_range=(45, 83), rake=1.0)
+    setback(c, _d_boxes, depth=4, top=57, x_range=(250, 272))                     # top = the row of outline above the upper box's lit top face (box3d draws that above its front face)
     _d_rest(c)
 
 
 def _d_boxes(c):
     # boxes stacked against the wall, right corner
-    F.cardboard_box(c, 276, 308, 78, 99, open_flaps=False)
-    F.cardboard_box(c, 282, 304, 62, 77, open_flaps=False, label=False)
+    F.cardboard_box(c, 251, 271, 78, 99, open_flaps=False)
+    F.cardboard_box(c, 254, 268, 62, 77, open_flaps=False, label=False)
 
 
 def _d_crates(c):
@@ -326,20 +326,17 @@ def _d_crates(c):
 
 
 def _d_rest(c):
-    # a rucksack dumped beside the head of the mattress: the library's `backpack` (lid, front pocket with a zip, a water bottle, a strap trailing)
-    import furn_embed as FE
-    FE.lay(c, 'backpack', 'olive', 78, 116)
-    # the mattress on the floor, a sleeping bag half off it: the library's `mattress_floor` (ticking with tufts and stains, the bag's fold, a dented pillow), head on the left
+    # the mattress on the floor, a sleeping bag half off it: the library's `mattress_floor` (ticking with tufts and stains, the bag's fold, a dented pillow), head on the left.
+    # (240 px module, docs/MODULE_WIDTH.md: the mattress lies toward the RIGHT so a body has a clear 74 px of floor on the LEFT — 240 px has no room for the mattress, the clothes
+    # rail AND the dead; the rail stays a library piece for the planned bedsit)
     import furn_beds as FB
-    FB.mattress_floor(c, 100, 116, {'head': 'left', 'bag': 'blue'})
-    F.floor_stain(c, 165, 107, 12, 2.5, hexc('9a8a5a'), seed=34)                              # a dried stain
-    # a freestanding clothes rail on castors, out in the room (below the R window box): the library's `clothes_rail` — chrome uprights, wire hangers, four garments each lit, creased and outlined
-    FE.lay(c, 'clothes_rail', 'a', 220, 118)
+    FB.mattress_floor(c, 140, 116, {'head': 'left', 'bag': 'blue'})
+    F.floor_stain(c, 112, 107, 12, 2.5, hexc('9a8a5a'), seed=34)                              # a dried stain
 
 
-D_ANCHORS = [('anchor_bedroom_crates', 23, 70, 'bp'), ('anchor_bedroom_backpack', 90, 103, ''),
-             ('anchor_bed_pillow', 112, 104, ''), ('anchor_bedroom_sleeping_bag', 170, 108, ''),
-             ('anchor_bedroom_clothes_rail', 238, 96, ''), ('anchor_bedroom_boxes', 292, 86, 'bp')]
+# the crates are a FRONT node now (the left corner has no room for a step-up spot's stand zone AND a body's 74 px of floor); the boxes in the right corner keep the step-up
+D_ANCHORS = [('anchor_bedroom_crates', 59, 70, ''), ('anchor_bed_pillow', 152, 104, ''), ('anchor_bedroom_sleeping_bag', 202, 108, ''),
+             ('anchor_bedroom_boxes', 261, 86, 'bp')]
 
 
 # ============================================================================================
@@ -366,12 +363,11 @@ def e_decor(c):
     # height marks pencilled up the door frame side of the wall, the last one much later
     # (owner round 17: context) — each pencil tick has the age beside it, and her name at the top
     for (y, age) in ((84, '3'), (78, '4'), (72, '5'), (66, '6')):
-        c.hline(100, 105, y, hexc('4a4a4a'))
-        F.text3(c, 107, y - 2, age, hexc('5a5a5a'))
-    F.text3(c, 100, 57, 'MIA', hexc('5a5a5a'))
-    import wallart                                                                # a crayon drawing in a cheap white frame,
-    wallart.picture_crayon(c, 162, 22, 192, 46)                                   # and a rainbow poster taped up beside the lamp
-    wallart.poster_rainbow(c, 106, 22, 124, 46)
+        c.hline(118, 123, y, hexc('4a4a4a'))
+        F.text3(c, 125, y - 2, age, hexc('5a5a5a'))
+    F.text3(c, 118, 57, 'MIA', hexc('5a5a5a'))
+    import wallart                                                                # (240 px module: the crayon drawing went; the rainbow poster is taped up beside the lamp)
+    wallart.poster_rainbow(c, 96, 22, 114, 46)
 
 
 @persp
@@ -382,13 +378,13 @@ def e_floor(c):
 def e_furniture(c):
     # WITH DEPTH (owner round 14): the dollhouse table (3px left), the little wardrobe
     from pixlib import setback
-    setback(c, lambda l: F.moved(l, _e_dollhouse, -3, 0), depth=4, top=80, x_range=(5, 49), rake=1.0)
+    setback(c, lambda l: F.moved(l, _e_dollhouse, 37, 0), depth=4, top=80, x_range=(45, 86), rake=1.0)
     # the house itself is a little 3D building (owner round 48i: "still a flat object on the back... no depth or shape"): it brings its own side wall and roof
     # planes, so it is drawn AFTER the table's lean, standing on the table's top (what stands on a set-back piece comes forward half as far as its body)
     import dollhouse3d
     from pixlib import setback_depth
     sh = setback_depth(4)
-    dollhouse3d.draw(c, 9, 80 + (sh // 2 if sh > 1 else sh), 'cream', 'r', top_col=F.PINE[1])
+    dollhouse3d.draw(c, 48, 80 + (sh // 2 if sh > 1 else sh), 'cream', 'r', top_col=F.PINE[1])
     _e_toys_wall(c)
     _e_rest(c)
     _e_wardrobe(c)
@@ -408,7 +404,7 @@ def _e_dollhouse(c):
 TOY_R, TOY_Y, TOY_B, TOY_G = hexc('c8423a'), hexc('e6c24a'), hexc('4a7ac0'), hexc('5aa05a')
 
 
-TOWER_X, HORSE_X, HORSE_BASE, WARDROBE_X = 63, 92, 116, 278        # the tower's left edge, the horse's centre column and its rockers' row (behind the walking line, <= 122)
+TOWER_X, HORSE_X, HORSE_BASE, WARDROBE_X = 96, 122, 116, 254        # the tower's left edge, the horse's centre column and its rockers' row (behind the walking line, <= 122)
 
 
 def tower(c):
@@ -428,32 +424,30 @@ def tower(c):
 def _e_toys_wall(c):
     # the painted toy shelf (clear of the window boxes: x 198..225): the LIBRARY's own piece — three lettered blocks, a plush bunny and a toy car — so the baked room and a planned one are one drawing
     import furn_embed as FE
-    FE.lay(c, 'toy_shelf', 'a', 198, 41, floor=False)
+    FE.lay(c, 'toy_shelf', 'a', 160, 41, floor=False)
     # a tower of blocks stacked against the wall beside the dollhouse table: TOWER_X is a clear gap off the table's right leg (owner round 48j: "too close to clipping the table"),
     # the three blocks sit square on one another and the roof block is a real prism — the same drawing as the planned `block_tower` (tools/art/toys3d.py)
     tower(c)
     import furn_embed as FE
-    # a ball against the wall under the window, by the wardrobe: the library's ball
-    FE.lay(c, 'ball', 'red', 247, 100)
 
 
 def _e_rest(c):
-    F.pendant(c, 140, 20, 'white', dome=True)                                                 # a paper-shade pendant
+    F.pendant(c, 152, 20, 'white', dome=True)                                                 # a paper-shade pendant
     # the rocking horse out on the carpet: the planned piece's own 3D model (rockers, legs, barrel, neck, head, mane, saddle), facing the room
     import toys3d as T3
     T3.horse(c, HORSE_X, HORSE_BASE, 'white', -62)
     # a small bed with a teddy, pushed against the wall
-    x0, x1 = 118, 196
+    x0, x1 = 138, 200
     F.persp_bed(c, x0, x1, 114, head='left', head_top=76, foot_top=84,
                 board=(hexc('e6e0cc'), hexc('f4f0e4'), hexc('8a8270')), duvet=(hexc('d98aa0'), hexc('b86a80'), hexc('e8a8b8')))
     import furn_beds as FB                                                                    # the teddy: the library's own bear, sat against the pillow
-    FB._teddy(c, 135, 94)
-    c.line(130, 94, 140, 90, BLOOD)
+    FB._teddy(c, 155, 94)
+    c.line(150, 94, 160, 90, BLOOD)
     # a rag doll sat on the bed, against the foot: the library's doll
     import furn_embed as FE
-    FE.lay(c, 'rag_doll', 'a', 168, 97, floor=False)
+    FE.lay(c, 'rag_doll', 'a', 172, 97, floor=False)
     # a toy chest at the foot of the bed, lid up, toys heaped in it: the library's chest (centre column 212, feet row 117 — where the baked one stood)
-    FE.lay(c, 'toy_chest', 'blue', 194, 117)
+    FE.lay(c, 'toy_chest', 'blue', 204, 117)
 
 
 def _e_wardrobe(c):
@@ -462,7 +456,7 @@ def _e_wardrobe(c):
     import furn_embed as FE
     import furn_wardrobes as FW
     FE.lay(c, 'wardrobe_small', 'pink', WARDROBE_X, 105, floor=False,
-           override=dict(w=28, draw=lambda cc, ox, oy, p: FW.draw_small_wardrobe(cc, ox, oy, FW.KID_WARD['pink'], 28)))
+           override=dict(w=21, draw=lambda cc, ox, oy, p: FW.draw_small_wardrobe(cc, ox, oy, FW.KID_WARD['pink'], 21)))
 
 
 def _e_night_blood(c):
@@ -470,33 +464,33 @@ def _e_night_blood(c):
     # child's height on the wall by the bed, the duvet soaked, spatter across the dollhouse, and a drag
     # trail over the carpet from the bed toward the wardrobe
     B1, B2, B3 = hexc('6a1812'), hexc('4a0e0c'), hexc('84241a')
-    for (hx, hy) in ((104, 80), (112, 74), (206, 76)):                         # small hands, dragged down
+    for (hx, hy) in ((124, 80), (132, 74), (190, 76)):                         # small hands, dragged down
         c.rect(hx, hy, hx + 3, hy + 3, B1)
         for k in range(4):
             c.vline(hx + k, hy - 3 + (k % 2), hy - 1, B1)
         c.put(hx + 4, hy + 1, B1)
         for k in range(1, 4):
             c.vline(hx + k, hy + 4, hy + 4 + (k * 3) % 7, B2)
-    c.ellipse(160, 92, 16, 4, B2)                                              # the duvet, soaked
-    c.ellipse(158, 91, 12, 3, B1)
-    c.vline(170, 96, 103, B2); c.vline(148, 96, 101, B2)                       # dripping off the edge
-    for (x, y) in ((16, 60), (21, 64), (27, 58), (33, 66), (24, 71), (37, 61), (14, 70)):
+    c.ellipse(170, 92, 16, 4, B2)                                              # the duvet, soaked
+    c.ellipse(168, 91, 12, 3, B1)
+    c.vline(180, 96, 103, B2); c.vline(158, 96, 101, B2)                       # dripping off the edge
+    for (x, y) in ((53, 60), (58, 64), (64, 58), (70, 66), (61, 71), (74, 61), (51, 70)):
         c.put(x, y, B1)                                                         # spatter on the dollhouse
-    c.rect(29, 62, 30, 63, B3)
-    for x in range(176, 262):                                                   # the drag trail
-        t = (x - 176) / 86.0
+    c.rect(66, 62, 67, 63, B3)
+    for x in range(186, 248):                                                   # the drag trail
+        t = (x - 186) / 62.0
         y = 122 + int(3 * t)
         w = 3 - int(2 * t)
         for k in range(w):
             if (x * 5 + k) % 7:
                 c.put(x, y + k, B1 if k else B2)
-    for x in range(200, 256, 9):                                                # small bloody footprints
+    for x in range(200, 246, 9):                                                # small bloody footprints
         c.rect(x, 128 - (x // 9) % 2 * 3, x + 1, 130 - (x // 9) % 2 * 3, B2)
 
 
-E_ANCHORS = [('anchor_bedroom_dollhouse', 34, 74, 'bp'), ('anchor_bedroom_rocking_horse', 92, 100, ''),
-             ('anchor_bed_pillow', 134, 88, ''), ('anchor_bedroom_toy_chest', 212, 107, ''),
-             ('anchor_bedroom_small_wardrobe', 292, 70, 'bp')]
+E_ANCHORS = [('anchor_bedroom_dollhouse', 71, 74, 'bp'), ('anchor_bedroom_rocking_horse', 122, 100, ''),
+             ('anchor_bed_pillow', 148, 88, ''), ('anchor_bedroom_toy_chest', 222, 107, ''),
+             ('anchor_bedroom_small_wardrobe', 262, 70, 'bp')]
 
 
 VARIANTS = {
@@ -505,6 +499,10 @@ VARIANTS = {
     'd': ('bedroom_d', 24, (d_wall, d_decor, d_floor, d_furniture), D_ANCHORS),
     'e': ('bedroom_e', 25, (e_wall, e_decor, e_floor, e_furniture), E_ANCHORS),
 }
+
+
+# which wall's window box each variant keeps bare (the other wall may carry tall furniture): docs/MODULE_WIDTH.md
+WINDOW_SIDE = {'b': 'R', 'c': 'R', 'd': 'R', 'e': 'R'}
 
 
 def make(fns):
@@ -528,4 +526,4 @@ if __name__ == '__main__':
         bare, floor, build = make(fns)
         import chair3d
         finish_module(name, 'bedroom', seed, bare, floor, build, anchors,
-                      per_run=lambda r: setattr(chair3d, 'RUN', r))
+                      per_run=lambda r: setattr(chair3d, 'RUN', r), window=WINDOW_SIDE.get(v, 'LR'))

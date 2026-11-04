@@ -212,13 +212,13 @@ def desk(c):
     its studded back shows over the top. So we see the desk's FRONT: panelled pedestals and a modesty
     panel — its drawers face the chair, on the far side (owner round 14: "people would have their
     drawers where their chair is")."""
-    x0, x1, top, base = 146, 218, 90, 117
+    x0, x1, top, base = 146, 206, 90, 117                                  # (60 px wide: it was 72 — the 240 px wall)
     # the chair behind
-    c.box(172, 70, 192, 90, LEATHER, hexc('2d1410'))
-    c.hline(173, 191, 71, LEATHER_LT)
-    for x in range(174, 191, 3):
+    c.box(166, 70, 186, 90, LEATHER, hexc('2d1410'))
+    c.hline(167, 185, 71, LEATHER_LT)
+    for x in range(168, 185, 3):
         c.put(x, 73, BRASS)
-    c.shadow(182, base + 1, 40, 3, 110)
+    c.shadow(176, base + 1, 34, 3, 110)
     # the top
     c.rect(x0 - 2, top, x1 + 2, top + 4, WOOD_LT)
     c.hline(x0 - 2, x1 + 2, top, shade(WOOD_LT, 1.12))
@@ -247,16 +247,19 @@ def desk(c):
     c.hline(150, 162, top - 17, GREEN_GLASS_LT)
     from pixlib import light
     light(156, top - 13, 'desk')                                            # the green banker's lamp
-    c.poly([(176, top - 1), (196, top - 1), (198, top - 5), (178, top - 5)], NOTE)
-    c.hline(178, 197, top - 3, NOTE_DK)
-    c.line(186, top - 2, 192, top - 4, BLOOD)
-    c.rect(204, top - 5, 208, top - 1, hexc('c9c2b1'))
-    c.put(209, top - 3, hexc('c9c2b1'))
+    c.poly([(172, top - 1), (190, top - 1), (192, top - 5), (174, top - 5)], NOTE)
+    c.hline(174, 191, top - 3, NOTE_DK)
+    c.line(180, top - 2, 186, top - 4, BLOOD)
+    c.rect(194, top - 5, 198, top - 1, hexc('c9c2b1'))
+    c.put(199, top - 3, hexc('c9c2b1'))
     c.rect(170, top - 2, 173, top - 1, hexc('2b2622'))
 
 
 def chair(c):
     pass            # (the chair is drawn with the desk — tucked in behind it)
+
+
+DESK_DX = 34
 
 
 def rug(c):
@@ -265,24 +268,25 @@ def rug(c):
 
 
 def _rug(c):
-    # a worn oriental rug in front of the desk (floor furniture — not part of the floor strip)
-    c.poly([(146, 104), (238, 104), (246, 124), (138, 124)], RUG)
-    c.poly([(150, 106), (234, 106), (240, 122), (144, 122)], RUG_DK)
-    c.poly([(154, 108), (230, 108), (235, 120), (149, 120)], RUG)
+    # a worn oriental rug in front of the desk (floor furniture — not part of the floor strip); 240 px module: the desk and its rug stand 14 px right of where they were
+    m = lambda x: int(round(178 + (x - 146) * 84.0 / 92.0))                          # the rug is 84 px wide now (it was 92)
+    c.poly([(m(146), 104), (m(238), 104), (m(246), 124), (m(138), 124)], RUG)
+    c.poly([(m(150), 106), (m(234), 106), (m(240), 122), (m(144), 122)], RUG_DK)
+    c.poly([(m(154), 108), (m(230), 108), (m(235), 120), (m(149), 120)], RUG)
     for x in range(156, 230, 8):
-        c.put(x, 111, RUG_PAT); c.put(x + 2, 116, RUG_PAT)
-    c.hline(148, 236, 105, RUG_PAT)
-    c.hline(141, 243, 123, RUG_PAT)
+        c.put(m(x), 111, RUG_PAT); c.put(m(x) + 2, 116, RUG_PAT)
+    c.hline(m(148), m(236), 105, RUG_PAT)
+    c.hline(m(141), m(243), 123, RUG_PAT)
     for x in range(138, 247, 2):                                            # fringe
-        c.put(x, 125, RUG_PAT)
+        c.put(m(x), 125, RUG_PAT)
     import furn as F
-    F.floor_stain(c, 180, 114, 16, 3.5, hexc('3c1a17'), seed=35)            # a dark stain soaked into the rug
+    F.floor_stain(c, m(180), 114, 16, 3.5, hexc('3c1a17'), seed=35)            # a dark stain soaked into the rug
 
 
 def paper_pile(c):
     # the newspapers kept in a wire magazine rack under the R window box (y > 66)
     import furn as F
-    F.magazine_rack(c, 232, 258, 86, 101)
+    F.magazine_rack(c, 252, 274, 86, 101)
 
 
 def filing_cabinet(c):
@@ -330,10 +334,12 @@ def book_pile(c):
 
 
 def strip(c):
+    # (240 px module, docs/MODULE_WIDTH.md: the balcony strip is module x 4..96 = design x 44..136 now, so its pieces stand 40 px right of where they were drawn)
     from pixlib import setback
-    setback(c, file_boxes, depth=3, top=66, x_range=(12, 44))
-    setback(c, radiator, depth=2, top=74, x_range=(54, 90))              # stands off the wall on its brackets
-    setback(c, book_pile, depth=3, top=84, x_range=(46, 76))   # on a low cabinet against the radiator
+    import furn as F
+    setback(c, lambda l: F.moved(l, file_boxes, 32, 0), depth=3, top=66, x_range=(44, 76))
+    setback(c, lambda l: F.moved(l, radiator, 40, 0), depth=2, top=74, x_range=(94, 130))              # stands off the wall on its brackets
+    setback(c, lambda l: F.moved(l, book_pile, 40, 0), depth=3, top=84, x_range=(86, 116))   # on a low cabinet against the radiator
 
 
 def build(c=None):
@@ -344,12 +350,11 @@ def build(c=None):
     rug(c)
     # WITH DEPTH (owner round 14): the bookcase, the filing cabinet (the strip's pieces in strip())
     from pixlib import setback
-    setback(c, bookcase, depth=4, top=12, x_range=(99, 141), rake=1.0)
-    board(c)
-    paper_pile(c)
-    setback(c, filing_cabinet, depth=4, top=62, x_range=(276, 308))
-    right_shelf(c)
-    desk(c)
+    import furn as F
+    setback(c, lambda l: F.moved(l, bookcase, 38, 0), depth=4, top=12, x_range=(138, 180), rake=1.0)   # right of the balcony strip (design x 44..136)
+    F.moved(c, board, 20, 0)
+    F.moved(c, right_shelf, -38, 0)                                                                    # (the filing cabinet went: the 240 px wall has no room for it)
+    F.moved(c, desk, DESK_DX, 0)
     return c
 
 
@@ -358,12 +363,11 @@ def bare(c):
     decay(c)
 
 
-ANCHORS = [('anchor_centre_bookcaseupper', 114, 42, 'bp'), ('anchor_centre_bookcaselower', 126, 70, 'bp'),
-           ('anchor_centre_desk', 188, 88, ''), ('anchor_study_desk_drawer', 208, 105, ''),
-           ('anchor_study_papers', 244, 94, ''), ('anchor_right_shelf', 284, 40, 'bp'),
-           ('anchor_study_filing', 292, 76, 'bp'),
-           ('anchor_study_file_boxes', 28, 88, 'bp s'), ('anchor_study_book_pile', 60, 94, 'bp s')]
+ANCHORS = [('anchor_centre_bookcaseupper', 152, 42, 'bp'), ('anchor_centre_bookcaselower', 158, 70, 'bp'),
+           ('anchor_centre_desk', 210, 88, ''), ('anchor_study_desk_drawer', 230, 105, ''),
+           ('anchor_right_shelf', 262, 40, 'bp'),
+           ('anchor_study_file_boxes', 60, 88, 'bp s'), ('anchor_study_book_pile', 100, 94, 'bp s')]
 
 
 if __name__ == '__main__':
-    finish_module('study', 'study', SEED, bare, floor, build, ANCHORS, strip_fn=strip)
+    finish_module('study', 'study', SEED, bare, floor, build, ANCHORS, strip_fn=strip, window='L')

@@ -8,13 +8,13 @@
 [node name="Node2D" type="Node2D"]
 
 [node name="ColorRect" type="ColorRect" parent="."]
-offset_right = 320.0
+offset_right = 240.0
 offset_bottom = 144.0
 color = Color(0.4, 0.4, 0.4, 1)
 
 [node name="Label" type="Label" parent="ColorRect"]
 layout_mode = 0
-offset_right = 318.0
+offset_right = 238.0
 offset_bottom = 100.0
 theme_override_font_sizes/font_size = 32
 visible = false
@@ -40,7 +40,7 @@ texture = ExtResource("3_balcony")
 centered = false
 
 [node name="anchor_study_parts" type="Marker2D" parent="."]
-position = Vector2(26, 65)
+position = Vector2(16, 65)
 metadata/back_plane = true
 metadata/balcony_strip = true
 
@@ -50,37 +50,33 @@ metadata/back_plane = true
 metadata/balcony_strip = true
 
 [node name="anchor_study_radio" type="Marker2D" parent="."]
-position = Vector2(130, 68)
+position = Vector2(124, 66)
 metadata/back_plane = true
 
 [node name="anchor_centre_desk" type="Marker2D" parent="."]
-position = Vector2(126, 94)
-metadata/back_plane = true
-
-[node name="anchor_study_boxes" type="Marker2D" parent="."]
-position = Vector2(212, 77)
+position = Vector2(120, 91)
 metadata/back_plane = true
 
 [node name="anchor_study_log_table" type="Marker2D" parent="."]
-position = Vector2(214, 97)
+position = Vector2(171, 97)
 
 [node name="anchor_study_handset" type="Marker2D" parent="."]
-position = Vector2(240, 95)
+position = Vector2(192, 95)
 
 [node name="anchor_right_shelf" type="Marker2D" parent="."]
-position = Vector2(292, 69)
+position = Vector2(224, 69)
 metadata/back_plane = true
 
 [node name="Lights" type="Node2D" parent="."]
 
 [node name="lamp_0" type="Node2D" parent="Lights"]
-position = Vector2(220, 22)
+position = Vector2(226, 22)
 metadata/kind = "bulb"
 
 [node name="Anims" type="Node2D" parent="."]
 
 [node name="anim_0" type="Node2D" parent="Anims"]
-position = Vector2(140, 65)
+position = Vector2(134, 63)
 script = ExtResource("4_anim")
 metadata/kind = "blink"
 metadata/fall = 0

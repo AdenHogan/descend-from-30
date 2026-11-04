@@ -1,5 +1,7 @@
 extends Node
 
+const MG := preload("res://scripts/module_geo.gd")        # the module width (docs/MODULE_WIDTH.md)
+
 # RESIDENTS (owner round 32): survivors holed up behind LOCKED doors who shout, square up, run, threaten,
 # beg, attack or trade (scripts/resident_npc.gd, WorldState "RESIDENTS", data/npc_dialogue.json).
 # Run: godot --headless res://tests/resident_npc_test.tscn
@@ -289,8 +291,8 @@ func _test_placement_in_short_flats() -> void:
 		for side in ["left", "right"]:
 			for s in [0.0, 0.5, 1.0]:
 				var x: float = NPC.spawn_x(apt, {"spot": s}, side)
-				var lo: float = 113.0 + (span - 1) * 320.0 if side == "left" else 113.0
-				var hi: float = WorldState.flat_x_hi(apt) if side == "left" else 113.0 + 320.0
+				var lo: float = MG.LEFT_WALL_X + (span - 1) * float(MG.WIDTH) if side == "left" else float(MG.LEFT_WALL_X)
+				var hi: float = WorldState.flat_x_hi(apt) if side == "left" else float(MG.LEFT_WALL_X + MG.WIDTH)
 				seen[span] = int(seen.get(span, 0)) + 1
 				if x < lo or x > hi:
 					bad += 1

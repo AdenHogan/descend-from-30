@@ -2837,6 +2837,8 @@ func get_listen_report_for_apartment(apt_id: String) -> Dictionary:
 	else:
 		count = (get_apartment_zombie_count(apt_id) if flat_lays_ordinary_dead(apt_id) else 0) + (0 if revenant_for(apt_id).is_empty() else 1)
 	for key in killed_zombies:
+		if str(key).begins_with("rescue:"):
+			continue                                     # the dead a rescue sent at someone were never in the ordinary count (listen_event_for_apartment counts them while they are alive)
 		var entry = killed_zombies[key]
 		if entry.get("apartment_id", "") == apt_id and str(entry.get("scene", "")).contains("room"):
 			count -= 1
@@ -3178,6 +3180,30 @@ func apartment_window_side(apartment_id: String, slot: int) -> String:
 	# Deterministic (docs/… seeding convention): hash(master_seed + purpose + apt + slot).
 	var h := hash(str(master_seed) + "aptwindow" + apartment_id + ":" + str(slot))
 	return "left" if (h % 2) == 0 else "right"
+
+
+## Which wall the window of the module whose scene is `scene_path` is on, "left" / "right". A BAKED module keeps its window box bare on ONE side only (the
+## 240 px frame has no room for both — `tools/art/pixlib.finish_module(window=)`, written to `assets/rooms/window_sides.json`), so the runtime window goes where the art
+## left it; a scene the table does not know (a planned shell, a test fixture) falls back to the old seeded side. A planned room is asked with the BAKED module it
+## would be as a story room (`Room.baked_scene_for`), so a flat's window does not change wall when it turns into a breach room in a later run.
+const WINDOW_SIDES_PATH := "res://assets/rooms/window_sides.json"
+var _window_sides: Dictionary = {}
+var _window_sides_loaded: bool = false
+
+
+func baked_window_side(art_name: String) -> String:
+	if not _window_sides_loaded:
+		_window_sides_loaded = true
+		if FileAccess.file_exists(WINDOW_SIDES_PATH):
+			var parsed = JSON.parse_string(FileAccess.get_file_as_string(WINDOW_SIDES_PATH))
+			if parsed is Dictionary:
+				_window_sides = parsed
+	return {"L": "left", "R": "right"}.get(str(_window_sides.get(art_name, "")), "")
+
+
+func window_side_of(scene_path: String, apartment_id: String, slot: int) -> String:
+	var side := baked_window_side(scene_path.get_file().get_basename())
+	return side if side != "" else apartment_window_side(apartment_id, slot)
 
 
 func module_variant_index(apartment_id: String, slot: int, room_type: String, count: int) -> int:
@@ -4698,8 +4724,11 @@ func get_breached_room_enemies(apartment_id: String, min_x: float, max_x: float,
 	var count: int = maxi(BREACH_PACK_MIN, roundi(float(raw_count) * BREACH_PACK_FACTOR))
 
 	var enemies = []
-	var center_x = rng.randf_range(min_x + 60, min_x + 200)
-	var spread = rng.randf_range(60, 200)
+	# The layout below was tuned for a 320 px module (a flat 880 px between the dead's limits); a 240 px module makes the flat 25 % shorter, so the pack's own extent shrinks by the
+	# same ratio and still sits at the far end — otherwise it would reach back towards the door (the draws are the same, only the scale changes: a spawn key still matches).
+	var k: float = float(ModuleGeo.WIDTH) / 320.0
+	var center_x = rng.randf_range(min_x + 60.0 * k, min_x + 200.0 * k)
+	var spread = rng.randf_range(60.0 * k, 200.0 * k)
 	# Owner round 45: "I entered a breach and immediately five enemies… were walking like a conga line straight toward me". The pack
 	# always stood at the LEFT end, so a flat entered from the left put the player down among them (a standard senses 100 px, and a
 	# lunge alerts every body within 170 — one sighting started the whole line). It now lives at the FAR end from the front door:

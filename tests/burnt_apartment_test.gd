@@ -1,5 +1,7 @@
 extends Node
 
+const MG := preload("res://scripts/module_geo.gd")        # the module width (docs/MODULE_WIDTH.md)
+
 # BURNT-OUT APARTMENTS (owner round 34: "the burned out apartment looked mostly normal… a text box with the player
 # saying the apartment is burned out, everything here is likely scrap… we should [not] need to search those nodes —
 # say what it is"): a CHARRED flat shows burnt module art, says so once, and its scrap nodes are identified and taken
@@ -59,7 +61,7 @@ func _test_art_files() -> void:
 				continue
 			var b: Image = (load(burnt) as Texture2D).get_image()
 			var a: Image = (load(src) as Texture2D).get_image()
-			if b.get_width() != 320 or b.get_height() != 144:
+			if b.get_width() != MG.WIDTH or b.get_height() != 144:
 				bad_size += 1
 			if _mean_lum(b) > _mean_lum(a) * 0.75:
 				not_darker += 1

@@ -27,6 +27,7 @@
    "rooms": {
     "kitchen": 5
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -135,6 +136,7 @@
    "rooms": {
     "bedroom": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -279,6 +281,7 @@
     "living_room": 8,
     "study": 5
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -2494,6 +2497,7 @@
    "rooms": {
     "living_room": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -2611,6 +2615,7 @@
     "living_room": 2,
     "study": 2
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -2786,6 +2791,7 @@
     "bedroom": 4,
     "living_room": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -2853,6 +2859,7 @@
    "rooms": {
     "dining_room": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -2950,6 +2957,7 @@
    "rooms": {
     "dining_room": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -3018,6 +3026,7 @@
    "rooms": {
     "bathroom": 8
    },
+   "sill": true,
    "snap": false,
    "sound": null,
    "styles": {
@@ -3056,92 +3065,92 @@
        "b": -14,
        "bx": 36,
        "file": "basin_bracket_b0",
-       "h": 45,
-       "l": -7,
-       "r": 35,
-       "rx": 7,
-       "ry": 58,
+       "h": 44,
+       "l": 0,
+       "r": 30,
+       "rx": 0,
+       "ry": 57,
        "sb": -15,
-       "t": -58,
-       "w": 43
+       "t": -57,
+       "w": 31
       },
       {
        "b": -14,
        "bx": 72,
        "file": "basin_bracket_b1",
-       "h": 45,
-       "l": -4,
-       "r": 38,
-       "rx": 4,
-       "ry": 58,
+       "h": 44,
+       "l": 3,
+       "r": 32,
+       "rx": -3,
+       "ry": 57,
        "sb": -15,
-       "t": -58,
-       "w": 43
+       "t": -57,
+       "w": 30
       },
       {
        "b": -14,
        "bx": 116,
        "file": "basin_bracket_b2",
-       "h": 45,
-       "l": 1,
-       "r": 43,
-       "rx": -1,
-       "ry": 58,
+       "h": 44,
+       "l": 7,
+       "r": 36,
+       "rx": -7,
+       "ry": 57,
        "sb": -15,
-       "t": -58,
-       "w": 43
+       "t": -57,
+       "w": 30
       },
       {
        "b": -14,
        "bx": 160,
        "file": "basin_bracket_b3",
-       "h": 45,
-       "l": 5,
-       "r": 47,
-       "rx": -5,
-       "ry": 58,
+       "h": 44,
+       "l": 11,
+       "r": 40,
+       "rx": -11,
+       "ry": 57,
        "sb": -15,
-       "t": -58,
-       "w": 43
+       "t": -57,
+       "w": 30
       },
       {
        "b": -14,
        "bx": 204,
        "file": "basin_bracket_b4",
-       "h": 45,
-       "l": 10,
-       "r": 52,
-       "rx": -10,
-       "ry": 58,
+       "h": 44,
+       "l": 15,
+       "r": 44,
+       "rx": -15,
+       "ry": 57,
        "sb": -15,
-       "t": -58,
-       "w": 43
+       "t": -57,
+       "w": 30
       },
       {
        "b": -14,
        "bx": 248,
        "file": "basin_bracket_b5",
-       "h": 45,
-       "l": 14,
-       "r": 56,
-       "rx": -14,
-       "ry": 58,
+       "h": 44,
+       "l": 19,
+       "r": 48,
+       "rx": -19,
+       "ry": 57,
        "sb": -15,
-       "t": -58,
-       "w": 43
+       "t": -57,
+       "w": 30
       },
       {
        "b": -14,
        "bx": 284,
        "file": "basin_bracket_b6",
-       "h": 45,
-       "l": 18,
-       "r": 58,
-       "rx": -18,
-       "ry": 58,
+       "h": 44,
+       "l": 22,
+       "r": 51,
+       "rx": -22,
+       "ry": 57,
        "sb": -15,
-       "t": -58,
-       "w": 41
+       "t": -57,
+       "w": 30
       }
      ]
     },
@@ -3172,92 +3181,92 @@
        "b": -3,
        "bx": 36,
        "file": "basin_pedestal_b0",
-       "h": 54,
-       "l": -7,
-       "r": 35,
-       "rx": 7,
-       "ry": 56,
+       "h": 53,
+       "l": 1,
+       "r": 29,
+       "rx": -1,
+       "ry": 55,
        "sb": -5,
-       "t": -56,
-       "w": 43
+       "t": -55,
+       "w": 29
       },
       {
        "b": -3,
        "bx": 72,
        "file": "basin_pedestal_b1",
-       "h": 54,
-       "l": -4,
-       "r": 38,
-       "rx": 4,
-       "ry": 56,
+       "h": 53,
+       "l": 4,
+       "r": 32,
+       "rx": -4,
+       "ry": 55,
        "sb": -5,
-       "t": -56,
-       "w": 43
+       "t": -55,
+       "w": 29
       },
       {
        "b": -3,
        "bx": 116,
        "file": "basin_pedestal_b2",
-       "h": 54,
-       "l": 1,
-       "r": 43,
-       "rx": -1,
-       "ry": 56,
+       "h": 53,
+       "l": 8,
+       "r": 36,
+       "rx": -8,
+       "ry": 55,
        "sb": -5,
-       "t": -56,
-       "w": 43
+       "t": -55,
+       "w": 29
       },
       {
        "b": -3,
        "bx": 160,
        "file": "basin_pedestal_b3",
-       "h": 54,
-       "l": 5,
-       "r": 47,
-       "rx": -5,
-       "ry": 56,
+       "h": 53,
+       "l": 12,
+       "r": 40,
+       "rx": -12,
+       "ry": 55,
        "sb": -5,
-       "t": -56,
-       "w": 43
+       "t": -55,
+       "w": 29
       },
       {
        "b": -3,
        "bx": 204,
        "file": "basin_pedestal_b4",
-       "h": 54,
-       "l": 10,
-       "r": 52,
-       "rx": -10,
-       "ry": 56,
+       "h": 53,
+       "l": 16,
+       "r": 44,
+       "rx": -16,
+       "ry": 55,
        "sb": -5,
-       "t": -56,
-       "w": 43
+       "t": -55,
+       "w": 29
       },
       {
        "b": -3,
        "bx": 248,
        "file": "basin_pedestal_b5",
-       "h": 54,
-       "l": 14,
-       "r": 56,
-       "rx": -14,
-       "ry": 56,
+       "h": 53,
+       "l": 20,
+       "r": 48,
+       "rx": -20,
+       "ry": 55,
        "sb": -5,
-       "t": -56,
-       "w": 43
+       "t": -55,
+       "w": 29
       },
       {
        "b": -3,
        "bx": 284,
        "file": "basin_pedestal_b6",
-       "h": 54,
-       "l": 18,
-       "r": 58,
-       "rx": -18,
-       "ry": 56,
+       "h": 53,
+       "l": 23,
+       "r": 51,
+       "rx": -23,
+       "ry": 55,
        "sb": -5,
-       "t": -56,
-       "w": 41
+       "t": -55,
+       "w": 29
       }
      ]
     },
@@ -3288,92 +3297,92 @@
        "b": -3,
        "bx": 36,
        "file": "basin_pink_b0",
-       "h": 54,
-       "l": -7,
-       "r": 35,
-       "rx": 7,
-       "ry": 56,
+       "h": 53,
+       "l": 1,
+       "r": 29,
+       "rx": -1,
+       "ry": 55,
        "sb": -5,
-       "t": -56,
-       "w": 43
+       "t": -55,
+       "w": 29
       },
       {
        "b": -3,
        "bx": 72,
        "file": "basin_pink_b1",
-       "h": 54,
-       "l": -4,
-       "r": 38,
-       "rx": 4,
-       "ry": 56,
+       "h": 53,
+       "l": 4,
+       "r": 32,
+       "rx": -4,
+       "ry": 55,
        "sb": -5,
-       "t": -56,
-       "w": 43
+       "t": -55,
+       "w": 29
       },
       {
        "b": -3,
        "bx": 116,
        "file": "basin_pink_b2",
-       "h": 54,
-       "l": 1,
-       "r": 43,
-       "rx": -1,
-       "ry": 56,
+       "h": 53,
+       "l": 8,
+       "r": 36,
+       "rx": -8,
+       "ry": 55,
        "sb": -5,
-       "t": -56,
-       "w": 43
+       "t": -55,
+       "w": 29
       },
       {
        "b": -3,
        "bx": 160,
        "file": "basin_pink_b3",
-       "h": 54,
-       "l": 5,
-       "r": 47,
-       "rx": -5,
-       "ry": 56,
+       "h": 53,
+       "l": 12,
+       "r": 40,
+       "rx": -12,
+       "ry": 55,
        "sb": -5,
-       "t": -56,
-       "w": 43
+       "t": -55,
+       "w": 29
       },
       {
        "b": -3,
        "bx": 204,
        "file": "basin_pink_b4",
-       "h": 54,
-       "l": 10,
-       "r": 52,
-       "rx": -10,
-       "ry": 56,
+       "h": 53,
+       "l": 16,
+       "r": 44,
+       "rx": -16,
+       "ry": 55,
        "sb": -5,
-       "t": -56,
-       "w": 43
+       "t": -55,
+       "w": 29
       },
       {
        "b": -3,
        "bx": 248,
        "file": "basin_pink_b5",
-       "h": 54,
-       "l": 14,
-       "r": 56,
-       "rx": -14,
-       "ry": 56,
+       "h": 53,
+       "l": 20,
+       "r": 48,
+       "rx": -20,
+       "ry": 55,
        "sb": -5,
-       "t": -56,
-       "w": 43
+       "t": -55,
+       "w": 29
       },
       {
        "b": -3,
        "bx": 284,
        "file": "basin_pink_b6",
-       "h": 54,
-       "l": 18,
-       "r": 58,
-       "rx": -18,
-       "ry": 56,
+       "h": 53,
+       "l": 23,
+       "r": 51,
+       "rx": -23,
+       "ry": 55,
        "sb": -5,
-       "t": -56,
-       "w": 41
+       "t": -55,
+       "w": 29
       }
      ]
     }
@@ -3408,6 +3417,7 @@
    "rooms": {
     "bathroom": 10
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -3899,6 +3909,7 @@
    "rooms": {
     "bathroom": 8
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -4032,6 +4043,7 @@
    "rooms": {
     "bedroom": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -4789,6 +4801,7 @@
    "rooms": {
     "bedroom": 5
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -5361,6 +5374,7 @@
    "rooms": {
     "bedroom": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -6109,6 +6123,7 @@
    "rooms": {
     "bedroom": 8
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -7037,6 +7052,7 @@
     "kitchen": 7,
     "living_room": 1
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -7149,6 +7165,7 @@
     "bedroom": 4,
     "living_room": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -7504,6 +7521,7 @@
     "living_room": 4,
     "study": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -7634,6 +7652,7 @@
     "living_room": 5,
     "study": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -8051,6 +8070,7 @@
     "living_room": 3,
     "study": 8
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -8483,6 +8503,7 @@
     "dining_room": 5,
     "living_room": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -8594,6 +8615,7 @@
     "dining_room": 5,
     "living_room": 2
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -8700,6 +8722,7 @@
     "living_room": 2,
     "study": 2
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -8848,6 +8871,7 @@
     "living_room": 3,
     "study": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -9111,6 +9135,7 @@
    "rooms": {
     "kitchen": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -9214,6 +9239,7 @@
     "bathroom": 5,
     "kitchen": 5
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -9317,6 +9343,7 @@
    "rooms": {
     "dining_room": 7
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -9412,6 +9439,7 @@
     "living_room": 2,
     "study": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -9490,6 +9518,7 @@
    "rooms": {
     "dining_room": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -9599,6 +9628,7 @@
    "rooms": {
     "kitchen": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -9705,6 +9735,7 @@
    "rooms": {
     "study": 7
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -9967,6 +9998,7 @@
    "rooms": {
     "kitchen": 5
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -10043,6 +10075,7 @@
     "living_room": 4,
     "study": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -10113,6 +10146,7 @@
     "bedroom": 3,
     "living_room": 2
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -10188,6 +10222,7 @@
     "living_room": 4,
     "study": 2
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -10365,6 +10400,7 @@
    "rooms": {
     "bedroom": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -10784,6 +10820,7 @@
     "bedroom": 6,
     "study": 8
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -10903,6 +10940,7 @@
    "rooms": {
     "bedroom": 5
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -11676,6 +11714,7 @@
    "rooms": {
     "bathroom": 5
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -11830,6 +11869,7 @@
     "bathroom": 4,
     "dining_room": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -11912,6 +11952,7 @@
     "bedroom": 6,
     "living_room": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -12349,6 +12390,7 @@
     "dining_room": 8,
     "living_room": 5
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -12637,6 +12679,7 @@
    "rooms": {
     "kitchen": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -12710,6 +12753,7 @@
     "kitchen": 4,
     "living_room": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -12793,6 +12837,7 @@
     "dining_room": 6,
     "living_room": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -13076,6 +13121,7 @@
     "living_room": 5,
     "study": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -13158,6 +13204,7 @@
    "pair": null,
    "plane": "decor",
    "rooms": {},
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -13259,6 +13306,7 @@
     "living_room": 4,
     "study": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -13407,6 +13455,7 @@
     "bathroom": 2,
     "bedroom": 7
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -13547,6 +13596,7 @@
     "bedroom": 4,
     "living_room": 1
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -13664,6 +13714,7 @@
     "living_room": 2,
     "study": 2
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -13677,7 +13728,11 @@
      "anchors": [],
      "anims": [],
      "lights": [],
-     "params": {},
+     "params": {
+      "not": [
+       "den"
+      ]
+     },
      "slots": [],
      "sprites": [
       {
@@ -13792,6 +13847,7 @@
    "rooms": {
     "living_room": 8
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -14079,6 +14135,7 @@
    "rooms": {
     "study": 7
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -14207,6 +14264,7 @@
    "rooms": {
     "bedroom": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -14494,6 +14552,7 @@
    "rooms": {
     "living_room": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -14777,6 +14836,7 @@
    "rooms": {
     "kitchen": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -14857,6 +14917,7 @@
     "bedroom": 8,
     "study": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -15029,6 +15090,7 @@
    "rooms": {
     "study": 10
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -15342,6 +15404,7 @@
     "bedroom": 4,
     "living_room": 2
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -15821,6 +15884,7 @@
     "dining_room": 4,
     "kitchen": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -16015,6 +16079,7 @@
    "rooms": {
     "bedroom": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -16431,6 +16496,7 @@
    "rooms": {
     "bedroom": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -16538,6 +16604,7 @@
    "rooms": {
     "study": 7
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -16675,6 +16742,7 @@
    "rooms": {
     "study": 7
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -17124,6 +17192,7 @@
    "rooms": {
     "living_room": 8
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -17364,6 +17433,7 @@
     "living_room": 3,
     "study": 2
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -17465,6 +17535,7 @@
     "living_room": 5,
     "study": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -17544,6 +17615,7 @@
    "rooms": {
     "kitchen": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -18065,6 +18137,7 @@
     "dining_room": 3,
     "kitchen": 5
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -18166,6 +18239,7 @@
    "rooms": {
     "dining_room": 5
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -18287,6 +18361,7 @@
     "living_room": 2,
     "study": 1
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -18378,6 +18453,7 @@
    "rooms": {
     "study": 5
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -18470,6 +18546,7 @@
     "bedroom": 1,
     "living_room": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -18565,6 +18642,7 @@
     "bathroom": 3,
     "bedroom": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -18680,6 +18758,7 @@
     "kitchen": 2,
     "living_room": 2
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -18749,6 +18828,7 @@
    "rooms": {
     "kitchen": 7
    },
+   "sill": false,
    "snap": true,
    "sound": null,
    "styles": {
@@ -18955,6 +19035,7 @@
    "rooms": {
     "bedroom": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -19094,6 +19175,7 @@
    "rooms": {
     "kitchen": 7
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -19225,6 +19307,7 @@
    "rooms": {
     "study": 7
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -19336,6 +19419,7 @@
     "living_room": 6,
     "study": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -19495,6 +19579,7 @@
     "bedroom": 3,
     "living_room": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -19718,6 +19803,7 @@
     "living_room": 5,
     "study": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -20399,6 +20485,7 @@
    "rooms": {
     "kitchen": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -20680,6 +20767,7 @@
     "bathroom": 6,
     "bedroom": 5
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -20818,6 +20906,7 @@
    "rooms": {
     "bathroom": 7
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -20965,17 +21054,17 @@
      "slots": [],
      "sprites": [
       {
-       "b": -11,
+       "b": -13,
        "bx": 36,
        "file": "laundry_basket3d_white_b0",
-       "h": 35,
+       "h": 34,
        "l": 0,
-       "r": 35,
+       "r": 33,
        "rx": 0,
-       "ry": 45,
-       "sb": -14,
-       "t": -45,
-       "w": 36
+       "ry": 46,
+       "sb": -16,
+       "t": -46,
+       "w": 34
       },
       {
        "b": -11,
@@ -21043,17 +21132,17 @@
        "w": 35
       },
       {
-       "b": -11,
+       "b": -13,
        "bx": 284,
        "file": "laundry_basket3d_white_b6",
-       "h": 35,
-       "l": -5,
+       "h": 34,
+       "l": -3,
        "r": 30,
-       "rx": 5,
-       "ry": 45,
-       "sb": -14,
-       "t": -45,
-       "w": 36
+       "rx": 3,
+       "ry": 46,
+       "sb": -16,
+       "t": -46,
+       "w": 34
       }
      ]
     },
@@ -21203,6 +21292,7 @@
     "living_room": 2,
     "study": 2
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -21287,6 +21377,7 @@
     "dining_room": 2,
     "kitchen": 5
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -21367,6 +21458,7 @@
     "kitchen": 6,
     "study": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -21452,6 +21544,7 @@
    "rooms": {
     "bathroom": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -21618,6 +21711,7 @@
    "rooms": {
     "living_room": 5
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -21699,6 +21793,7 @@
    "rooms": {
     "living_room": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -22212,6 +22307,7 @@
     "living_room": 6,
     "study": 2
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -22309,6 +22405,7 @@
    "rooms": {
     "study": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -22381,6 +22478,7 @@
    "rooms": {
     "bedroom": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -23129,6 +23227,7 @@
    "rooms": {
     "bedroom": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -23231,6 +23330,7 @@
    "rooms": {
     "kitchen": 5
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -23348,6 +23448,7 @@
    "rooms": {
     "bathroom": 9
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -23536,6 +23637,7 @@
     "dining_room": 1,
     "living_room": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -23640,6 +23742,7 @@
    "rooms": {
     "bathroom": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -23803,6 +23906,7 @@
     "dining_room": 3,
     "kitchen": 7
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -23928,6 +24032,7 @@
     "living_room": 3,
     "study": 1
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -24090,6 +24195,7 @@
    "rooms": {
     "bedroom": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -24388,6 +24494,7 @@
    "rooms": {
     "kitchen": 5
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -24455,6 +24562,7 @@
    "rooms": {
     "kitchen": 5
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -24522,6 +24630,7 @@
    "rooms": {
     "kitchen": 5
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -24591,6 +24700,7 @@
     "bedroom": 3,
     "kitchen": 5
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -24659,6 +24769,7 @@
    "rooms": {
     "study": 8
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -24771,6 +24882,7 @@
    "rooms": {
     "study": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -24931,6 +25043,7 @@
    "rooms": {
     "kitchen": 7
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -25066,6 +25179,7 @@
    "rooms": {
     "study": 8
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -25157,6 +25271,7 @@
    "rooms": {
     "dining_room": 7
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -25257,6 +25372,7 @@
    "rooms": {
     "kitchen": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -25371,6 +25487,7 @@
     "bathroom": 3,
     "bedroom": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -25497,6 +25614,7 @@
     "living_room": 4,
     "study": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -25667,6 +25785,7 @@
     "living_room": 6,
     "study": 2
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -25964,6 +26083,7 @@
     "kitchen": 3,
     "living_room": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -26036,6 +26156,7 @@
     "living_room": 6,
     "study": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -26377,6 +26498,7 @@
     "living_room": 6,
     "study": 5
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -27307,6 +27429,7 @@
     "bathroom": 6,
     "bedroom": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -27400,6 +27523,7 @@
     "bathroom": 5,
     "bedroom": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -27666,6 +27790,7 @@
     "kitchen": 5,
     "living_room": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -27743,6 +27868,7 @@
    "rooms": {
     "dining_room": 8
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -27873,6 +27999,7 @@
     "living_room": 3,
     "study": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -28096,6 +28223,7 @@
     "living_room": 7,
     "study": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -28352,6 +28480,7 @@
    "rooms": {
     "kitchen": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -28485,6 +28614,7 @@
     "dining_room": 5,
     "living_room": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -28554,6 +28684,7 @@
     "bedroom": 6,
     "living_room": 2
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -28648,6 +28779,7 @@
     "bedroom": 5,
     "living_room": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -28719,6 +28851,7 @@
     "living_room": 2,
     "study": 2
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -28791,6 +28924,7 @@
     "living_room": 2,
     "study": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -28861,6 +28995,7 @@
     "bedroom": 5,
     "dining_room": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -28929,6 +29064,7 @@
    "rooms": {
     "living_room": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -29074,6 +29210,7 @@
    "rooms": {
     "living_room": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -29141,6 +29278,7 @@
    "rooms": {
     "study": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -29218,6 +29356,7 @@
     "living_room": 3,
     "study": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -29460,6 +29599,7 @@
    "rooms": {
     "study": 8
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -29537,6 +29677,7 @@
     "bedroom": 4,
     "living_room": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -29637,6 +29778,7 @@
    "rooms": {
     "kitchen": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -29971,6 +30113,7 @@
     "dining_room": 5,
     "living_room": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -30087,6 +30230,7 @@
     "bedroom": 4,
     "living_room": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -30627,6 +30771,7 @@
     "living_room": 8,
     "study": 2
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -30835,6 +30980,7 @@
     "living_room": 5,
     "study": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -30989,6 +31135,7 @@
     "kitchen": 3,
     "living_room": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -31061,6 +31208,7 @@
    "rooms": {
     "kitchen": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -31138,6 +31286,7 @@
     "living_room": 6,
     "study": 5
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -31445,6 +31594,7 @@
     "bedroom": 6,
     "living_room": 2
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -31585,9 +31735,12 @@
    "rooms": {
     "bathroom": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
+    "avocado": 9,
+    "pink": 5,
     "tub": 9,
     "wetroom": 2
    },
@@ -31742,6 +31895,7 @@
     "living_room": 6,
     "study": 2
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -32039,6 +32193,7 @@
     "dining_room": 7,
     "living_room": 7
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -32652,6 +32807,7 @@
    "rooms": {
     "kitchen": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -32812,6 +32968,7 @@
    "rooms": {
     "study": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -32884,6 +33041,7 @@
     "bathroom": 2,
     "bedroom": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -33009,6 +33167,7 @@
    "rooms": {
     "living_room": 10
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -33586,6 +33745,7 @@
    "rooms": {
     "living_room": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -33654,6 +33814,7 @@
    "rooms": {
     "bedroom": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -34076,6 +34237,7 @@
     "living_room": 6,
     "study": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -34686,6 +34848,7 @@
    "rooms": {
     "bathroom": 5
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -34842,6 +35005,7 @@
     "bedroom": 5,
     "living_room": 1
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -35110,6 +35274,7 @@
    "rooms": {
     "dining_room": 10
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -35416,6 +35581,7 @@
    "rooms": {
     "kitchen": 8
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -35647,6 +35813,7 @@
    "rooms": {
     "kitchen": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -35753,6 +35920,7 @@
     "dining_room": 4,
     "kitchen": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -35853,6 +36021,7 @@
     "bedroom": 4,
     "study": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -35924,6 +36093,7 @@
    "rooms": {
     "kitchen": 5
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -36019,6 +36189,7 @@
    "rooms": {
     "kitchen": 5
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -36121,6 +36292,7 @@
    "rooms": {
     "bathroom": 10
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -36829,6 +37001,7 @@
    "rooms": {
     "bathroom": 5
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -36942,6 +37115,7 @@
    "rooms": {
     "bathroom": 7
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -37051,6 +37225,7 @@
     "bedroom": 4,
     "living_room": 3
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -37202,6 +37377,7 @@
     "bedroom": 5,
     "living_room": 2
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -37274,6 +37450,7 @@
     "bedroom": 6,
     "living_room": 2
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -37398,6 +37575,7 @@
     "dining_room": 5,
     "living_room": 2
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -37505,6 +37683,7 @@
    "rooms": {
     "kitchen": 5
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -37581,6 +37760,7 @@
     "living_room": 2,
     "study": 2
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -38001,6 +38181,7 @@
    "rooms": {
     "living_room": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -38182,6 +38363,7 @@
    "rooms": {
     "living_room": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -38260,6 +38442,7 @@
    "rooms": {
     "study": 5
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -38357,6 +38540,7 @@
    "rooms": {
     "kitchen": 8
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -41042,6 +41226,7 @@
    "rooms": {
     "kitchen": 8
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -41810,6 +41995,7 @@
    "rooms": {
     "kitchen": 8
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -42398,6 +42584,7 @@
    "rooms": {
     "kitchen": 5
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -42468,6 +42655,7 @@
    "rooms": {
     "bathroom": 7
    },
+   "sill": true,
    "snap": false,
    "sound": null,
    "styles": {
@@ -42631,6 +42819,7 @@
     "dining_room": 7,
     "living_room": 2
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -42756,6 +42945,7 @@
    "rooms": {
     "kitchen": 7
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": null,
@@ -42945,6 +43135,7 @@
     "living_room": 5,
     "study": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -43045,6 +43236,7 @@
    "rooms": {
     "bedroom": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -43307,6 +43499,7 @@
    "rooms": {
     "bedroom": 4
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -43678,6 +43871,7 @@
    "rooms": {
     "bedroom": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -44245,6 +44439,7 @@
    "rooms": {
     "bathroom": 7
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -44514,6 +44709,7 @@
    "rooms": {
     "kitchen": 2
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -45156,6 +45352,7 @@
    "rooms": {
     "bathroom": 7
    },
+   "sill": true,
    "snap": false,
    "sound": null,
    "styles": {
@@ -45315,6 +45512,7 @@
    "rooms": {
     "study": 6
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -45433,6 +45631,7 @@
     "bedroom": 4,
     "living_room": 1
    },
+   "sill": false,
    "snap": false,
    "sound": null,
    "styles": {
@@ -45585,18 +45784,19 @@
   284
  ],
  "module": {
-  "pad": 0,
-  "width": 320,
-  "window_inset": 72
+  "pad": 40,
+  "width": 240,
+  "window_inset": 54
  },
  "recipes": {
   "bathroom/avocado": {
    "ceiling": 1.0,
    "centre": {
-    "tag": "bath",
+    "mirror": true,
+    "tag": "bath|shower",
     "x": [
-     60,
-     190
+     4,
+     44
     ]
    },
    "clutter": [
@@ -45609,21 +45809,79 @@
    ],
    "fallback": [
     {
-     "id": "bath",
-     "variant": "panel",
-     "x": 110,
+     "id": "toilet",
+     "variant": "avocado",
+     "x": 7,
      "y": 114
     },
     {
-     "id": "toilet",
+     "id": "bath",
+     "variant": "panel",
+     "x": 128,
+     "y": 114
+    },
+    {
+     "id": "vanity",
      "variant": "avocado",
-     "x": 20,
+     "x": 63,
      "y": 114
     },
     {
      "id": "ceiling_flush",
      "variant": "a",
-     "x": 150,
+     "x": 157,
+     "y": 0
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "vanity",
+     "variant": "avocado",
+     "x": 6,
+     "y": 114
+    },
+    {
+     "id": "bath",
+     "variant": "panel",
+     "x": 128,
+     "y": 114
+    },
+    {
+     "id": "toilet",
+     "variant": "avocado",
+     "x": 80,
+     "y": 114
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 172,
+     "y": 0
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "toilet",
+     "variant": "avocado",
+     "x": 186,
+     "y": 114
+    },
+    {
+     "id": "bath",
+     "variant": "panel",
+     "x": 13,
+     "y": 114
+    },
+    {
+     "id": "vanity",
+     "variant": "avocado",
+     "x": 122,
+     "y": 114
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 141,
      "y": 0
     }
    ],
@@ -45656,8 +45914,8 @@
    "centre": {
     "tag": "bath",
     "x": [
-     60,
-     190
+     20,
+     150
     ]
    },
    "clutter": [
@@ -45670,21 +45928,79 @@
    ],
    "fallback": [
     {
+     "id": "washstand",
+     "variant": "gilt",
+     "x": 6,
+     "y": 114
+    },
+    {
      "id": "bath",
      "variant": "gold",
-     "x": 110,
+     "x": 130,
      "y": 114
     },
     {
      "id": "toilet",
      "variant": "gold",
-     "x": 20,
+     "x": 68,
      "y": 114
     },
     {
      "id": "chandelier",
      "variant": "gold",
-     "x": 150,
+     "x": 146,
+     "y": 0
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "washstand",
+     "variant": "gilt",
+     "x": 4,
+     "y": 114
+    },
+    {
+     "id": "toilet",
+     "variant": "gold",
+     "x": 182,
+     "y": 114
+    },
+    {
+     "id": "bath",
+     "variant": "gold",
+     "x": 73,
+     "y": 114
+    },
+    {
+     "id": "chandelier",
+     "variant": "gold",
+     "x": 161,
+     "y": 0
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "toilet",
+     "variant": "gold",
+     "x": 9,
+     "y": 114
+    },
+    {
+     "id": "bath",
+     "variant": "gold",
+     "x": 136,
+     "y": 114
+    },
+    {
+     "id": "washstand",
+     "variant": "gilt",
+     "x": 64,
+     "y": 114
+    },
+    {
+     "id": "chandelier",
+     "variant": "gold",
+     "x": 123,
      "y": 0
     }
    ],
@@ -45712,10 +46028,11 @@
   "bathroom/pink": {
    "ceiling": 1.0,
    "centre": {
-    "tag": "bath",
+    "mirror": true,
+    "tag": "bath|shower",
     "x": [
-     60,
-     190
+     4,
+     44
     ]
    },
    "clutter": [
@@ -45728,21 +46045,79 @@
    ],
    "fallback": [
     {
-     "id": "bath",
-     "variant": "tiled",
-     "x": 110,
+     "id": "toilet",
+     "variant": "pink",
+     "x": 177,
      "y": 114
     },
     {
-     "id": "toilet",
+     "id": "bath",
+     "variant": "tiled",
+     "x": 16,
+     "y": 114
+    },
+    {
+     "id": "basin",
      "variant": "pink",
-     "x": 20,
+     "x": 124,
      "y": 114
     },
     {
      "id": "ceiling_flush",
      "variant": "a",
-     "x": 150,
+     "x": 120,
+     "y": 0
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "toilet",
+     "variant": "pink",
+     "x": 7,
+     "y": 114
+    },
+    {
+     "id": "basin",
+     "variant": "pink",
+     "x": 54,
+     "y": 114
+    },
+    {
+     "id": "bath",
+     "variant": "tiled",
+     "x": 101,
+     "y": 114
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 171,
+     "y": 0
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "toilet",
+     "variant": "pink",
+     "x": 161,
+     "y": 114
+    },
+    {
+     "id": "bath",
+     "variant": "tiled",
+     "x": 6,
+     "y": 114
+    },
+    {
+     "id": "basin",
+     "variant": "pink",
+     "x": 112,
+     "y": 114
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 190,
      "y": 0
     }
    ],
@@ -45773,10 +46148,11 @@
   "bathroom/tub": {
    "ceiling": 1.0,
    "centre": {
-    "tag": "bath",
+    "mirror": true,
+    "tag": "bath|shower",
     "x": [
-     60,
-     190
+     4,
+     44
     ]
    },
    "clutter": [
@@ -45789,21 +46165,97 @@
    ],
    "fallback": [
     {
-     "id": "bath",
-     "variant": "claw",
-     "x": 110,
+     "id": "linen_cupboard",
+     "variant": "cream",
+     "x": 89,
+     "y": 105
+    },
+    {
+     "id": "basin",
+     "variant": "pedestal",
+     "x": 178,
+     "y": 114
+    },
+    {
+     "id": "shower_walkin",
+     "variant": "glass",
+     "x": 37,
      "y": 114
     },
     {
      "id": "toilet",
      "variant": "white",
-     "x": 20,
+     "x": 127,
      "y": 114
     },
     {
      "id": "ceiling_flush",
      "variant": "a",
-     "x": 150,
+     "x": 112,
+     "y": 0
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "linen_cupboard",
+     "variant": "cream",
+     "x": 139,
+     "y": 105
+    },
+    {
+     "id": "shower_walkin",
+     "variant": "glass",
+     "x": 176,
+     "y": 114
+    },
+    {
+     "id": "basin",
+     "variant": "pedestal",
+     "x": 32,
+     "y": 114
+    },
+    {
+     "id": "toilet",
+     "variant": "white",
+     "x": 85,
+     "y": 114
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 161,
+     "y": 0
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "radiator",
+     "variant": "cream",
+     "x": 168,
+     "y": 106
+    },
+    {
+     "id": "shower_walkin",
+     "variant": "glass",
+     "x": 14,
+     "y": 114
+    },
+    {
+     "id": "basin",
+     "variant": "pedestal",
+     "x": 59,
+     "y": 114
+    },
+    {
+     "id": "toilet",
+     "variant": "white",
+     "x": 109,
+     "y": 114
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 187,
      "y": 0
     }
    ],
@@ -45834,10 +46286,11 @@
   "bathroom/wetroom": {
    "ceiling": 1.0,
    "centre": {
-    "tag": "bath",
+    "mirror": true,
+    "tag": "bath|shower",
     "x": [
-     60,
-     190
+     4,
+     44
     ]
    },
    "clutter": [
@@ -45850,21 +46303,79 @@
    ],
    "fallback": [
     {
-     "id": "bath",
-     "variant": "curtain",
-     "x": 110,
+     "id": "shower_walkin",
+     "variant": "glass",
+     "x": 18,
      "y": 114
     },
     {
      "id": "toilet",
      "variant": "wet",
-     "x": 20,
+     "x": 65,
      "y": 114
     },
     {
-     "id": "light_tube",
+     "id": "washer",
+     "variant": "shut",
+     "x": 118,
+     "y": 114
+    },
+    {
+     "id": "ceiling_flush",
      "variant": "a",
-     "x": 130,
+     "x": 179,
+     "y": 0
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "shower_walkin",
+     "variant": "glass",
+     "x": 169,
+     "y": 114
+    },
+    {
+     "id": "toilet",
+     "variant": "wet",
+     "x": 42,
+     "y": 114
+    },
+    {
+     "id": "washer",
+     "variant": "open",
+     "x": 99,
+     "y": 114
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 122,
+     "y": 0
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "shower_walkin",
+     "variant": "glass",
+     "x": 26,
+     "y": 114
+    },
+    {
+     "id": "toilet",
+     "variant": "wet",
+     "x": 154,
+     "y": 114
+    },
+    {
+     "id": "washer",
+     "variant": "open",
+     "x": 88,
+     "y": 114
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 172,
      "y": 0
     }
    ],
@@ -45897,8 +46408,8 @@
    "centre": {
     "tag": "sleeping",
     "x": [
-     70,
-     170
+     30,
+     130
     ]
    },
    "clutter": [
@@ -45911,27 +46422,73 @@
    ],
    "fallback": [
     {
-     "id": "bed_wood",
-     "variant": "l_sage",
-     "x": 100,
-     "y": 115
-    },
-    {
-     "id": "nightstand_wood",
-     "variant": "dark",
-     "x": 62,
+     "id": "wardrobe_wood",
+     "variant": "painted",
+     "x": 13,
      "y": 106
     },
     {
-     "id": "clothes_pile",
-     "variant": "blue_red",
-     "x": 170,
-     "y": 119
+     "id": "bed_wood",
+     "variant": "r_slate",
+     "x": 77,
+     "y": 115
     },
     {
      "id": "ceiling_flush",
      "variant": "a",
-     "x": 150,
+     "x": 132,
+     "y": 0
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "nightstand_wood",
+     "variant": "dark",
+     "x": 6,
+     "y": 105
+    },
+    {
+     "id": "wardrobe_mirror",
+     "variant": "clean",
+     "x": 183,
+     "y": 108
+    },
+    {
+     "id": "bed_wood",
+     "variant": "l_mustard",
+     "x": 36,
+     "y": 116
+    },
+    {
+     "id": "ceiling_pendant",
+     "variant": "cream",
+     "x": 130,
+     "y": 0
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "dressing_table",
+     "variant": "dark",
+     "x": 15,
+     "y": 106
+    },
+    {
+     "id": "bed_wood",
+     "variant": "l_sage",
+     "x": 95,
+     "y": 116
+    },
+    {
+     "id": "stool_dressing",
+     "variant": "black_rose",
+     "x": 67,
+     "y": 116
+    },
+    {
+     "id": "ceiling_pendant",
+     "variant": "mustard",
+     "x": 200,
      "y": 0
     }
    ],
@@ -45951,6 +46508,9 @@
     ],
     "must": [
      "wardrobe|dressing"
+    ],
+    "want": [
+     "dressing"
     ]
    },
    "weight": 30
@@ -45960,8 +46520,8 @@
    "centre": {
     "tag": "sleeping",
     "x": [
-     60,
-     150
+     20,
+     110
     ]
    },
    "clutter": [
@@ -45974,16 +46534,68 @@
    ],
    "fallback": [
     {
-     "id": "mattress_floor",
-     "variant": "l_blue",
-     "x": 100,
-     "y": 116
+     "id": "boxes_stack",
+     "variant": "open",
+     "x": 199,
+     "y": 107
     },
     {
-     "id": "backpack",
-     "variant": "olive",
-     "x": 210,
-     "y": 119
+     "id": "crate_bedside",
+     "variant": "pine",
+     "x": 169,
+     "y": 107
+    },
+    {
+     "id": "bookcase_low",
+     "variant": "oak",
+     "x": 23,
+     "y": 108
+    },
+    {
+     "id": "mattress_floor",
+     "variant": "r_bare",
+     "x": 57,
+     "y": 115
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "boxes_stack",
+     "variant": "closed",
+     "x": 169,
+     "y": 105
+    },
+    {
+     "id": "mattress_floor",
+     "variant": "r_blue",
+     "x": 45,
+     "y": 116
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "wardrobe_wood",
+     "variant": "oak",
+     "x": 8,
+     "y": 105
+    },
+    {
+     "id": "bookcase_low",
+     "variant": "light",
+     "x": 59,
+     "y": 106
+    },
+    {
+     "id": "crate_bedside",
+     "variant": "grey",
+     "x": 206,
+     "y": 108
+    },
+    {
+     "id": "mattress_floor",
+     "variant": "r_green",
+     "x": 94,
+     "y": 116
     }
    ],
    "flank": {
@@ -46011,8 +46623,8 @@
    "centre": {
     "tag": "sleeping",
     "x": [
-     60,
-     160
+     20,
+     120
     ]
    },
    "clutter": [
@@ -46025,21 +46637,97 @@
    ],
    "fallback": [
     {
-     "id": "bed_kid",
-     "variant": "l_pink",
-     "x": 110,
-     "y": 115
+     "id": "wardrobe_small",
+     "variant": "blue",
+     "x": 13,
+     "y": 105
     },
     {
-     "id": "rocking_horse",
-     "variant": "white_l",
-     "x": 215,
-     "y": 119
+     "id": "nightstand_wood",
+     "variant": "light",
+     "x": 60,
+     "y": 105
+    },
+    {
+     "id": "dollhouse_table",
+     "variant": "blue",
+     "x": 187,
+     "y": 108
+    },
+    {
+     "id": "bed_kid",
+     "variant": "l_blue",
+     "x": 90,
+     "y": 114
     },
     {
      "id": "ceiling_paper",
      "variant": "white",
-     "x": 150,
+     "x": 169,
+     "y": 0
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "radiator",
+     "variant": "iron",
+     "x": 36,
+     "y": 105
+    },
+    {
+     "id": "wardrobe_small",
+     "variant": "blue",
+     "x": 194,
+     "y": 107
+    },
+    {
+     "id": "nightstand_wood",
+     "variant": "light",
+     "x": 78,
+     "y": 107
+    },
+    {
+     "id": "bed_kid",
+     "variant": "l_blue",
+     "x": 108,
+     "y": 114
+    },
+    {
+     "id": "ceiling_paper",
+     "variant": "white",
+     "x": 194,
+     "y": 0
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "wardrobe_small",
+     "variant": "pink",
+     "x": 14,
+     "y": 105
+    },
+    {
+     "id": "nightstand_wood",
+     "variant": "light",
+     "x": 144,
+     "y": 105
+    },
+    {
+     "id": "radiator",
+     "variant": "iron",
+     "x": 171,
+     "y": 106
+    },
+    {
+     "id": "bed_kid",
+     "variant": "r_pink",
+     "x": 60,
+     "y": 114
+    },
+    {
+     "id": "ceiling_pendant",
+     "variant": "cream",
+     "x": 147,
      "y": 0
     }
    ],
@@ -46068,8 +46756,8 @@
    "centre": {
     "tag": "sleeping",
     "x": [
-     60,
-     150
+     20,
+     110
     ]
    },
    "clutter": [
@@ -46082,21 +46770,73 @@
    ],
    "fallback": [
     {
-     "id": "bed_iron",
-     "variant": "l_patch_clean",
-     "x": 100,
-     "y": 115
+     "id": "nightstand_wood",
+     "variant": "light",
+     "x": 181,
+     "y": 105
     },
     {
-     "id": "med_trolley",
+     "id": "pill_cabinet",
      "variant": "a",
-     "x": 240,
-     "y": 119
+     "x": 21,
+     "y": 108
+    },
+    {
+     "id": "bed_iron",
+     "variant": "r_blue_clean",
+     "x": 57,
+     "y": 115
     },
     {
      "id": "ceiling_flush",
      "variant": "a",
-     "x": 150,
+     "x": 191,
+     "y": 0
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "nightstand_wood",
+     "variant": "dark",
+     "x": 169,
+     "y": 105
+    },
+    {
+     "id": "pill_cabinet",
+     "variant": "b",
+     "x": 197,
+     "y": 108
+    },
+    {
+     "id": "bed_iron",
+     "variant": "r_blue_stained",
+     "x": 45,
+     "y": 117
+    },
+    {
+     "id": "ceiling_pendant",
+     "variant": "green",
+     "x": 115,
+     "y": 0
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "wardrobe_mirror",
+     "variant": "clean",
+     "x": 12,
+     "y": 106
+    },
+    {
+     "id": "bed_iron",
+     "variant": "r_patch_clean",
+     "x": 94,
+     "y": 117
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 194,
      "y": 0
     }
    ],
@@ -46123,10 +46863,11 @@
   "bedroom/teen": {
    "ceiling": 1.0,
    "centre": {
+    "mirror": true,
     "tag": "sleeping",
     "x": [
-     70,
-     170
+     4,
+     60
     ]
    },
    "clutter": [
@@ -46139,21 +46880,79 @@
    ],
    "fallback": [
     {
-     "id": "bed_pine",
-     "variant": "l_stars",
-     "x": 100,
-     "y": 115
+     "id": "desk_crt",
+     "variant": "pine",
+     "x": 158,
+     "y": 107
     },
     {
-     "id": "trainers",
-     "variant": "white",
-     "x": 60,
-     "y": 119
+     "id": "bed_pine",
+     "variant": "l_red",
+     "x": 17,
+     "y": 116
+    },
+    {
+     "id": "chair_office",
+     "variant": "right",
+     "x": 206,
+     "y": 118
     },
     {
      "id": "ceiling_flush",
      "variant": "a",
-     "x": 150,
+     "x": 127,
+     "y": 0
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "desk_crt",
+     "variant": "pine",
+     "x": 161,
+     "y": 107
+    },
+    {
+     "id": "bed_pine",
+     "variant": "l_green",
+     "x": 29,
+     "y": 114
+    },
+    {
+     "id": "chair_wood",
+     "variant": "spindle_dark_f",
+     "x": 207,
+     "y": 118
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 124,
+     "y": 0
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "desk_crt",
+     "variant": "pine",
+     "x": 7,
+     "y": 108
+    },
+    {
+     "id": "bed_pine",
+     "variant": "r_grey",
+     "x": 96,
+     "y": 115
+    },
+    {
+     "id": "chair_office",
+     "variant": "front",
+     "x": 59,
+     "y": 116
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 159,
      "y": 0
     }
    ],
@@ -46182,8 +46981,8 @@
    "centre": {
     "tag": "dining",
     "x": [
-     30,
-     210
+     4,
+     170
     ]
    },
    "clutter": [
@@ -46198,13 +46997,59 @@
     {
      "id": "table_dining",
      "variant": "diner",
-     "x": 110,
-     "y": 116
+     "x": 100,
+     "y": 115
     },
     {
      "id": "ceiling_pendant",
-     "variant": "cream",
+     "variant": "mustard",
      "x": 150,
+     "y": 0
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "sideboard",
+     "variant": "teak",
+     "x": 161,
+     "y": 108
+    },
+    {
+     "id": "table_dining",
+     "variant": "diner",
+     "x": 45,
+     "y": 115
+    },
+    {
+     "id": "ceiling_pendant",
+     "variant": "mustard",
+     "x": 123,
+     "y": 0
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "side_table",
+     "variant": "round",
+     "x": 209,
+     "y": 105
+    },
+    {
+     "id": "sideboard",
+     "variant": "teak",
+     "x": 17,
+     "y": 105
+    },
+    {
+     "id": "table_dining",
+     "variant": "diner",
+     "x": 109,
+     "y": 117
+    },
+    {
+     "id": "light_dome_orange",
+     "variant": "orange",
+     "x": 142,
      "y": 0
     }
    ],
@@ -46218,7 +47063,7 @@
      2,
      3
     ],
-    "must": [
+    "want": [
      "sideboard"
     ]
    },
@@ -46229,8 +47074,8 @@
    "centre": {
     "tag": "dining",
     "x": [
-     30,
-     210
+     4,
+     170
     ]
    },
    "clutter": [
@@ -46243,15 +47088,73 @@
    ],
    "fallback": [
     {
+     "id": "clock_grandfather",
+     "variant": "mahogany",
+     "x": 101,
+     "y": 105
+    },
+    {
      "id": "table_dining",
      "variant": "family",
-     "x": 110,
-     "y": 116
+     "x": 142,
+     "y": 118
     },
     {
      "id": "ceiling_pendant",
-     "variant": "cream",
-     "x": 150,
+     "variant": "green",
+     "x": 139,
+     "y": 0
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "piano_upright",
+     "variant": "ebonised",
+     "x": 182,
+     "y": 105
+    },
+    {
+     "id": "table_dining",
+     "variant": "family",
+     "x": 45,
+     "y": 115
+    },
+    {
+     "id": "stool_piano",
+     "variant": "oak_tan",
+     "x": 155,
+     "y": 118
+    },
+    {
+     "id": "ceiling_pendant",
+     "variant": "mustard",
+     "x": 180,
+     "y": 0
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "china_cabinet",
+     "variant": "mahogany",
+     "x": 37,
+     "y": 107
+    },
+    {
+     "id": "clock_grandfather",
+     "variant": "oak",
+     "x": 79,
+     "y": 107
+    },
+    {
+     "id": "table_dining",
+     "variant": "family",
+     "x": 109,
+     "y": 117
+    },
+    {
+     "id": "ceiling_pendant",
+     "variant": "green",
+     "x": 161,
      "y": 0
     }
    ],
@@ -46276,8 +47179,8 @@
    "centre": {
     "tag": "dining",
     "x": [
-     30,
-     210
+     4,
+     170
     ]
    },
    "clutter": [
@@ -46290,15 +47193,67 @@
    ],
    "fallback": [
     {
+     "id": "clock_grandfather",
+     "variant": "oak",
+     "x": 108,
+     "y": 108
+    },
+    {
      "id": "table_dining",
      "variant": "formal",
-     "x": 110,
-     "y": 116
+     "x": 142,
+     "y": 118
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "clock_grandfather",
+     "variant": "oak",
+     "x": 211,
+     "y": 105
+    },
+    {
+     "id": "radiator",
+     "variant": "cream",
+     "x": 36,
+     "y": 105
+    },
+    {
+     "id": "table_dining",
+     "variant": "formal",
+     "x": 106,
+     "y": 114
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 126,
+     "y": 0
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "china_cabinet",
+     "variant": "mahogany",
+     "x": 122,
+     "y": 108
+    },
+    {
+     "id": "radiator",
+     "variant": "iron",
+     "x": 168,
+     "y": 109
+    },
+    {
+     "id": "table_dining",
+     "variant": "formal",
+     "x": 22,
+     "y": 115
     },
     {
      "id": "ceiling_pendant",
-     "variant": "cream",
-     "x": 150,
+     "variant": "rose",
+     "x": 171,
      "y": 0
     }
    ],
@@ -46323,8 +47278,8 @@
    "centre": {
     "tag": "dining",
     "x": [
-     40,
-     200
+     4,
+     160
     ]
    },
    "clutter": [
@@ -46337,16 +47292,80 @@
    ],
    "fallback": [
     {
+     "id": "boxes_stack",
+     "variant": "closed",
+     "x": 201,
+     "y": 108
+    },
+    {
      "id": "table_dining",
      "variant": "shared",
-     "x": 110,
-     "y": 116
+     "x": 105,
+     "y": 118
     },
     {
      "id": "ceiling_flush",
      "variant": "a",
-     "x": 150,
+     "x": 141,
      "y": 0
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "boxes_stack",
+     "variant": "closed",
+     "x": 200,
+     "y": 105
+    },
+    {
+     "id": "radiator",
+     "variant": "cream",
+     "x": 36,
+     "y": 105
+    },
+    {
+     "id": "side_table",
+     "variant": "drawer",
+     "x": 7,
+     "y": 106
+    },
+    {
+     "id": "table_dining",
+     "variant": "shared",
+     "x": 107,
+     "y": 114
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 111,
+     "y": 0
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "side_table",
+     "variant": "round",
+     "x": 208,
+     "y": 105
+    },
+    {
+     "id": "trunk",
+     "variant": "leather",
+     "x": 28,
+     "y": 105
+    },
+    {
+     "id": "radiator",
+     "variant": "cream",
+     "x": 168,
+     "y": 109
+    },
+    {
+     "id": "table_dining",
+     "variant": "shared",
+     "x": 74,
+     "y": 117
     }
    ],
    "legacy": 3,
@@ -46370,8 +47389,8 @@
    "centre": {
     "tag": "dining",
     "x": [
-     30,
-     210
+     4,
+     170
     ]
    },
    "clutter": [
@@ -46386,13 +47405,47 @@
     {
      "id": "table_dining",
      "variant": "party",
-     "x": 110,
-     "y": 116
+     "x": 100,
+     "y": 115
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "sideboard",
+     "variant": "oak",
+     "x": 161,
+     "y": 108
+    },
+    {
+     "id": "table_dining",
+     "variant": "party",
+     "x": 45,
+     "y": 115
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "side_table",
+     "variant": "round",
+     "x": 209,
+     "y": 105
+    },
+    {
+     "id": "sideboard",
+     "variant": "oak",
+     "x": 17,
+     "y": 105
+    },
+    {
+     "id": "table_dining",
+     "variant": "party",
+     "x": 109,
+     "y": 117
     },
     {
      "id": "ceiling_flush",
      "variant": "a",
-     "x": 150,
+     "x": 167,
      "y": 0
     }
    ],
@@ -46406,7 +47459,7 @@
      2,
      3
     ],
-    "must": [
+    "want": [
      "sideboard"
     ]
    },
@@ -46418,8 +47471,8 @@
     "anywhere": true,
     "tag": "dining",
     "x": [
-     40,
-     210
+     4,
+     170
     ]
    },
    "clutter": [
@@ -46432,45 +47485,109 @@
    ],
    "fallback": [
     {
+     "id": "unit_sink",
+     "variant": "sage",
+     "x": 23,
+     "y": 106
+    },
+    {
      "id": "fridge_tall",
-     "variant": "cream",
-     "x": 6,
-     "y": 106
-    },
-    {
-     "id": "unit_base",
-     "variant": "sage_two",
-     "x": 39,
-     "y": 106
-    },
-    {
-     "id": "unit_base",
-     "variant": "sage_drawers",
-     "x": 69,
+     "variant": "white",
+     "x": 61,
      "y": 106
     },
     {
      "id": "unit_cooker",
-     "variant": "white_pan",
-     "x": 101,
-     "y": 106
-    },
-    {
-     "id": "unit_sink",
-     "variant": "sage",
-     "x": 131,
+     "variant": "white_bare",
+     "x": 94,
      "y": 106
     },
     {
      "id": "table_kitchen",
      "variant": "cloth",
-     "x": 210,
-     "y": 118
+     "x": 142,
+     "y": 120
     },
     {
      "id": "light_tube",
      "variant": "a",
-     "x": 130,
+     "x": 138,
+     "y": 0
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "unit_sink",
+     "variant": "sage",
+     "x": 36,
+     "y": 106
+    },
+    {
+     "id": "washer_unit",
+     "variant": "sage",
+     "x": 74,
+     "y": 106
+    },
+    {
+     "id": "unit_cooker",
+     "variant": "cream_pan",
+     "x": 137,
+     "y": 106
+    },
+    {
+     "id": "fridge_tall",
+     "variant": "cream",
+     "x": 104,
+     "y": 106
+    },
+    {
+     "id": "table_kitchen",
+     "variant": "cloth",
+     "x": 171,
+     "y": 120
+    },
+    {
+     "id": "light_tube",
+     "variant": "a",
+     "x": 123,
+     "y": 0
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "unit_sink",
+     "variant": "sage",
+     "x": 168,
+     "y": 106
+    },
+    {
+     "id": "unit_base",
+     "variant": "sage_two",
+     "x": 138,
+     "y": 106
+    },
+    {
+     "id": "unit_cooker",
+     "variant": "white_kettle",
+     "x": 77,
+     "y": 106
+    },
+    {
+     "id": "fridge_tall",
+     "variant": "cream",
+     "x": 105,
+     "y": 106
+    },
+    {
+     "id": "table_kitchen",
+     "variant": "cloth",
+     "x": 14,
+     "y": 117
+    },
+    {
+     "id": "light_tube",
+     "variant": "a",
+     "x": 133,
      "y": 0
     }
    ],
@@ -46510,8 +47627,8 @@
     "anywhere": true,
     "tag": "dining",
     "x": [
-     120,
-     250
+     80,
+     210
     ]
    },
    "clutter": [
@@ -46532,20 +47649,72 @@
     {
      "id": "range_recess",
      "variant": "green",
-     "x": 100,
+     "x": 50,
      "y": 106
     },
     {
-     "id": "dresser_welsh",
-     "variant": "pine",
-     "x": 186,
+     "id": "unit_base",
+     "variant": "pine_open",
+     "x": 126,
      "y": 106
     },
     {
      "id": "table_kitchen",
      "variant": "pine",
-     "x": 240,
+     "x": 158,
+     "y": 120
+    },
+    {
+     "id": "light_bulb",
+     "variant": "a",
+     "x": 180,
+     "y": 0
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "sink_butler",
+     "variant": "white",
+     "x": 40,
+     "y": 106
+    },
+    {
+     "id": "range_recess",
+     "variant": "cream",
+     "x": 141,
+     "y": 106
+    },
+    {
+     "id": "table_kitchen",
+     "variant": "pine",
+     "x": 72,
+     "y": 117
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "sink_butler",
+     "variant": "white",
+     "x": 172,
+     "y": 106
+    },
+    {
+     "id": "range_recess",
+     "variant": "black",
+     "x": 82,
+     "y": 106
+    },
+    {
+     "id": "table_kitchen",
+     "variant": "pine",
+     "x": 12,
      "y": 118
+    },
+    {
+     "id": "light_bulb",
+     "variant": "a",
+     "x": 176,
+     "y": 0
     }
    ],
    "legacy": 2,
@@ -46560,8 +47729,8 @@
      "cooking"
     ],
     "x": [
-     60,
-     130
+     20,
+     150
     ]
    },
    "shell": "kitchen_shell_c",
@@ -46583,8 +47752,8 @@
     "anywhere": true,
     "tag": "dining",
     "x": [
-     120,
-     230
+     80,
+     190
     ]
    },
    "clutter": [
@@ -46597,45 +47766,91 @@
    ],
    "fallback": [
     {
-     "id": "newspaper_stacks",
-     "variant": "a",
-     "x": 6,
-     "y": 106
-    },
-    {
-     "id": "unit_base",
-     "variant": "cream_two",
-     "x": 52,
-     "y": 106
-    },
-    {
-     "id": "unit_base",
-     "variant": "cream_drawers",
-     "x": 82,
-     "y": 106
-    },
-    {
      "id": "unit_cooker",
-     "variant": "cream_bare",
-     "x": 112,
+     "variant": "black_bare",
+     "x": 62,
      "y": 106
     },
     {
      "id": "unit_sink",
      "variant": "cream",
-     "x": 142,
+     "x": 90,
      "y": 106
     },
     {
      "id": "table_kitchen",
      "variant": "trestle",
-     "x": 200,
+     "x": 149,
+     "y": 120
+    },
+    {
+     "id": "light_bulb",
+     "variant": "a",
+     "x": 119,
+     "y": 0
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "unit_sink",
+     "variant": "cream",
+     "x": 36,
+     "y": 106
+    },
+    {
+     "id": "unit_base",
+     "variant": "cream_two",
+     "x": 74,
+     "y": 106
+    },
+    {
+     "id": "unit_cooker",
+     "variant": "cream_bare",
+     "x": 104,
+     "y": 106
+    },
+    {
+     "id": "table_kitchen",
+     "variant": "trestle",
+     "x": 176,
      "y": 118
     },
     {
      "id": "light_bulb",
      "variant": "a",
-     "x": 150,
+     "x": 176,
+     "y": 0
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "unit_sink",
+     "variant": "cream",
+     "x": 168,
+     "y": 106
+    },
+    {
+     "id": "unit_base",
+     "variant": "cream_drawers",
+     "x": 138,
+     "y": 106
+    },
+    {
+     "id": "unit_cooker",
+     "variant": "black_bare",
+     "x": 110,
+     "y": 106
+    },
+    {
+     "id": "table_kitchen",
+     "variant": "trestle",
+     "x": 45,
+     "y": 119
+    },
+    {
+     "id": "light_bulb",
+     "variant": "a",
+     "x": 191,
      "y": 0
     }
    ],
@@ -46652,8 +47867,8 @@
      "wet"
     ],
     "x": [
-     50,
-     110
+     10,
+     70
     ]
    },
    "shell": "kitchen_shell_e",
@@ -46675,8 +47890,8 @@
     "anywhere": true,
     "tag": "dining",
     "x": [
-     40,
-     210
+     4,
+     170
     ]
    },
    "clutter": [
@@ -46689,45 +47904,109 @@
    ],
    "fallback": [
     {
+     "id": "unit_sink",
+     "variant": "yellow",
+     "x": 23,
+     "y": 106
+    },
+    {
      "id": "fridge_tall",
      "variant": "mint",
-     "x": 6,
-     "y": 106
-    },
-    {
-     "id": "unit_base",
-     "variant": "yellow_two",
-     "x": 39,
-     "y": 106
-    },
-    {
-     "id": "unit_base",
-     "variant": "yellow_drawers",
-     "x": 69,
+     "x": 61,
      "y": 106
     },
     {
      "id": "unit_cooker",
-     "variant": "white_bare",
-     "x": 101,
-     "y": 106
-    },
-    {
-     "id": "unit_sink",
-     "variant": "yellow",
-     "x": 131,
+     "variant": "white_kettle",
+     "x": 94,
      "y": 106
     },
     {
      "id": "table_kitchen",
      "variant": "dinette",
-     "x": 210,
+     "x": 142,
+     "y": 120
+    },
+    {
+     "id": "light_dome_orange",
+     "variant": "orange",
+     "x": 143,
+     "y": 0
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "unit_sink",
+     "variant": "yellow",
+     "x": 36,
+     "y": 106
+    },
+    {
+     "id": "unit_base",
+     "variant": "yellow_drawers",
+     "x": 74,
+     "y": 106
+    },
+    {
+     "id": "unit_cooker",
+     "variant": "white_bare",
+     "x": 137,
+     "y": 106
+    },
+    {
+     "id": "fridge_tall",
+     "variant": "mint",
+     "x": 104,
+     "y": 106
+    },
+    {
+     "id": "table_kitchen",
+     "variant": "dinette",
+     "x": 169,
      "y": 118
     },
     {
      "id": "light_dome_orange",
      "variant": "orange",
-     "x": 150,
+     "x": 113,
+     "y": 0
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "unit_sink",
+     "variant": "yellow",
+     "x": 168,
+     "y": 106
+    },
+    {
+     "id": "washer_unit",
+     "variant": "yellow",
+     "x": 138,
+     "y": 106
+    },
+    {
+     "id": "unit_cooker",
+     "variant": "white_kettle",
+     "x": 77,
+     "y": 106
+    },
+    {
+     "id": "fridge_tall",
+     "variant": "mint",
+     "x": 105,
+     "y": 106
+    },
+    {
+     "id": "table_kitchen",
+     "variant": "dinette",
+     "x": 4,
+     "y": 117
+    },
+    {
+     "id": "light_dome_orange",
+     "variant": "orange",
+     "x": 165,
      "y": 0
     }
    ],
@@ -46736,8 +48015,8 @@
    "rug": 0.0,
    "run": {
     "count": [
-     4,
-     6
+     3,
+     5
     ],
     "must": [
      "cold",
@@ -46767,8 +48046,8 @@
     "anywhere": true,
     "tag": "dining",
     "x": [
-     40,
-     210
+     4,
+     170
     ]
    },
    "clutter": [
@@ -46781,45 +48060,109 @@
    ],
    "fallback": [
     {
-     "id": "fridge_tall",
-     "variant": "white_open",
-     "x": 6,
-     "y": 106
-    },
-    {
-     "id": "unit_base",
-     "variant": "white_two",
-     "x": 39,
-     "y": 106
-    },
-    {
-     "id": "unit_base",
-     "variant": "white_drawers",
-     "x": 69,
-     "y": 106
-    },
-    {
      "id": "unit_sink",
      "variant": "white",
-     "x": 99,
+     "x": 23,
+     "y": 106
+    },
+    {
+     "id": "fridge_tall",
+     "variant": "white_open",
+     "x": 61,
      "y": 106
     },
     {
      "id": "unit_cooker",
-     "variant": "black_bare",
-     "x": 141,
+     "variant": "white_bare",
+     "x": 94,
      "y": 106
     },
     {
      "id": "table_kitchen",
      "variant": "camping",
-     "x": 220,
+     "x": 142,
+     "y": 120
+    },
+    {
+     "id": "light_bulb",
+     "variant": "a",
+     "x": 138,
+     "y": 0
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "unit_sink",
+     "variant": "white",
+     "x": 36,
+     "y": 106
+    },
+    {
+     "id": "washer_unit",
+     "variant": "white",
+     "x": 74,
+     "y": 106
+    },
+    {
+     "id": "unit_cooker",
+     "variant": "black_bare",
+     "x": 137,
+     "y": 106
+    },
+    {
+     "id": "fridge_tall",
+     "variant": "white_open",
+     "x": 104,
+     "y": 106
+    },
+    {
+     "id": "table_kitchen",
+     "variant": "camping",
+     "x": 169,
      "y": 118
     },
     {
      "id": "light_bulb",
      "variant": "a",
-     "x": 150,
+     "x": 121,
+     "y": 0
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "unit_sink",
+     "variant": "white",
+     "x": 168,
+     "y": 106
+    },
+    {
+     "id": "unit_base",
+     "variant": "white_dd",
+     "x": 138,
+     "y": 106
+    },
+    {
+     "id": "unit_cooker",
+     "variant": "white_bare",
+     "x": 77,
+     "y": 106
+    },
+    {
+     "id": "fridge_tall",
+     "variant": "white_open",
+     "x": 105,
+     "y": 106
+    },
+    {
+     "id": "table_kitchen",
+     "variant": "camping",
+     "x": 6,
+     "y": 117
+    },
+    {
+     "id": "light_tube",
+     "variant": "a",
+     "x": 122,
      "y": 0
     }
    ],
@@ -46858,8 +48201,8 @@
    "centre": {
     "tag": "sofa",
     "x": [
-     40,
-     190
+     4,
+     150
     ]
    },
    "clutter": [
@@ -46872,21 +48215,91 @@
    ],
    "fallback": [
     {
+     "id": "side_table",
+     "variant": "drawer",
+     "x": 173,
+     "y": 105
+    },
+    {
+     "id": "bookcase_low",
+     "variant": "dark",
+     "x": 7,
+     "y": 107
+    },
+    {
      "id": "sofa",
      "variant": "gold",
-     "x": 120,
+     "x": 41,
      "y": 110
     },
     {
      "id": "coffee_table",
      "variant": "wood",
-     "x": 136,
+     "x": 57,
      "y": 116
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "side_table",
+     "variant": "round",
+     "x": 24,
+     "y": 105
+    },
+    {
+     "id": "chest_drawers",
+     "variant": "dark",
+     "x": 186,
+     "y": 106
+    },
+    {
+     "id": "sofa",
+     "variant": "gold",
+     "x": 99,
+     "y": 109
+    },
+    {
+     "id": "armchair",
+     "variant": "club_red_r35",
+     "x": 65,
+     "y": 114
+    },
+    {
+     "id": "coffee_table",
+     "variant": "wood",
+     "x": 115,
+     "y": 114
     },
     {
      "id": "ceiling_pendant",
      "variant": "cream",
-     "x": 150,
+     "x": 183,
+     "y": 0
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "trunk",
+     "variant": "leather",
+     "x": 172,
+     "y": 105
+    },
+    {
+     "id": "bookcase_low",
+     "variant": "light",
+     "x": 121,
+     "y": 107
+    },
+    {
+     "id": "sofa",
+     "variant": "gold",
+     "x": 22,
+     "y": 111
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 154,
      "y": 0
     }
    ],
@@ -46915,8 +48328,8 @@
    "centre": {
     "tag": "sofa",
     "x": [
-     40,
-     200
+     4,
+     160
     ]
    },
    "clutter": [
@@ -46929,21 +48342,91 @@
    ],
    "fallback": [
     {
-     "id": "sofa",
-     "variant": "tan",
-     "x": 120,
-     "y": 110
+     "id": "side_table",
+     "variant": "drawer",
+     "x": 178,
+     "y": 107
+    },
+    {
+     "id": "fireplace",
+     "variant": "stone",
+     "x": 27,
+     "y": 107
+    },
+    {
+     "id": "loveseat",
+     "variant": "oxblood",
+     "x": 105,
+     "y": 112
     },
     {
      "id": "coffee_table",
      "variant": "trunk",
-     "x": 136,
-     "y": 116
+     "x": 111,
+     "y": 117
     },
     {
      "id": "ceiling_pendant",
-     "variant": "cream",
-     "x": 150,
+     "variant": "rose",
+     "x": 113,
+     "y": 0
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "side_table",
+     "variant": "drawer",
+     "x": 116,
+     "y": 105
+    },
+    {
+     "id": "fireplace",
+     "variant": "brick",
+     "x": 143,
+     "y": 108
+    },
+    {
+     "id": "sofa",
+     "variant": "tartan",
+     "x": 21,
+     "y": 109
+    },
+    {
+     "id": "coffee_table",
+     "variant": "trunk",
+     "x": 37,
+     "y": 114
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "fireplace",
+     "variant": "brick",
+     "x": 18,
+     "y": 108
+    },
+    {
+     "id": "loveseat",
+     "variant": "oxblood",
+     "x": 131,
+     "y": 109
+    },
+    {
+     "id": "coffee_table",
+     "variant": "trunk",
+     "x": 137,
+     "y": 115
+    },
+    {
+     "id": "armchair",
+     "variant": "wing_brown_r35",
+     "x": 97,
+     "y": 118
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 166,
      "y": 0
     }
    ],
@@ -46972,8 +48455,8 @@
    "centre": {
     "tag": "sofa",
     "x": [
-     40,
-     190
+     4,
+     150
     ]
    },
    "clutter": [
@@ -46986,21 +48469,97 @@
    ],
    "fallback": [
     {
+     "id": "shelving_open",
+     "variant": "oak",
+     "x": 6,
+     "y": 106
+    },
+    {
+     "id": "sideboard",
+     "variant": "teak",
+     "x": 138,
+     "y": 108
+    },
+    {
      "id": "sofa",
-     "variant": "orange",
-     "x": 120,
+     "variant": "avocado",
+     "x": 41,
      "y": 110
     },
     {
      "id": "coffee_table",
      "variant": "kidney",
-     "x": 136,
+     "x": 57,
      "y": 116
     },
     {
      "id": "ceiling_pendant",
-     "variant": "cream",
-     "x": 150,
+     "variant": "rose",
+     "x": 192,
+     "y": 0
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "sideboard",
+     "variant": "teak",
+     "x": 132,
+     "y": 105
+    },
+    {
+     "id": "side_table",
+     "variant": "drawer",
+     "x": 206,
+     "y": 107
+    },
+    {
+     "id": "loveseat",
+     "variant": "mustard",
+     "x": 59,
+     "y": 112
+    },
+    {
+     "id": "armchair",
+     "variant": "club_mustard_r35",
+     "x": 25,
+     "y": 115
+    },
+    {
+     "id": "coffee_table",
+     "variant": "kidney",
+     "x": 65,
+     "y": 116
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 117,
+     "y": 0
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "side_table",
+     "variant": "round",
+     "x": 110,
+     "y": 105
+    },
+    {
+     "id": "sideboard",
+     "variant": "teak",
+     "x": 144,
+     "y": 107
+    },
+    {
+     "id": "sofa",
+     "variant": "olive",
+     "x": 22,
+     "y": 111
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 163,
      "y": 0
     }
    ],
@@ -47029,8 +48588,8 @@
    "centre": {
     "tag": "sofa",
     "x": [
-     40,
-     190
+     4,
+     150
     ]
    },
    "clutter": [
@@ -47043,22 +48602,92 @@
    ],
    "fallback": [
     {
+     "id": "clock_grandfather",
+     "variant": "oak",
+     "x": 13,
+     "y": 105
+    },
+    {
+     "id": "piano_upright",
+     "variant": "ebonised",
+     "x": 161,
+     "y": 105
+    },
+    {
      "id": "sofa",
-     "variant": "floral",
-     "x": 120,
+     "variant": "burgundy",
+     "x": 41,
      "y": 110
+    },
+    {
+     "id": "stool_piano",
+     "variant": "oak_green",
+     "x": 203,
+     "y": 116
     },
     {
      "id": "coffee_table",
      "variant": "tea",
-     "x": 136,
+     "x": 57,
      "y": 116
     },
     {
      "id": "ceiling_pendant",
-     "variant": "cream",
-     "x": 150,
+     "variant": "rose",
+     "x": 160,
      "y": 0
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "china_cabinet",
+     "variant": "oak",
+     "x": 198,
+     "y": 105
+    },
+    {
+     "id": "sofa",
+     "variant": "burgundy",
+     "x": 99,
+     "y": 109
+    },
+    {
+     "id": "armchair",
+     "variant": "club_green_r35",
+     "x": 65,
+     "y": 114
+    },
+    {
+     "id": "coffee_table",
+     "variant": "tea",
+     "x": 115,
+     "y": 114
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 171,
+     "y": 0
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "china_cabinet",
+     "variant": "mahogany",
+     "x": 108,
+     "y": 106
+    },
+    {
+     "id": "sideboard",
+     "variant": "walnut",
+     "x": 166,
+     "y": 107
+    },
+    {
+     "id": "sofa",
+     "variant": "velvet",
+     "x": 22,
+     "y": 111
     }
    ],
    "flank": {
@@ -47086,8 +48715,8 @@
    "centre": {
     "tag": "sofa",
     "x": [
-     40,
-     200
+     4,
+     160
     ]
    },
    "clutter": [
@@ -47100,21 +48729,97 @@
    ],
    "fallback": [
     {
+     "id": "shelving_open",
+     "variant": "teak",
+     "x": 72,
+     "y": 105
+    },
+    {
+     "id": "crate_cubes",
+     "variant": "dairy",
+     "x": 28,
+     "y": 108
+    },
+    {
      "id": "sofa",
-     "variant": "grey",
-     "x": 120,
+     "variant": "denim",
+     "x": 116,
      "y": 110
     },
     {
      "id": "coffee_table",
      "variant": "pallet",
-     "x": 136,
-     "y": 116
+     "x": 132,
+     "y": 114
     },
     {
      "id": "light_bulb",
      "variant": "a",
-     "x": 150,
+     "x": 155,
+     "y": 0
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "crate_cubes",
+     "variant": "primary",
+     "x": 169,
+     "y": 105
+    },
+    {
+     "id": "chest_drawers",
+     "variant": "light",
+     "x": 115,
+     "y": 105
+    },
+    {
+     "id": "sofa",
+     "variant": "grey",
+     "x": 21,
+     "y": 109
+    },
+    {
+     "id": "coffee_table",
+     "variant": "pallet",
+     "x": 37,
+     "y": 114
+    },
+    {
+     "id": "light_bulb",
+     "variant": "a",
+     "x": 200,
+     "y": 0
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "crate_cubes",
+     "variant": "primary",
+     "x": 8,
+     "y": 107
+    },
+    {
+     "id": "radiator",
+     "variant": "iron",
+     "x": 168,
+     "y": 108
+    },
+    {
+     "id": "sofa",
+     "variant": "denim",
+     "x": 74,
+     "y": 111
+    },
+    {
+     "id": "coffee_table",
+     "variant": "pallet",
+     "x": 90,
+     "y": 118
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 139,
      "y": 0
     }
    ],
@@ -47139,8 +48844,8 @@
    "centre": {
     "tag": "desk",
     "x": [
-     40,
-     200
+     4,
+     160
     ]
    },
    "clutter": [
@@ -47153,15 +48858,85 @@
    ],
    "fallback": [
     {
+     "id": "filing_cabinet",
+     "variant": "grey",
+     "x": 205,
+     "y": 106
+    },
+    {
      "id": "desk_study",
      "variant": "mahogany",
-     "x": 120,
+     "x": 116,
      "y": 112
+    },
+    {
+     "id": "waste_bin",
+     "variant": "steel",
+     "x": 189,
+     "y": 114
+    },
+    {
+     "id": "ceiling_pendant",
+     "variant": "rose",
+     "x": 187,
+     "y": 0
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "filing_cabinet",
+     "variant": "cream",
+     "x": 208,
+     "y": 106
+    },
+    {
+     "id": "desk_study",
+     "variant": "mahogany",
+     "x": 107,
+     "y": 110
+    },
+    {
+     "id": "waste_bin",
+     "variant": "steel",
+     "x": 180,
+     "y": 114
     },
     {
      "id": "ceiling_pendant",
      "variant": "cream",
-     "x": 150,
+     "x": 187,
+     "y": 0
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "radiator",
+     "variant": "iron",
+     "x": 168,
+     "y": 105
+    },
+    {
+     "id": "bookcase_tall",
+     "variant": "ladder",
+     "x": 10,
+     "y": 108
+    },
+    {
+     "id": "desk_study",
+     "variant": "mahogany",
+     "x": 74,
+     "y": 113
+    },
+    {
+     "id": "waste_bin",
+     "variant": "wire",
+     "x": 147,
+     "y": 114
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 129,
      "y": 0
     }
    ],
@@ -47186,8 +48961,8 @@
    "centre": {
     "tag": "desk",
     "x": [
-     40,
-     200
+     4,
+     160
     ]
    },
    "clutter": [
@@ -47200,15 +48975,97 @@
    ],
    "fallback": [
     {
+     "id": "bookcase_tall",
+     "variant": "ladder",
+     "x": 198,
+     "y": 107
+    },
+    {
      "id": "desk_study",
      "variant": "writing",
-     "x": 120,
+     "x": 116,
      "y": 112
     },
     {
      "id": "ceiling_pendant",
+     "variant": "mustard",
+     "x": 111,
+     "y": 0
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "bookcase_tall",
+     "variant": "mahogany",
+     "x": 197,
+     "y": 105
+    },
+    {
+     "id": "radiator",
+     "variant": "iron",
+     "x": 30,
+     "y": 109
+    },
+    {
+     "id": "desk_study",
+     "variant": "writing",
+     "x": 107,
+     "y": 110
+    },
+    {
+     "id": "waste_bin",
+     "variant": "steel",
+     "x": 179,
+     "y": 116
+    },
+    {
+     "id": "armchair",
+     "variant": "wing_green_l35",
+     "x": 69,
+     "y": 118
+    },
+    {
+     "id": "ceiling_pendant",
      "variant": "cream",
-     "x": 150,
+     "x": 158,
+     "y": 0
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "bookcase_tall",
+     "variant": "oak",
+     "x": 22,
+     "y": 108
+    },
+    {
+     "id": "radiator",
+     "variant": "iron",
+     "x": 171,
+     "y": 109
+    },
+    {
+     "id": "waste_bin",
+     "variant": "steel",
+     "x": 172,
+     "y": 113
+    },
+    {
+     "id": "desk_study",
+     "variant": "writing",
+     "x": 100,
+     "y": 113
+    },
+    {
+     "id": "armchair",
+     "variant": "wing_brown_l35",
+     "x": 62,
+     "y": 115
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 139,
      "y": 0
     }
    ],
@@ -47237,8 +49094,8 @@
    "centre": {
     "tag": "desk",
     "x": [
-     40,
-     200
+     4,
+     160
     ]
    },
    "clutter": [
@@ -47251,15 +49108,97 @@
    ],
    "fallback": [
     {
+     "id": "filing_cabinet",
+     "variant": "grey",
+     "x": 205,
+     "y": 106
+    },
+    {
      "id": "desk_study",
      "variant": "steel",
-     "x": 120,
+     "x": 116,
      "y": 112
+    },
+    {
+     "id": "waste_bin",
+     "variant": "steel",
+     "x": 189,
+     "y": 114
     },
     {
      "id": "light_tube",
      "variant": "a",
-     "x": 130,
+     "x": 188,
+     "y": 0
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "shelving_open",
+     "variant": "teak",
+     "x": 160,
+     "y": 105
+    },
+    {
+     "id": "filing_cabinet",
+     "variant": "green",
+     "x": 208,
+     "y": 106
+    },
+    {
+     "id": "bookcase_tall",
+     "variant": "mahogany",
+     "x": 121,
+     "y": 108
+    },
+    {
+     "id": "desk_study",
+     "variant": "steel",
+     "x": 21,
+     "y": 111
+    },
+    {
+     "id": "waste_bin",
+     "variant": "steel",
+     "x": 94,
+     "y": 114
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 198,
+     "y": 0
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "radiator",
+     "variant": "iron",
+     "x": 168,
+     "y": 105
+    },
+    {
+     "id": "filing_cabinet",
+     "variant": "cream",
+     "x": 30,
+     "y": 106
+    },
+    {
+     "id": "desk_study",
+     "variant": "steel",
+     "x": 74,
+     "y": 113
+    },
+    {
+     "id": "waste_bin",
+     "variant": "wire",
+     "x": 147,
+     "y": 114
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 132,
      "y": 0
     }
    ],
@@ -47284,8 +49223,8 @@
    "centre": {
     "tag": "desk",
     "x": [
-     40,
-     200
+     4,
+     160
     ]
    },
    "clutter": [
@@ -47298,15 +49237,97 @@
    ],
    "fallback": [
     {
+     "id": "bookcase_low",
+     "variant": "oak",
+     "x": 203,
+     "y": 107
+    },
+    {
      "id": "desk_study",
      "variant": "trestle",
-     "x": 120,
+     "x": 116,
      "y": 112
+    },
+    {
+     "id": "waste_bin",
+     "variant": "steel",
+     "x": 189,
+     "y": 114
     },
     {
      "id": "light_bulb",
      "variant": "a",
-     "x": 150,
+     "x": 187,
+     "y": 0
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "shelving_open",
+     "variant": "oak",
+     "x": 200,
+     "y": 106
+    },
+    {
+     "id": "bookcase_low",
+     "variant": "oak",
+     "x": 164,
+     "y": 107
+    },
+    {
+     "id": "bookcase_tall",
+     "variant": "mahogany",
+     "x": 121,
+     "y": 108
+    },
+    {
+     "id": "desk_study",
+     "variant": "trestle",
+     "x": 21,
+     "y": 111
+    },
+    {
+     "id": "waste_bin",
+     "variant": "steel",
+     "x": 94,
+     "y": 114
+    },
+    {
+     "id": "light_bulb",
+     "variant": "a",
+     "x": 164,
+     "y": 0
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "radiator",
+     "variant": "iron",
+     "x": 168,
+     "y": 105
+    },
+    {
+     "id": "bookcase_tall",
+     "variant": "ladder",
+     "x": 10,
+     "y": 108
+    },
+    {
+     "id": "desk_study",
+     "variant": "trestle",
+     "x": 74,
+     "y": 113
+    },
+    {
+     "id": "waste_bin",
+     "variant": "wire",
+     "x": 147,
+     "y": 114
+    },
+    {
+     "id": "light_bulb",
+     "variant": "a",
+     "x": 192,
      "y": 0
     }
    ],
@@ -47331,8 +49352,8 @@
    "centre": {
     "tag": "desk",
     "x": [
-     40,
-     200
+     4,
+     160
     ]
    },
    "clutter": [
@@ -47345,15 +49366,85 @@
    ],
    "fallback": [
     {
+     "id": "paint_shelf",
+     "variant": "pine",
+     "x": 205,
+     "y": 106
+    },
+    {
      "id": "desk_study",
      "variant": "bench",
-     "x": 120,
+     "x": 116,
      "y": 112
+    },
+    {
+     "id": "waste_bin",
+     "variant": "steel",
+     "x": 189,
+     "y": 114
+    }
+   ],
+   "fallback_left": [
+    {
+     "id": "canvases_leaning",
+     "variant": "few",
+     "x": 132,
+     "y": 105
+    },
+    {
+     "id": "paint_shelf",
+     "variant": "pine",
+     "x": 194,
+     "y": 106
+    },
+    {
+     "id": "desk_study",
+     "variant": "bench",
+     "x": 21,
+     "y": 111
+    },
+    {
+     "id": "waste_bin",
+     "variant": "steel",
+     "x": 94,
+     "y": 114
     },
     {
      "id": "ceiling_flush",
      "variant": "a",
-     "x": 150,
+     "x": 175,
+     "y": 0
+    }
+   ],
+   "fallback_right": [
+    {
+     "id": "radiator",
+     "variant": "iron",
+     "x": 168,
+     "y": 105
+    },
+    {
+     "id": "canvases_leaning",
+     "variant": "stack",
+     "x": 8,
+     "y": 106
+    },
+    {
+     "id": "desk_study",
+     "variant": "bench",
+     "x": 74,
+     "y": 113
+    },
+    {
+     "id": "waste_bin",
+     "variant": "wire",
+     "x": 147,
+     "y": 114
+    },
+    {
+     "id": "ceiling_flush",
+     "variant": "a",
+     "x": 166,
      "y": 0
     }
    ],
