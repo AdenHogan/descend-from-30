@@ -331,6 +331,13 @@ func _test_coming_in() -> void:
 	quick.queue_free()
 	await get_tree().physics_frame
 	check(WorldState.zombie_positions.has("12:500:370") and not WorldState.followed_away.has("12:500:370"), "left before it arrived: it is still out in the corridor, nothing lost")
+	# a rest / pry re-rolls the building: a follower living in a flat is dropped with the other position-independent slots, and its origin slot is open again
+	WorldState.zombie_positions["12:flat_in:1203:12_380_370:standard"] = {"x": 300.0, "y": 304.0}
+	WorldState.killed_zombies["12:flat_in:1203:12_420_374:crawler"] = {"x": 300.0, "y": 304.0}
+	WorldState.followed_away["12:380:370"] = true
+	WorldState.shift_building()
+	check(not WorldState.zombie_positions.has("12:flat_in:1203:12_380_370:standard") and not WorldState.killed_zombies.has("12:flat_in:1203:12_420_374:crawler")
+			and not WorldState.followed_away.has("12:380:370"), "a building shift drops a flat's followers (alive or dead) and opens their origin slots again")
 	WorldState.god_mode = false
 
 

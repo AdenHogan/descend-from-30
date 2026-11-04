@@ -35,7 +35,10 @@ func _room(apt: String) -> Node:
 	WorldState.is_scavenge_mode = true
 	var room = load("res://scenes/room.tscn").instantiate()
 	add_child(room)
-	for i in range(8):
+	# The room sets its back-plane spots up over its first frames (not all in one): 8 frames was a race that a slower machine lost -
+	# the same 45 living rooms gave 5..14 spots from run to run, and the scan for "a spot with two nodes" came up empty about 1 run in 4
+	# (found in round 49m, on the commit before it too). 40 frames gives the same count (121 spots) every time.
+	for i in range(40):
 		await get_tree().physics_frame
 	for z in get_tree().get_nodes_in_group("zombie"):
 		if room.is_ancestor_of(z):

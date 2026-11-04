@@ -4059,12 +4059,12 @@ func shift_building() -> void:
 	# one after a shift — an enemy vanishing. Drop those slots so they re-populate cleanly.
 	for k in killed_zombies.keys():
 		var ks := str(k)
-		if ks.contains(":stairwell:") or ks.begins_with("followerR:") or ks.begins_with("boss:"):
+		if ks.contains(":stairwell:") or ks.contains(":flat_in:") or ks.begins_with("followerR:") or ks.begins_with("boss:"):
 			killed_zombies.erase(k)
 	for k in zombie_positions.keys():
 		var kp := str(k)
-		if kp.contains(":stairwell:") or kp.begins_with("followerR:") or kp.begins_with("boss:"):
-			zombie_positions.erase(k)
+		if kp.contains(":stairwell:") or kp.contains(":flat_in:") or kp.begins_with("followerR:") or kp.begins_with("boss:"):
+			zombie_positions.erase(k)             # (a follower that came into a flat: the flat is a new one after the shift, and its origin slot is open again)
 	retarget_cabinet_keys()          # the cabinets were dealt again: a cabinet key in the pack follows its floor's cabinet (or says it has none)
 
 
