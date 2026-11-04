@@ -32,7 +32,8 @@ func _ready() -> void:
 	_test_buy_flow()
 	_test_sell_flow()
 	_test_sell_by_level()
-	_test_bullets_for_sale()
+	_test_no_bullets_for_sale()
+	_test_shop_variety()
 	_test_upgrades()
 	_test_save_load()
 	_test_scene_instantiation()
@@ -73,10 +74,7 @@ func _test_stock_structure() -> void:
 							# Fire extinguisher: priced 35 normally / 55 in a fire crisis (not a SHOP_COMMON ware).
 							prices_ok = prices_ok and (entry["price"] == 35 or entry["price"] == 55)
 						elif entry["item_id"] == "016":
-							# The bullets: a bundle of N rounds at BULLET_BUY_PRICE a round.
-							var n: int = int(entry.get("amount", 0))
-							bullets += 1
-							prices_ok = prices_ok and n >= WorldState.BULLET_STOCK_RANGE.x and n <= WorldState.BULLET_STOCK_RANGE.y and entry["price"] == n * WorldState.BULLET_BUY_PRICE
+							bullets += 1       # never allowed (owner 2026-11-04): counted so the check below can fail
 						else:
 							prices_ok = prices_ok and WorldState.SHOP_COMMON.get(entry["item_id"], -1) == entry["price"]
 					"quality":
@@ -88,7 +86,7 @@ func _test_stock_structure() -> void:
 			var label = "seed %d floor %d: " % [seed_value, floor_num]
 			check(stock.size() <= 6, label + "max 6 slots (got %d)" % stock.size())
 			check(commons >= 3 and commons <= 4, label + "3-4 commons (got %d)" % commons)
-			check(bullets == 1, label + "ALWAYS exactly one bundle of bullets for sale (got %d)" % bullets)
+			check(bullets == 0, label + "no bullets on the shelf, ever (got %d)" % bullets)
 			check(quality >= 1 and quality <= 2, label + "1-2 quality (got %d)" % quality)
 			check(legendary <= 1, label + "0-1 legendary (got %d)" % legendary)
 			check(ids.size() == stock.size(), label + "no duplicate wares")
@@ -242,27 +240,78 @@ func _test_sell_by_level() -> void:
 	check(WorldState.sell_blocker(0).contains("Unload") and not WorldState.sell_item(0, 25) and WorldState.inventory[0] == huge, "a gun whose rounds will not fit the pack is not sold, and is kept (%s)" % WorldState.sell_blocker(0))
 
 
-func _test_bullets_for_sale() -> void:
-	print("[bullets are always for sale, a different number each visit]")
-	var counts := {}
+func _test_no_bullets_for_sale() -> void:
+	# Owner 2026-11-04 (after a full descent with bullets always to hand): "remove bullets from the shop. We can't have bullets be so acquirable".
+	print("[no bullets are ever for sale]")
+	var wares := 0
+	var bullet_wares := 0
 	for seed_value in range(1, 41):
 		_fresh_state(seed_value)
-		for floor_num in [25, 20, 15]:
-			var found := 0
+		for floor_num in WorldState.MERCHANT_FLOORS:
 			for e in WorldState.get_merchant_stock(floor_num):
-				if e["item_id"] == "016":
-					found += 1
-					counts[int(e["amount"])] = true
-			check(found == 1, "seed %d floor %d: one bundle of bullets" % [seed_value, floor_num]) if found != 1 else null
-	check(counts.size() >= 6, "the bundle varies (%d different sizes over 120 visits)" % counts.size())
-	# buying it puts those rounds in the pack
-	_fresh_state(31)
+				wares += 1
+				if e["item_id"] == "016" or e.has("amount"):
+					bullet_wares += 1
+	check(wares > 500 and bullet_wares == 0, "across %d wares over 40 games x every merchant floor: no bullets, no bundles (%d)" % [wares, bullet_wares])
+	check(not WorldState.SHOP_COMMON.has("016") and not WorldState.SHOP_QUALITY.has("016") and not WorldState.SHOP_LEGENDARY.has("016"), "…and the price tables do not list them")
+	# the shop's slot the bullets used to hold went back to the ordinary wares: 3-4 commons, never fewer than before
+	var short := 0
+	for seed_value in range(1, 41):
+		_fresh_state(seed_value)
+		for floor_num in WorldState.MERCHANT_FLOORS:
+			var n_common := 0
+			for e in WorldState.get_merchant_stock(floor_num):
+				n_common += 1 if e["band"] == "common" else 0
+			short += 1 if n_common < 3 else 0
+	check(short == 0, "…the slot went back to the ordinary wares (every shop still has 3-4 commons)")
+	# a save made while the shelf still held a bundle of bullets: loading it drops them, and the shop and its sold-marks still agree
+	_fresh_state(77)
 	WorldState.wallet_unlocked = true
-	WorldState.wallet_balance = 1000
-	WorldState.inventory.clear()
-	var entry: Dictionary = WorldState.get_merchant_stock(25)[0]
-	check(entry["item_id"] == "016" and int(entry["amount"]) >= 4, "the bullets lead the list")
-	check(WorldState.add_to_inventory("016", int(entry["amount"])) and WorldState.get_ammo_total() == int(entry["amount"]), "buying it adds exactly the rounds on the label (%d)" % int(entry["amount"]))
+	var floor_num: int = int(WorldState.MERCHANT_FLOORS[0])
+	var stock: Array = WorldState.get_merchant_stock(floor_num)
+	var legacy: Array = stock.duplicate(true)
+	legacy.insert(0, {"item_id": "016", "price": 45, "band": "common", "sold": false, "amount": 9})
+	var key := str(WorldState.current_run) + ":" + str(floor_num)
+	WorldState.merchant_stock[key] = legacy
+	WorldState.save_game("res://scenes/hallway.tscn", false)
+	WorldState.merchant_stock.clear()
+	check(WorldState.load_game() != "", "an old save loads")
+	var back: Array = WorldState.get_merchant_stock(floor_num)
+	var left_over := 0
+	for e in back:
+		left_over += 1 if e["item_id"] == "016" else 0
+	check(left_over == 0 and back.size() == stock.size(), "…and comes back without its bullets (%d wares, as rolled)" % back.size())
+	var first_id: String = str(back[0]["item_id"])
+	WorldState.mark_shop_item_sold(floor_num, 0)
+	check(WorldState.get_merchant_stock(floor_num)[0]["sold"] == true and str(WorldState.get_merchant_stock(floor_num)[0]["item_id"]) == first_id, "…and the first ware (%s) is the one a sold-mark lands on - no bullet sat in front of it" % first_id)
+
+
+## VARIETY (owner 2026-11-04: "Except for the bullets I never needed to buy anything"): over many visits the shelf shows far more than
+## the old seven everyday finds - the new wares all turn up, and no two neighbouring visits are alike.
+func _test_shop_variety() -> void:
+	print("[shop variety]")
+	var seen := {}
+	var distinct_visits := {}
+	for seed_value in range(1, 61):
+		_fresh_state(seed_value)
+		for floor_num in WorldState.MERCHANT_FLOORS:
+			var ids: Array = []
+			for e in WorldState.get_merchant_stock(floor_num):
+				seen[e["item_id"]] = true
+				ids.append(e["item_id"])
+			ids.sort()
+			distinct_visits[str(ids)] = true
+	for new_ware in ["039", "035", "015", "034", "024", "008"]:
+		check(seen.has(new_ware), "%s turns up on the shelf (%s)" % [new_ware, ItemData.get_item(new_ware).get("name", "?")])
+		check(WorldState.SHOP_COMMON.has(new_ware) and WorldState.item_shop_value(new_ware) == int(WorldState.SHOP_COMMON[new_ware]), "…priced from the one table")
+	check(seen.size() >= 18, "over 300 visits the shop shows %d different wares (was 15 with the bullets)" % seen.size())
+	check(distinct_visits.size() > 250, "…and the visits differ: %d different shelves in 300" % distinct_visits.size())
+	# the price of a ware he buys back did not move for the items that changed table
+	var tor := ItemInstance.new()
+	tor.setup("015")
+	var mol := ItemInstance.new()
+	mol.setup("039")
+	check(WorldState.sell_price_of(tor) == 18 and WorldState.sell_price_of(mol) == 14, "…and what he pays for a Torch / Molotov is what it was (18 / 14: %d / %d)" % [WorldState.sell_price_of(tor), WorldState.sell_price_of(mol)])
 
 
 func _test_upgrades() -> void:

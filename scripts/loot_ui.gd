@@ -945,9 +945,12 @@ func _is_cabinet_weapon() -> bool:
 
 
 ## The rounds in a found bundle: a size rolled from these weights, seeded per node (so a node always holds the same count). Sizes start at AMMO_BUNDLE_MIN.
-## (Round 49f: "hardly any bullets" - the bundle was 2-8 rounds, 3.9 on average; it is 3-10, 5.6 on average. See also the pools in data/Items.json.)
+## (Round 49f: "hardly any bullets" - the bundle was 2-8 rounds, 3.9 on average; it became 3-10, 5.6 on average. Owner 2026-11-04, after a full
+## descent with plentiful bullets: "reduce bullets found in the game world by 15%" - the weights below average 4.74 rounds (was 5.58, weights
+## [16, 20, 18, 15, 12, 9, 6, 4]), -15.1%. The size is the one lever every found bundle shares - the node pools AND the gun-paired
+## finds (`Room.GUN_BULLET_PAIR_CHANCE`) both roll through here - so how OFTEN bullets turn up is untouched. See also the pools in data/Items.json.)
 const AMMO_BUNDLE_MIN := 3
-const AMMO_BUNDLE_WEIGHTS := [16, 20, 18, 15, 12, 9, 6, 4]
+const AMMO_BUNDLE_WEIGHTS := [27, 28, 20, 10, 6, 4, 3, 2]
 
 
 static func ammo_bundle_for(apartment_id: String, anchor_name: String) -> int:

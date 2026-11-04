@@ -343,7 +343,7 @@ func _die() -> void:
 	# drop is REGISTERED at its rested floor position (so a re-entry loads it on the floor, not
 	# floating) and the live pickup is TOSSED out of the corpse to bounce down onto it.
 	var feet := _drop_feet_y()
-	var money_amount = (70 + randi() % 61) if is_corridor_boss else (30 + randi() % 31)
+	var money_amount = WorldState.cash_found((70 + randi() % 61) if is_corridor_boss else (30 + randi() % 31))   # +20% like every found bundle
 	var money_rest = Vector2(global_position.x + 26.0, feet - WORLD_DROP.REST_LIFT)
 	var money_key: String = WorldState.add_world_drop("033", money_rest, WorldState.current_floor, {"amount": money_amount})
 	var money_drop = preload("res://scenes/world_drop.tscn").instantiate()

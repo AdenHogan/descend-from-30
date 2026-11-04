@@ -148,7 +148,7 @@
       "ITEM_NAME": "Toolbox",
       "ITEM_DESCRIPTION": "It's like a first aid kit but for items. Need to fix a circuit and get the power back on, or repair an item? YOU NEED TO HAVE YOUR TOOLS!",
       "VALUE_PROPERTY": "is_tool, can_repair",
-      "PROPERTY_DURABILITY": "3 uses",
+      "PROPERTY_DURABILITY": "single use",
       "PROPERTY_SPAWN_RARITY": 1,
       "PROPERTY_WEIGHT_SIZE": null
     },
@@ -460,11 +460,11 @@
     },
     "Toolbox": {
       "bedroom": 0,
-      "kitchen": 1,
+      "kitchen": 0.5,
       "bathroom": 0,
-      "study": 1,
+      "study": 0.5,
       "living_room": 0,
-      "dining_room": 1
+      "dining_room": 0.5
     },
     "Fuse": {
       "bedroom": 0,

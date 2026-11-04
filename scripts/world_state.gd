@@ -805,6 +805,16 @@ var zombie_positions: Dictionary = {}
 # NOTE: balance reset on run-advance is wired when the time-skip pass is built.
 var wallet_unlocked: bool = false
 var wallet_balance: int = 0
+# CASH FOUND IN THE WORLD is 20% bigger (owner 2026-11-04: "increase cash drops by 20%"): a bundle rolled at a pickup - a node's, a
+# body's, a zombie's - and a Big Zombie's / boss's money all pass through `cash_found`. Gifts, quest pay and the shop's prices are not
+# "found" cash and are not scaled.
+const CASH_FOUND_SCALE := 1.2
+
+
+func cash_found(rolled: int) -> int:
+	return maxi(int(round(float(rolled) * CASH_FOUND_SCALE)), 1)
+
+
 # SCRAP (docs/SCRAP_UPGRADES.md) — the second currency, spent only at a maintenance-room
 # workbench to upgrade the weapon you carry. A COUNTER like the wallet, never an inventory
 # item: a Scrap Bag pickup (037) just adds to it. The counter appears once the first bag is
@@ -812,7 +822,7 @@ var wallet_balance: int = 0
 # character (per-run, reset by the time skip, recoverable from their corpse — totals merge).
 var scrap_unlocked: bool = false
 var scrap: int = 0
-const SCRAP_BAG_NATURAL := Vector2i(6, 14)     # a bag found in ordinary scavenging
+const SCRAP_BAG_NATURAL := Vector2i(7, 15)     # a bag found in ordinary scavenging (owner 2026-11-04: scrap outside burnt flats +10% - was 6..14, mean 10, now mean 11; the chance and the charred bag are unchanged)
 const SCRAP_BAG_CHARRED := Vector2i(14, 30)    # a burnt-out apartment's salvage (the main faucet)
 var barricade_progress: Dictionary = {}
 
@@ -884,15 +894,25 @@ func fire_merchant_should_stock(merchant_floor: int) -> bool:
 	return false
 const LEGENDARY_HOLD_VISITS = 3
 
-# Price bands per design: common 15-40, quality 80-150, legendary 300-500.
+# Price bands per design: common 10-45, quality 80-150, legendary 300-500.
+# VARIETY (owner 2026-11-04: "add better variety to shop items. Except for the bullets I never needed to buy anything"): the shelf
+# used to be seven everyday finds and bullets. It now also stocks the things a descent runs short of and a flat rarely hands out -
+# a Molotov, a Crowbar (skips a hand-prised barricade), a Torch, a Screwdriver (forces a lock), the two ingredients of a Molotov
+# (Empty Bottle + Torn Clothes) and Clothes for a balcony line. NO BULLETS (same note): ammunition is only ever found.
 const SHOP_COMMON = {
-	"005": 15,   # Canned Food
+	"024": 10,   # Empty Bottle (throws like a can; with Torn Clothes it is a Molotov)
+	"005": 15,   # Tinned Food
 	"009": 15,   # Torn Clothes
+	"008": 15,   # Clothes (three make a balcony line)
 	"021": 20,   # Battery
 	"006": 25,   # Bandages
+	"034": 25,   # Screwdriver (forces a lock)
 	"010": 30,   # Painkillers
 	"011": 30,   # Ice Pack
+	"039": 30,   # Molotov Cocktail
 	"001": 40,   # Knife
+	"015": 40,   # Torch
+	"035": 45,   # Crowbar (pries one blocked stairwell)
 }
 const SHOP_QUALITY = {
 	"018": 80,   # Rope
@@ -907,7 +927,7 @@ const SHOP_LEGENDARY = {
 	"003": 400,  # Sword
 }
 
-var merchant_stock: Dictionary = {}  # "run:floor" -> Array of {item_id, price, band, sold[, amount]} (amount = rounds in a bullet bundle)
+var merchant_stock: Dictionary = {}  # "run:floor" -> Array of {item_id, price, band, sold} - never bullets (owner 2026-11-04); a save made before that has them dropped on load
 # Legendary hold: an unpurchased Legendary stays in stock for the next
 # LEGENDARY_HOLD_VISITS shop visits so a savings goal is always reachable.
 var legendary_hold: Dictionary = {}  # {"item_id": String, "visits_left": int} when active
@@ -1579,7 +1599,7 @@ func _add_to_inventory(item_id: String, amount: int = 0) -> bool:
 	# a found wallet is just someone's cash: pocket a small bundle instead.
 	if item_id == "031":
 		if wallet_unlocked:
-			return add_to_inventory("033", 5 + randi() % 11)
+			return add_to_inventory("033", cash_found(5 + randi() % 11))
 		unlock_wallet()
 		return true
 	# A Scrap Bag never takes a slot: it's emptied straight into the scrap counter (works with
@@ -1590,7 +1610,7 @@ func _add_to_inventory(item_id: String, amount: int = 0) -> bool:
 	if ItemData.get_item(item_id).get("is_money", false):
 		var add_amount = amount
 		if add_amount <= 0:
-			add_amount = 5 + randi() % 11
+			add_amount = cash_found(5 + randi() % 11)
 		if wallet_unlocked:
 			wallet_balance += add_amount
 			HUD.update_wallet()
@@ -2067,9 +2087,10 @@ func get_merchant_stock(floor_num: int) -> Array:
 	# Max 6 slots per visit: a legendary claims one, squeezing the commons.
 	var common_count = 3 if legendary_id != "" else 3 + (rng.randi() % 2)
 	var quality_count = 1 + (rng.randi() % 2)
-	# ONE common slot is always a bundle of bullets (owner round 49f: "we should always have some bullets for sale. Varied
-	# number of bullets each time but it should be there"); the extinguisher takes another when he has one.
-	var ordinary_count: int = maxi(common_count - 1 - (1 if want_ext else 0), 1)
+	# NO BULLETS ON THE SHELF (owner, 2026-11-04, after a full descent: "remove bullets from the shop. We can't have bullets be
+	# so acquirable"): round 49f made one common slot an always-there bundle; that slot goes back to the ordinary wares.
+	# The extinguisher still takes a common slot when he has one.
+	var ordinary_count: int = maxi(common_count - (1 if want_ext else 0), 1)
 	stock.append_array(_roll_shop_band(SHOP_COMMON, ordinary_count, "common", rng))
 	stock.append_array(_roll_shop_band(SHOP_QUALITY, quality_count, "quality", rng))
 	if legendary_id != "":
@@ -2081,8 +2102,6 @@ func get_merchant_stock(floor_num: int) -> Array:
 		})
 	if want_ext:
 		stock.append({"item_id": "036", "price": (55 if fire_crisis else 35), "band": "common", "sold": false})
-	var rounds: int = rng.randi_range(BULLET_STOCK_RANGE.x, BULLET_STOCK_RANGE.y)
-	stock.insert(0, {"item_id": "016", "price": rounds * BULLET_BUY_PRICE, "band": "common", "sold": false, "amount": rounds})
 
 	merchant_stock[key] = stock
 	return stock
@@ -2273,23 +2292,16 @@ const SELL_FRACTION_PER_LEVEL = 0.07        # added per weapon level above 1
 const SELL_FRACTION_CAP = 0.85              # a Lv8 heirloom still sells for less than a new one costs
 const SELL_FALLBACK = 8                     # an item with no value on record
 const SELL_WORN_FLOOR = 0.5                 # a broken weapon still fetches this share of its worth
-const BULLET_BUY_PRICE = 5                  # per round, when the merchant sells them (he buys them back at 2)
-const BULLET_STOCK_RANGE := Vector2i(4, 14) # rounds in the bundle he has on offer this visit
 var merchant_sales: Dictionary = {}  # "run:floor" -> items sold this visit
 
 # What the merchant WOULD charge for a plain one of these - the base of what he pays. Items he stocks use their shop price.
 const ITEM_VALUE = {
 	"004": 160,   # Gun
 	"012": 60,    # Golf Club
-	"015": 40,    # Flashlight
 	"020": 45,    # Fuse
-	"034": 25,    # Screwdriver
-	"035": 45,    # Crowbar
 	"036": 35,    # Fire Extinguisher
-	"039": 30,    # Molotov
-	"008": 15,    # Clothes
-	"016": 5,     # a round
-}
+	"016": 5,     # a round (he no longer sells them; this is only what a round is worth if one is ever priced)
+}   # (Torch, Screwdriver, Crowbar, Molotov and Clothes were here; SHOP_COMMON carries their price now - the same numbers - so there is one source)
 
 
 func get_sales_remaining(floor_num: int) -> int:
@@ -6276,14 +6288,16 @@ func load_game() -> String:
 	for k in data.get("merchant_stock", {}):
 		var entries: Array = []
 		for e in data["merchant_stock"][k]:
+			# A save made while the shelf still held a bundle of bullets (before 2026-11-04) loses it here - the stock is
+			# rebuilt as a whole on load, so every index the shop and mark_shop_item_sold use afterwards agrees.
+			if str(e["item_id"]) == "016":
+				continue
 			var entry := {
 				"item_id": str(e["item_id"]),
 				"price": int(e["price"]),
 				"band": str(e["band"]),
 				"sold": bool(e["sold"]),
 			}
-			if e.has("amount"):
-				entry["amount"] = int(e["amount"])      # a bundle (the bullets): how many it holds
 			entries.append(entry)
 		merchant_stock[k] = entries
 	legendary_hold = data.get("legendary_hold", {})

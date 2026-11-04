@@ -131,7 +131,7 @@ func _test_codex() -> void:
 	check(ItemCodex.durability_line(gun).contains("wear marks") and ItemCodex.wear_text(gun).contains(str(ItemInstance.GUN_SHOTS_PER_MARK)), "gun: marks + rounds per mark (%s)" % ItemCodex.durability_line(gun))
 	check(ItemCodex.durability_line(ItemData.items["006"]) == "Single use" and ItemCodex.ending_text(ItemData.items["006"]).begins_with("Gone"), "bandages: single use, gone when used")
 	check(ItemCodex.ending_text(hammer).contains("BROKEN") and ItemCodex.ending_text(hammer).contains("Toolbox"), "a weapon that runs out stays broken and repairable")
-	check(ItemCodex.durability_line(ItemData.items["019"]) == "3 uses" and ItemCodex.wear_text(ItemData.items["019"]).contains("repair"), "toolbox: 3 uses, one per repair")
+	check(ItemCodex.durability_line(ItemData.items["019"]) == "Single use" and ItemCodex.wear_text(ItemData.items["019"]).contains("repair"), "toolbox: one use, spent on one repair (owner 2026-11-04: was 3)")
 	var sd: Dictionary = ItemData.items["034"]
 	check(ItemCodex.durability_line(sd) == "5 uses" and ItemCodex.wear_text(sd).contains("forced"), "screwdriver: 5 uses, one per forcing")
 	# the legend IS the HUD box's gradient

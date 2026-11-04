@@ -476,13 +476,10 @@ func _refresh() -> void:
 	_update_money_label()
 
 
-## A ware's title: its name, what a bundle holds ("Bullets x9"), and - for a weapon - its level (the merchant sells plain ones: Lv1).
+## A ware's title: its name and - for a weapon - its level (the merchant sells plain ones: Lv1). He sells no bundles any more (no bullets).
 func ware_title(entry: Dictionary) -> String:
 	var id: String = String(entry.get("item_id", ""))
 	var t: String = String(ItemData.get_item(id).get("name", "???"))
-	var n: int = int(entry.get("amount", 0))
-	if n > 1:
-		t += " x%d" % n
 	if WeaponUpgrades.can_upgrade(id):
 		t += "  ·  %s" % WeaponUpgrades.tier_name(1)
 	return t
@@ -591,7 +588,7 @@ func _on_buy_pressed(index: int) -> void:
 		if buy_buttons[index].has_method("refuse"):
 			buy_buttons[index].refuse()
 		return
-	if not WorldState.add_to_inventory(entry["item_id"], int(entry.get("amount", 0))):
+	if not WorldState.add_to_inventory(entry["item_id"]):
 		HUD.show_feedback("Inventory full.", true)
 		buy_buttons[index].text = "BUY"
 		if buy_buttons[index].has_method("refuse"):

@@ -541,16 +541,18 @@ func _maintenance_key() -> String:
 
 
 func _maintenance_loot(rng: RandomNumberGenerator) -> String:
-	# A maintenance room is where you find repair gear and spare parts: heavily weighted
+	# A maintenance room is where you find repair gear and spare parts: weighted
 	# to Toolbox (019) and Fuse (020), with the odd bank-notes bundle; sometimes empty.
+	# Owner 2026-11-04 ("drop the % of finding toolboxes by half"): the Toolbox share went 0.36 -> 0.18; the Fuse, Scrap
+	# and Notes shares are the widths they always were (0.28 / 0.16 / 0.10) and the room is emptier by the 0.18 given up.
 	var r := rng.randf()
-	if r < 0.36:
-		return "019"   # Toolbox (repairs)
-	elif r < 0.64:
+	if r < 0.18:
+		return "019"   # Toolbox (repairs, one use)
+	elif r < 0.46:
 		return "020"   # Fuse (powers the elevator)
-	elif r < 0.80:
+	elif r < 0.62:
 		return "037"   # Scrap Bag — spare parts, spendable at the workbench right here
-	elif r < 0.90:
+	elif r < 0.72:
 		return "033"   # Bank Notes
 	return ""          # empty this time
 

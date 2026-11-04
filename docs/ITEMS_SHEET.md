@@ -31,7 +31,7 @@
 | 016 | Bullets | is_ammo | per bullet | 2.0 | You can't pew, pew, pew without the metal and gunpowder. You need pew, you need ammo! |
 | 017 | Aluminium Baseball Bat | is_weapon, can_force_lock | 15 uses | 1.0 | Light, sturdy and even more durable than a wooden bat. Aluminium is a real… home run! |
 | 018 | Rope | is_tool | single use | 1.0 | You were home playing games, and now you're abseiling to the floor below. You really didn't think this through. |
-| 019 | Toolbox | is_tool, can_repair | 3 uses | 1.0 | It's like a first aid kit but for items. Need to fix a circuit and get the power back on, or repair an item? YOU NEED TO HAVE YOUR TOOLS! |
+| 019 | Toolbox | is_tool, can_repair | single use | 1.0 | It's like a first aid kit but for items. Need to fix a circuit and get the power back on, or repair an item? YOU NEED TO HAVE YOUR TOOLS! |
 | 020 | Fuse | is_tool | single use | 1.0 | Sometimes, a blown fuse is the difference between life and death. Fortunately all building circuit breakers use the same fuses! |
 | 021 | Battery | is_tool | single use, holds charge state for power | 2.0 | Who would have thought that the humble battery could be so useful for powering up lights, and elevators. For a time… |
 | 022 | Apartment Key | is_key | single use | — | There's a lot of trusting neighbours in this building. |

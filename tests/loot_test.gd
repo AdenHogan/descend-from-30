@@ -75,6 +75,7 @@ func _ready() -> void:
 
 	_test_variant_anchor_pools()
 	await _test_loot_by_depth()
+	_test_owner_balance_2026_11_04()
 
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -181,3 +182,97 @@ func _test_loot_by_depth() -> void:
 	WorldState.dev_seed = 0
 	check(flats == 60 and worst <= WorldState.loot_gear_cap(29),
 		"60 flats on floors 25-29 across 4 buildings: none holds more than %d piece of gear (worst %d)" % [WorldState.loot_gear_cap(29), worst])
+
+
+## The owner's balance changes after a full 30 -> lobby descent (2026-11-04, docs/BALANCE_AUDIT_2026-11-04.md): a Toolbox is ONE use and half as
+## common, bullets found in the world are 15% fewer, cash found is 20% more, ordinary scrap bags 10% bigger. Every number is read back from
+## the game's own draws, and each check fails if the old number is put back.
+func _test_owner_balance_2026_11_04() -> void:
+	print("[owner balance 2026-11-04: toolbox, bullets, cash, scrap]")
+	WorldState.new_game()
+	WorldState.is_first_run = false
+	WorldState.current_run = 1
+	# --- the toolbox: one use, then gone
+	var tb := ItemInstance.new()
+	tb.setup("019")
+	check(ItemData.items["019"]["single_use"] == true and tb.current_durability == 1, "a Toolbox is single use (durability %d)" % tb.current_durability)
+	tb.use()
+	check(tb.is_depleted, "…and one repair spends it")
+	# --- half as common: the pool weights, and the copies the game really deals into nodes
+	var pool: Dictionary = ItemData.room_spawn_pools["Toolbox"]
+	var weights_ok := true
+	for rt in ["kitchen", "study", "dining_room"]:
+		weights_ok = weights_ok and is_equal_approx(float(pool[rt]), 0.5)
+	for rt in ["bedroom", "bathroom", "living_room"]:
+		weights_ok = weights_ok and float(pool[rt]) == 0.0
+	check(weights_ok, "a Toolbox's node weight is 0.5 in the kitchen, study and dining room (was 1), none elsewhere")
+	var copies := 0
+	var expect := 0.0
+	var lucky: float = WorldState.luck_weight(1)
+	for rt in ["kitchen", "study", "dining_room"]:
+		for k in range(200):
+			var apt := "1001"
+			for id in WorldState.get_items_for_anchor("n%d" % k, apt, rt):
+				copies += 1 if id == "019" else 0
+			expect += 0.5 * lucky * WorldState.loot_gear_scale(10)
+	check(copies > 0 and absf(float(copies) - expect) <= 0.30 * expect, "…600 nodes deal %d Toolbox copies (half-weight expectation %.0f; a weight of 1 would be ~%.0f)" % [copies, expect, expect * 2.0])
+	# --- maintenance rooms: the Toolbox share of a room's two nodes halved (0.36 -> 0.18), the fuse's did not move
+	var room_script = load("res://scripts/room.gd").new()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20261104
+	var n_tb := 0
+	var n_fuse := 0
+	var n_scrap := 0
+	var n_empty := 0
+	var draws := 6000
+	for i in range(draws):
+		match room_script._maintenance_loot(rng):
+			"019": n_tb += 1
+			"020": n_fuse += 1
+			"037": n_scrap += 1
+			"": n_empty += 1
+	room_script.free()
+	check(absf(float(n_tb) / draws - 0.18) < 0.02, "a maintenance node holds a Toolbox %.0f%% of the time (was 36%%)" % (100.0 * n_tb / draws))
+	check(absf(float(n_fuse) / draws - 0.28) < 0.025 and absf(float(n_scrap) / draws - 0.16) < 0.02, "…while the Fuse (%.0f%%) and the scrap bag (%.0f%%) keep their shares" % [100.0 * n_fuse / draws, 100.0 * n_scrap / draws])
+	# --- bullets found in the world: the bundle is 15% smaller on average, and the same 3..10 span
+	var LU = load("res://scripts/loot_ui.gd")
+	var total := 0
+	var lo := 99
+	var hi := 0
+	var n := 4000
+	for i in range(n):
+		var b: int = LU.ammo_bundle_for("2004", "anchor_%d" % i)
+		total += b
+		lo = mini(lo, b)
+		hi = maxi(hi, b)
+	var mean := float(total) / n
+	var wsum := 0
+	for w in LU.AMMO_BUNDLE_WEIGHTS:
+		wsum += int(w)
+	check(wsum == 100 and lo >= 3 and hi <= 10, "a bundle is still 3..10 rounds (%d..%d, weights sum %d)" % [lo, hi, wsum])
+	check(absf(mean - 4.74) < 0.12 and mean <= 5.58 * 0.86, "…and averages %.2f rounds, 15%% under the old 5.58" % mean)
+	# --- cash found in the world: +20%
+	check(WorldState.cash_found(10) == 12 and WorldState.cash_found(5) == 6 and WorldState.cash_found(15) == 18 and WorldState.cash_found(100) == 120, "found cash is rolled x1.2 (10 -> 12, 100 -> 120)")
+	WorldState.wallet_unlocked = true
+	WorldState.wallet_balance = 0
+	var cash_n := 3000
+	var cash_lo := 99
+	var cash_hi := 0
+	for i in range(cash_n):
+		var before: int = WorldState.wallet_balance
+		WorldState.add_to_inventory("033")
+		var got: int = WorldState.wallet_balance - before
+		cash_lo = mini(cash_lo, got)
+		cash_hi = maxi(cash_hi, got)
+	var cash_mean := float(WorldState.wallet_balance) / cash_n
+	check(cash_lo >= 6 and cash_hi <= 18 and absf(cash_mean - 12.0) < 0.35, "a found bundle of notes is 6..18, averaging %.2f (was 5..15, mean 10)" % cash_mean)
+	WorldState.add_to_inventory("033", 40)
+	check(WorldState.wallet_balance == int(round(cash_mean * cash_n)) + 40, "…and a bundle handed over with a fixed amount (a gift, quest pay) is NOT scaled")
+	# --- scrap outside the burnt flats: ordinary bags +10%, the charred bag unchanged
+	check(WorldState.SCRAP_BAG_NATURAL == Vector2i(7, 15) and WorldState.SCRAP_BAG_CHARRED == Vector2i(14, 30), "an ordinary scrap bag is 7..15 (was 6..14); a burnt flat's is still 14..30")
+	WorldState.scrap = 0
+	var bags := 2000
+	for i in range(bags):
+		WorldState.add_to_inventory("037")
+	var scrap_mean := float(WorldState.scrap) / bags
+	check(absf(scrap_mean - 11.0) < 0.3, "…ordinary bags average %.2f scrap (was 10: +10%%)" % scrap_mean)
