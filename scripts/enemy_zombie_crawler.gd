@@ -11,7 +11,7 @@ func _ready() -> void:
 	super()
 	SPEED = 26.0                 # SLOW — it crawls (standard is 40)
 	DETECTION_RANGE = 130.0      # still senses you from a fair way and drags over
-	ATTACK_RANGE = 30.0
+	ATTACK_RANGE = 68.0          # its contact floor is 60 (an 80 px body) - +8 like every other melee type
 	ATTACK_DAMAGE = 2            # DOUBLE damage per bite — the trade-off for being slow/weak
 	max_hp = maxi(1, int(round(max_hp * 0.55)))   # fragile
 	current_hp = max_hp
@@ -26,7 +26,7 @@ func _ready() -> void:
 # the wall (that's the drop).
 # ---------------------------------------------------------------------------------------------
 const POUNCE_MAX := 130.0        # starts when the gap (horizontal) is inside this...
-const POUNCE_MIN := 62.0         # ...and outside this (closer than that it simply bites)
+const POUNCE_MIN := 70.0         # ...and outside this (closer than that it simply bites)
 const POUNCE_WIND := 0.55        # the coil (the tell)
 const POUNCE_TIME := 0.26        # the leap
 const POUNCE_SPEED := 330.0

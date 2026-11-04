@@ -674,15 +674,29 @@ func _test_enemy_reach() -> void:
 		var r: Dictionary = await _hits_on_still_player(kind)
 		check(r["dmg"] > 0, "%s lands hits on a still, solid player (dmg %d, closest %.1f, reach %.1f)" % [kind, r["dmg"], r["min_dx"], r["reach"]])
 		check(r["min_dx"] <= r["reach"] + 0.5, "%s's reach covers the gap it can close to" % kind)
-	# Reach numbers: designed range kept, contact + 7 for wide bodies.
+	# Reach numbers (owner round 49m - "extend the range of enemy attack a little bit"): every melee type reaches 8 px further
+	# than before. Literals, not the constants, so a retune has to come here and say so.
 	var std = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
 	add_child(std)
-	check(absf(std._attack_reach() - 30.0) < 0.01, "standard reach stays its designed 30 (%.1f)" % std._attack_reach())
+	check(absf(std._attack_reach() - 38.0) < 0.01, "standard reach is 38, was 30 (%.1f)" % std._attack_reach())
 	std.free()
 	var la = load("res://scenes/enemy_zombie_longarm.tscn").instantiate()
 	add_child(la)
-	check(absf(la._attack_reach() - 62.0) < 0.01, "long-arm reach stays its designed 62 (%.1f)" % la._attack_reach())
+	check(absf(la._attack_reach() - 70.0) < 0.01, "long-arm reach is 70, was 62 (%.1f)" % la._attack_reach())
 	la.free()
+	var cr = load("res://scenes/enemy_zombie_crawler.tscn").instantiate()
+	add_child(cr)
+	check(absf(cr._attack_reach() - 68.0) < 0.01, "crawler reach is 68, was 60 - its body's contact floor (%.1f)" % cr._attack_reach())
+	check(cr.POUNCE_MIN > cr._attack_reach(), "and its pounce starts beyond the bite (%.0f > %.1f)" % [cr.POUNCE_MIN, cr._attack_reach()])
+	cr.free()
+	var bg = load("res://scenes/enemy_zombie_big.tscn").instantiate()
+	add_child(bg)
+	check(absf(bg._attack_reach() - 63.0) < 0.01, "big reach is 63, was 55 - its contact floor (%.1f)" % bg._attack_reach())
+	bg.free()
+	# The player's weakest swing (a knife: 32 px from the body's EDGE, a standard's half-width is 10) must still reach a
+	# standard that can bite - "more dangerous" is not "unwinnable":
+	var knife: float = float(load("res://scripts/player.gd").WEAPON_RANGES["knife"])
+	check(knife + 10.0 >= 38.0, "a knife (%.0f from the edge) still out-reaches the standard's bite (38 from the centre)" % knife)
 
 
 func _test_standard_key_full_pockets() -> void:

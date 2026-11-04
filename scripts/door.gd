@@ -624,9 +624,26 @@ func _enter_apartment() -> void:
 	var player = get_tree().get_first_node_in_group("player")
 	open_door()                                      # it swings in as you step up to it
 	if player != null and player.has_method("approach_door"):
-		player.approach_door(global_position, func(): Transition.to_scene(room_scene))
+		player.approach_door(global_position, _step_through)
 	else:
-		Transition.to_scene(room_scene)
+		_step_through()
+
+
+## The moment the player is through the door: the dead that are chasing them and close enough may come in after them (WorldState "FLAT FOLLOWERS" -
+## decided here, at the door, because this is when the corridor still shows who is on their heels), then the fade into the flat. A maintenance room
+## takes nobody (it is a safe room). The list is cleared first so a stale one can never ride into the wrong room.
+func _step_through() -> void:
+	capture_followers_now()
+	Transition.to_scene(room_scene)
+
+
+## Who comes in after the player (WorldState.capture_flat_followers), asked of the corridor as it stands this instant. Split out so a test can ask it without
+## the fade that follows.
+func capture_followers_now() -> int:
+	WorldState.flat_pending.clear()
+	if is_maintenance:
+		return 0
+	return WorldState.capture_flat_followers(apartment_id, get_tree().get_first_node_in_group("player"))
 
 
 func _is_gun_item(item_data: Dictionary) -> bool:

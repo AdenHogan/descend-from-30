@@ -30,10 +30,13 @@ const TUT_CLUB_DURABILITY = 6
 const TUT_BODY_INSET = 130.0    # the neighbour's body lies this far in from the back wall (clear of the camera's edge + the HUD portrait)
 const TUT_WAKE_RANGE = 135.0    # player gets this close to the body on the floor → the scripted wake-up scene
 const TUT_SEE_RANGE = 200.0     # player gets this close → curiosity + turn + release
-# Matches the zombie's ATTACK_RANGE (30): the beat fires the instant she
-# lunges (she stops to attack at 30, so waiting for closer would never
-# trigger), and the taught push (range 40) connects with margin.
-const TUT_LUNGE_RANGE = 30.0    # zombie this close → the scripted first lunge
+# The first lunge fires the instant she STARTS to bite: her own horizontal gap to the player is inside her own reach
+# (`_attack_reach()`), plus this much slack. It used to be a separate 30 compared with the EUCLIDEAN distance between the two
+# origins, which folds in their ~17 px height gap - so a player who simply stood still was out of the beat's range at the very
+# moment she bit (34.5 > 30): she bit them to death and the shove lesson never came (found in round 49m by a test that stands
+# still; it failed on the old code too). Reading the zombie's own reach also means a later retune of her range cannot strand it.
+# The taught push (range 40) connects with margin.
+const TUT_LUNGE_SLACK = 1.0
 var tut_step: int = -1          # -1 = not the tutorial apartment
 var tut_zombie: Node = null
 var tut_nodes: Array = []       # the three hidden anchors (junk / health / club)
@@ -257,6 +260,10 @@ func _ready() -> void:
 		WorldState.balcony_arrival_hurt = false
 		WorldState.spawn_source = ""
 
+	# The dead that were chasing the player through the door (WorldState "FLAT FOLLOWERS"): taken by EVERY live room so the list can never
+	# ride into a later one; only an ordinary flat plans them (below) - any other room just forgets them, and nothing was changed at the door.
+	var incoming_followers: Array = WorldState.take_flat_followers()
+
 	# Spawn enemies — breached rooms use separate system with Big Zombie boss
 	var door_state = WorldState.get_door_state(apartment_id)
 	var breach_fire := WorldState.apartment_fire_stage(_apt_floor(), _apt_index())
@@ -315,6 +322,7 @@ func _ready() -> void:
 					if not WorldState.apply_saved_zombie(zombie) and pi == on_balcony:
 						_seed_on_balcony(zombie)
 			_spawn_riser(false)
+			_plan_flat_followers(incoming_followers)
 		if afs != WorldState.FIRE_CHARRED and afs != WorldState.FIRE_BLAZE:
 			_spawn_revenant()
 		# Someone hiding in a flat you can walk into (docs/NPC_AI.md) — the dead are about, so they hide.
@@ -2010,7 +2018,7 @@ func _tutorial_process(_delta: float) -> void:
 				tut_step = TutStep.DONE
 				return
 			# First lunge: a scripted bite, then pause and teach the push.
-			if dist <= TUT_LUNGE_RANGE:
+			if absf(player.global_position.x - tut_zombie.global_position.x) <= tut_zombie._attack_reach() + TUT_LUNGE_SLACK:
 				tut_step = TutStep.PUSH
 				if WorldState.is_scavenge_mode:
 					# A shove is a combat move: a player who tapped a node on the way in is still SCAVENGING, and the
@@ -2564,6 +2572,89 @@ func _enter_through_the_door(key: String, pl: Node, door: Node) -> void:
 	crash.play()
 
 
+# --- FLAT FOLLOWERS: the dead that were chasing the player come in after them (WorldState "FLAT FOLLOWERS", owner round 49m) -------------------------
+# Not part of the flat's own roll: they were on the player's heels in the corridor, so they arrive a moment after the player does (`delay`: the gap they had to
+# close at their own pace, 1.5-4.5 s), through the front door, fading in out of the doorway with the door's own creak, passable until clear of the player
+# (`make_way`) and locked on. The corridor's slot for each is marked `followed_away` only once it is in (leave before that and it is still out there). A
+# killed one stays dead (kill memory under its own key); one left alive is standing where it was when the player returns.
+const FOLLOW_DOOR_SFX := preload("res://assets/audio/doors/doorOpen_2.ogg")
+const FOLLOW_FADE := 0.45
+const FOLLOW_ALERT := 12.0
+var _follow_todo: Array = []         # [{origin, kind, hp, delay}] still outside the door
+var _follow_clock := 0.0
+
+
+func _plan_flat_followers(incoming: Array) -> void:
+	_follow_todo.clear()
+	_follow_clock = 0.0
+	# Ones that came in on an earlier visit and were left alive: they are inside, standing where they were.
+	var prefix := WorldState.flat_follow_prefix(apartment_id)
+	for k in WorldState.zombie_positions.keys():
+		var key := str(k)
+		var kind := key.get_slice(":", 4)                 # <floor>:flat_in:<flat>:<origin>:<kind>
+		if not key.begins_with(prefix) or WorldState.killed_zombies.has(key) or not (kind in WorldState.FLAT_FOLLOW_KINDS):
+			continue
+		var z = BREACH_SCENES[kind].instantiate()
+		z.spawn_key = key
+		z.is_follower = true
+		add_child(z)
+		WorldState.apply_saved_zombie(z)
+	for rec in incoming:
+		if rec is Dictionary and str(rec.get("kind", "")) in WorldState.FLAT_FOLLOW_KINDS and str(rec.get("origin", "")) != "":
+			_follow_todo.append(rec)
+
+
+func _followers_tick(delta: float) -> void:
+	if _follow_todo.is_empty():
+		return
+	var pl = get_node_or_null("Player")
+	var door = get_node_or_null("Area2D")
+	if not is_instance_valid(pl) or door == null or pl.get("is_dead") == true or pl.get("is_dying") == true or pl.get("is_cutscene") == true:
+		return
+	_follow_clock += delta
+	var came := 0
+	while not _follow_todo.is_empty() and _follow_clock >= float(_follow_todo[0]["delay"]):
+		if _follower_enters(_follow_todo.pop_front(), door):
+			came += 1
+	if came > 0:
+		HUD.show_feedback("Something followed you in.")
+
+
+## One chaser walks in through the front door. false when it could not (already inside, or already dead here).
+func _follower_enters(rec: Dictionary, door: Node) -> bool:
+	var kind := str(rec["kind"])
+	var origin := str(rec["origin"])
+	var key := WorldState.flat_follow_key(apartment_id, origin, kind)
+	if WorldState.killed_zombies.has(key) or WorldState.zombie_positions.has(key):
+		return false
+	var left := WorldState.get_entrance_side(apartment_id) == "left"
+	var z = BREACH_SCENES[kind].instantiate()
+	z.spawn_key = key
+	z.is_follower = true
+	z.follow_origin = origin
+	z.global_position = Vector2(door.global_position.x + (14.0 if left else -14.0), WorldState.BREACH_SPAWN_Y)
+	add_child(z)
+	z.current_hp = clampi(int(rec.get("hp", z.max_hp)), 1, int(z.max_hp))       # as hurt as it was out in the corridor
+	z.make_way()                                                                 # passable until it is clear of the player: it can never wall them off
+	var spr = z.get_node_or_null("AnimatedSprite2D")
+	if spr != null:
+		spr.modulate.a = 0.0
+		create_tween().tween_property(spr, "modulate:a", 1.0, FOLLOW_FADE)
+	z.alert_to_noise(FOLLOW_ALERT)                                               # no source: it knows where they are
+	WorldState.followed_away[origin] = true                                      # its corridor slot is empty now - no copy out there
+	WorldState.zombie_positions.erase(origin)
+	var creak := AudioStreamPlayer2D.new()
+	creak.stream = FOLLOW_DOOR_SFX
+	creak.pitch_scale = randf_range(0.85, 0.95)
+	creak.volume_db = -2.0
+	creak.max_distance = 1100.0
+	add_child(creak)
+	creak.global_position = z.global_position
+	creak.finished.connect(creak.queue_free)
+	creak.play()
+	return true
+
+
 func _spawn_corpses(floor_num: int, apt_id: String = "") -> void:
 	var scene_path = _own_scene_path()
 	var corpse_positions = WorldState.get_corpse_positions_for_floor(floor_num, scene_path, apt_id)
@@ -2640,6 +2731,7 @@ func _is_player_facing_anchor(anchor: Node) -> bool:
 func _process(_delta: float) -> void:
 	_breach_music_tick(_delta)
 	_entrants_tick(_delta)
+	_followers_tick(_delta)
 	_tutorial_process(_delta)
 	_apartment_fire_process(_delta)
 	_maintenance_process(_delta)

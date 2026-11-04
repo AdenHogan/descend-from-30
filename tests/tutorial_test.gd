@@ -375,6 +375,22 @@ func _test_3003_wake_scene() -> void:
 	check(tz.riser_phase == "" and tz.state == "chase" and not tz.tutorial_frozen and tz.get_collision_layer_value(1) and tz.z_index == 1,
 		"she is up, solid, on the actor layer and coming for them (state %s)" % tz.state)
 	check(is_equal_approx(tz.animated_sprite.rotation, 0.0), "…standing upright")
+	# THE FIRST LUNGE: she closes on a player who just stands there and the scripted lunge beat fires (the shove lesson). Round 49m
+	# raised every enemy's reach (the standard's 30 -> 38); the beat's trigger distance is the same constant, and this was the check
+	# nobody had - with the old 30 she would stop to bite at 38 and the lesson would wait for ever. Waited for in game-seconds.
+	var lunged := false
+	var closest := 9999.0
+	WorldState.god_mode = true        # a failure here must read as a failed check, not a game-over that swaps the scene away
+	var tl0 := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - tl0 < 25000:
+		closest = minf(closest, absf(tz.global_position.x - player.global_position.x))
+		if room.tut_step == room.TutStep.PUSH:
+			lunged = true
+			break
+		await get_tree().physics_frame
+	WorldState.god_mode = false
+	check(lunged, "the first lunge fires the shove lesson with the player standing still (closest %.1f px, step %d)" % [closest, room.tut_step])
+	TutorialManager.cancel()
 	room.queue_free()
 	await get_tree().process_frame
 	# a neighbour killed mid-scene never strands the player

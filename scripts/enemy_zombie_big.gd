@@ -7,7 +7,7 @@ const DETECTION_RANGE = 130.0
 const DETECTION_VARIANCE = 45.0   # +/- band for per-zombie aggro variance
 const SEPARATION_RADIUS = 14.0    # small: allow tight overlap, just avoid perfect stacking
 const SEPARATION_STRENGTH = 12.0
-const ATTACK_RANGE = 50.0
+const ATTACK_RANGE = 63.0   # was 50, but its contact floor (35 + 13 + 7 = 55) won; +8 on what it really reached
 const PUSH_FRICTION = 0.70
 const HIT_DURATION = 0.6
 # No knockdown state — big zombie cannot be knocked down

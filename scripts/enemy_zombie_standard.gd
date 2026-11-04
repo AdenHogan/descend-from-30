@@ -12,7 +12,12 @@ const CROWD_BACKOFF_SPEED := 0.5   # × my speed while shuffling back
 var _crowd_bonus: float = 0.0      # extra reach my crowd rank gave the attack in progress
 var SPEED := 40.0
 var DETECTION_RANGE := 100.0
-var ATTACK_RANGE := 30.0
+# MELEE REACH (owner round 49m: "extend the range of enemy attack a little bit. We need encounters to be more dangerous").
+# Every melee type's reach went up by the same 8 px: standard 30 -> 38, long-arm 62 -> 70, big 55 -> 63 (its contact floor was
+# above its designed 50), crawler 60 -> 68 (contact floor again). The player's own reach is untouched (a hammer 65, a push 40),
+# so a swing still out-ranges the bite - but a step back no longer clears it, and the corridor's last 8 px are now the dead's.
+const STANDARD_ATTACK_RANGE := 38.0
+var ATTACK_RANGE := STANDARD_ATTACK_RANGE
 # Damage one landed hit deals to the player (before the on-fire ×2). Overridable so a
 # subclass can hit harder — the Crawler is slow but strikes for DOUBLE.
 var ATTACK_DAMAGE := 1
@@ -921,7 +926,7 @@ func tutorial_stagger() -> void:
 # player. Reach = max(designed ATTACK_RANGE, contact + the standard's own 7px past contact).
 const PLANE_REACH_TOLERANCE := 48.0   # same as the player's MELEE_PLANE_TOLERANCE
 const PLAYER_HALF_WIDTH := 13.0       # the player's capsule radius
-const REACH_PAST_CONTACT := 7.0       # standard: 30 range - (10 radius + 13) contact
+const REACH_PAST_CONTACT := 7.0       # a body's floor: its contact (radius + the player's 13) + 7 past it
 
 func is_hurt() -> bool:
 	return hurt_timer > 0.0 or state == "knockdown"

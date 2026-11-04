@@ -91,6 +91,11 @@ var story_rule: bool = false
 ## with ONLY what the test put there: a random bat-carrying defender fighting the test's zombies made enemy_variety_test
 ## flaky. Saved (an old save has none = off).
 var survivor_rule: bool = false
+## THE FOLLOW RULE (owner round 49m; below, "FLAT FOLLOWERS"): when on (the real New Game turns it on, like `survivor_rule`), the dead
+## that are chasing you when you step into a flat may come in after you. Off by default for the same reason as the survivor rule - every
+## test that walks into a flat with its own enemies about would otherwise meet a follower on a coin flip. Saved; a save made before this
+## rule inherits `survivor_rule` (the real game's saves have it on), so the owner's existing games get followers too.
+var follow_rule: bool = false
 ## This playthrough casts Joe as its FIRST character (the tutorial's). Decided by new_game, saved with the cast.
 var joe_opens: bool = false
 ## THIS run's personal quest: -1 = not begun, else the stage reached (0 = the opening objective). Per-run (reset by
@@ -1276,6 +1281,7 @@ func new_game() -> void:
 	follower_node = null
 	follower_streak = 0
 	followed_away.clear()
+	flat_pending.clear()
 	merchant_stock.clear()
 	legendary_hold = {}
 	legendary_just_purchased = false
@@ -5532,6 +5538,115 @@ func breach_entrant_delay(apartment_id: String, i: int) -> float:
 	return BREACH_ENTRANT_FIRST_DELAY + BREACH_ENTRANT_GAP * float(i) + rng.randf_range(0.0, 2.5)
 
 
+# FLAT FOLLOWERS (owner round 49m: "enemies following us into apartments. Not always, but improve enemy AI so they are actually threatening. This will tie
+# into the stealth mechanic we need to input with time"): the dead that are ACTIVELY chasing you - on your heels, inside FLAT_FOLLOW_RANGE of the player as
+# they step through a door - may come in after you. NOT every chaser: each (chaser, flat, run) rolls once on a fixed seed (the same answer on every reload;
+# `FLAT_FOLLOW_CHANCE`), and at most `FLAT_FOLLOW_MAX` follow. The tie to stealth is the gate: only something that has actually NOTICED you (a chase or a
+# bite in progress, not an investigation of a noise) follows, so shutting a door on a dead one that never saw you leaves it where it was - when stealth
+# gets its time mechanic (a chase that is lost with distance and time), it plugs in here, at `capture_flat_followers`.
+# Captured at the door as plain data (`flat_pending`) and taken by the room that loads next. NOTHING is mutated at the door: the chaser stays remembered in
+# the corridor where it stood, so leaving before it arrives costs nothing - it is still out there. When it does walk in (room.gd `_follower_enters`), its
+# corridor slot is marked `followed_away` (no duplicate) and it lives under its own `<floor>:flat_in:<flat>:<origin>:<kind>` memory key, killed or
+# remembered like any other body in the flat.
+const FLAT_FOLLOW_CHANCE := {1: 0.5, 2: 0.6, 3: 0.7}
+const FLAT_FOLLOW_MAX := 2
+const FLAT_FOLLOW_RANGE := 170.0
+const FLAT_FOLLOW_KINDS := ["standard", "crawler", "longarm"]    # not the big (no follow), not the spitter (a turret in a short flat)
+const FLAT_FOLLOW_MIN_DELAY := 1.5
+const FLAT_FOLLOW_MAX_DELAY := 4.5
+const FLAT_FOLLOW_GAP := 0.9
+var flat_pending: Array = []                 # TRANSIENT: [{origin, kind, hp, delay}] captured at the door, taken by the room that loads next
+
+
+## The kind of a chaser that is able to follow ("" = cannot): the standard family, by the scene it came from.
+func flat_follow_kind(z: Node) -> String:
+	if z == null or not is_instance_valid(z) or not z.has_method("begin_follow"):
+		return ""
+	var kind := str(z.scene_file_path).get_file().get_basename().trim_prefix("enemy_zombie_")
+	return kind if kind in FLAT_FOLLOW_KINDS else ""
+
+
+## The slot a chaser comes from: the first slot it ever spawned in (a stair follower keeps its origin), else its own key.
+func flat_follow_origin(z: Node) -> String:
+	var o := str(z.get("follow_origin"))
+	return o if o != "" else str(z.get("spawn_key"))
+
+
+func flat_follow_key(apt_id: String, origin: String, kind: String) -> String:
+	return "%s%s:%s" % [flat_follow_prefix(apt_id), origin.replace(":", "_"), kind]
+
+
+func flat_follow_prefix(apt_id: String) -> String:
+	return "%d:flat_in:%s:" % [_apartment_floor(apt_id), apt_id]
+
+
+## Is this flat one a follower may come into? The ordinary flats only: not the tutorial, not floor 30 (its own scripted corridor), not a breach flat (it
+## has its own entrants), and none of the flats that lay their own people instead of the ordinary dead (a quest's, a resident's, a rescue's, a haven, a
+## burning or burnt one - `flat_lays_ordinary_dead`).
+func flat_follow_allowed(apt_id: String) -> bool:
+	if not follow_rule or is_first_run:
+		return false
+	var f := _apartment_floor(apt_id)
+	if f < 1 or f > 29:
+		return false
+	if get_door_state(apt_id) == DoorState.BREACHED:
+		return false
+	return flat_lays_ordinary_dead(apt_id)
+
+
+## One roll per (chaser, flat, run), on a fixed seed: reloading the save or stepping out and in again gives the same answer.
+func flat_follows(apt_id: String, origin: String) -> bool:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(master_seed) + "flatfollow" + apt_id + origin + str(current_run))
+	return rng.randf() < float(FLAT_FOLLOW_CHANCE[clampi(current_run, 1, 3)])
+
+
+## Called by the door at the moment the player steps through it (after the walk up to the door, before the fade). Fills `flat_pending` with the chasers
+## that will come in after them and returns how many. A pure read of the corridor: nothing is changed there.
+func capture_flat_followers(apt_id: String, player: Node2D) -> int:
+	flat_pending.clear()
+	if not flat_follow_allowed(apt_id) or not is_instance_valid(player) or get_tree() == null:
+		return 0
+	var found: Array = []
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if not is_instance_valid(z) or z.get("is_dead") == true:
+			continue
+		var kind := flat_follow_kind(z)
+		if kind == "" or z.get("stair_mode") == true:
+			continue
+		var riser = z.get("riser_phase")                      # (only the crawler has a wall_mode; get() of a property a script does not have is null)
+		var wall = z.get("wall_mode")
+		if (riser != null and str(riser) != "") or (wall != null and str(wall) != ""):
+			continue                                          # lying as a riser, or clinging to a wall: not chasing anyone yet
+		if not (str(z.get("state")) in ["chase", "attack"]):
+			continue                                          # it has not noticed them (or lost them): nothing follows
+		var prey = z.get("prey")
+		if prey != null and is_instance_valid(prey) and not prey.is_in_group("player"):
+			continue                                          # busy with a survivor
+		if absf(float(z.global_position.y) - float(player.global_position.y)) > 48.0:
+			continue
+		var gap := absf(float(z.global_position.x) - float(player.global_position.x))
+		var origin := flat_follow_origin(z)
+		if gap > FLAT_FOLLOW_RANGE or origin == "" or followed_away.has(origin) or not flat_follows(apt_id, origin):
+			continue
+		found.append({"origin": origin, "kind": kind, "hp": int(z.get("current_hp")), "gap": gap, "speed": float(z.get("SPEED"))})
+	found.sort_custom(func(a, b): return float(a["gap"]) < float(b["gap"]))
+	for i in range(mini(found.size(), FLAT_FOLLOW_MAX)):
+		var f: Dictionary = found[i]
+		flat_pending.append({
+			"origin": f["origin"], "kind": f["kind"], "hp": f["hp"],
+			"delay": clampf(float(f["gap"]) / maxf(float(f["speed"]), 1.0), FLAT_FOLLOW_MIN_DELAY, FLAT_FOLLOW_MAX_DELAY) + FLAT_FOLLOW_GAP * float(i),
+		})
+	return flat_pending.size()
+
+
+## The followers the room that just loaded should expect (and forgets them: a second room never sees the same ones).
+func take_flat_followers() -> Array:
+	var out: Array = flat_pending.duplicate(true)
+	flat_pending.clear()
+	return out
+
+
 # The leader's memory key (slot 0's spawn key) — its kill record says the leader's dead.
 func breach_leader_key(apartment_id: String) -> String:
 	var list: Array = get_breached_room_enemies(apartment_id, 150.0, flat_x_hi(apartment_id), BREACH_SPAWN_Y)
@@ -6068,6 +6183,7 @@ func save_game(scene_path: String, record_live_zombies: bool = true) -> void:
 		"backpack_found": backpack_found,
 		"story_rule": story_rule,
 		"survivor_rule": survivor_rule,
+		"follow_rule": follow_rule,
 		"joe_opens": joe_opens,
 		"run_story_stage": run_story_stage,
 		"run_story_flags": run_story_flags,
@@ -6181,6 +6297,7 @@ func load_game() -> String:
 	backpack_found = bool(data.get("backpack_found", has_backpack and packless_rule))
 	story_rule = bool(data.get("story_rule", false))
 	survivor_rule = bool(data.get("survivor_rule", false))
+	follow_rule = bool(data.get("follow_rule", survivor_rule))
 	joe_opens = bool(data.get("joe_opens", false))
 	run_story_stage = int(data.get("run_story_stage", -1))
 	run_story_flags = Dictionary(data.get("run_story_flags", {}))
