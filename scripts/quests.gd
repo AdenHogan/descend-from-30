@@ -358,10 +358,8 @@ static func make_gun(preset: String) -> ItemInstance:
 	var p: Dictionary = GUN_PRESETS.get(preset, GUN_PRESETS["johnny"])
 	var inst := ItemInstance.new()
 	inst.setup(str(p["item"]))
-	var base_max: int = inst.get_max_durability()
 	inst.level = int(p["level"])
 	inst.perks = p["perks"].duplicate()
-	WorldState._apply_durability_headroom(inst, base_max)
 	if inst.get_max_durability() > 0:
 		inst.current_durability = inst.get_max_durability()
 	inst.mag_count = mini(int(p["rounds"]), inst.get_mag_cap())

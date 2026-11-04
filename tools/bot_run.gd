@@ -288,13 +288,11 @@ func _give_kit() -> void:
 			if inst2.item_id == "002":
 				while inst2.level < hammer_level:
 					var choices: Array = WeaponUpgrades.next_choices(inst2)
-					var base_max: int = inst2.get_max_durability()
 					inst2.level += 1
 					if not choices.is_empty():
 						inst2.perks.append(choices[0])
 					elif WeaponUpgrades.auto_perk(inst2.item_id, inst2.level) != "":
 						inst2.perks.append(WeaponUpgrades.auto_perk(inst2.item_id, inst2.level))
-					WorldState._apply_durability_headroom(inst2, base_max)
 				if inst2.get_max_durability() > 0:
 					inst2.current_durability = inst2.get_max_durability()
 				break

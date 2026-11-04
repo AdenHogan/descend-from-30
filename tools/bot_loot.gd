@@ -1498,13 +1498,13 @@ func _bench_wanted() -> bool:
 	for inst in WorldState.inventory:
 		if inst.is_depleted and Salvage.can_salvage(inst):
 			return true
-		if WeaponUpgrades.can_upgrade(inst.item_id) and WeaponUpgrades.points_free(inst) > 0:
+		if WeaponUpgrades.repair_cost(inst) > 0 and WorldState.scrap >= WeaponUpgrades.repair_cost(inst):
 			return true
 	return false
 
 
 ## One sitting at the bench, driven through the screen's own methods: break down what is broken, raise the best weapons as far as the
-## scrap goes, spend the tuning points, and note every refusal (the sweep reads them to see what stops a player).
+## scrap goes, mend what is worn with what is left, and note every refusal (the sweep reads them to see what stops a player).
 func _bench_session(ui) -> void:
 	count("bench_sessions")
 	var scrap_in: int = WorldState.scrap
@@ -1547,34 +1547,23 @@ func _bench_session(ui) -> void:
 				break
 			count("bench_upgrades")
 			bot._event("BENCH", "floor %d: %s is now level %d" % [WorldState.current_floor, inst.get_display_name(), inst.level])
-	# 3. spend the tuning points
+	# 3. mend what is worn with the scrap that is left (the weapon in hand first)
 	for inst in order:
 		var slot3: int = WorldState.inventory.find(inst)
-		if slot3 < 0 or WeaponUpgrades.points_free(inst) <= 0:
+		if slot3 < 0:
 			continue
-		ui.select_weapon(slot3)
-		for stat_id in WeaponUpgrades.stats_for(inst.item_id):
-			var guard := 0
-			while WeaponUpgrades.points_free(inst) - _staged_points(ui) > 0 and guard < 6:
-				guard += 1
-				var before: int = _staged_points(ui)
-				ui.stage_point(str(stat_id), 1)
-				if _staged_points(ui) == before:
-					break
-		if _staged_points(ui) > 0:
-			var terr: String = ui.set_tuning()
-			if terr != "":
-				bot._anomaly("TUNE_REFUSED", "floor %d: tuning refused: %s" % [WorldState.current_floor, terr])
-			else:
-				count("bench_tuned")
+		var cost: int = WeaponUpgrades.repair_cost(inst)
+		if cost <= 0:
+			continue
+		if WorldState.scrap < cost:
+			count("bench_repair_short")
+			continue
+		var rerr: String = ui.repair(slot3)
+		if rerr != "":
+			bot._anomaly("REPAIR_REFUSED", "floor %d: repair refused: %s" % [WorldState.current_floor, rerr])
+		else:
+			count("bench_repaired")
 	count("bench_scrap_spent", maxi(0, scrap_in - WorldState.scrap))
-
-
-func _staged_points(ui) -> int:
-	var n := 0
-	for k in ui.staged:
-		n += int(ui.staged[k])
-	return n
 
 
 ## The looter's state in one line (the bot's --trace prints it with every status line).

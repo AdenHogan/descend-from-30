@@ -138,7 +138,7 @@ func _kit() -> void:
 		if it.item_id in ["002", "003", "012", "013", "014", "015", "016", "017", "018", "021", "025", "026", "027", "028", "029"]:
 			var kind := "bat"
 			var dmg: int = int(Player.WEAPON_DAMAGE.get(kind, 1)) + WorldState.get_melee_damage_bonus() + int(it.perk_add("damage"))
-			line += "   [blunt: damage %d (3 base +%d perks), cooldown x%.2f -> %.2f s, reach +%.0f, perks %s, tuning %s]" % [dmg, int(it.perk_add("damage")), it.perk_mult("cooldown"), 0.8 * it.perk_mult("cooldown"), it.perk_add("reach"), str(it.perks), str(it.tuning)]
+			line += "   [blunt: damage %d (3 base +%d perks), cooldown x%.2f -> %.2f s, reach +%.0f, perks %s]" % [dmg, int(it.perk_add("damage")), it.perk_mult("cooldown"), 0.8 * it.perk_mult("cooldown"), it.perk_add("reach"), str(it.perks)]
 		elif it.item_id == "004":
 			line += "   [gun: mag %d, head +%.2f body +%.2f from the gun's perks, run bonus head +%.2f body +%.2f, perks %s]" % [it.mag_count, it.perk_add("headshot"), it.perk_add("body"), WorldState.get_headshot_bonus(), WorldState.get_body_bonus(), str(it.perks)]
 		print(line)

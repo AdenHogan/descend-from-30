@@ -21,9 +21,9 @@ func _weapon(id: String, level: int = 1, uses: int = -1):
 	if level >= WeaponUpgrades.REINFORCE_LEVEL:
 		var auto: String = WeaponUpgrades.auto_perk(id, WeaponUpgrades.REINFORCE_LEVEL)
 		if auto != "":
-			var base_max: int = inst.get_max_durability()
 			inst.perks.append(auto)
-			WorldState._apply_durability_headroom(inst, base_max)      # the bench adds the new headroom to what is left (a real upgrade does the same)
+	if inst.get_max_durability() > 0:
+		inst.current_durability = inst.get_max_durability()           # a weapon built for the fixture is whole (an upgrade no longer mends it, so say so)
 	if uses >= 0:
 		inst.current_durability = uses
 	return inst

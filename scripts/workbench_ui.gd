@@ -1,14 +1,14 @@
 extends CanvasLayer
 
 # THE WORKBENCH (docs/SCRAP_UPGRADES.md) — opened at a maintenance room's bench. Pauses the game
-# (like the journal / shop). Three tabs share one list of the weapons you carry:
+# (like the journal / shop). Three tabs:
 #   UPGRADE — the next level: what it NEEDS (scrap, any spare stripped for parts — each ticked or crossed against what you HAVE) and what it gives.
-#             Lv2 is the plain first step (nothing to choose); from Lv3 a weapon picks one of two upgrades and earns tuning points.
+#             Lv2 is the plain first step (nothing to choose); from Lv3 a weapon picks one of two upgrades (specials, stats like Weight and Reach, or its tree's pair).
 #             Past Legendary (Lv5) it's the HEIRLOOM forge: scrap put in by instalments (it rides the weapon) and a door-crossing requirement.
-#   TUNE    — spend the weapon's tuning points on its own stat sheet (stage with − / +, then "Set in steel" — points, once set, are set).
-#             A legendary weapon can be renamed here.
+#             A legendary weapon can be renamed here (the field takes the place of its name in the header). An upgrade never mends the weapon.
+#   REPAIR  — scrap mends a worn, broken or damaged weapon in full (round 49m): every one that needs it, with its price; the Toolbox is the free way.
 #   SALVAGE — break carried items down for scrap (values in Salvage, action WorldState.salvage_item).
-# All rules/costs/perks/stats live in WeaponUpgrades; the actions are WorldState.upgrade_weapon / tune_weapon / forge_heirloom / rename_weapon. Built in code (no .tscn).
+# All rules/costs/perks/prices live in WeaponUpgrades; the actions are WorldState.upgrade_weapon / repair_weapon / forge_heirloom / rename_weapon. Built in code (no .tscn).
 # Close: ×, ESC.
 # LAMPLIGHT look (owner round 48l: "a big UI disconnect. So many different font styles, colours, and types of text… too many longer bits of text which are small and tough to read… clear
 # and concise"; "didn't we change this back to the black and gold version?"): the dark glass + brass kit of scripts/lamp.gd, ONE type scale (Lamp.PX_*), no handwriting, and ONE verb —
@@ -24,17 +24,8 @@ const RIGHT_W := W - RIGHT_X - PAD     # 612
 const FORGE_STEP := 25                 # "Put in 25" at the heirloom forge
 const BTN_W := 210.0
 const BTN_H := 46.0
-# The tune grid's columns (name | pips | − | + | effect) plus the 4 gaps of TUNE_GAP must fit the right pane (tests/weapon_upgrade_test checks it).
-const TUNE_NAME_W := 130.0
-const TUNE_PIPS_W := 150.0
-const TUNE_BTN_W := 40.0
-const TUNE_GAP := 10.0
-const TUNE_DESC_W := RIGHT_W - TUNE_NAME_W - TUNE_PIPS_W - 2.0 * TUNE_BTN_W - 4.0 * TUNE_GAP
-const TUNE_ROW_H := 44.0
-
 var selected_slot: int = -1
 var chosen_perk: String = ""
-var staged: Dictionary = {}            # TUNE: {stat id: ranks staged but not yet set}
 var _prev_paused := false
 
 var _card: Control = null
@@ -42,7 +33,7 @@ var _backdrop: TextureRect = null
 var _scrap_label: Label = null
 var _list: VBoxContainer = null
 var _list_hint: Label = null
-var _w_name: Label = null              # the weapon's name and level, above the Upgrade and Tune pages
+var _w_name: Label = null              # the weapon's name and level, above the Upgrade page
 var _w_tier: Label = null
 var _up_perks: Label = null
 var _next_caption: Label = null
@@ -51,18 +42,16 @@ var _forge_box: VBoxContainer = null
 var _needs: LampNeeds = null
 var _upgrade_btn: LampButton = null
 var _msg: Label = null
-var tab := "upgrade"                 # "upgrade" | "tune" | "salvage"
+var tab := "upgrade"                 # "upgrade" | "repair" | "salvage"
 var _upgrade_page: Control = null
-var _tune_page: Control = null
+var _repair_page: Control = null
 var _salvage_page: Control = null
 var _salvage_grid: VBoxContainer = null
-var _tune_grid: GridContainer = null
-var _points_label: Label = null
-var _set_btn: LampButton = null
-var _name_row: HBoxContainer = null
+var _repair_grid: VBoxContainer = null
+var _name_row: Control = null          # a legendary weapon's name field (+ RENAME), in the header where its name is
 var _name_edit: LineEdit = null
 var _tab_up: LampButton = null
-var _tab_tune: LampButton = null
+var _tab_repair: LampButton = null
 var _tab_salv: LampButton = null
 var _confirm_salvage: Object = null  # the item whose Break down was pressed once (confirm)
 var _msg_kind := "hint"              # "hint" (the tab's own guidance) | "err" | "ok"
@@ -110,8 +99,8 @@ func _ready() -> void:
 
 	_tab_up = _tab_button("UPGRADE", Vector2(PAD, 66))
 	_tab_up.pressed.connect(func(): show_tab("upgrade"))
-	_tab_tune = _tab_button("TUNE", Vector2(PAD + 156.0, 66))
-	_tab_tune.pressed.connect(func(): show_tab("tune"))
+	_tab_repair = _tab_button("REPAIR", Vector2(PAD + 156.0, 66))
+	_tab_repair.pressed.connect(func(): show_tab("repair"))
 	_tab_salv = _tab_button("SALVAGE", Vector2(PAD + 312.0, 66))
 	_tab_salv.pressed.connect(func(): show_tab("salvage"))
 	var rule := ColorRect.new()
@@ -121,7 +110,7 @@ func _ready() -> void:
 	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_card.add_child(rule)
 
-	# The weapon list (shared by Upgrade + Tune).
+	# The weapon list (the Upgrade page).
 	_list_hint = Lamp.label("YOUR WEAPONS", "label", Lamp.PX_LABEL, Lamp.LABEL)
 	_list_hint.position = Vector2(PAD, 128)
 	_card.add_child(_list_hint)
@@ -131,7 +120,7 @@ func _ready() -> void:
 	_list.add_theme_constant_override("separation", 8)
 	_card.add_child(_list)
 
-	# The name + level of the weapon shown (Upgrade + Tune).
+	# The name + level of the weapon shown (Upgrade).
 	_w_name = Lamp.label("", "head", Lamp.PX_NAME, Lamp.TEXT)
 	_w_name.position = Vector2(RIGHT_X, 124)
 	_w_name.size = Vector2(RIGHT_W - 180.0, 36)
@@ -144,11 +133,12 @@ func _ready() -> void:
 	_card.add_child(_w_tier)
 
 	_upgrade_page = _page()
-	_tune_page = _page()
+	_repair_page = _page()
 	_salvage_page = _page()
 	_build_upgrade_page()
-	_build_tune_page()
+	_build_repair_page()
 	_build_salvage_page()
+	_build_name_row()
 
 	_msg = Lamp.label("", "body", Lamp.PX_BODY, Lamp.SOFT, true)
 	_msg.position = Vector2(PAD, H - 62.0)
@@ -212,28 +202,21 @@ func _build_upgrade_page() -> void:
 	_upgrade_page.add_child(_upgrade_btn)
 
 
-func _build_tune_page() -> void:
-	_points_label = Lamp.label("", "body", Lamp.PX_BODY, Lamp.BRASS)
-	_points_label.position = Vector2(RIGHT_X, 162)
-	_points_label.size = Vector2(300, 30)
-	_tune_page.add_child(_points_label)
-	_tune_grid = GridContainer.new()
-	_tune_grid.columns = 5                 # name | pips | − | + | what a rank does
-	_tune_grid.position = Vector2(RIGHT_X, 200)
-	_tune_grid.add_theme_constant_override("h_separation", int(TUNE_GAP))
-	_tune_grid.add_theme_constant_override("v_separation", 4)
-	_tune_page.add_child(_tune_grid)
+## The legendary weapon's name field: it takes the place of the name label in the header (Upgrade tab, only while a legendary weapon is shown).
+func _build_name_row() -> void:
 	_name_row = HBoxContainer.new()
-	_name_row.position = Vector2(RIGHT_X + 330.0, 156)
+	_name_row.position = Vector2(RIGHT_X, 122)
+	_name_row.size = Vector2(RIGHT_W - 180.0, 40)
 	_name_row.add_theme_constant_override("separation", 8)
-	_tune_page.add_child(_name_row)
-	_name_row.add_child(Lamp.label("NAME", "label", Lamp.PX_LABEL, Lamp.LABEL))
+	_name_row.visible = false
+	_upgrade_page.add_child(_name_row)
 	_name_edit = LineEdit.new()                      # a dark well with a brass caret, in the kit's own body face
 	_name_edit.max_length = WeaponUpgrades.TITLE_MAX_LEN
-	_name_edit.custom_minimum_size = Vector2(150, 36)
+	_name_edit.custom_minimum_size = Vector2(RIGHT_W - 180.0 - 120.0, 38)
+	_name_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_name_edit.add_theme_font_override("font", Lamp.font("body"))
 	_name_edit.add_theme_font_size_override("font_size", Lamp.PX_BODY)
-	_name_edit.add_theme_color_override("font_color", Lamp.TEXT)
+	_name_edit.add_theme_color_override("font_color", Lamp.BRASS_HI)
 	_name_edit.add_theme_color_override("caret_color", Lamp.BRASS_HI)
 	var well := StyleBoxFlat.new()
 	well.bg_color = Lamp.WELL
@@ -248,18 +231,24 @@ func _build_tune_page() -> void:
 	_name_row.add_child(_name_edit)
 	var nb := LampButton.new()
 	nb.text = "RENAME"
-	nb.custom_minimum_size = Vector2(112, 36)
+	nb.custom_minimum_size = Vector2(112, 38)
 	nb.pressed.connect(func(): rename(_name_edit.text))
 	_name_row.add_child(nb)
-	_set_btn = LampButton.new()
-	_set_btn.text = "SET IN STEEL"
-	_set_btn.solid = true
-	_set_btn.px = Lamp.PX_NAME
-	_set_btn.position = Vector2(W - PAD - BTN_W, H - 62.0)
-	_set_btn.size = Vector2(BTN_W, BTN_H)
-	_set_btn.custom_minimum_size = Vector2(BTN_W, BTN_H)
-	_set_btn.pressed.connect(_on_set_pressed)
-	_tune_page.add_child(_set_btn)
+
+
+func _build_repair_page() -> void:
+	var rhint := Lamp.label("Scrap mends a worn weapon. Upgrading does not.", "body", Lamp.PX_BODY, Lamp.SOFT)
+	rhint.position = Vector2(PAD, 128)
+	_repair_page.add_child(rhint)
+	var scroll := ScrollContainer.new()
+	scroll.position = Vector2(PAD, 166)
+	scroll.size = Vector2(W - 2.0 * PAD, H - 166.0 - 76.0)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_repair_page.add_child(scroll)
+	_repair_grid = VBoxContainer.new()
+	_repair_grid.custom_minimum_size = Vector2(W - 2.0 * PAD - 12.0, 0)
+	_repair_grid.add_theme_constant_override("separation", 8)
+	scroll.add_child(_repair_grid)
 
 
 func _build_salvage_page() -> void:
@@ -280,7 +269,6 @@ func _build_salvage_page() -> void:
 func show_tab(which: String) -> void:
 	tab = which
 	_confirm_salvage = null
-	staged = {}
 	_clear_msg()
 	refresh()
 
@@ -292,7 +280,6 @@ func open() -> void:
 	_arrive()
 	selected_slot = -1
 	chosen_perk = ""
-	staged = {}
 	_clear_msg()
 	tab = "upgrade"
 	_confirm_salvage = null
@@ -335,7 +322,6 @@ func upgradable_slots() -> Array:
 func select_weapon(slot: int) -> void:
 	selected_slot = slot
 	chosen_perk = ""
-	staged = {}
 	_clear_msg()
 	refresh()
 
@@ -354,11 +340,6 @@ func _selected():
 func _on_upgrade_pressed() -> void:
 	if confirm() != "":
 		_upgrade_btn.refuse()
-
-
-func _on_set_pressed() -> void:
-	if set_tuning() != "":
-		_set_btn.refuse()
 
 
 # Apply the next level. Returns "" on success, else why not (also shown at the foot of the panel).
@@ -381,16 +362,13 @@ func confirm() -> String:
 	chosen_perk = ""
 	_play_clank()
 	refresh()
-	var pts := ""
-	if inst.level > WeaponUpgrades.REINFORCE_LEVEL:
-		pts = " +%d tuning points — spend them on TUNE." % WeaponUpgrades.POINTS_PER_LEVEL
 	if not was_titled and inst.title != "":
-		_say_ok("LEGENDARY. It has earned a name: \"%s\".%s" % [inst.title, pts])
+		_say_ok("LEGENDARY. It has earned a name: \"%s\"." % inst.title)
 	else:
 		var perk_part := (" — " + perk_name) if perk_name != "" and inst.level != WeaponUpgrades.REINFORCE_LEVEL else ""
 		if inst.level == WeaponUpgrades.REINFORCE_LEVEL:
 			perk_part = " — Reinforced"
-		_say_ok("Upgraded to %s%s.%s" % [_tier_word(inst, true), perk_part, pts])
+		_say_ok("Upgraded to %s%s." % [_tier_word(inst, true), perk_part])
 	return ""
 
 
@@ -407,39 +385,26 @@ func forge(amount: int) -> String:
 	_play_clank()
 	refresh()
 	if inst.level > before:
-		_say_ok("Upgraded to %s. Every stat can go one rank higher." % _tier_word(inst, true))
+		_say_ok("Upgraded to %s." % _tier_word(inst, true))
 	else:
 		_say_ok("Put in %d scrap. It stays in the weapon." % (inst.forge_paid - paid_before))
 	return ""
 
 
-# --- TUNE ------------------------------------------------------------------------------
-func stage_point(stat_id: String, delta: int) -> void:
-	var inst = _selected()
+# --- REPAIR ----------------------------------------------------------------------------
+## Mend the item in inventory slot `slot` for scrap. "" on success, else why not (also shown at the foot, in red).
+func repair(slot: int) -> String:
+	var inst = WorldState.get_instance_at(slot)
 	if inst == null:
-		return
-	var n: int = maxi(0, int(staged.get(stat_id, 0)) + delta)
-	var trial := staged.duplicate()
-	trial[stat_id] = n
-	if delta > 0 and WeaponUpgrades.tuning_error(inst, trial) != "":
-		_say(WeaponUpgrades.tuning_error(inst, trial))
-		return
-	staged = trial
-	_clear_msg()
-	refresh()
-
-
-func set_tuning() -> String:
-	var inst = _selected()
-	if inst == null:
-		return _say("Pick a weapon first.")
-	var err: String = WorldState.tune_weapon(selected_slot, staged)
+		return _say("Nothing there.")
+	var cost: int = WeaponUpgrades.repair_cost(inst)
+	var disp_name: String = inst.get_display_name()
+	var err: String = WorldState.repair_weapon(slot)
 	if err != "":
 		return _say(err)
-	staged = {}
 	_play_clank()
 	refresh()
-	return _say_ok("Set in steel. It's yours.")
+	return _say_ok("%s mended for %d scrap." % [disp_name, cost])
 
 
 func rename(text: String) -> String:
@@ -477,20 +442,20 @@ func _say_ok(t: String) -> String:
 
 
 func _hint_for_tab() -> String:
-	if tab == "tune":
-		return "One point raises one stat, for good. Points come from upgrading, from Lv%d." % (WeaponUpgrades.REINFORCE_LEVEL + 1)
+	if tab == "repair":
+		return "A repair is paid in scrap, and it competes with the next upgrade."
 	return ""
 
 
 func refresh() -> void:
 	_scrap_label.text = str(WorldState.scrap)
 	_tab_up.button_pressed = tab == "upgrade"
-	_tab_tune.button_pressed = tab == "tune"
+	_tab_repair.button_pressed = tab == "repair"
 	_tab_salv.button_pressed = tab == "salvage"
 	_upgrade_page.visible = tab == "upgrade"
-	_tune_page.visible = tab == "tune"
+	_repair_page.visible = tab == "repair"
 	_salvage_page.visible = tab == "salvage"
-	var weapons := tab != "salvage"
+	var weapons := tab == "upgrade"
 	_list.visible = weapons
 	_list_hint.visible = weapons
 	_w_name.visible = weapons
@@ -500,12 +465,12 @@ func refresh() -> void:
 	if tab == "salvage":
 		_refresh_salvage()
 		return
+	if tab == "repair":
+		_refresh_repair()
+		return
 	_refresh_list()
 	_refresh_head()
-	if tab == "tune":
-		_refresh_tune()
-	else:
-		_refresh_upgrade()
+	_refresh_upgrade()
 
 
 func _refresh_list() -> void:
@@ -514,8 +479,7 @@ func _refresh_list() -> void:
 		var inst = WorldState.inventory[i]
 		var b := LampButton.new()
 		b.text = inst.get_display_name()
-		var pts: int = WeaponUpgrades.points_free(inst)
-		b.tag = ("%d PT%s" % [pts, "" if pts == 1 else "S"]) if tab == "tune" and pts > 0 else inst.tier_tag().to_upper()
+		b.tag = inst.tier_tag().to_upper()
 		b.toggle_mode = true
 		b.button_pressed = i == selected_slot
 		b.align_left = true
@@ -527,11 +491,18 @@ func _refresh_list() -> void:
 ## The weapon shown: its name (brass-gold once Legendary) and its level in a word.
 func _refresh_head() -> void:
 	var inst = _selected()
+	_name_row.visible = false
+	_w_name.visible = tab == "upgrade"
 	if inst == null or not WeaponUpgrades.can_upgrade(inst.item_id):
 		_w_name.text = "NO WEAPON" if upgradable_slots().is_empty() else "PICK A WEAPON"
 		_w_name.add_theme_color_override("font_color", Lamp.DIM)
 		_w_tier.text = ""
 		return
+	if inst.level >= WeaponUpgrades.LEGENDARY_LEVEL and tab == "upgrade":
+		_name_row.visible = true                 # a legendary weapon: its name is a field (and RENAME), where the label was
+		_w_name.visible = false
+		if not _name_edit.has_focus():
+			_name_edit.text = inst.title
 	_w_name.text = inst.get_display_name()
 	_w_name.add_theme_color_override("font_color", Lamp.BRASS_HI if inst.level >= WeaponUpgrades.LEGENDARY_LEVEL else Lamp.TEXT)
 	_w_tier.text = _tier_word(inst, false)
@@ -580,8 +551,6 @@ func _refresh_upgrade() -> void:
 		return
 	var to: int = inst.level + 1
 	var caption := "NEXT   LV %d" % to if to < WeaponUpgrades.LEGENDARY_LEVEL else "NEXT   " + WeaponUpgrades.tier_name(to).to_upper()
-	if to > WeaponUpgrades.REINFORCE_LEVEL:
-		caption += "   ·   +%d TUNING POINTS" % WeaponUpgrades.POINTS_PER_LEVEL
 	_next_caption.text = caption
 	var choices: Array = WeaponUpgrades.next_choices(inst)
 	var k := 0
@@ -593,7 +562,7 @@ func _refresh_upgrade() -> void:
 			var rd: Dictionary = WeaponUpgrades.perk(WeaponUpgrades.auto_perk(inst.item_id, to))
 			_perk_box.add_child(_info_card("UPGRADE", String(rd.get("name", "Reinforced")), String(rd.get("desc", ""))))
 		else:
-			_perk_box.add_child(_info_card("UPGRADE", "Every special taken", "This level only gives it %d more tuning points." % WeaponUpgrades.POINTS_PER_LEVEL))
+			_perk_box.add_child(_info_card("UPGRADE", "Nothing new to take", "Every upgrade it can have is taken. This level only toughens it (+15% durability ceiling)."))
 	# What it needs, ticked or crossed against what you have.
 	var rows: Array = []
 	var scrap_need: int = int(chk["scrap"])
@@ -632,7 +601,10 @@ func _perk_card(inst, pid: String, _index: int) -> Control:
 	card.custom_minimum_size = Vector2((RIGHT_W - 14.0) * 0.5, 200)
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	card.held = pid == chosen_perk
-	card.content.add_child(Lamp.label("A SPECIAL" if special else "AN UPGRADE", "label", Lamp.PX_LABEL, Lamp.BRASS_HI if special else Lamp.LABEL))
+	var caption := "A SPECIAL" if special else "AN UPGRADE"
+	if WeaponUpgrades.is_stat(pid):
+		caption = "A STAT   ·   RANK %d OF %d" % [WeaponUpgrades.rank_of(inst, pid) + 1, WeaponUpgrades.cap_at(inst.level + 1, pid)]
+	card.content.add_child(Lamp.label(caption, "label", Lamp.PX_LABEL, Lamp.BRASS_HI if special else Lamp.LABEL))
 	var nm := Lamp.label(String(d.get("name", pid)), "head", Lamp.PX_NAME, Lamp.TEXT)
 	nm.clip_text = true
 	card.content.add_child(nm)
@@ -707,63 +679,38 @@ func _refresh_forge(inst) -> void:
 	_upgrade_btn.visible = false
 
 
-func _refresh_tune() -> void:
-	_clear(_tune_grid)
-	var inst = _selected()
-	if inst == null or not WeaponUpgrades.can_upgrade(inst.item_id):
-		_points_label.text = "Bring a weapon to tune."
-		_set_btn.looks_off = true
-		_name_row.visible = false
-		return
-	var staged_total := 0
-	for id in staged:
-		staged_total += int(staged[id])
-	var earned: int = WeaponUpgrades.points_earned(inst)
-	var free: int = WeaponUpgrades.points_free(inst) - staged_total
-	if earned == 0:
-		_points_label.text = "No tuning points yet."
-	else:
-		_points_label.text = "POINTS   %d free of %d%s" % [free, earned, ("   (%d staged)" % staged_total) if staged_total > 0 else ""]
-	for id in WeaponUpgrades.stats_for(inst.item_id):
-		var st: Dictionary = WeaponUpgrades.stat(id)
-		var have: int = int(inst.tuning.get(id, 0))
-		var add: int = int(staged.get(id, 0))
-		var cap: int = WeaponUpgrades.cap_for(inst, id)
-		var n := Lamp.label(String(st["name"]), "head", Lamp.PX_BODY, Lamp.TEXT)
-		n.custom_minimum_size = Vector2(TUNE_NAME_W, TUNE_ROW_H)
+func _refresh_repair() -> void:
+	_clear(_repair_grid)
+	var any := false
+	for i in WorldState.inventory.size():
+		var inst = WorldState.inventory[i]
+		var cost: int = WeaponUpgrades.repair_cost(inst)
+		if cost <= 0:
+			continue
+		any = true
+		var disp_name: String = inst.get_display_name()
+		if inst.level > 1:
+			disp_name += "  " + inst.tier_label()
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 16)
+		_repair_grid.add_child(row)
+		var n := Lamp.label(disp_name, "head", Lamp.PX_BODY, Lamp.BRASS_HI if inst.level >= WeaponUpgrades.LEGENDARY_LEVEL else Lamp.TEXT)
+		n.custom_minimum_size = Vector2(330, 44)
 		n.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		_tune_grid.add_child(n)
-		var pips := LampPips.new()                    # a rank is one box: filled = set, outlined = staged, empty = still to earn
-		pips.box = 16.0
-		pips.gap = 5.0
-		pips.custom_minimum_size = Vector2(TUNE_PIPS_W, TUNE_ROW_H)
-		pips.setup(have, add, cap)
-		_tune_grid.add_child(pips)
-		var minus := LampButton.new()
-		minus.text = "−"
-		minus.px = Lamp.PX_NAME
-		minus.custom_minimum_size = Vector2(TUNE_BTN_W, 36)
-		minus.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		minus.looks_off = add <= 0
-		minus.pressed.connect(stage_point.bind(id, -1))
-		_tune_grid.add_child(minus)
-		var plus := LampButton.new()
-		plus.text = "+"
-		plus.px = Lamp.PX_NAME
-		plus.custom_minimum_size = Vector2(TUNE_BTN_W, 36)
-		plus.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		plus.looks_off = free <= 0 or have + add >= cap
-		plus.pressed.connect(stage_point.bind(id, 1))
-		_tune_grid.add_child(plus)
-		var d := Lamp.label(String(st["desc"]), "body", Lamp.PX_LABEL, Lamp.SOFT, true)
-		d.custom_minimum_size = Vector2(TUNE_DESC_W, TUNE_ROW_H)           # a rank's effect wraps inside the panel
-		d.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		_tune_grid.add_child(d)
-	_set_btn.looks_off = staged_total <= 0
-	var legendary: bool = inst.level >= WeaponUpgrades.LEGENDARY_LEVEL
-	_name_row.visible = legendary
-	if legendary and not _name_edit.has_focus():
-		_name_edit.text = inst.title
+		n.clip_text = true
+		row.add_child(n)
+		var st := Lamp.label(_condition(inst), "body", Lamp.PX_BODY, Lamp.RED if inst.is_depleted else Lamp.SOFT)
+		st.custom_minimum_size = Vector2(250, 44)
+		st.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		row.add_child(st)
+		var b := LampButton.new()
+		b.custom_minimum_size = Vector2(240, 44)
+		b.text = "REPAIR   %d SCRAP" % cost
+		b.looks_off = WorldState.scrap < cost             # dim but pressable: pressing says what is short, in red
+		b.pressed.connect(func(): if repair(i) != "": b.refuse())
+		row.add_child(b)
+	if not any:
+		_repair_grid.add_child(Lamp.label("Nothing you're carrying needs mending.", "body", Lamp.PX_BODY, Lamp.DIM))
 
 
 # --- SALVAGE ---------------------------------------------------------------------------

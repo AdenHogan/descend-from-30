@@ -1,34 +1,37 @@
 class_name WeaponUpgrades
 extends RefCounted
 
-# THE WORKBENCH'S RULES (docs/SCRAP_UPGRADES.md) — one data table, edited in one place.
+# THE WORKBENCH'S RULES (docs/SCRAP_UPGRADES.md) - one data table, edited in one place.
 #
 # A weapon climbs EIGHT levels:
-#   Lv2    REINFORCED      — the first, CHEAP step (30 scrap, no spare, no choice, no tuning points): the
-#                            weapon is tougher (+15% durability) and hits harder (+1 damage / +5% to hit) (owner round 48i: "a taste of
-#                            upgrading" — `R_melee` / `R_gun` below). Every weapon, always, so a character
-#                            who reaches the first bench has something affordable to try.
-#   Lv3-4  ordinary        — every level-up from here grants TUNING POINTS the player spends on the
-#                            weapon's own stat sheet (below), within caps; a weapon with a TREE also
-#                            picks one of two perks per level (gun + hammer today), a tree-less one
-#                            picks one of two special mods.
-#   Lv5    LEGENDARY       — it earns a TITLE (generated from how it was built; the player can
+#   Lv2    REINFORCED      - the first, CHEAP step (30 scrap, no spare, no choice): the weapon is tougher
+#                            (+15% durability) and hits harder (+1 damage / +5% to hit) (owner round 48i: "a taste of
+#                            upgrading" - `R_melee` / `R_gun` below). Every weapon, always.
+#   Lv3-4  ordinary        - every level-up from here is a PICK OF TWO UPGRADES, paid in scrap (and, at Lv4, a spare
+#                            weapon stripped for parts). A weapon with a TREE (gun + hammer today) picks from its tree at
+#                            Lv3-5; any other level offers two from the SPECIALS (MODS) and the STATS (Weight, Reach...)
+#                            the weapon has not already taken / maxed. (Round 49m: the stats used to be tuning POINTS
+#                            that came free with every level; they are upgrades like any other now - one pick, one rank.)
+#   Lv5    LEGENDARY       - it earns a TITLE (generated from how it was built; the player can
 #                            rename it). "Hammer "Widowmaker"".
-#   Lv6-8  HEIRLOOM + ++ +++ — only for a weapon that has CROSSED THE LOBBY DOOR (stashed at an
+#   Lv6-8  HEIRLOOM + ++ +++ - only for a weapon that has CROSSED THE LOBBY DOOR (stashed at an
 #                            escape, collected in a later game) 1 / 2 / 3 times: the new-game-plus
 #                            upgrades. Scrap is paid in INSTALMENTS that ride the weapon, so several
-#                            characters (and games) can feed it. Each tier grants more points and
-#                            lifts every stat cap by one — the "crazy stats" only heirlooms reach.
+#                            characters (and games) can feed it. Each tier lifts every stat's cap by one.
 #
-# Everything rides THIS weapon instance (level, perks, tuning, title, crossings, forge_paid —
+# A level-up never MENDS (round 49m): it raises the durability ceiling, not what is left. Wear is paid for with a Toolbox
+# (one use) or with SCRAP at the bench's REPAIR tab (`repair_cost` below).
+#
+# Everything rides THIS weapon instance (level, perks, title, crossings, forge_paid -
 # serialized with it, carried on a corpse and through the door stash) and applies through the
-# modifier fold (base × ∏mult + Σadd — never direct writes): ItemInstance.perk_add / perk_mult /
-# has_perk_flag.
+# modifier fold (base x prod mult + sum add - never direct writes): ItemInstance.perk_add /
+# perk_mult / has_perk_flag. A stat upgrade is a perk id like any other, picked once per rank.
 
 const MAX_LEVEL := 8
 const LEGENDARY_LEVEL := 5
-const REINFORCE_LEVEL := 2            # the plain first step (above): no pick, no tuning points
-const WORKBENCH_VERSION := 2          # saved with every weapon: a version-1 save counted Lv2 as its first PICK level, so its level >= 2 moves up one (WorldState.instance_from_dict)
+const REINFORCE_LEVEL := 2            # the plain first step (above): nothing to pick
+const WORKBENCH_VERSION := 3          # saved with every weapon. Version 1 counted Lv2 as its first PICK level (its level >= 2 moves up one - REINFORCE_STEP_VERSION); version 2 had tuning points (dropped on load)
+const REINFORCE_STEP_VERSION := 2     # the version that introduced the plain Lv2 step: only a save OLDER than this is moved up a level on load
 
 # Lv1→2, 2→3, 3→4, 4→5: scrap + (from Lv4) a spare weapon stripped for parts (the lowest qualifying
 # one is used, never a better one). The spare is the SAME weapon, or — for melee — any weapon of
@@ -50,11 +53,9 @@ const HEIRLOOM := {
 }
 
 # EVERY level-up toughens the weapon (owner round 49f: "make all upgrades improve the durability regardless"): each level
-# above Reinforced multiplies its durability by this, on top of whatever the level's pick and tuning give. Reinforced itself
+# above Reinforced multiplies its durability by this, on top of whatever the level's pick gives. Reinforced itself
 # is this plus its own damage / to-hit bonus (R_melee / R_gun: "+1 damage and +15% durability", "+5% to hit and +15% durability").
 const LEVEL_DURABILITY := 1.15
-
-const POINTS_PER_LEVEL := 2          # tuning points each level above REINFORCE_LEVEL grants (Lv3 = 2, Lv5 = 6, Lv8 = 12)
 
 # Which weapons the bench works on, and their stat sheet. "melee" / "gun".
 const KIND := {
@@ -75,33 +76,33 @@ const FAMILY := {
 	"004": "gun",
 }
 
-# THE STAT SHEET — what a player can put their points into. Per rank: `add` adds to a fold stat,
-# `mult` moves a fold stat's multiplier by that much (×(1 + ranks × mult)). `cap` = most ranks at
-# Lv1-5; each heirloom tier lifts every cap by one. Fold stat names are the ones combat reads
+# THE STAT UPGRADES - what a pick of two can raise by one rank (round 49m: these were TUNING POINTS, free with every level;
+# now each is an upgrade a level-up offers, beside the specials). `mods` are perk-format (add / a multiplier factor);
+# `cap` = most ranks at Lv1-5, each heirloom tier lifts every cap by one. Fold stat names are the ones combat reads
 # (ItemInstance.perk_add / perk_mult): damage, execute, reach, cooldown, stamina, durability,
 # headshot, body, mag, shots_per_mark, free_shot.
 const STATS := {
 	# --- melee ---
-	"T_weight": {"kind": "melee", "name": "Weight", "desc": "+1 damage", "cap": 1,
+	"T_weight": {"kind": "melee", "name": "Weight", "desc": "+1 damage.", "cap": 1,
 		"mods": {"damage": {"add": 1}}},
-	"T_edge": {"kind": "melee", "name": "Edge", "desc": "+4% to drop an ordinary enemy", "cap": 3,
+	"T_edge": {"kind": "melee", "name": "Edge", "desc": "+4% to drop an ordinary enemy outright.", "cap": 3,
 		"mods": {"execute": {"add": 0.04}}},
-	"T_reach": {"kind": "melee", "name": "Reach", "desc": "+6 px reach", "cap": 3,
+	"T_reach": {"kind": "melee", "name": "Reach", "desc": "+6 px reach.", "cap": 3,
 		"mods": {"reach": {"add": 6.0}}},
-	"T_handling": {"kind": "melee", "name": "Handling", "desc": "8% faster swings", "cap": 3,
-		"mods": {"cooldown": {"mult": -0.08}}},
-	"T_balance": {"kind": "melee", "name": "Balance", "desc": "-10% swing stamina", "cap": 3,
-		"mods": {"stamina": {"mult": -0.10}}},
-	"T_temper": {"kind": "melee", "name": "Temper", "desc": "+25% durability", "cap": 4,
-		"mods": {"durability": {"mult": 0.25}}},
+	"T_handling": {"kind": "melee", "name": "Handling", "desc": "Swings 8% faster.", "cap": 3,
+		"mods": {"cooldown": {"mult": 0.92}}},
+	"T_balance": {"kind": "melee", "name": "Balance", "desc": "Swings cost 10% less stamina.", "cap": 3,
+		"mods": {"stamina": {"mult": 0.90}}},
+	"T_temper": {"kind": "melee", "name": "Temper", "desc": "+25% durability.", "cap": 4,
+		"mods": {"durability": {"mult": 1.25}}},
 	# --- gun ---
-	"T_sights": {"kind": "gun", "name": "Sights", "desc": "+4% head + body hits", "cap": 3,
+	"T_sights": {"kind": "gun", "name": "Sights", "desc": "+4% head and body hits.", "cap": 3,
 		"mods": {"headshot": {"add": 0.04}, "body": {"add": 0.04}}},
-	"T_drum": {"kind": "gun", "name": "Magazine", "desc": "+2 rounds", "cap": 3,
+	"T_drum": {"kind": "gun", "name": "Magazine", "desc": "+2 rounds in the magazine.", "cap": 3,
 		"mods": {"mag": {"add": 2}}},
-	"T_oiled": {"kind": "gun", "name": "Oiled", "desc": "wears 25% slower", "cap": 4,
-		"mods": {"shots_per_mark": {"mult": 0.25}}},
-	"T_handload": {"kind": "gun", "name": "Hand-loaded", "desc": "+5% free shots", "cap": 3,
+	"T_oiled": {"kind": "gun", "name": "Oiled", "desc": "Wears 25% slower.", "cap": 4,
+		"mods": {"shots_per_mark": {"mult": 1.25}}},
+	"T_handload": {"kind": "gun", "name": "Hand-loaded", "desc": "+5% of shots cost no round.", "cap": 3,
 		"mods": {"free_shot": {"add": 0.05}}},
 }
 
@@ -233,11 +234,32 @@ static func has_perk_tree(item_id: String) -> bool:
 static func perk(id: String) -> Dictionary:
 	if MODS.has(id):
 		return MODS[id]
+	if STATS.has(id):
+		return STATS[id]
 	return PERKS.get(id, {})
 
 
 static func is_mod(id: String) -> bool:
 	return MODS.has(id)
+
+
+## A stat upgrade (Weight, Reach, Sights...): a rank of one stat, picked like any perk, taken again for the next rank up to its cap.
+static func is_stat(id: String) -> bool:
+	return STATS.has(id)
+
+
+## How many ranks of `stat_id` this weapon has (a stat upgrade can be picked once per rank).
+static func rank_of(inst, stat_id: String) -> int:
+	var n := 0
+	for p in inst.perks:
+		if String(p) == stat_id:
+			n += 1
+	return n
+
+
+## Most ranks a weapon can hold in a stat once it reaches `level`: the base cap, +1 per heirloom tier.
+static func cap_at(level: int, stat_id: String) -> int:
+	return int(STATS.get(stat_id, {}).get("cap", 0)) + maxi(0, level - LEGENDARY_LEVEL)
 
 
 # The durability multiplier a weapon's LEVEL gives (1.0 up to Reinforced - whose own perk carries the first 15%).
@@ -252,7 +274,7 @@ static func auto_perk(item_id: String, to_level: int) -> String:
 	return "R_gun" if kind_of(item_id) == "gun" else "R_melee"
 
 
-# Does the step INTO this level carry no choice and no tuning points (the plain first step)?
+# Does the step INTO this level carry no choice (the plain first step)?
 static func is_plain_step(to_level: int) -> bool:
 	return to_level == REINFORCE_LEVEL
 
@@ -284,9 +306,9 @@ static func procs(inst, proc: String) -> Array:
 	return out
 
 
-# Two special mods for this weapon's next level: from its kind's pool, never one it already has
-# (nor Cleave on a weapon that already sweeps), seeded per weapon + level so the offer is stable
-# while you think about it (and across a save).
+# Two upgrades for this weapon's next level when it has no tree pair: from its kind's SPECIAL mods (never one it already has,
+# nor Cleave on a weapon that already sweeps) and its STAT upgrades (never one already at the cap that level allows), seeded per
+# weapon + level so the offer is stable while you think about it (and across a save).
 static func mod_pair(inst) -> Array:
 	var kind := kind_of(inst.item_id)
 	var pool: Array = []
@@ -296,6 +318,9 @@ static func mod_pair(inst) -> Array:
 		if "sweep" in MODS[id].get("flags", []) and inst.has_perk_flag("sweep"):
 			continue
 		pool.append(id)
+	for id in STATS:
+		if STATS[id]["kind"] == kind and rank_of(inst, id) < cap_at(inst.level + 1, id):
+			pool.append(id)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(str(WorldState.master_seed) + "mods" + inst.item_id + str(inst.level) + ",".join(PackedStringArray(inst.perks)))
 	var out: Array = []
@@ -312,7 +337,7 @@ static func kind_of(item_id: String) -> String:
 	return String(KIND.get(item_id, ""))
 
 
-# The stat ids this weapon can be tuned in, in display order.
+# The stat ids this weapon can raise, in display order.
 static func stats_for(item_id: String) -> Array:
 	var k := kind_of(item_id)
 	var out: Array = []
@@ -344,17 +369,16 @@ static func next_choices(inst) -> Array:
 	return mod_pair(inst)
 
 
-# What the NEXT level (`inst.level + 1`) GIVES, as one line for the bench (its "COSTS ..." line is separate): the plain first step's own bonus, or a pick + tuning points (+ a name at Legendary).
+# What the NEXT level (`inst.level + 1`) GIVES, as one line for the bench (its "COSTS ..." line is separate): the plain first step's own bonus, or a pick (+ a name at Legendary).
 static func gives_text(inst) -> String:
 	var to_level: int = inst.level + 1
 	var parts: PackedStringArray = []
 	if is_plain_step(to_level):
 		parts.append(String(perk(auto_perk(inst.item_id, to_level)).get("desc", "")).trim_suffix("."))
-		parts.append("nothing to choose; tuning points start at Lv%d" % (REINFORCE_LEVEL + 1))
+		parts.append("nothing to choose")
 		return " · ".join(parts)
-	parts.append("a pick of two upgrades" if not next_choices(inst).is_empty() else "every stat can go one rank higher")
-	parts.append("%d tuning points to spend" % POINTS_PER_LEVEL)
-	parts.append("+15% durability")
+	parts.append("a pick of two upgrades")
+	parts.append("+15% durability ceiling (it does not mend)")
 	if to_level == LEGENDARY_LEVEL:
 		parts.append("a NAME: it becomes legendary")
 	return " · ".join(parts)
@@ -366,48 +390,49 @@ static func step_cost(to_level: int) -> Dictionary:
 	return STEP_COST.get(to_level, {})
 
 
-# --- tuning --------------------------------------------------------------------------------
-static func points_earned(inst) -> int:
-	return POINTS_PER_LEVEL * maxi(0, inst.level - REINFORCE_LEVEL)
+# --- repair (round 49m) ---------------------------------------------------------------------
+# Scrap mends a weapon at the bench, as the Toolbox does for nothing but one use: the REPAIR tab. One press mends it fully. A level-up
+# does NOT mend it (WorldState.upgrade_weapon). The price follows how much is gone and how good the weapon is, so a repair is a real
+# choice against the next upgrade for the same scrap (a character finds ~220 in a descent).
+const REPAIR_BASE := 30               # scrap to mend a completely worn-out Lv1 weapon
+const REPAIR_PER_LEVEL := 0.15        # a better weapon is dearer: x(1 + this x (level - 1))
+const REPAIR_DAMAGED := 8             # a gun that is DAMAGED (smaller magazine, worse aim) costs this much more
+const REPAIR_MIN := 4                 # nothing mends for less
 
 
-static func points_spent(inst) -> int:
-	var n := 0
-	for id in inst.tuning:
-		n += int(inst.tuning[id])
-	return n
+## Can the bench mend this at all? A weapon, or a tool that forces locks (the screwdriver), that wears out - not a single-use thing, not medicine.
+static func is_mendable(inst) -> bool:
+	if inst == null:
+		return false
+	var d: Dictionary = inst.get_data()
+	if d.get("single_use", false) or not (d.get("is_weapon", false) or d.get("can_force_lock", false)):
+		return false
+	return inst.get_max_durability() > 0
 
 
-static func points_free(inst) -> int:
-	return maxi(0, points_earned(inst) - points_spent(inst))
+## What mending `inst` costs in scrap. 0 = nothing to mend (or the bench can't).
+static func repair_cost(inst) -> int:
+	if not is_mendable(inst):
+		return 0
+	var max_d: int = inst.get_max_durability()
+	var gone: float = 1.0 if inst.is_depleted else clampf(float(max_d - inst.current_durability) / float(max_d), 0.0, 1.0)
+	var cost: float = float(REPAIR_BASE) * (1.0 + REPAIR_PER_LEVEL * float(maxi(0, inst.level - 1))) * gone
+	if inst.is_damaged:
+		cost += float(REPAIR_DAMAGED)
+	if cost <= 0.0:
+		return 0
+	return maxi(REPAIR_MIN, int(ceil(snappedf(cost, 0.001))))      # (snapped: 30 x 1.6 must not become 48.00000000000001 -> 49)
 
 
-# Most ranks this weapon can hold in `stat_id` at its level: the base cap, +1 per heirloom tier.
-static func cap_for(inst, stat_id: String) -> int:
-	return int(STATS.get(stat_id, {}).get("cap", 0)) + maxi(0, inst.level - LEGENDARY_LEVEL)
-
-
-# Can `alloc` ({stat: extra ranks}) be added to this weapon now? "" = yes, else why not.
-static func tuning_error(inst, alloc: Dictionary) -> String:
-	if inst == null or not can_upgrade(inst.item_id):
-		return "The bench can't rework this."
-	var total := 0
-	var valid: Array = stats_for(inst.item_id)
-	for id in alloc:
-		var n := int(alloc[id])
-		if n < 0:
-			return "Points, once set, are set."
-		if n == 0:
-			continue
-		if not (id in valid):
-			return "That isn't something this weapon can take."
-		if int(inst.tuning.get(id, 0)) + n > cap_for(inst, id):
-			return "%s is maxed at this level." % STATS[id]["name"]
-		total += n
-	if total == 0:
-		return "Nothing to set."
-	if total > points_free(inst):
-		return "Only %d point%s to spend." % [points_free(inst), "" if points_free(inst) == 1 else "s"]
+## Why `inst` can't be mended with `scrap` right now ("" = it can).
+static func repair_error(inst, scrap: int) -> String:
+	if not is_mendable(inst):
+		return "The bench can't mend this."
+	var c: int = repair_cost(inst)
+	if c <= 0:
+		return "It's as good as it gets."
+	if scrap < c:
+		return "Need %d scrap - you have %d." % [c, scrap]
 	return ""
 
 
@@ -510,18 +535,18 @@ static func scrap_sunk(inst) -> int:
 
 
 # --- titles -------------------------------------------------------------------------------
-# What the weapon is best at: its newest special mod, else its highest-ranked tuning (ties → sheet
+# What the weapon is best at: its newest special mod, else its most-picked stat (ties -> sheet
 # order), else the flavour of its latest perk, else "any".
 static func title_theme(inst) -> String:
-	# A SPECIAL mod names it first (a fire sword is a Firestarter), newest first…
+	# A SPECIAL mod names it first (a fire sword is a Firestarter), newest first...
 	for i in range(inst.perks.size() - 1, -1, -1):
 		if MODS.has(inst.perks[i]) and TITLE_BANKS.has(String(MODS[inst.perks[i]].get("title", ""))):
 			return String(MODS[inst.perks[i]]["title"])
-	# …then its best-tuned stat, then a tree perk's flavour.
+	# ...then its best-raised stat, then a tree perk's flavour.
 	var best := ""
 	var best_n := 0
 	for id in stats_for(inst.item_id):
-		var n := int(inst.tuning.get(id, 0))
+		var n := rank_of(inst, id)
 		if n > best_n:
 			best_n = n
 			best = id

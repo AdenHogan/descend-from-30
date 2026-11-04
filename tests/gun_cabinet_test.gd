@@ -144,7 +144,7 @@ func _test_weapon() -> void:
 	check(a.item_id == WorldState.CABINET_WEAPON and a.level == 4, "inside: the Gun at Lv4 (%s Lv%d)" % [a.item_id, a.level])
 	check(a.perks.size() == 3 and a.perks[0] == "R_gun" and a.perks[1] in WeaponUpgrades.TREES["004"][3] and a.perks[2] in WeaponUpgrades.TREES["004"][4],
 		"one of each level's two perks (%s)" % str(a.perks))
-	check(WeaponUpgrades.points_free(a) == 4, "its 4 tuning points left for the bench")
+	check(a.get_max_durability() > 0 and a.current_durability == a.get_max_durability(), "full wear (whole at the ceiling)")
 	check(a.mag_count == WorldState.CABINET_ROUNDS, "a few rounds in the magazine")
 	check(a.perks == b.perks, "the same gun every time (seeded)")
 	check(a.tier_label() == "Lv4", "reads as Lv4")

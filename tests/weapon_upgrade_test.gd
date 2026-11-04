@@ -34,12 +34,14 @@ func _ready() -> void:
 	_test_salvage_values()
 	await _test_salvage_ui()
 	await _test_bench_in_maintenance_room()
-	_test_tuning()
-	await _test_tuning_in_swings()
+	_test_stat_upgrades()
+	await _test_stat_upgrades_in_swings()
+	_test_repair()
+	_test_upgrade_does_not_mend()
 	_test_treeless_and_family_feed()
 	_test_legendary_title()
 	_test_heirloom_forge()
-	await _test_bench_tune_and_forge_ui()
+	await _test_bench_repair_and_forge_ui()
 	_test_special_mod_offers()
 	await _test_special_mod_effects()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
@@ -52,9 +54,7 @@ func _lv(w: ItemInstance, level: int, perks: Array) -> ItemInstance:
 	w.perks = perks.duplicate()
 	var plain: String = WeaponUpgrades.auto_perk(w.item_id, WeaponUpgrades.REINFORCE_LEVEL)
 	if level >= WeaponUpgrades.REINFORCE_LEVEL and plain != "":
-		var base_max: int = w.get_max_durability()
 		w.perks.push_front(plain)
-		WorldState._apply_durability_headroom(w, base_max)
 	if level > 1 and w.get_max_durability() > 0:
 		w.current_durability = w.get_max_durability()        # a weapon the bench has just finished is whole
 	return w
@@ -125,11 +125,9 @@ func _test_costs_and_feed() -> void:
 	check(WeaponUpgrades.next_choices(gun).is_empty(), "the first step has nothing to choose")
 	check(WorldState.upgrade_weapon(0, "") == "", "Lv1 → Lv2 with 30 scrap")
 	check(gun.level == 2 and gun.perks == ["R_gun"] and WorldState.scrap == 0, "Lv2, Reinforced (given by the bench), scrap spent")
-	check(WeaponUpgrades.points_free(gun) == 0, "…and it earns NO tuning points: those start at Lv3")
 	WorldState.scrap = 500
 	check(WorldState.upgrade_weapon(0, "G_silencer") != "", "only the two Lv3 perks are offered")
 	check(WorldState.upgrade_weapon(0, "G_aim") == "" and gun.level == 3 and WorldState.scrap == 450, "Lv2 → Lv3 with 50 scrap, no spare, a pick")
-	check(WeaponUpgrades.points_free(gun) == WeaponUpgrades.POINTS_PER_LEVEL, "…and now it earns the first tuning points (%d)" % WeaponUpgrades.points_free(gun))
 	check(WorldState.upgrade_weapon(0, "G_silencer").contains("spare Lv1"), "Lv4 needs a spare Lv1 gun")
 	var spare_hi := _gun(4)
 	var spare_lo := _gun(1)
@@ -189,9 +187,9 @@ func _test_perk_effects() -> void:
 	WorldState.scrap = 50
 	WorldState.upgrade_weapon(0, "H_reinforced")
 	check(h.get_max_durability() == 26, "Reinforced Handle on top (and the level's own +15%%): durability 12 → 26 (%d)" % h.get_max_durability())
-	check(h.current_durability == 21, "…and the new headroom is added at once (7 → 21)")
+	check(h.current_durability == 7, "…but the upgrade did NOT mend it: 7 uses left, as before (owner 2026-11-04)")
 	h.repair_full()
-	check(h.current_durability == 26, "a toolbox repairs it to the new ceiling")
+	check(h.current_durability == 26, "a toolbox (or the bench) repairs it to the new ceiling")
 	check(_hammer(4, ["H_heavy", "H_doorbreaker"]).has_perk_flag("free_force"), "Door Breaker marks free forcing")
 
 
@@ -377,11 +375,11 @@ func _test_workbench_ui() -> void:
 	check(ui.confirm().contains("30 scrap"), "can't afford the gun's step → says why")
 	ui.show_tab("upgrade")
 	var needs_txt: String = ui._needs.text
-	check(needs_txt.contains("SCRAP") and needs_txt.contains("30") and needs_txt.contains("you have 20") and not needs_txt.contains("TUNING"),
-		"the checklist names the scrap it NEEDS against what you HAVE (%s) - tuning points are never written as a price" % needs_txt.replace("\n", " | "))
+	check(needs_txt.contains("SCRAP") and needs_txt.contains("30") and needs_txt.contains("you have 20"),
+		"the checklist names the scrap it NEEDS against what you HAVE (%s)" % needs_txt.replace("\n", " | "))
 	ui.select_weapon(1)
 	var cap_txt: String = ui._next_caption.text
-	check(cap_txt.contains("LV 4") and cap_txt.contains("2 TUNING POINTS"), "what the next level GIVES is the caption, tuning points included (%s)" % cap_txt)
+	check(cap_txt.contains("LV 4") and not cap_txt.contains("TUNING"), "what the next level is is the caption, and there are no tuning points any more (%s)" % cap_txt)
 	check(ui._needs.text.contains("SPARE") and ui._needs.text.contains("none in your pack") and ui._upgrade_btn.looks_off, "a missing spare is a crossed row, and the button looks off (but stays pressable)")
 	WorldState.scrap = 60
 	ui.close()
@@ -571,47 +569,109 @@ func _knife(level: int = 1) -> ItemInstance:
 	return _lv(k, level, [])
 
 
-func _test_tuning() -> void:
-	print("[TUNING: every level gives points for the weapon's own stat sheet, within caps]")
+func _test_stat_upgrades() -> void:
+	print("[STAT UPGRADES: Weight, Reach, Sights... are picks in the pair of two now - one rank a pick, no free points]")
 	WorldState.new_game()
-	var h := _hammer()
-	WorldState.inventory = [h]
-	check(WeaponUpgrades.points_free(h) == 0 and WorldState.tune_weapon(0, {"T_reach": 1}) != "", "a Lv1 weapon has no points")
-	WorldState.scrap = 200
-	WorldState.upgrade_weapon(0, "")
-	check(h.level == 2 and WeaponUpgrades.points_free(h) == 0, "the first step (Lv2) gives none either")
-	WorldState.upgrade_weapon(0, "H_heavy")
-	check(h.level == 3 and WeaponUpgrades.points_free(h) == WeaponUpgrades.POINTS_PER_LEVEL, "a level-up from Lv3 gives %d points" % WeaponUpgrades.POINTS_PER_LEVEL)
-	check(WorldState.tune_weapon(0, {"T_drum": 1}) != "", "a hammer can't take a gun's stats")
-	check(WorldState.tune_weapon(0, {"T_reach": -1}) != "", "points can't be taken back")
-	check(WorldState.tune_weapon(0, {"T_weight": 2}).contains("maxed"), "Weight caps at %d before Legendary" % WeaponUpgrades.STATS["T_weight"]["cap"])
-	check(WorldState.tune_weapon(0, {"T_reach": 3}).contains("Only 2"), "can't spend more than you have")
-	var before_max: int = h.get_max_durability()
-	var before_cur: int = h.current_durability
-	check(WorldState.tune_weapon(0, {"T_reach": 1, "T_temper": 1}) == "", "two points set: Reach + Temper")
-	check(WeaponUpgrades.points_free(h) == 0 and h.tuning == {"T_reach": 1, "T_temper": 1}, "spent")
-	check(is_equal_approx(h.perk_add("reach"), 6.0), "Reach: +6 px")
-	check(before_max == 13 and h.get_max_durability() == 17 and h.current_durability == before_cur + (h.get_max_durability() - before_max),
-		"Temper: durability ×1.25 on the perk side, headroom added at once (%d → %d)" % [before_max, h.get_max_durability()])
+	var names: Array = load("res://scripts/weapon_upgrades.gd").get_script_method_list().map(func(m): return m["name"])
+	check("repair_cost" in names and not ("points_free" in names) and not ("tuning_error" in names), "the tuning-point API is gone (and the repair price is there to find: the check can fail)")
+	var h0 := _hammer()
+	check(not ("tuning" in h0) and not WorldState.has_method("tune_weapon") and WorldState.has_method("repair_weapon"), "…and so is the weapon's tuning sheet and the action that spent it")
+	# a tree-less weapon: its pair comes from the specials AND the stats
+	var seen_stat := false
+	var seen_mod := false
+	var knife := _knife(2)
+	for lvl in [2, 3, 4]:
+		knife.level = lvl
+		for seed_ in range(40):
+			WorldState.master_seed = 5000 + seed_
+			for id in WeaponUpgrades.next_choices(knife):
+				seen_stat = seen_stat or WeaponUpgrades.is_stat(id)
+				seen_mod = seen_mod or WeaponUpgrades.is_mod(id)
+	check(seen_stat and seen_mod, "a tree-less weapon is offered both stats and specials over 120 levels")
+	# a pick is one rank of one stat, and stacks through the fold
+	var h := _hammer(5, ["H_heavy", "H_sweep", "H_skull"])
+	check(is_equal_approx(h.perk_add("reach"), 0.0), "(a hammer with no Reach ranks has +0 reach)")
+	h.perks.append("T_reach")
+	h.perks.append("T_reach")
+	check(WeaponUpgrades.rank_of(h, "T_reach") == 2 and is_equal_approx(h.perk_add("reach"), 12.0), "two ranks of Reach: +12 px, through the same fold as every perk")
 	var t := _hammer(4, ["H_heavy", "H_sweep"])
-	t.tuning = {"T_balance": 3, "T_handling": 2, "T_weight": 1}
-	check(is_equal_approx(t.perk_mult("stamina"), 0.7) and is_equal_approx(t.perk_mult("cooldown"), 0.84), "Balance ×0.7 stamina, Handling ×0.84 swing time")
+	t.perks.append_array(["T_balance", "T_balance", "T_balance", "T_handling", "T_handling", "T_weight"])
+	check(is_equal_approx(t.perk_mult("stamina"), 0.9 * 0.9 * 0.9) and is_equal_approx(t.perk_mult("cooldown"), 0.92 * 0.92), "Balance x0.9 a rank (stamina), Handling x0.92 a rank (swing time)")
 	check(int(t.perk_add("damage")) == 3, "Weight stacks with Heavy Head and Reinforced (+1 each = +3)")
 	var g := _gun(3, ["G_aim"])
-	g.tuning = {"T_drum": 2, "T_sights": 1, "T_oiled": 2, "T_handload": 1}
+	g.perks.append_array(["T_drum", "T_drum", "T_sights", "T_oiled", "T_oiled", "T_handload"])
 	check(g.get_mag_cap() == ItemInstance.MAG_CAP + 4 + WorldState.get_gun_mag_bonus(), "Magazine +2 a rank")
-	check(is_equal_approx(g.perk_add("headshot"), 0.19) and g.shots_per_mark() == 9 and is_equal_approx(g.perk_add("free_shot"), 0.05),
+	check(is_equal_approx(g.perk_add("headshot"), 0.19) and g.shots_per_mark() == int(round(6.0 * 1.25 * 1.25)) and is_equal_approx(g.perk_add("free_shot"), 0.05),
 		"Sights / Oiled / Hand-loaded reach the gun (head: Reinforced 0.05 + Aim 0.10 + Sights 0.04)")
-	var back: ItemInstance = WorldState.instance_from_dict(JSON.parse_string(JSON.stringify(WorldState.instance_to_dict(t))))
-	check(back.tuning == {"T_balance": 3, "T_handling": 2, "T_weight": 1} and typeof(back.tuning["T_balance"]) == TYPE_INT,
-		"tuning survives a JSON save as ints (%s)" % str(back.tuning))
-	var bad := WorldState.instance_to_dict(_hammer())
-	bad["tuning"] = {"T_nope": 3, "T_reach": 0}
-	check(WorldState.instance_from_dict(bad).tuning.is_empty(), "unknown / empty stats are dropped on load")
+	# the caps: Weight is one rank; a maxed stat is never offered again; a heirloom tier lifts the cap by one
+	var w := _knife(3)
+	w.perks.append("T_weight")
+	check(WeaponUpgrades.cap_at(4, "T_weight") == 1 and WeaponUpgrades.cap_at(6, "T_weight") == 2, "Weight caps at 1 before Legendary, 2 at Legendary +")
+	var offered_weight := false
+	for seed_ in range(60):
+		WorldState.master_seed = 6000 + seed_
+		offered_weight = offered_weight or "T_weight" in WeaponUpgrades.next_choices(w)
+	check(not offered_weight, "a maxed stat is not offered again")
+	var heir := _knife(5)
+	heir.perks.append("T_weight")
+	var offered_again := false
+	for seed_ in range(80):
+		WorldState.master_seed = 7000 + seed_
+		offered_again = offered_again or "T_weight" in WeaponUpgrades.next_choices(heir)
+	check(offered_again, "…but a Legendary + tier lifts the cap, so Weight can come round for its second rank")
+	# a gun is offered gun stats, a blade melee ones
+	var wrong := false
+	for seed_ in range(40):
+		WorldState.master_seed = 8000 + seed_
+		for id in WeaponUpgrades.next_choices(_knife(2)):
+			wrong = wrong or (WeaponUpgrades.is_stat(id) and WeaponUpgrades.STATS[id]["kind"] != "melee")
+		for id in WeaponUpgrades.next_choices(_gun(5, ["G_aim", "G_silencer", "G_lucky"])):
+			wrong = wrong or (WeaponUpgrades.is_stat(id) and WeaponUpgrades.STATS[id]["kind"] != "gun")
+	check(not wrong, "a blade is offered melee stats and a gun gun stats, never the other kind")
+	# a pick through the bench: the stat is on the weapon afterwards, and a save keeps it
+	WorldState.new_game()
+	var sword := ItemInstance.new()
+	sword.setup("003")
+	WorldState.inventory = [sword]
+	WorldState.scrap = 500
+	WorldState.upgrade_weapon(0)
+	var pair: Array = WeaponUpgrades.next_choices(sword)
+	var stat_pick := ""
+	for id in pair:
+		if WeaponUpgrades.is_stat(id):
+			stat_pick = id
+	var tries := 0
+	while stat_pick == "" and tries < 60:
+		tries += 1
+		WorldState.master_seed += 1
+		pair = WeaponUpgrades.next_choices(sword)
+		for id in pair:
+			if WeaponUpgrades.is_stat(id):
+				stat_pick = id
+	check(stat_pick != "" and WorldState.upgrade_weapon(0, stat_pick) == "" and WeaponUpgrades.rank_of(sword, stat_pick) == 1, "taking a stat at the bench puts the rank on the weapon (%s)" % stat_pick)
+	var back: ItemInstance = WorldState.instance_from_dict(JSON.parse_string(JSON.stringify(WorldState.instance_to_dict(sword))))
+	check(back.perks == sword.perks and WeaponUpgrades.rank_of(back, stat_pick) == 1, "…and it survives a JSON save")
+	# an OLD save: its tuning points are not read, nothing else moves, the weapon is clamped to its ceiling
+	var old := WorldState.instance_to_dict(_hammer(3, ["H_heavy"]))
+	old["tuning"] = {"T_reach": 2, "T_temper": 2}
+	old["wv"] = 2
+	var loaded: ItemInstance = WorldState.instance_from_dict(old)
+	check(loaded.level == 3 and loaded.perks == _hammer(3, ["H_heavy"]).perks and is_equal_approx(loaded.perk_add("reach"), 0.0), "a version-2 save: same level and perks, its tuning ranks are dropped (reach +0)")
+	check(loaded.current_durability <= loaded.get_max_durability(), "…and it is never over its ceiling")
+	var v1 := WorldState.instance_to_dict(_hammer(1))
+	v1["level"] = 3
+	v1["wv"] = 1
+	v1["perks"] = ["H_heavy"]
+	check(WorldState.instance_from_dict(v1).level == 4, "a version-1 save still moves up one level (the plain Lv2 step it never had)")
+	var v2 := WorldState.instance_to_dict(_hammer(1))
+	v2["level"] = 3
+	v2["wv"] = 2
+	v2["perks"] = ["R_melee", "H_heavy"]
+	check(WorldState.instance_from_dict(v2).level == 3, "…but a version-2 save does NOT (the move-up is for saves older than the plain step only)")
 
 
-func _test_tuning_in_swings() -> void:
-	print("[tuning reaches real swings: Reach lands a blow a plain weapon can't; Handling recovers faster]")
+func _test_stat_upgrades_in_swings() -> void:
+	print("[stat upgrades reach real swings: Reach lands a blow a plain weapon can't; Handling recovers faster]")
 	WorldState.new_game()
 	WorldState.god_mode = false
 	var p = load("res://scenes/player.tscn").instantiate()
@@ -636,16 +696,106 @@ func _test_tuning_in_swings() -> void:
 		return 50 - z.current_hp
 	var plain := _hammer(3, ["H_heavy"])
 	var long := _hammer(3, ["H_heavy"])
-	long.tuning = {"T_reach": 2}
+	long.perks.append_array(["T_reach", "T_reach"])
 	check(swing.call(plain) == 0, "10 px past a hammer's reach: a plain swing misses")
 	check(swing.call(long) > 0, "…Reach 2 (+12 px) lands it")
 	var quick := _hammer(3, ["H_heavy"])
-	quick.tuning = {"T_handling": 2}
+	quick.perks.append_array(["T_handling", "T_handling"])
 	swing.call(quick)
-	check(is_equal_approx(p.attack_cooldown_timer, p.WEAPON_COOLDOWN["bat"] * 0.84), "Handling 2: the swing recovers in %.2fs, not %.2fs" % [p.attack_cooldown_timer, p.WEAPON_COOLDOWN["bat"]])
+	check(is_equal_approx(p.attack_cooldown_timer, p.WEAPON_COOLDOWN["bat"] * 0.92 * 0.92), "Handling 2: the swing recovers in %.2fs, not %.2fs" % [p.attack_cooldown_timer, p.WEAPON_COOLDOWN["bat"]])
 	p.queue_free()
 	z.queue_free()
 	await get_tree().physics_frame
+
+
+func _worn(level: int, uses_left: int) -> ItemInstance:
+	var h := _hammer(level, ["H_heavy"] if level >= 3 else [])
+	h.current_durability = uses_left
+	h.is_depleted = uses_left <= 0
+	return h
+
+
+func _test_repair() -> void:
+	print("[REPAIR AT THE BENCH: scrap mends a worn weapon in full; the price follows the wear and the level]")
+	WorldState.new_game()
+	var full := _hammer(1)
+	check(WeaponUpgrades.repair_cost(full) == 0 and WeaponUpgrades.repair_error(full, 99).contains("good as it gets"), "a whole weapon needs nothing (cost 0)")
+	var broken := ItemInstance.new()
+	broken.setup("002")
+	broken.current_durability = 0
+	broken.is_depleted = true
+	check(WeaponUpgrades.repair_cost(broken) == WeaponUpgrades.REPAIR_BASE, "a completely worn-out Lv1 weapon costs the base (%d)" % WeaponUpgrades.repair_cost(broken))
+	var half := ItemInstance.new()
+	half.setup("002")
+	half.current_durability = half.get_max_durability() / 2
+	check(WeaponUpgrades.repair_cost(half) == 15, "half worn: half the base (%d)" % WeaponUpgrades.repair_cost(half))
+	var one_gone := ItemInstance.new()
+	one_gone.setup("002")
+	one_gone.current_durability = one_gone.get_max_durability() - 1
+	check(WeaponUpgrades.repair_cost(one_gone) == 3 or WeaponUpgrades.repair_cost(one_gone) == WeaponUpgrades.REPAIR_MIN, "one use gone is cheap but never nothing (%d, floor %d)" % [WeaponUpgrades.repair_cost(one_gone), WeaponUpgrades.REPAIR_MIN])
+	var lv5 := _worn(5, 0)
+	check(WeaponUpgrades.repair_cost(lv5) == 48 and WeaponUpgrades.repair_cost(lv5) > WeaponUpgrades.repair_cost(broken), "a better weapon is dearer to mend (Lv5 broken: %d, Lv1: %d)" % [WeaponUpgrades.repair_cost(lv5), WeaponUpgrades.repair_cost(broken)])
+	var gun := _gun(1)
+	gun.is_damaged = true
+	check(WeaponUpgrades.repair_cost(gun) == WeaponUpgrades.REPAIR_DAMAGED, "a damaged but unworn gun costs the damage fee (%d)" % WeaponUpgrades.repair_cost(gun))
+	gun.current_durability = 0
+	gun.is_depleted = true
+	check(WeaponUpgrades.repair_cost(gun) == WeaponUpgrades.REPAIR_BASE + WeaponUpgrades.REPAIR_DAMAGED, "worn out AND damaged: both")
+	# what the bench will not mend
+	var junk := ItemInstance.new()
+	junk.setup("024")
+	var bandage := ItemInstance.new()
+	bandage.setup("006")
+	var screwdriver := ItemInstance.new()
+	screwdriver.setup("034")
+	screwdriver.current_durability = 1
+	var toolbox := ItemInstance.new()
+	toolbox.setup("019")
+	check(WeaponUpgrades.repair_cost(junk) == 0 and WeaponUpgrades.repair_cost(bandage) == 0 and WeaponUpgrades.repair_cost(toolbox) == 0, "junk, medicine and a Toolbox are not mended at the bench")
+	check(WeaponUpgrades.repair_cost(screwdriver) > 0, "a screwdriver (it forces locks and wears out) is (%d)" % WeaponUpgrades.repair_cost(screwdriver))
+	# the action: spends exactly the price, mends in full, refuses cleanly when short
+	WorldState.inventory = [lv5, _worn(1, 2)]
+	WorldState.scrap = 10
+	var price: int = WeaponUpgrades.repair_cost(lv5)
+	check(WorldState.repair_weapon(0).contains("Need %d scrap" % price) and WorldState.scrap == 10 and lv5.is_depleted, "short of scrap: it says how much and changes nothing")
+	WorldState.scrap = price + 7
+	check(WorldState.repair_weapon(0) == "" and WorldState.scrap == 7, "mended for %d scrap" % price)
+	check(lv5.current_durability == lv5.get_max_durability() and not lv5.is_depleted, "…in full, and no longer broken (%d/%d)" % [lv5.current_durability, lv5.get_max_durability()])
+	check(WorldState.repair_weapon(0).contains("good as it gets") and WorldState.scrap == 7, "a second press has nothing to do and costs nothing")
+	check(WorldState.repair_weapon(9) == "Nothing there." and WorldState.repair_weapon(-1) == "Nothing there.", "a slot that isn't there is refused")
+	var dmg_gun := _gun(2)
+	dmg_gun.is_damaged = true
+	dmg_gun.shots_since_mark = 3
+	WorldState.inventory = [dmg_gun]
+	WorldState.scrap = 50
+	check(WorldState.repair_weapon(0) == "" and not dmg_gun.is_damaged and dmg_gun.shots_since_mark == 0, "a damaged gun comes back undamaged and its wear counter is clear")
+	WorldState.inventory = [junk]
+	check(WorldState.repair_weapon(0).contains("can't mend"), "the bench refuses what it cannot mend")
+	# a Toolbox is still the free way - one use, then it is gone
+	check(ItemData.items["019"]["single_use"] == true, "(the Toolbox is the free way: one use)")
+
+
+func _test_upgrade_does_not_mend() -> void:
+	print("[a level-up raises the durability CEILING but never mends (owner 2026-11-04)]")
+	WorldState.new_game()
+	var h := _worn(2, 5)
+	WorldState.inventory = [h]
+	WorldState.scrap = 500
+	var max_before: int = h.get_max_durability()
+	check(WorldState.upgrade_weapon(0, "H_heavy") == "" and h.level == 3, "Lv2 -> Lv3 with a pick")
+	check(h.get_max_durability() > max_before, "the ceiling went up (%d -> %d)" % [max_before, h.get_max_durability()])
+	check(h.current_durability == 5, "…what is left did not: still 5 (%d)" % h.current_durability)
+	var broken := _worn(2, 0)
+	WorldState.inventory = [broken]
+	WorldState.scrap = 500
+	WorldState.upgrade_weapon(0, "H_heavy")
+	check(broken.is_depleted and broken.current_durability == 0, "a broken weapon is still broken after its upgrade")
+	var reinforced := _hammer(1)
+	reinforced.current_durability = 4
+	WorldState.inventory = [reinforced]
+	WorldState.scrap = 100
+	WorldState.upgrade_weapon(0, "")
+	check(reinforced.level == 2 and reinforced.current_durability == 4, "the plain Lv2 step doesn't mend either (4 left)")
 
 
 func _test_treeless_and_family_feed() -> void:
@@ -658,7 +808,7 @@ func _test_treeless_and_family_feed() -> void:
 	check(WeaponUpgrades.can_upgrade("003") and not WeaponUpgrades.has_perk_tree("003"), "a sword has no perk tree but the bench works on it")
 	check(WorldState.upgrade_weapon(0) == "" and sword.level == 2 and sword.perks == ["R_melee"], "its first step is the plain one, like every weapon's")
 	var offer: Array = WeaponUpgrades.next_choices(sword)
-	check(offer.size() == 2 and WeaponUpgrades.is_mod(offer[0]) and WeaponUpgrades.is_mod(offer[1]), "…and its levels from Lv3 offer two SPECIAL mods (%s)" % str(offer))
+	check(offer.size() == 2 and (WeaponUpgrades.is_mod(offer[0]) or WeaponUpgrades.is_stat(offer[0])) and (WeaponUpgrades.is_mod(offer[1]) or WeaponUpgrades.is_stat(offer[1])), "…and its levels from Lv3 offer two upgrades, specials or stats (%s)" % str(offer))
 	check(WorldState.upgrade_weapon(0) == "Pick one of the two upgrades.", "a special must be picked")
 	check(WorldState.upgrade_weapon(0, offer[0]) == "" and sword.level == 3 and sword.perks == ["R_melee", offer[0]], "Lv3 with its special")
 	check(WorldState.upgrade_weapon(0, WeaponUpgrades.next_choices(sword)[0]).contains("blade"), "Lv4 needs a spare blade")
@@ -688,12 +838,19 @@ func _test_legendary_title() -> void:
 	print("[LEGENDARY (Lv5): a name from how it was built — and the player can rename it]")
 	WorldState.new_game()
 	var k := _knife(4)
-	k.tuning = {"T_reach": 3, "T_balance": 1}
-	check(WeaponUpgrades.title_theme(k) == "T_reach", "its best stat sets the theme")
+	k.perks.append_array(["T_reach", "T_reach", "T_reach", "T_balance"])
+	check(WeaponUpgrades.title_theme(k) == "T_reach", "its best-raised stat sets the theme")
 	WorldState.inventory = [k, _knife(2)]
 	WorldState.scrap = 100
-	var special: String = WeaponUpgrades.next_choices(k)[0]
-	check(WorldState.upgrade_weapon(0, special) == "" and k.level == 5, "Lv4 → Legendary (with %s)" % special)
+	var special := ""
+	for seed_ in range(60):                      # a pair can hold a stat or a special: find a seed that offers a special
+		WorldState.master_seed = 9000 + seed_
+		for id in WeaponUpgrades.next_choices(k):
+			if WeaponUpgrades.is_mod(id) and special == "":
+				special = id
+		if special != "":
+			break
+	check(special != "" and WorldState.upgrade_weapon(0, special) == "" and k.level == 5, "Lv4 → Legendary (with %s)" % special)
 	var theme: String = String(WeaponUpgrades.perk(special).get("title", ""))
 	check(k.title in WeaponUpgrades.TITLE_BANKS[theme], "named for its special first (%s: %s)" % [theme, k.title])
 	check(k.get_display_name() == 'Knife "%s"' % k.title and k.tier_label() == "Legendary" and k.tier_tag() == "LEG",
@@ -709,7 +866,7 @@ func _test_legendary_title() -> void:
 	check(WeaponUpgrades.title_theme(fresh) == "any" and WeaponUpgrades.generate_title(fresh, "x") in WeaponUpgrades.TITLE_BANKS["any"], "no build yet → a plain keepsake name")
 	var boom := _gun(4, ["G_aim", "G_silencer"])
 	boom.perks.append("G_bang")
-	check(WeaponUpgrades.title_theme(boom) == "boom", "an untuned weapon takes its latest perk's flavour")
+	check(WeaponUpgrades.title_theme(boom) == "boom", "a weapon with no stat ranks takes its latest perk's flavour")
 	var named := _knife(5)
 	named.title = "Hush"
 	named.forged_by = "bald_man:2"
@@ -745,12 +902,12 @@ func _test_heirloom_forge() -> void:
 	check(WorldState.forge_heirloom(0, 9999) == "" and got.level == 5 and got.forge_paid == cost5, "paid the rest → ready")
 	check(WorldState.scrap == 1000 - (cost5 - 60), "only what was owed was taken (%d)" % WorldState.scrap)
 	var tier_offer: Array = WeaponUpgrades.next_choices(got)
-	check(tier_offer.size() == 2 and WeaponUpgrades.is_mod(tier_offer[0]), "the tier offers two specials (%s)" % str(tier_offer))
+	check(tier_offer.size() == 2 and (WeaponUpgrades.is_mod(tier_offer[0]) or WeaponUpgrades.is_stat(tier_offer[0])), "the tier offers two upgrades, specials or stats (%s)" % str(tier_offer))
 	check(WorldState.upgrade_weapon(0, tier_offer[1]) == "" and got.level == 6 and got.forge_paid == 0 and tier_offer[1] in got.perks,
 		"picked → Legendary +")
 	check(got.get_display_name().contains("Widowmaker") and got.tier_label() == "Legendary +" and got.tier_tag() == "LEG+", "Legendary +")
-	check(WeaponUpgrades.points_earned(got) == WeaponUpgrades.POINTS_PER_LEVEL * 4 and WeaponUpgrades.cap_for(got, "T_weight") == 2,
-		"more points, and every stat can go one higher (Weight cap 2)")
+	check(WeaponUpgrades.cap_at(got.level, "T_weight") == 2,
+		"every stat can go one rank higher (Weight cap 2)")
 	check(WorldState.forge_heirloom(0, 50) == "" and got.level == 6 and got.forge_paid == 50, "++ can be paid toward…")
 	check(WeaponUpgrades.check(got, WorldState.inventory, WorldState.scrap)["reason"].contains("1/2"), "…but needs a 2nd crossing")
 	check(Salvage.value_of(got) > Salvage.value_of(_hammer(5)), "salvage refunds a share of the heirloom scrap too")
@@ -766,35 +923,50 @@ func _test_heirloom_forge() -> void:
 	WorldState.save_profile()
 
 
-func _test_bench_tune_and_forge_ui() -> void:
-	print("[the bench's TUNE tab + the forge]")
+func _test_bench_repair_and_forge_ui() -> void:
+	print("[the bench's REPAIR tab, the legendary name field and the forge]")
 	WorldState.new_game()
 	var h := _hammer(3, ["H_heavy"])
-	WorldState.inventory = [h]
+	h.current_durability = 2
+	var fresh := _hammer(1)
+	WorldState.inventory = [h, fresh]
+	WorldState.scrap = 100
 	var ui = load("res://scripts/workbench_ui.gd").new()
 	add_child(ui)
 	ui.open()
-	ui.show_tab("tune")
-	check(ui._tune_page.visible and not ui._upgrade_page.visible, "the Tune tab shows")
-	ui.stage_point("T_reach", 1)
-	ui.stage_point("T_reach", 1)
-	ui.stage_point("T_reach", 1)
-	check(ui.staged == {"T_reach": 2}, "staging stops at the points you have (%s)" % str(ui.staged))
-	check(h.tuning.is_empty(), "staged isn't set")
-	ui.stage_point("T_reach", -1)
-	ui.stage_point("T_balance", 1)
-	check(ui.set_tuning() == "" and h.tuning == {"T_reach": 1, "T_balance": 1}, "Set in steel → applied")
-	check(not ui._name_row.visible, "no rename for a Lv3")
+	check(not ("_tune_page" in ui) and not ui.has_method("set_tuning") and not ui.has_method("stage_point"), "there is no Tune tab any more")
+	ui.show_tab("repair")
+	check(ui._repair_page.visible and not ui._upgrade_page.visible and not ui._salvage_page.visible, "the Repair tab shows")
+	check(ui._repair_grid.get_child_count() == 1, "it lists exactly the weapon that needs mending, not the whole one (%d rows)" % ui._repair_grid.get_child_count())
+	var row: Node = ui._repair_grid.get_child(0)
+	var btn: LampButton = row.get_child(2)
+	var price: int = WeaponUpgrades.repair_cost(h)
+	check(btn.text == "REPAIR   %d SCRAP" % price and not btn.looks_off, "the button carries the price (%s) and is lit with the scrap in hand" % btn.text)
+	check(ui.repair(0) == "" and h.current_durability == h.get_max_durability() and WorldState.scrap == 100 - price, "pressing it mends in full and spends %d" % price)
+	check(ui._msg_kind == "ok" and ui._msg.text.contains("mended"), "…and says so in green (%s)" % ui._msg.text)
+	check(ui._repair_grid.get_child_count() == 1 and ui._repair_grid.get_child(0) is Label, "…and the list now says nothing needs mending")
+	h.current_durability = 0
+	h.is_depleted = true
+	WorldState.scrap = 3
+	ui.refresh()
+	row = ui._repair_grid.get_child(0)
+	btn = row.get_child(2)
+	check(btn.looks_off and not btn.disabled, "short of scrap: the button is dim but pressable")
+	check(ui.repair(0).contains("Need") and ui._msg_kind == "err" and h.is_depleted, "…pressing it says what is short, in red, and mends nothing")
+	# the legendary name field is on the Upgrade tab, in the header
+	check(not ui._name_row.visible, "no name field for a Lv3")
 	var legend := _hammer(5, ["H_heavy", "H_sweep", "H_skull"])
 	legend.title = "Doorstop"
 	WorldState.inventory = [legend]
 	WorldState.scrap = 30
-	ui.select_weapon(0)
-	check(ui._name_row.visible, "a legendary shows its name field")
-	check(ui.rename("Grandad") == "" and legend.title == "Grandad", "renamed from the bench")
 	ui.show_tab("upgrade")
+	ui.select_weapon(0)
+	check(ui._name_row.visible and not ui._w_name.visible and ui._name_edit.text == "Doorstop", "a legendary weapon's name is a field in the header (%s)" % ui._name_edit.text)
+	check(ui.rename("Grandad") == "" and legend.title == "Grandad", "renamed from the bench")
 	check(ui._forge_box.get_child_count() > 0 and ui._perk_box.get_child_count() == 0, "past Legendary, the Upgrade tab is the forge")
 	check(ui.forge(25) == "" and legend.forge_paid == 25 and WorldState.scrap == 5, "Put in 25")
+	ui.show_tab("repair")
+	check(not ui._name_row.visible or not ui._upgrade_page.visible, "the name field does not show over the Repair tab")
 	ui.close()
 	ui.queue_free()
 	get_tree().paused = false
@@ -809,10 +981,10 @@ func _test_special_mod_offers() -> void:
 	var a: Array = WeaponUpgrades.next_choices(sw)
 	check(a == WeaponUpgrades.next_choices(sw), "the offer is stable while you think")
 	for id in a:
-		check("melee" in WeaponUpgrades.MODS[id]["pool"], "%s is a melee special" % id)
+		check(("melee" in WeaponUpgrades.MODS[id]["pool"]) if WeaponUpgrades.is_mod(id) else (WeaponUpgrades.STATS[id]["kind"] == "melee"), "%s is a melee special or stat" % id)
 	var g := _gun(5, ["G_aim", "G_silencer", "G_lucky"])
 	for id in WeaponUpgrades.next_choices(g):
-		check("gun" in WeaponUpgrades.MODS[id]["pool"], "the gun's heirloom tier offers gun specials (%s)" % id)
+		check(("gun" in WeaponUpgrades.MODS[id]["pool"]) if WeaponUpgrades.is_mod(id) else (WeaponUpgrades.STATS[id]["kind"] == "gun"), "the gun's heirloom tier offers gun specials and stats (%s)" % id)
 	check(WeaponUpgrades.next_choices(_hammer(2)) == WeaponUpgrades.TREES["002"][3] and WeaponUpgrades.next_choices(_hammer(1)).is_empty(), "a tree weapon still gets its tree at Lv3-5 (and nothing to choose at the first step)")
 	var owned := _knife(5)
 	owned.perks = ["X_fire", "X_serrated", "X_bell", "X_homerun", "X_wind"]

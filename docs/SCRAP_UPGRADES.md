@@ -4,6 +4,17 @@
 > "What's built" record the interpretations + what's still open). Locked by
 > `tests/weapon_upgrade_test`.
 
+## Round 49m — REPAIR at the bench, and the tuning points are folded into the picks (supersedes every "tuning" / "Tune tab" below)
+
+Owner, 2026-11-04, after a full descent: *"the toolbox loop of repairing it easily is mitigated by fixing the toolbox problem… use scrap at the upgrade bench to fix weapons, so players are given an additional choice on what to spend their scrap on… Remove the durability repair for upgrading an item to another level… the skill points for putting into weapons… it's not clear how weapons get additional points… fold the stats you can improve into the actual scrap based upgrades… players can choose their upgrades by spending scrap, and only scrap (plus the levels where additional weapons are needed for the upgrade). Those additional stat boosts were just so OP."*
+
+* **Scrap mends a weapon.** The bench's middle tab is now **REPAIR** (was TUNE). Every carried weapon (and a force-lock tool, the screwdriver) that is worn, broken or - for a gun - damaged is listed with what it costs; one press mends it fully and spends the scrap. `WeaponUpgrades.repair_cost`: `REPAIR_BASE` 30 scrap for a completely worn-out Lv1 weapon, `x (1 + 0.15 x (level - 1))` for a better one, `x` the share of its durability that is gone (a broken one is 100 %), `+ REPAIR_DAMAGED` 8 for a damaged gun, never under `REPAIR_MIN` 4 (a Lv5 weapon that is utterly broken costs 48). So a repair competes with an upgrade for the same scrap (a character finds ~220), and a Toolbox - one use now, half as common - is the free way. `WorldState.repair_weapon`.
+* **A level-up no longer mends.** `upgrade_weapon` used to add the new durability headroom to what was left (a hammer at 7 went to 21); it does not any more. The CEILING still rises (+15 % a level, Reinforced Handle x2...), the weapon is exactly as worn as it was. A weapon dragged to the bench broken is still broken after its upgrade.
+* **No tuning points.** `POINTS_PER_LEVEL`, `points_earned/spent/free`, `tuning_error`, `WorldState.tune_weapon`, `ItemInstance.tuning`, the Tune tab and "Set in steel" are gone. The stats a player could raise (Weight, Edge, Reach, Handling, Balance, Temper; Sights, Magazine, Oiled, Hand-loaded) are now UPGRADES in the pick of two, beside the specials and the tree perks: a tree-less weapon's Lv3-5 and every heirloom tier offer two from {the specials it does not have, the stats it has not maxed}; a tree weapon's (gun, hammer) Lv3-5 keep their tree pair. A pick is ONE rank of one stat (the per-rank numbers are the old ones - Weight +1 damage, Reach +6 px, Handling 8 % faster, ... - and so are the caps, each heirloom tier lifting a cap by one). Costs are scrap, plus the spare weapon at Lv4 / Lv5, and nothing else.
+* **Naming a legendary weapon** moved from the Tune tab to the Upgrade tab (the name row shows for a Legendary weapon).
+* **Saves.** `WORKBENCH_VERSION` 3. A weapon saved with tuning ranks loses them on load (they were free points, not scrap; nothing is refunded) and is clamped to its new durability ceiling; the version-1 -> 2 level migration still runs only for version-1 saves. A legendary weapon's title stays.
+* The costs below are unchanged. Numbers (repair price) are first guesses: `WeaponUpgrades.REPAIR_*`.
+
 ## What's built (v1)
 
 - **Scrap counter** — `WorldState.scrap` (per-character: reset by the time skip, carried on the

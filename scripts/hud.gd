@@ -1315,7 +1315,7 @@ func item_tip_content(inst) -> Dictionary:
 	var max_d: int = inst.get_max_durability()
 	if inst.is_depleted and max_d > 0:
 		broken = true
-		stats.append("BROKEN — repair it with a toolbox")
+		stats.append("BROKEN — repair it with a toolbox or at a workbench")
 	elif d.get("is_weapon", false) and _is_gun_data(d):
 		stats.append("Magazine %d / %d" % [inst.mag_count, inst.get_mag_cap()])
 		if inst.is_damaged:

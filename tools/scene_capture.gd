@@ -36,7 +36,7 @@ extends Node
 #   hud:<method>     call a no-arg HUD method (e.g. refresh_inventory)
 #   journal:<0-3|x>  open the journal on a tab (3 = Codex) / close it
 #   shop:<offer|wares|take|buy:<i>|x>  open the merchant's page on the floor's offer / the wares (after a `notes:` step) / close it       notes:<n>  set the wallet to n notes
-#   bench:<upgrade|tune|salvage|x>  open the workbench on a tab (give a weapon first: give:001)
+#   bench:<upgrade|repair|salvage|x>  open the workbench on a tab (give a weapon first: give:001)
 #   loot:<apartment>:<anchor>:<item id>[:<search fraction>]  open the found-item panel on a node (with a fraction: mid-search at that point; without: the finished result); loot:x closes it
 #   eqstyle:<square|rounded|circle>  shape of the in-hand box;  wear:<0..1>  wear the selected item to that fraction
 #   kill             kill the player now (player._die → the real Game.game_over flow)
@@ -248,7 +248,7 @@ func _do(step: String) -> void:
 					_shop._show_tab("shop")
 			await _frames(2 if p[1] in ["take", "buy"] else 40)
 		"bench":
-			# the workbench, over whatever scene is current: bench:upgrade|tune|salvage opens it on a tab, bench:x closes it (give a weapon first: give:001)
+			# the workbench, over whatever scene is current: bench:upgrade|repair|salvage opens it on a tab, bench:x closes it (give a weapon first: give:001)
 			if _bench == null or not is_instance_valid(_bench):
 				_bench = load("res://scripts/workbench_ui.gd").new()
 				get_tree().root.add_child(_bench)

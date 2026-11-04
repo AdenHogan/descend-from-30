@@ -648,7 +648,7 @@ func _attempt_force() -> void:
 	var item_data = instance.get_data()
 
 	if instance.is_depleted:
-		HUD.show_feedback("It's broken — repair it with a toolbox.", true)
+		HUD.show_feedback("It's broken — repair it with a toolbox or at a workbench.", true)
 		return
 	if not item_data.get("is_weapon", false) and not item_data.get("can_force_lock", false):
 		HUD.show_feedback("Need a weapon or tool to force this.")
@@ -676,7 +676,7 @@ func _attempt_locked() -> void:
 	var item_data = instance.get_data()
 
 	if instance.is_depleted:
-		HUD.show_feedback("It's broken — repair it with a toolbox.", true)
+		HUD.show_feedback("It's broken — repair it with a toolbox or at a workbench.", true)
 		return
 	# Only a can_force_lock weapon or a gun can force a lock (a plain weapon
 	# can't) — reject up front so the channel isn't started for nothing.
@@ -745,7 +745,7 @@ func _resolve_force() -> void:
 			if slot >= 0 and slot < WorldState.inventory.size() and WorldState.get_instance_at(slot) == instance:
 				HUD.selected_slot = -1
 			var verb = "lock" if force_is_lock else "door"
-			HUD.show_feedback(weapon_name + " broke forcing the " + verb + " — repair with a toolbox.")
+			HUD.show_feedback(weapon_name + " broke forcing the " + verb + " — repair with a toolbox or at a workbench.")
 		else:
 			HUD.show_feedback("Lock forced." if force_is_lock else "Door forced open.")
 		HUD.refresh_inventory()
@@ -900,7 +900,7 @@ func _break_tool_mid_removal() -> void:
 
 	_sync_overlay_to_progress()
 	_refresh_prompt()
-	HUD.show_feedback(weapon_name + " broke — barricade still standing. Repair with a toolbox.")
+	HUD.show_feedback(weapon_name + " broke — barricade still standing. Repair with a toolbox or at a workbench.")
 
 
 func _finish_barricade_removal() -> void:

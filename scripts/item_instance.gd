@@ -17,9 +17,6 @@ var shots_since_mark: int = 0
 # modifier fold below — never by writing stats directly. Rules/perks: WeaponUpgrades.
 var level: int = 1
 var perks: Array = []
-# Tuning (docs/SCRAP_UPGRADES.md "Tuning"): the points the player put into this weapon's own stat
-# sheet — {stat id: ranks}. WeaponUpgrades.STATS says what each rank does.
-var tuning: Dictionary = {}
 # Legendary (Lv4+): its TITLE ("Widowmaker" — generated, renamable) and who forged it.
 var title: String = ""
 var forged_by: String = ""          # "<character id>:<run>" when it became legendary
@@ -61,15 +58,13 @@ func get_mag_cap() -> int:
 	return base + WorldState.get_gun_mag_bonus() + int(perk_add("mag"))
 
 
-# --- the per-weapon modifier fold (base × ∏mult + Σadd) -----------------------------
-# Two sources: the perks picked on the way up (each a flat add / a multiplier) and the tuning
-# ranks (each rank adds `add`, or moves the multiplier by `mult` — ×(1 + ranks × mult)).
+# --- the per-weapon modifier fold (base x prod mult + sum add) -----------------------------
+# One source: the perks picked on the way up (each a flat add / a multiplier). A stat upgrade (Weight, Reach...) is a perk id like
+# any other, picked once per rank (round 49m: it used to be a separate TUNING table of free points).
 func perk_add(stat: String) -> float:
 	var total := 0.0
 	for p in perks:
 		total += float(WeaponUpgrades.perk(p).get("mods", {}).get(stat, {}).get("add", 0.0))
-	for id in tuning:
-		total += int(tuning[id]) * float(WeaponUpgrades.stat(id).get("mods", {}).get(stat, {}).get("add", 0.0))
 	return total
 
 
@@ -77,10 +72,6 @@ func perk_mult(stat: String) -> float:
 	var total := 1.0
 	for p in perks:
 		total *= float(WeaponUpgrades.perk(p).get("mods", {}).get(stat, {}).get("mult", 1.0))
-	for id in tuning:
-		var step := float(WeaponUpgrades.stat(id).get("mods", {}).get(stat, {}).get("mult", 0.0))
-		if step != 0.0:
-			total *= maxf(0.1, 1.0 + int(tuning[id]) * step)
 	return total
 
 

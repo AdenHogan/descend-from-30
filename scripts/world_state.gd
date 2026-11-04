@@ -1907,8 +1907,9 @@ func salvage_item(slot: int) -> int:
 # THE WORKBENCH ACTION: level the weapon in `slot` up by one. `perk_id` is one of its two offered
 # perks when it has a tree ("" when that level has none). Spends the scrap (an heirloom step's
 # scrap was already paid in instalments — forge_heirloom) and consumes the spare the step needs;
-# the weapon keeps every perk + tuning it had and (from the second level-up on) gains POINTS_PER_LEVEL tuning
-# points. Reaching Lv5 makes it LEGENDARY: it earns a title. Returns "" on success, else the reason it can't.
+# the weapon keeps every perk it had. A level-up does NOT mend it: the durability CEILING rises, what is left does not
+# (owner 2026-11-04 - wear is paid for with a Toolbox, or with scrap at the REPAIR tab: repair_weapon). Reaching Lv5 makes
+# it LEGENDARY: it earns a title. Returns "" on success, else the reason it can't.
 func upgrade_weapon(slot: int, perk_id: String = "") -> String:
 	if slot < 0 or slot >= inventory.size():
 		return "Nothing there."
@@ -1919,7 +1920,6 @@ func upgrade_weapon(slot: int, perk_id: String = "") -> String:
 	var choices: Array = WeaponUpgrades.next_choices(inst)
 	if not choices.is_empty() and not (perk_id in choices):
 		return "Pick one of the two upgrades."
-	var base_max: int = inst.get_max_durability()
 	var to: int = inst.level + 1
 	if choices.is_empty():
 		perk_id = WeaponUpgrades.auto_perk(inst.item_id, to)     # the plain first step carries its own perk; every other no-choice level none
@@ -1933,10 +1933,9 @@ func upgrade_weapon(slot: int, perk_id: String = "") -> String:
 	inst.level = to
 	if perk_id != "":
 		inst.perks.append(perk_id)
-	_apply_durability_headroom(inst, base_max)
 	if inst.level >= WeaponUpgrades.LEGENDARY_LEVEL and inst.title == "":
 		inst.title = WeaponUpgrades.generate_title(inst,
-			str(master_seed) + "title" + inst.item_id + str(current_run) + str(inst.perks) + str(inst.tuning))
+			str(master_seed) + "title" + inst.item_id + str(current_run) + str(inst.perks))
 		inst.forged_by = "%s:%d" % [current_character(), current_run]
 		add_run_trace("Forged %s" % inst.get_display_name())
 	HUD.update_scrap()
@@ -1944,28 +1943,18 @@ func upgrade_weapon(slot: int, perk_id: String = "") -> String:
 	return ""
 
 
-# A durability boost (perk or tuning) takes effect at once: the new headroom is added to what's left.
-func _apply_durability_headroom(inst, base_max: int) -> void:
-	var new_max: int = inst.get_max_durability()
-	if new_max > base_max and base_max > 0:
-		inst.current_durability += new_max - base_max
-		inst.is_depleted = inst.current_durability <= 0
-
-
-# TUNING: put points into the weapon's own stat sheet. `alloc` = {stat id: ranks to add}. All or
-# nothing — "" on success, else why not (WeaponUpgrades.tuning_error). Points, once set, are set.
-func tune_weapon(slot: int, alloc: Dictionary) -> String:
+# REPAIR AT THE BENCH (owner 2026-11-04): scrap mends a worn, broken or damaged weapon in full - the price is
+# WeaponUpgrades.repair_cost. "" on success, else why not (also what the bench says in red).
+func repair_weapon(slot: int) -> String:
 	if slot < 0 or slot >= inventory.size():
 		return "Nothing there."
 	var inst = inventory[slot]
-	var err: String = WeaponUpgrades.tuning_error(inst, alloc)
+	var err: String = WeaponUpgrades.repair_error(inst, scrap)
 	if err != "":
 		return err
-	var base_max: int = inst.get_max_durability()
-	for id in alloc:
-		if int(alloc[id]) > 0:
-			inst.tuning[id] = int(inst.tuning.get(id, 0)) + int(alloc[id])
-	_apply_durability_headroom(inst, base_max)
+	scrap -= WeaponUpgrades.repair_cost(inst)
+	inst.repair_full()
+	HUD.update_scrap()
 	HUD.refresh_inventory()
 	return ""
 
@@ -5301,8 +5290,7 @@ func has_cabinet_key(apartment_id: String) -> bool:
 
 
 # The weapon inside — built the same way every time (seeded per cabinet): the Gun at Lv4 (Reinforced, then one of
-# each of two levels' perks already chosen), its 4 tuning points left FREE for the bench (make it yours),
-# full wear, a few rounds in the magazine.
+# each of two levels' perks already chosen), full wear, a few rounds in the magazine.
 func gun_cabinet_weapon(apartment_id: String) -> ItemInstance:
 	var inst := ItemInstance.new()
 	inst.setup(CABINET_WEAPON)
@@ -5310,13 +5298,11 @@ func gun_cabinet_weapon(apartment_id: String) -> ItemInstance:
 	rng.seed = hash(str(master_seed) + "cabinetweapon" + apartment_id)
 	while inst.level < CABINET_LEVEL:
 		var choices: Array = WeaponUpgrades.next_choices(inst)
-		var base_max: int = inst.get_max_durability()
 		inst.level += 1
 		if not choices.is_empty():
 			inst.perks.append(choices[rng.randi() % choices.size()])
 		elif WeaponUpgrades.auto_perk(inst.item_id, inst.level) != "":
 			inst.perks.append(WeaponUpgrades.auto_perk(inst.item_id, inst.level))
-		_apply_durability_headroom(inst, base_max)
 	if inst.get_max_durability() > 0:
 		inst.current_durability = inst.get_max_durability()
 	inst.mag_count = mini(CABINET_ROUNDS, inst.get_mag_cap())
@@ -6336,7 +6322,6 @@ func instance_to_dict(instance) -> Dictionary:
 		"level": instance.level,
 		"wv": WeaponUpgrades.WORKBENCH_VERSION,
 		"perks": instance.perks.duplicate(),
-		"tuning": instance.tuning.duplicate(),
 		"title": instance.title,
 		"forged_by": instance.forged_by,
 		"crossings": instance.crossings,
@@ -6356,21 +6341,14 @@ func instance_from_dict(entry: Dictionary) -> ItemInstance:
 	instance.is_damaged = bool(entry.get("is_damaged", false))
 	instance.level = int(entry.get("level", 1))
 	instance.perks = Array(entry.get("perks", []))
-	# A save from before the plain first step (Lv2 = Reinforced, round 48i) counted its first PICK as Lv2: every level from there moves up one - same perks, same tuning points,
-	# same legendary / heirloom standing - and the weapon gets the Reinforced step it never paid for.
-	if int(entry.get("wv", 1)) < WeaponUpgrades.WORKBENCH_VERSION and instance.level >= 2 and WeaponUpgrades.can_upgrade(instance.item_id):
+	# A save from before the plain first step (Lv2 = Reinforced, round 48i) counted its first PICK as Lv2: every level from there moves up one - same perks, same legendary / heirloom standing - and the
+	# weapon gets the Reinforced step it never paid for. (Only a save older than THAT step: the tuning points a version-2 weapon carried are not read
+	# any more - round 49m folded them into the picks; nothing is refunded, they were never bought with scrap.)
+	if int(entry.get("wv", 1)) < WeaponUpgrades.REINFORCE_STEP_VERSION and instance.level >= 2 and WeaponUpgrades.can_upgrade(instance.item_id):
 		instance.level += 1
 		var plain: String = WeaponUpgrades.auto_perk(instance.item_id, WeaponUpgrades.REINFORCE_LEVEL)
 		if plain != "" and not (plain in instance.perks):
 			instance.perks.push_front(plain)
-	# JSON brings numbers back as floats: tuning ranks are ints.
-	var tun: Dictionary = {}
-	var raw_tuning = entry.get("tuning", {})
-	if raw_tuning is Dictionary:
-		for id in raw_tuning:
-			if WeaponUpgrades.STATS.has(String(id)) and int(raw_tuning[id]) > 0:
-				tun[String(id)] = int(raw_tuning[id])
-	instance.tuning = tun
 	instance.title = String(entry.get("title", ""))
 	instance.forged_by = String(entry.get("forged_by", ""))
 	instance.crossings = int(entry.get("crossings", 0))

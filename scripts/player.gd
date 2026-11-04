@@ -739,7 +739,7 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 	if weapon_type == "" or weapon_type == "gun":
 		return
 	if instance.is_depleted:
-		HUD.show_feedback("It's broken — repair it with a toolbox.", true)
+		HUD.show_feedback("It's broken — repair it with a toolbox or at a workbench.", true)
 		return
 	var stamina_cost = WEAPON_STAMINA_COST.get(weapon_type, 15.0) * WorldState.get_melee_cost_mult() \
 		* instance.perk_mult("stamina")          # workbench perk (Featherweight)
@@ -836,7 +836,7 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 			if HUD.selected_slot == slot_index:
 				HUD.selected_slot = -1
 			HUD.refresh_inventory()
-			HUD.show_feedback(weapon_name + " broke — repair it with a toolbox.")
+			HUD.show_feedback(weapon_name + " broke — repair it with a toolbox or at a workbench.")
 		else:
 			HUD.refresh_inventory()
 
@@ -896,7 +896,7 @@ func _do_gun_attack(instance: ItemInstance, _slot_index: int) -> void:
 	# Guns fire from their MAGAZINE (18, or 10 damaged). Loose bullets stay
 	# in inventory until loaded — press the use key on the equipped gun.
 	if instance.is_depleted:
-		HUD.show_feedback("The gun's worn out — repair it with a toolbox.", true)
+		HUD.show_feedback("The gun's worn out — repair it with a toolbox or at a workbench.", true)
 		return
 	if instance.mag_count <= 0:
 		if WorldState.get_ammo_total() > 0:
@@ -949,7 +949,7 @@ func _do_gun_attack(instance: ItemInstance, _slot_index: int) -> void:
 		"body": HUD.show_feedback("Body shot.")
 		"miss": HUD.show_feedback("Missed.")
 	if worn_out:
-		HUD.show_feedback("The gun's worn out — repair it with a toolbox.", true)
+		HUD.show_feedback("The gun's worn out — repair it with a toolbox or at a workbench.", true)
 	if nearest.has_method("receive_hit_from_gun"):
 		nearest.receive_hit_from_gun(outcome)
 	if outcome != "miss":

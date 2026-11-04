@@ -570,7 +570,7 @@ func _test_workbench() -> void:
 	await _frames(3)
 	check(wb.visible and get_tree().paused, "the bench pauses the game while it is open")
 	check(wb._card.get_child(0) is LampGlass and wb._card.get_child(0).size == wb._card.size, "the panel is the kit's dark glass, and it covers the whole panel (%s of %s)" % [str(wb._card.get_child(0).size), str(wb._card.size)])
-	for tab in ["upgrade", "tune", "salvage"]:
+	for tab in ["upgrade", "repair", "salvage"]:
 		wb.show_tab(tab)
 		await _frames(3)
 		var t: String = _type_audit(wb._card)
@@ -604,17 +604,22 @@ func _test_workbench() -> void:
 	var t3: String = _type_audit(wb._card)
 	check(t3 == "", "with the cards up: only the kit's faces and sizes (%s)" % t3)
 	wb._on_upgrade_pressed()
-	check(h1.level == 3 and wb._msg.text.contains("2 tuning points"), "Lv3, and the message says where the points are spent (%s)" % wb._msg.text)
+	check(h1.level == 3 and wb._msg.text.contains("Upgraded to Lv 3") and not wb._msg.text.contains("tuning"), "Lv3, and the message is just what was done - there are no tuning points to point at (%s)" % wb._msg.text)
 	# Lv3 -> 4: a spare is stripped for parts
 	check(wb._needs.rows.size() == 2 and wb._needs.rows[1]["label"] == "SPARE" and wb._needs.rows[1]["ok"] and String(wb._needs.rows[1]["have"]).begins_with("your "), "the spare is a row of its own, ticked when you carry one (%s)" % wb._needs.text)
-	check(wb._next_caption.text.contains("LV 4") and wb._next_caption.text.contains("2 TUNING POINTS"), "what the level gives is the caption (%s)" % wb._next_caption.text)
-	# the tune page: one line of guidance, a grid that fits
-	wb.show_tab("tune")
+	check(wb._next_caption.text.contains("LV 4") and not wb._next_caption.text.contains("TUNING"), "the caption names the level (%s)" % wb._next_caption.text)
+	# the repair page: one line of guidance, a row for what is worn, the price on the button
+	h1.current_durability = 3
+	WorldState.scrap = 5
+	wb.show_tab("repair")
 	await _frames(3)
-	check(wb._points_label.text.contains("POINTS") and wb._points_label.text.contains("free of"), "TUNE says how many points are free (%s)" % wb._points_label.text)
-	check(wb._msg.text.contains("One point raises one stat"), "…and in one line what a point is (%s)" % wb._msg.text)
-	check(wb.TUNE_NAME_W + wb.TUNE_PIPS_W + 2.0 * wb.TUNE_BTN_W + wb.TUNE_DESC_W + 4.0 * wb.TUNE_GAP <= wb.RIGHT_W + 0.01 and wb.TUNE_DESC_W >= 200.0, "the tune columns fit the pane (%.0f of %.0f)" % [wb.TUNE_NAME_W + wb.TUNE_PIPS_W + 2.0 * wb.TUNE_BTN_W + wb.TUNE_DESC_W + 4.0 * wb.TUNE_GAP, wb.RIGHT_W])
-	check(wb._tune_grid.get_global_rect().end.y <= wb._set_btn.get_global_rect().position.y + 1.0, "the grid ends above the button (%.0f / %.0f)" % [wb._tune_grid.get_global_rect().end.y, wb._set_btn.get_global_rect().position.y])
+	check(wb._msg.text.contains("competes with the next upgrade"), "REPAIR says in one line what it costs you (%s)" % wb._msg.text)
+	check(wb._repair_grid.get_child_count() == 1, "one row for the worn weapon (%d)" % wb._repair_grid.get_child_count())
+	var rbtn: LampButton = wb._repair_grid.get_child(0).get_child(2)
+	check(rbtn.text.begins_with("REPAIR") and rbtn.text.ends_with("SCRAP") and rbtn.looks_off, "the price is on the button, and it looks off with 5 scrap (%s)" % rbtn.text)
+	var ro: String = _outside(wb._card)
+	check(ro == "", "the repair rows lie inside the panel (%s)" % ro)
+	check(wb._repair_grid.get_global_rect().end.y <= wb._card.get_global_rect().end.y, "…and the list ends above the foot of the panel")
 	wb.close()
 	check(not wb.visible and get_tree().paused == was_paused, "closing puts the pause back exactly as it was")
 	wb.queue_free()

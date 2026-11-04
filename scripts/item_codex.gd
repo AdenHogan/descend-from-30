@@ -67,7 +67,7 @@ static func durability_line(d: Dictionary) -> String:
 static func wear_text(d: Dictionary) -> String:
 	var max_d: int = int(d.get("max_durability", -1))
 	if is_gun(d):
-		return "One mark wears off every %d rounds fired. Forcing a lock with it damages it instead (smaller magazine, worse aim) — a Toolbox mends that." % ItemInstance.GUN_SHOTS_PER_MARK
+		return "One mark wears off every %d rounds fired. Forcing a lock with it damages it instead (smaller magazine, worse aim) — a Toolbox or the workbench mends that." % ItemInstance.GUN_SHOTS_PER_MARK
 	if d.get("is_weapon", false):
 		var t := "Each swing that lands spends 1 use (a swing at nothing is free)."
 		if d.get("can_force_lock", false):
@@ -122,7 +122,7 @@ static func ending_text(d: Dictionary) -> String:
 	var consumable: bool = d.get("is_health_item", false) or d.get("is_speed_boost", false) or d.get("can_repair", false) \
 		or d.get("is_extinguisher", false) or d.get("is_throwable", false) or d.get("single_use", false)
 	if d.get("is_weapon", false) or (max_d > 1 and not consumable):
-		return "When it runs out it isn't lost: it stays in your pack BROKEN until a Toolbox rebuilds it."
+		return "When it runs out it isn't lost: it stays in your pack BROKEN until a Toolbox or the workbench rebuilds it."
 	if consumable or max_d > 0:
 		return "Gone once it's used up."
 	return ""
