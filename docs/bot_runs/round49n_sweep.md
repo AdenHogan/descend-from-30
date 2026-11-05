@@ -56,7 +56,7 @@ Pooled over 18 characters per row (17 for `need_r0`: one playthrough lost a char
 
 ## Did the fix clear the two timeouts?
 
-**Pending when this was committed**: seeds 101 and 102 of `need_r0` are being replayed on the fixed tree; the result is added below as soon as it lands. The fix itself is proven by `floor15_test`, not by this replay (bots are real-time and chaotic - a clean replay is absence of evidence, a stall would be evidence).
+**Replay result (fixed tree, `need_r0` seeds 101 and 102, 6 characters):** all six died as normal (101: Joe f22, Vivianne f26, Amina f21; 102: Amina f25, Alex f26, Vivianne f23), **0 timeouts, 0 anomalies, 0 `SCRIPT ERROR`s**. That is **absence of evidence, not proof**: the bots are real-time and chaotic (101's third character died on floor 21 this time, not at the floor-25 lift where it stalled before), and the bot does not log meeting its own body, so I cannot say the replay ever put a character beside its predecessor's body at the lift. The fix rests on `floor15_test` (which reproduces the double answer on the old code and fails when each part of the fix is removed), not on this replay.
 
 ## What this sweep does not tell the owner
 
