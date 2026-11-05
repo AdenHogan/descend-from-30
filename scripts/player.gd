@@ -1389,6 +1389,7 @@ func begin_pack() -> bool:
 	_clear_move_target()
 	velocity.x = 0.0
 	_pack_was_crouching = is_crouching
+	_pack_begun_msec = Time.get_ticks_msec()
 	_pack_base_x = animated_sprite.position.x
 	_pack_feet_dy = maxf(feet_position().y - animated_sprite.global_position.y, 0.0)
 	pack_phase = "kneel"
@@ -1450,13 +1451,24 @@ func _pad_is_choosing_in_pack() -> bool:
 	return HUD.pack_wheel != null and HUD.pack_wheel.has_method("pad_selecting") and HUD.pack_wheel.pad_selecting()
 
 
+## [interact] is also what kneels the player over a fallen character's body (player_corpse.gd), and one press is "just pressed" in the idle frame that opened the pack AND
+## in the next physics step when that frame had none (a render rate above the physics rate; the headless loop): the same press then stood them straight up again.
+## Round 49n: a press within PACK_OPEN_GRACE_MSEC of the pack opening is the press that opened it (no hand closes a pack that fast on purpose).
+const PACK_OPEN_GRACE_MSEC := 150
+var _pack_begun_msec: int = -100000
+
+
+func _press_opened_the_pack() -> bool:
+	return Time.get_ticks_msec() - _pack_begun_msec < PACK_OPEN_GRACE_MSEC
+
+
 func _pack_tick(delta: float) -> void:
 	_clear_move_target()
 	velocity.x = 0.0
 	_move_locked()
 	animated_sprite.play("crouch_idle")
 	if pack_phase != "stand" and (Input.is_action_just_pressed("move_left") or Input.is_action_just_pressed("move_right") \
-			or (Input.is_action_just_pressed("interact") and not _pad_is_choosing_in_pack()) \
+			or (Input.is_action_just_pressed("interact") and not _pad_is_choosing_in_pack() and not _press_opened_the_pack()) \
 			or Input.is_action_just_pressed("mode_toggle") or Input.is_action_just_pressed("crouch_toggle") \
 			or Input.is_action_just_pressed("listen") or Input.is_action_just_pressed("rest") \
 			or ((back_spot != null or on_balcony_plane) and Input.is_action_just_pressed("move_down"))):

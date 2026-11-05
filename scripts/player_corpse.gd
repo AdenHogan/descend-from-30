@@ -1,3 +1,4 @@
+class_name PlayerCorpse
 extends Area2D
 
 # The recoverable body of a PREVIOUS character (STORE_DESIGN step 7). Placed by
@@ -84,8 +85,35 @@ func _process(delta: float) -> void:
 		_light.texture_scale = 0.04 + 0.03 * lvl
 	if not player_nearby:
 		return
-	if Input.is_action_just_pressed("interact"):
+	if Input.is_action_just_pressed("interact") and not _other_is_nearer():
 		_recover()
+
+
+## Where the body's reach overlaps the merchant's lift, the powered lift's [E] Ride or a door that would be entered the NEARER one answers [interact] and exactly one does: the body wins a
+## tie (`answers_before`, which the lift's own scripts ask of us). One press used to open the shop AND kneel the player over the body (round 49n, found by the bot).
+func _other_is_nearer() -> bool:
+	if player == null or not is_instance_valid(player):
+		return false
+	var mine: float = absf(player.global_position.x - global_position.x)
+	var parent = get_parent()
+	if parent == null:
+		return false
+	for n in parent.get_children():
+		if n != self and n.has_method("_open_shop") and n.get("player_nearby") == true:
+			return absf(player.global_position.x - n.global_position.x) < mine
+		if n != self and n.has_method("answers_interact") and bool(n.call("answers_interact")) and absf(player.global_position.x - n.global_position.x) < mine:
+			return true                           # a door that would take the press and stands nearer
+	if parent.has_method("lift_answers_press") and bool(parent.call("lift_answers_press", player)):
+		return absf(player.global_position.x - float(parent.get("ELEVATOR_X"))) < mine
+	return false
+
+
+## Does a fallen character's body whose reach holds the player lie at least as near to them as `other_x` (the x of whatever else answers [interact])?
+static func answers_before(tree: SceneTree, player_x: float, other_x: float) -> bool:
+	for c in tree.get_nodes_in_group("player_corpse"):
+		if is_instance_valid(c) and c.get("player_nearby") == true and absf(player_x - c.global_position.x) <= absf(player_x - other_x):
+			return true
+	return false
 
 
 func _glow_level() -> float:

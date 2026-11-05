@@ -105,6 +105,19 @@ def finish(job, outdir, done_f):
     print("%-18s exit=%s wall=%5.0fs engine-findings=%d%s" % (job["name"], rc, rec["wall"], len(bad), "  <-- TIMEOUT" if rc in (124, -9, -15) else ""), flush=True)
 
 
+def finished_run(outdir, cfg, seed):
+    """A playthrough is done when its report exists AND its log says the bot finished. The bot writes the report after every character, so a run
+    killed part-way (a container restart, round 49n) leaves a report with two characters of three that must be re-run, not skipped."""
+    name = "%s_%s" % (cfg, seed)
+    if not os.path.exists(os.path.join(outdir, name + ".json")):
+        return False
+    try:
+        with open(os.path.join(outdir, name + ".log"), errors="replace") as f:
+            return "=== bot run done" in f.read()
+    except OSError:
+        return False
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("outdir")
@@ -123,7 +136,7 @@ def main():
         if c not in CONFIGS:
             print("unknown config", c, "- known:", ", ".join(CONFIGS))
             return 2
-    queue = [(c, s) for s in seeds for c in cfgs if not os.path.exists(os.path.join(args.outdir, "%s_%s.json" % (c, s)))]
+    queue = [(c, s) for s in seeds for c in cfgs if not finished_run(args.outdir, c, s)]
     print("%d runs queued (%d skipped, already done), %d at a time" % (len(queue), len(seeds) * len(cfgs) - len(queue), args.jobs), flush=True)
     running = []
     done_f = open(os.path.join(args.outdir, "_done.jsonl"), "a")

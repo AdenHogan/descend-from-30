@@ -571,12 +571,16 @@ func _process(delta: float) -> void:
 ## shop opened (or the car was boarded) while the player was walked into the maintenance room (found by the descent bot, round 44).
 ## Where they overlap the NEARER one answers the press (merchant.gd and building_floors.gd ask the same of the door).
 func _other_is_nearer() -> bool:
-	if not is_maintenance:
-		return false
 	var player = get_tree().get_first_node_in_group("player")
 	if player == null:
 		return false
 	var mine: float = absf(player.global_position.x - global_position.x)
+	# A fallen character's BODY at the door (the last character often fell beside one): the nearer answers [interact], the body winning a tie
+	# (round 49n: one press entered the flat AND credited the body's notes; player_corpse.gd asks `answers_interact` of us).
+	if PlayerCorpse.answers_before(get_tree(), player.global_position.x, global_position.x):
+		return true
+	if not is_maintenance:
+		return false
 	for n in get_parent().get_children():
 		if n != self and n.has_method("_open_shop") and n.get("player_nearby") == true:
 			return absf(player.global_position.x - n.global_position.x) < mine
@@ -584,6 +588,11 @@ func _other_is_nearer() -> bool:
 	if parent != null and parent.has_method("lift_answers_press") and bool(parent.call("lift_answers_press", player)):
 		return absf(player.global_position.x - float(parent.get("ELEVATOR_X"))) < mine
 	return false
+
+
+## Would [interact] enter this door right now? (player_corpse.gd asks, so a body beside a door and the door do not both answer one press.)
+func answers_interact() -> bool:
+	return player_nearby and (current_state == WorldState.DoorState.OPEN or current_state == WorldState.DoorState.BREACHED)
 
 
 func _on_click(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:

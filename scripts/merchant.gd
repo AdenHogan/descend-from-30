@@ -93,9 +93,17 @@ func _process(_delta: float) -> void:
 		var near = global_position.distance_to(player.global_position) <= DOOR_OPEN_DISTANCE
 		if near != doors_open:
 			_set_doors_open(near)
-	if player_nearby and Input.is_action_just_pressed("interact") and not _maintenance_door_is_nearer(player):
+	if player_nearby and Input.is_action_just_pressed("interact") and not _maintenance_door_is_nearer(player) and not _fallen_body_is_nearer(player):
 		if shop_ui == null or not shop_ui.visible:
 			_open_shop()
+
+
+## The last character's BODY can lie inside the lift's reach (the lift reaches 60 px, a body 30): the nearer answers the press, the body winning a tie
+## (round 49n: one press used to open the shop AND kneel the player over the body's two rings - the bot sat there for 150 s; player_corpse.gd asks the same of us).
+func _fallen_body_is_nearer(player) -> bool:
+	if player == null:
+		return false
+	return PlayerCorpse.answers_before(get_tree(), player.global_position.x, global_position.x)
 
 
 ## The maintenance door's reach overlaps this one on floor 15 — the nearer answers the press (door.gd `_other_is_nearer`).
