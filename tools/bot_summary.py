@@ -3,8 +3,8 @@
 
     python3 tools/bot_summary.py <dir> [--groups prefix1,prefix2,...]
 
-Files are grouped by the part of their name before the first "_" (fighter_424242.json -> group "fighter"), so one sweep folder can
-hold several configurations side by side. Prints markdown: per group a table of how far each character-run got, the reach curve
+Files are grouped by their configuration name, the part before the trailing seed (fighter_424242.json -> group "fighter", need_r0_101.json ->
+group "need_r0"), so one sweep folder can hold several configurations side by side. Prints markdown: per group a table of how far each character-run got, the reach curve
 (how many runs got as far as each checkpoint floor), the causes of death, the kit's wear, and the upgrades and boons taken.
 
 A folder written by tools/bot_sweep.py (round 44) also carries the SCAVENGING record: for each group the apartments entered, what the
@@ -35,7 +35,11 @@ def load(folder):
         if "runs" not in d:
             continue
         d["_name"] = fn[:-5]
-        groups[fn.split("_")[0]].append(d)
+        # the group is the whole configuration name (need_r0_101.json -> "need_r0": the A/B configs of round 49n must not be lumped into
+        # "need"); it matches `cfg` in _done.jsonl. A file whose last token is not a seed keeps the old first-token group.
+        stem = fn[:-5]
+        head, _, last = stem.rpartition("_")
+        groups[head if head and last.isdigit() else stem.split("_")[0]].append(d)
     return groups
 
 
