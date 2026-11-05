@@ -66,6 +66,25 @@ func _test_the_roll() -> void:
 		check(absf(float(yes) / n - want) < 0.08, "run %d: about %.0f%% of chasers follow (%.0f%%)" % [run, want * 100.0, 100.0 * yes / n])
 	check(WorldState.FLAT_FOLLOW_CHANCE[1] < 1.0 and WorldState.FLAT_FOLLOW_CHANCE[3] < 1.0, "…so it is 'not always': even by night some chasers stay outside")
 	check(WorldState.FLAT_FOLLOW_MAX == 2, "…and never more than two come in after one door")
+	# The descent ramp (round 49n: "we don't need to change... even the first five levels of descent... incrementally increase"): nobody follows into a flat
+	# on floor 30 or 29, a quarter of the chance on 28, half on 27, three quarters on 26, the full chance from floor 25 down.
+	WorldState.current_run = 3
+	var chance3: float = WorldState.FLAT_FOLLOW_CHANCE[3]
+	for entry in [[30, 0.0], [29, 0.0], [28, 0.25], [27, 0.5], [26, 0.75], [25, 1.0], [12, 1.0]]:
+		var apt := "%d03" % entry[0]
+		var yes_r := 0
+		var n_r := 800
+		for i in range(n_r):
+			if WorldState.flat_follows(apt, "%d:%d:370" % [entry[0], 200 + i]):
+				yes_r += 1
+		var want_r: float = chance3 * float(entry[1])
+		check(absf(float(yes_r) / n_r - want_r) < 0.06 and (want_r > 0.0 or yes_r == 0), "floor %d (run 3): %.0f%% of chasers follow (want %.0f%%)" % [entry[0], 100.0 * yes_r / n_r, 100.0 * want_r])
+	WorldState.dev_ramp_override = 0.0
+	var forced := 0
+	for i in range(200):
+		forced += 1 if WorldState.flat_follows("1203", "12:%d:370" % (200 + i)) else 0
+	check(forced == 0, "the override's old rules mean nobody follows on any floor (%d)" % forced)
+	WorldState.dev_ramp_override = -1.0
 	var k0: String = WorldState.flat_follow_key("1203", "12:300:370", "standard")
 	check(k0 != WorldState.flat_follow_key("1203", "12:301:370", "standard") and k0 != WorldState.flat_follow_key("1203", "12:300:370", "crawler")
 			and k0.begins_with(WorldState.flat_follow_prefix("1203")) and k0.get_slice(":", 4) == "standard", "each follower has its own key, in the flat's prefix, the kind last (%s)" % k0)

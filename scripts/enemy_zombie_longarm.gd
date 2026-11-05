@@ -20,7 +20,7 @@ func _ready() -> void:
 		animated_sprite.position.y += FEET_BELOW_CENTRE * (SCENE_SCALE - SPRITE_SCALE)
 	SPEED = 38.0
 	DETECTION_RANGE = 120.0
-	ATTACK_RANGE = 70.0          # the reach threat — standard is 38
+	ATTACK_RANGE = 62.0          # the reach threat — standard is 30 (both +8 from floor 25 down: the descent ramp)
 	max_hp += 1                  # slightly sturdier
 	current_hp = max_hp
 	add_to_group("longarm")

@@ -11,7 +11,7 @@ func _ready() -> void:
 	super()
 	SPEED = 26.0                 # SLOW — it crawls (standard is 40)
 	DETECTION_RANGE = 130.0      # still senses you from a fair way and drags over
-	ATTACK_RANGE = 68.0          # its contact floor is 60 (an 80 px body) - +8 like every other melee type
+	ATTACK_RANGE = 30.0          # its real reach is the contact floor, 60 (an 80 px body) - +8 more from floor 25 down (the descent ramp)
 	ATTACK_DAMAGE = 2            # DOUBLE damage per bite — the trade-off for being slow/weak
 	max_hp = maxi(1, int(round(max_hp * 0.55)))   # fragile
 	current_hp = max_hp
@@ -26,7 +26,9 @@ func _ready() -> void:
 # the wall (that's the drop).
 # ---------------------------------------------------------------------------------------------
 const POUNCE_MAX := 130.0        # starts when the gap (horizontal) is inside this...
-const POUNCE_MIN := 70.0         # ...and outside this (closer than that it simply bites)
+# ...and outside its bite reach + 2 (closer than that it simply bites): 62 on the easy floors, 70 once the reach bonus is in
+func _pounce_min() -> float:
+	return _attack_reach() + 2.0
 const POUNCE_WIND := 0.55        # the coil (the tell)
 const POUNCE_TIME := 0.26        # the leap
 const POUNCE_SPEED := 330.0
@@ -74,7 +76,7 @@ func _ai_override(reach: float, distance: float, detection: float) -> bool:
 			return true
 	# not pouncing: start one?
 	if _pounce_cd <= 0.0 and hurt_timer <= 0.0 and distance <= detection \
-			and reach < INF and reach <= POUNCE_MAX and reach > POUNCE_MIN:
+			and reach < INF and reach <= POUNCE_MAX and reach > _pounce_min():
 		pounce = "wind"
 		_pounce_t = POUNCE_WIND
 		_pounce_dir = signf(player.global_position.x - global_position.x)

@@ -945,21 +945,28 @@ func _is_cabinet_weapon() -> bool:
 
 
 ## The rounds in a found bundle: a size rolled from these weights, seeded per node (so a node always holds the same count). Sizes start at AMMO_BUNDLE_MIN.
-## (Round 49f: "hardly any bullets" - the bundle was 2-8 rounds, 3.9 on average; it became 3-10, 5.6 on average. Owner 2026-11-04, after a full
-## descent with plentiful bullets: "reduce bullets found in the game world by 15%" - the weights below average 4.74 rounds (was 5.58, weights
-## [16, 20, 18, 15, 12, 9, 6, 4]), -15.1%. The size is the one lever every found bundle shares - the node pools AND the gun-paired
-## finds (`Room.GUN_BULLET_PAIR_CHANCE`) both roll through here - so how OFTEN bullets turn up is untouched. See also the pools in data/Items.json.)
+## (Round 49f: "hardly any bullets" - the bundle was 2-8 rounds, 3.9 on average; it became 3-10, 5.6 on average [weights AMMO_BUNDLE_WEIGHTS_EASY].
+## Owner 2026-11-04, after a full descent with plentiful bullets: "reduce bullets found in the game world by 15%" - AMMO_BUNDLE_WEIGHTS average
+## 4.74 rounds, -15.1%. Round 49n: the cut is a RAMP, not a switch - the tutorial and floor 29 still roll the 5.58 table, and each node on the
+## floors below blends toward the 4.74 one: a node takes the new table with probability = the floor's descent ramp (0 on 29, .25 on 28 ... 1 from
+## 25 down), a second seeded draw after the size roll so the first draw - and so the whole old table - is untouched at ramp 0.) The size is the one
+## lever every found bundle shares - the node pools AND the gun-paired finds (`Room.GUN_BULLET_PAIR_CHANCE`) both roll through here - so how OFTEN
+## bullets turn up is untouched. See also the pools in data/Items.json.)
 const AMMO_BUNDLE_MIN := 3
-const AMMO_BUNDLE_WEIGHTS := [27, 28, 20, 10, 6, 4, 3, 2]
+const AMMO_BUNDLE_WEIGHTS_EASY := [16, 20, 18, 15, 12, 9, 6, 4]     # mean 5.58 - the tutorial and floor 29
+const AMMO_BUNDLE_WEIGHTS := [27, 28, 20, 10, 6, 4, 3, 2]           # mean 4.74 - floor 25 and below
 
 
 static func ammo_bundle_for(apartment_id: String, anchor_name: String) -> int:
 	var rng = RandomNumberGenerator.new()
 	rng.seed = hash(str(WorldState.master_seed) + "ammobundle" + apartment_id + anchor_name)
 	var roll = rng.randi() % 100
+	var weights: Array = AMMO_BUNDLE_WEIGHTS
+	if rng.randf() >= WorldState.descent_ramp(WorldState._apartment_floor(apartment_id)):
+		weights = AMMO_BUNDLE_WEIGHTS_EASY
 	var acc = 0
-	for i in range(AMMO_BUNDLE_WEIGHTS.size()):
-		acc += AMMO_BUNDLE_WEIGHTS[i]
+	for i in range(weights.size()):
+		acc += weights[i]
 		if roll < acc:
 			return i + AMMO_BUNDLE_MIN
 	return AMMO_BUNDLE_MIN

@@ -41,6 +41,11 @@ func _ready() -> void:
 	add_to_group("spitter")
 	_make_passable_to_player()   # a ranged skirmisher never physically WALLS the player
 
+## Its ATTACK_RANGE is a 300 px SPIT range, not a melee reach: the descent ramp's extra melee reach does not apply.
+func _reach_bonus() -> float:
+	return 0.0
+
+
 func _try_resolidify() -> void:
 	# Never re-solidify against the player: the spitter halts at range and would otherwise
 	# stand as an (unlit, at night INVISIBLE) solid wall you can't walk past — a soft-lock.

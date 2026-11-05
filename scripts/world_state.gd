@@ -3459,6 +3459,48 @@ func _floor_band(floor_num: int) -> int:
 	return 2
 
 
+# THE DESCENT RAMP (owner round 49n: "we don't need to change the data on the tutorial or even the first five levels of descent... incrementally
+# increase so it doesn't go from easy to deathly difficult in the space of one floor... by the time a player reaches floor 25 shit has gotten
+# tough"). The round-49l/49m balance cuts (wider enemy reach, flat followers, fewer / smaller bullet finds, rarer one-charge toolboxes) are
+# the "hard" numbers; the numbers they replaced are the "easy" ones. A floor's RAMP is how far along the two it is: 0 on floor 30 (the
+# tutorial) and floor 29 = the old numbers exactly, 1 on floor 25 and below = the new ones, a straight line between (28 = .25, 27 = .5, 26 = .75).
+# Every ramped number below is `lerp(old, new, ramp)` or `old + (new - old) * ramp` and nothing else, so one function says what the rest of
+# the game does. A pure function of the FLOOR - never of the run or the seed - so a floor reads the same from a pan backdrop, a fade, a save.
+# Deliberately NOT ramped (the first thing a player meets there is the same either way): the workbench rework (the first bench is on floor 27
+# and its Lv2 step is the plain Reinforce), the merchant's wares (the first lift is floor 25 = ramp 1), the shop's variety, cash and scrap finds.
+const RAMP_EASY_FLOOR := 29     # this floor and above: the old numbers
+const RAMP_FULL_FLOOR := 25     # this floor and below: the new numbers
+const REACH_BONUS_PX := 8.0     # every melee type's extra reach at full ramp (round 49m)
+const TOOLBOX_POOL_DEEP := 0.5  # a node pool's toolbox weight at full ramp (was 1)
+const TOOLBOX_CHARGES_EASY := 3 # a toolbox found at ramp 0 mends this many times; at full ramp one
+const MAINT_TOOLBOX_EASY := 0.36    # a maintenance node's chance of a toolbox at ramp 0 ...
+const MAINT_TOOLBOX_DEEP := 0.18    # ... and at full ramp (the fuse / scrap / notes shares keep their widths either way)
+# Tests and A/B bot sweeps force a ramp on EVERY floor (0 = the old rules, 1 = the new): -1 = off. Never saved, never set by the game.
+var dev_ramp_override: float = -1.0
+
+
+func descent_ramp(floor_num: int) -> float:
+	if dev_ramp_override >= 0.0:
+		return clampf(dev_ramp_override, 0.0, 1.0)
+	return clampf(float(RAMP_EASY_FLOOR - floor_num) / float(RAMP_EASY_FLOOR - RAMP_FULL_FLOOR), 0.0, 1.0)
+
+
+func reach_bonus_for(floor_num: int) -> float:
+	return REACH_BONUS_PX * descent_ramp(floor_num)
+
+
+func toolbox_pool_scale(floor_num: int) -> float:
+	return lerpf(1.0, TOOLBOX_POOL_DEEP, descent_ramp(floor_num))
+
+
+func toolbox_charges_for(floor_num: int) -> int:
+	return maxi(1, roundi(lerpf(float(TOOLBOX_CHARGES_EASY), 1.0, descent_ramp(floor_num))))
+
+
+func maintenance_toolbox_share(floor_num: int) -> float:
+	return lerpf(MAINT_TOOLBOX_EASY, MAINT_TOOLBOX_DEEP, descent_ramp(floor_num))
+
+
 # --- Run-opening grace (fresh-character start) --------------------------------
 # The descent ALWAYS starts at floor 30 and goes down, so floors 29 / 28 / 27 are the OPENING
 # stretch of EVERY run — where a brand-new character (inventory / health / wallet reset on the
@@ -4493,6 +4535,9 @@ func get_items_for_anchor(anchor_name: String, apartment_id: String, room_type: 
 		# Depth: gear is rarer up top (see LOOT BY DEPTH). Pool contents only, like luck — the seeded draw stays deterministic.
 		if is_gear_item(item_id):
 			weight *= loot_gear_scale(_apartment_floor(apartment_id))
+		# The toolbox is half as common from floor 25 down (the descent ramp: the full weight above, a straight line between).
+		if item_id == "019":
+			weight *= toolbox_pool_scale(_apartment_floor(apartment_id))
 		var whole = int(floor(weight))
 		for i in range(whole):
 			valid_items.append(item_id)
@@ -5598,7 +5643,8 @@ func flat_follow_allowed(apt_id: String) -> bool:
 func flat_follows(apt_id: String, origin: String) -> bool:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(str(master_seed) + "flatfollow" + apt_id + origin + str(current_run))
-	return rng.randf() < float(FLAT_FOLLOW_CHANCE[clampi(current_run, 1, 3)])
+	# x the descent ramp: none on floor 29 (and 30), a quarter of the chance on 28 ... the full chance from floor 25 down.
+	return rng.randf() < float(FLAT_FOLLOW_CHANCE[clampi(current_run, 1, 3)]) * descent_ramp(_apartment_floor(apt_id))
 
 
 ## Called by the door at the moment the player steps through it (after the walk up to the door, before the fade). Fills `flat_pending` with the chasers
@@ -6444,6 +6490,7 @@ func instance_to_dict(instance) -> Dictionary:
 		"crossings": instance.crossings,
 		"forge_paid": instance.forge_paid,
 		"heal_scale": instance.heal_scale,
+		"charge_cap": instance.charge_cap,
 	}
 
 
@@ -6472,6 +6519,10 @@ func instance_from_dict(entry: Dictionary) -> ItemInstance:
 	instance.forge_paid = int(entry.get("forge_paid", 0))
 	instance.heal_scale = clampf(float(entry.get("heal_scale", 1.0)), 0.1, 1.0)
 	instance.shots_since_mark = int(entry.get("shots_since_mark", 0))
+	# A toolbox's own ceiling (round 49n). A save from before it: the toolbox it had was made single use (round 49l) or with the data's 3 - its ceiling is what it holds.
+	instance.charge_cap = int(entry.get("charge_cap", 0))
+	if instance.charge_cap <= 0 and ItemInstance.is_toolbox_data(instance.get_data()):
+		instance.charge_cap = maxi(1, instance.current_durability)
 	# Guns had no durability before they wore (-1 = "runs on ammo"): an old save's gun is as new.
 	if instance.current_durability < 0 and instance.get_max_durability() > 0:
 		instance.current_durability = instance.get_max_durability()

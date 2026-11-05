@@ -670,29 +670,66 @@ func _test_enemy_reach() -> void:
 	# every check, and never allowed for body width: the 80px crawler is stopped 53px from the
 	# player by collision, beyond its 30px range — it could NEVER bite a solid player.
 	print("[enemy reach: horizontal, never shorter than contact]")
-	for kind in ["standard", "crawler", "longarm", "big"]:
-		var r: Dictionary = await _hits_on_still_player(kind)
-		check(r["dmg"] > 0, "%s lands hits on a still, solid player (dmg %d, closest %.1f, reach %.1f)" % [kind, r["dmg"], r["min_dx"], r["reach"]])
-		check(r["min_dx"] <= r["reach"] + 0.5, "%s's reach covers the gap it can close to" % kind)
-	# Reach numbers (owner round 49m - "extend the range of enemy attack a little bit"): every melee type reaches 8 px further
-	# than before. Literals, not the constants, so a retune has to come here and say so.
-	var std = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
-	add_child(std)
-	check(absf(std._attack_reach() - 38.0) < 0.01, "standard reach is 38, was 30 (%.1f)" % std._attack_reach())
-	std.free()
-	var la = load("res://scenes/enemy_zombie_longarm.tscn").instantiate()
-	add_child(la)
-	check(absf(la._attack_reach() - 70.0) < 0.01, "long-arm reach is 70, was 62 (%.1f)" % la._attack_reach())
-	la.free()
-	var cr = load("res://scenes/enemy_zombie_crawler.tscn").instantiate()
-	add_child(cr)
-	check(absf(cr._attack_reach() - 68.0) < 0.01, "crawler reach is 68, was 60 - its body's contact floor (%.1f)" % cr._attack_reach())
-	check(cr.POUNCE_MIN > cr._attack_reach(), "and its pounce starts beyond the bite (%.0f > %.1f)" % [cr.POUNCE_MIN, cr._attack_reach()])
-	cr.free()
-	var bg = load("res://scenes/enemy_zombie_big.tscn").instantiate()
-	add_child(bg)
-	check(absf(bg._attack_reach() - 63.0) < 0.01, "big reach is 63, was 55 - its contact floor (%.1f)" % bg._attack_reach())
-	bg.free()
+	# Both ends of the descent ramp (round 49n): the old rules (override 0) and the new (override 1) must each let every type land hits on a still player.
+	for ramp in [0.0, 1.0]:
+		WorldState.dev_ramp_override = ramp
+		for kind in ["standard", "crawler", "longarm", "big"]:
+			var r: Dictionary = await _hits_on_still_player(kind)
+			check(r["dmg"] > 0, "%s lands hits on a still, solid player at ramp %.0f (dmg %d, closest %.1f, reach %.1f)" % [kind, ramp, r["dmg"], r["min_dx"], r["reach"]])
+			check(r["min_dx"] <= r["reach"] + 0.5, "%s's reach covers the gap it can close to at ramp %.0f" % [kind, ramp])
+	WorldState.dev_ramp_override = -1.0
+	# Reach numbers - literals, not the constants, so a retune has to come here and say so. Owner round 49m ("extend the range of enemy attack a
+	# little bit"): every melee type reaches 8 px further; owner round 49n ("we don't need to change... even the first five levels of descent"): only
+	# from floor 25 down - the tutorial's floor 30 and floor 29 keep the ORIGINAL reach and the four floors between ramp (28 = a quarter ... 26 = three quarters).
+	#                    floor 30  29    28     27    26     25   (the old reach, +8 at the end)
+	var want := {
+		"standard": [30.0, 30.0, 32.0, 34.0, 36.0, 38.0],
+		"longarm": [62.0, 62.0, 64.0, 66.0, 68.0, 70.0],
+		"crawler": [60.0, 60.0, 62.0, 64.0, 66.0, 68.0],
+		"big": [55.0, 55.0, 57.0, 59.0, 61.0, 63.0],
+	}
+	var floors := [30, 29, 28, 27, 26, 25]
+	for kind in want:
+		var scene := "res://scenes/enemy_zombie_%s.tscn" % kind
+		for k in range(floors.size()):
+			var z = load(scene).instantiate()
+			add_child(z)
+			z.hp_floor = floors[k]
+			var got: float = z._attack_reach()
+			check(absf(got - float(want[kind][k])) < 0.01, "%s reaches %.0f on floor %d (got %.2f)" % [kind, want[kind][k], floors[k], got])
+			z.free()
+	# Deeper than 25 is the full 8 px and no more, and the override forces either end on any floor:
+	var deep = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	add_child(deep)
+	deep.hp_floor = 5
+	check(absf(deep._attack_reach() - 38.0) < 0.01, "standard reach on floor 5 is 38 (%.2f)" % deep._attack_reach())
+	WorldState.dev_ramp_override = 0.0
+	check(absf(deep._attack_reach() - 30.0) < 0.01, "ramp override 0 puts the old 30 back on floor 5 (%.2f)" % deep._attack_reach())
+	WorldState.dev_ramp_override = -1.0
+	deep.free()
+	# A body that was never given a floor reads the one the player is on (a flat's dead, a tutorial neighbour):
+	var neighbour = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+	add_child(neighbour)
+	WorldState.current_floor = 30
+	check(neighbour.hp_floor < 0 and absf(neighbour._attack_reach() - 30.0) < 0.01, "an unfloored body on floor 30 (the tutorial neighbour) reaches the old 30 (%.2f)" % neighbour._attack_reach())
+	WorldState.current_floor = 22
+	check(absf(neighbour._attack_reach() - 38.0) < 0.01, "...and 38 once the player is on floor 22 (%.2f)" % neighbour._attack_reach())
+	WorldState.current_floor = 30
+	neighbour.free()
+	# The spitter's range is a 300 px SPIT range: no melee bonus on any floor.
+	for f in [30, 25, 5]:
+		var sp = load("res://scenes/enemy_zombie_spitter.tscn").instantiate()
+		add_child(sp)
+		sp.hp_floor = f
+		check(absf(sp._attack_reach() - 300.0) < 0.01, "the spitter's spit range is 300 on floor %d (%.2f)" % [f, sp._attack_reach()])
+		sp.free()
+	# The crawler pounces from beyond its bite reach on every floor (62 on the easy floors, 70 at full ramp):
+	for f in [30, 25]:
+		var cr = load("res://scenes/enemy_zombie_crawler.tscn").instantiate()
+		add_child(cr)
+		cr.hp_floor = f
+		check(absf(cr._pounce_min() - (cr._attack_reach() + 2.0)) < 0.01 and cr._pounce_min() > cr._attack_reach(), "crawler (floor %d) pounces from beyond the bite (%.0f > %.1f)" % [f, cr._pounce_min(), cr._attack_reach()])
+		cr.free()
 	# The player's weakest swing (a knife: 32 px from the body's EDGE, a standard's half-width is 10) must still reach a
 	# standard that can bite - "more dangerous" is not "unwinnable":
 	var knife: float = float(load("res://scripts/player.gd").WEAPON_RANGES["knife"])

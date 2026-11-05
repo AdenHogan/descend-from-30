@@ -12,11 +12,12 @@ const CROWD_BACKOFF_SPEED := 0.5   # × my speed while shuffling back
 var _crowd_bonus: float = 0.0      # extra reach my crowd rank gave the attack in progress
 var SPEED := 40.0
 var DETECTION_RANGE := 100.0
-# MELEE REACH (owner round 49m: "extend the range of enemy attack a little bit. We need encounters to be more dangerous").
-# Every melee type's reach went up by the same 8 px: standard 30 -> 38, long-arm 62 -> 70, big 55 -> 63 (its contact floor was
-# above its designed 50), crawler 60 -> 68 (contact floor again). The player's own reach is untouched (a hammer 65, a push 40),
-# so a swing still out-ranges the bite - but a step back no longer clears it, and the corridor's last 8 px are now the dead's.
-const STANDARD_ATTACK_RANGE := 38.0
+# MELEE REACH (owner round 49m: "extend the range of enemy attack a little bit. We need encounters to be more dangerous"). Every melee type reaches
+# `WorldState.REACH_BONUS_PX` (8) further on the harder floors: standard 30 -> 38, long-arm 62 -> 70, big 55 -> 63 (its contact floor was above its
+# designed 50), crawler 60 -> 68 (contact floor again). Round 49n ("we don't need to change... even the first five levels of descent"): the bonus is
+# a RAMP by the enemy's floor (`WorldState.reach_bonus_for`: none on floor 30 and 29, a quarter on 28 ... all 8 px from floor 25 down) and the
+# designed ranges below are the ORIGINAL ones. The player's own reach is untouched (a hammer 65, a push 40), so a swing still out-ranges the bite.
+const STANDARD_ATTACK_RANGE := 30.0
 var ATTACK_RANGE := STANDARD_ATTACK_RANGE
 # Damage one landed hit deals to the player (before the on-fire ×2). Overridable so a
 # subclass can hit harder — the Crawler is slow but strikes for DOUBLE.
@@ -966,7 +967,13 @@ func _reach_to_player() -> float:
 	return absf(player.global_position.x - global_position.x)
 
 func _attack_reach() -> float:
-	return maxf(ATTACK_RANGE, _body_half_width() + PLAYER_HALF_WIDTH + REACH_PAST_CONTACT)
+	return maxf(ATTACK_RANGE, _body_half_width() + PLAYER_HALF_WIDTH + REACH_PAST_CONTACT) + _reach_bonus()
+
+
+## The descent ramp's extra reach for the floor this body belongs to (the floor it was seeded on - a pan backdrop's frozen dead read their own).
+## The spitter overrides it to 0: its ATTACK_RANGE is a 300 px SPIT range, not a melee reach.
+func _reach_bonus() -> float:
+	return WorldState.reach_bonus_for(hp_floor if hp_floor >= 0 else WorldState.current_floor)
 
 
 # The MOMENT an attack lands (end of the attack windup). Overridable: the standard

@@ -548,19 +548,22 @@ func _maintenance_key() -> String:
 	return "MAINT:" + str(WorldState.current_floor) + ":" + str(WorldState.current_run)
 
 
-func _maintenance_loot(rng: RandomNumberGenerator) -> String:
+func _maintenance_loot(rng: RandomNumberGenerator, floor_num: int = -1) -> String:
 	# A maintenance room is where you find repair gear and spare parts: weighted
 	# to Toolbox (019) and Fuse (020), with the odd bank-notes bundle; sometimes empty.
-	# Owner 2026-11-04 ("drop the % of finding toolboxes by half"): the Toolbox share went 0.36 -> 0.18; the Fuse, Scrap
-	# and Notes shares are the widths they always were (0.28 / 0.16 / 0.10) and the room is emptier by the 0.18 given up.
+	# Owner 2026-11-04 ("drop the % of finding toolboxes by half"): the Toolbox share goes 0.36 -> 0.18; the Fuse, Scrap
+	# and Notes shares are the widths they always were (0.28 / 0.16 / 0.10) and the room is emptier by what the toolbox gives up.
+	# Round 49n: the toolbox share is a RAMP over the first descent floors (`WorldState.maintenance_toolbox_share`: 0.36 on floor 29 and above,
+	# 0.18 from floor 25 down) - the first maintenance room is floor 27, so it sits at 0.27.
+	var t: float = WorldState.maintenance_toolbox_share(floor_num if floor_num >= 0 else WorldState.current_floor)
 	var r := rng.randf()
-	if r < 0.18:
-		return "019"   # Toolbox (repairs, one use)
-	elif r < 0.46:
+	if r < t:
+		return "019"   # Toolbox (repairs; one use from floor 25 down, `WorldState.toolbox_charges_for`)
+	elif r < t + 0.28:
 		return "020"   # Fuse (powers the elevator)
-	elif r < 0.62:
+	elif r < t + 0.44:
 		return "037"   # Scrap Bag — spare parts, spendable at the workbench right here
-	elif r < 0.72:
+	elif r < t + 0.54:
 		return "033"   # Bank Notes
 	return ""          # empty this time
 

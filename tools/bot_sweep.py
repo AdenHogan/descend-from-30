@@ -40,6 +40,14 @@ CONFIGS = {
     "none_m10": ["--loot=none", "--crowbar=liberty", "--perm=U_melee_s,U_melee_m,U_heal,U_stam_s,U_stam_m,U_stam_l,U_slot,U_speed_m,U_quiet_m,U_sprint_m"],
     "none_m10h": ["--loot=none", "--crowbar=liberty", "--hammer-level=4", "--perm=U_melee_s,U_melee_m,U_heal,U_stam_s,U_stam_m,U_stam_l,U_slot,U_speed_m,U_quiet_m,U_sprint_m"],
     "safe_m10h": ["--loot=need", "--avoid-breach", "--hammer-level=4", "--perm=U_melee_s,U_melee_m,U_heal,U_stam_s,U_stam_m,U_stam_l,U_slot,U_speed_m,U_quiet_m,U_sprint_m"],
+    # A/B the descent ramp (round 49n): the same bot with the OLD rules on every floor (ramp 0) and the NEW rules on every floor (ramp 1); the
+    # plain `need` / `safe` / `none` configs use the real ramp (old numbers on 30 and 29, the new ones from floor 25 down).
+    "none_r0": ["--loot=none", "--crowbar=liberty", "--ramp=0"],
+    "none_r1": ["--loot=none", "--crowbar=liberty", "--ramp=1"],
+    "need_r0": ["--loot=need", "--ramp=0"],
+    "need_r1": ["--loot=need", "--ramp=1"],
+    "safe_r0": ["--loot=need", "--avoid-breach", "--ramp=0"],
+    "safe_r1": ["--loot=need", "--avoid-breach", "--ramp=1"],
     "god": ["--loot=all", "--god", "--elevator", "--rest", "--balcony", "--fuses=3", "--notes=300"],
     # the later characters, started part-way down (the world has decayed N-1 time skips): run 2 and 3 content without a 3-hour descent
     "god2": ["--loot=all", "--god", "--elevator", "--rest", "--balcony", "--fuses=3", "--notes=300", "--start-run=2", "--start-floor=24"],

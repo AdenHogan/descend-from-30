@@ -76,6 +76,7 @@ func _ready() -> void:
 	_test_variant_anchor_pools()
 	await _test_loot_by_depth()
 	_test_owner_balance_2026_11_04()
+	_test_descent_ramp()
 
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -186,26 +187,28 @@ func _test_loot_by_depth() -> void:
 
 ## The owner's balance changes after a full 30 -> lobby descent (2026-11-04, docs/BALANCE_AUDIT_2026-11-04.md): a Toolbox is ONE use and half as
 ## common, bullets found in the world are 15% fewer, cash found is 20% more, ordinary scrap bags 10% bigger. Every number is read back from
-## the game's own draws, and each check fails if the old number is put back.
+## the game's own draws, and each check fails if the old number is put back. (Round 49n: the toolbox and bullet cuts are a RAMP over floors 29..25 -
+## this test forces the FULL ramp, the harder numbers, on every floor; `_test_descent_ramp` below pins the floors in between and the tutorial's.)
 func _test_owner_balance_2026_11_04() -> void:
-	print("[owner balance 2026-11-04: toolbox, bullets, cash, scrap]")
+	print("[owner balance 2026-11-04: toolbox, bullets, cash, scrap - at the full ramp]")
 	WorldState.new_game()
 	WorldState.is_first_run = false
 	WorldState.current_run = 1
+	WorldState.dev_ramp_override = 1.0
 	# --- the toolbox: one use, then gone
 	var tb := ItemInstance.new()
 	tb.setup("019")
-	check(ItemData.items["019"]["single_use"] == true and tb.current_durability == 1, "a Toolbox is single use (durability %d)" % tb.current_durability)
+	check(tb.charge_cap == 1 and tb.get_max_durability() == 1 and tb.current_durability == 1, "a Toolbox made at full ramp holds one repair (cap %d, durability %d)" % [tb.charge_cap, tb.current_durability])
 	tb.use()
 	check(tb.is_depleted, "…and one repair spends it")
 	# --- half as common: the pool weights, and the copies the game really deals into nodes
 	var pool: Dictionary = ItemData.room_spawn_pools["Toolbox"]
 	var weights_ok := true
 	for rt in ["kitchen", "study", "dining_room"]:
-		weights_ok = weights_ok and is_equal_approx(float(pool[rt]), 0.5)
+		weights_ok = weights_ok and is_equal_approx(float(pool[rt]), 1.0)
 	for rt in ["bedroom", "bathroom", "living_room"]:
 		weights_ok = weights_ok and float(pool[rt]) == 0.0
-	check(weights_ok, "a Toolbox's node weight is 0.5 in the kitchen, study and dining room (was 1), none elsewhere")
+	check(weights_ok, "a Toolbox's pool weight is 1 in the kitchen, study and dining room, none elsewhere (the ramp halves it from floor 25 down)")
 	var copies := 0
 	var expect := 0.0
 	var lucky: float = WorldState.luck_weight(1)
@@ -214,7 +217,7 @@ func _test_owner_balance_2026_11_04() -> void:
 			var apt := "1001"
 			for id in WorldState.get_items_for_anchor("n%d" % k, apt, rt):
 				copies += 1 if id == "019" else 0
-			expect += 0.5 * lucky * WorldState.loot_gear_scale(10)
+			expect += 0.5 * lucky * WorldState.loot_gear_scale(10)   # the pool's 1 x the full ramp's 0.5
 	check(copies > 0 and absf(float(copies) - expect) <= 0.30 * expect, "…600 nodes deal %d Toolbox copies (half-weight expectation %.0f; a weight of 1 would be ~%.0f)" % [copies, expect, expect * 2.0])
 	# --- maintenance rooms: the Toolbox share of a room's two nodes halved (0.36 -> 0.18), the fuse's did not move
 	var room_script = load("res://scripts/room.gd").new()
@@ -226,7 +229,7 @@ func _test_owner_balance_2026_11_04() -> void:
 	var n_empty := 0
 	var draws := 6000
 	for i in range(draws):
-		match room_script._maintenance_loot(rng):
+		match room_script._maintenance_loot(rng, 10):
 			"019": n_tb += 1
 			"020": n_fuse += 1
 			"037": n_scrap += 1
@@ -276,3 +279,125 @@ func _test_owner_balance_2026_11_04() -> void:
 		WorldState.add_to_inventory("037")
 	var scrap_mean := float(WorldState.scrap) / bags
 	check(absf(scrap_mean - 11.0) < 0.3, "…ordinary bags average %.2f scrap (was 10: +10%%)" % scrap_mean)
+	WorldState.dev_ramp_override = -1.0
+
+
+
+## THE DESCENT RAMP (owner round 49n: "we don't need to change the data on the tutorial or even the first five levels of descent... incrementally increase
+## so it doesn't go from easy to deathly difficult in the space of one floor... by the time a player reaches floor 25 shit has gotten tough"): floor 30
+## (the tutorial) and 29 keep the OLD numbers exactly, 28 / 27 / 26 are a quarter / half / three quarters of the way, 25 and below are the new ones.
+func _test_descent_ramp() -> void:
+	print("[the descent ramp: old numbers on 30 and 29, new from 25, a line between]")
+	WorldState.new_game()
+	WorldState.is_first_run = false
+	WorldState.current_run = 1
+	WorldState.dev_ramp_override = -1.0
+	var want := {30: 0.0, 29: 0.0, 28: 0.25, 27: 0.5, 26: 0.75, 25: 1.0, 24: 1.0, 10: 1.0, 1: 1.0, 0: 1.0}
+	for f in want:
+		check(is_equal_approx(WorldState.descent_ramp(f), float(want[f])), "floor %d is %.2f of the way (got %.3f)" % [f, want[f], WorldState.descent_ramp(f)])
+	WorldState.dev_ramp_override = 0.0
+	check(WorldState.descent_ramp(5) == 0.0 and WorldState.descent_ramp(30) == 0.0, "the override forces the old numbers everywhere")
+	WorldState.dev_ramp_override = 1.0
+	check(WorldState.descent_ramp(30) == 1.0 and WorldState.descent_ramp(29) == 1.0, "...and the new numbers everywhere (even the tutorial's floor)")
+	WorldState.dev_ramp_override = -1.0
+
+	# --- toolbox charges: 3 on the easy floors, 1 from floor 25 down, the same made at any ramp in between
+	var charges := {30: 3, 29: 3, 28: 3, 27: 2, 26: 2, 25: 1, 12: 1}
+	for f in charges:
+		WorldState.current_floor = f
+		var t := ItemInstance.new()
+		t.setup("019")
+		check(t.charge_cap == charges[f] and t.current_durability == charges[f] and t.get_max_durability() == charges[f], "a Toolbox made on floor %d holds %d repairs (cap %d, has %d)" % [f, charges[f], t.charge_cap, t.current_durability])
+	WorldState.current_floor = 29
+	var three := ItemInstance.new()
+	three.setup("019")
+	for i in range(2):
+		three.use()
+	check(not three.is_depleted and three.current_durability == 1, "a floor-29 Toolbox survives two repairs...")
+	three.use()
+	check(three.is_depleted, "...and is spent by the third")
+	var tools := []
+	for id in ItemData.items:
+		if ItemInstance.is_toolbox_data(ItemData.items[id]):
+			tools.append(id)
+	check(tools == ["019"], "only the Toolbox carries a charge cap (%s)" % str(tools))
+	# its ceiling rides the item through a save, and a toolbox from before the cap (single use, or the data's 3) keeps what it holds
+	var two := ItemInstance.new()
+	WorldState.current_floor = 27
+	two.setup("019")
+	two.use()
+	var back: ItemInstance = WorldState.instance_from_dict(WorldState.instance_to_dict(two))
+	check(back.charge_cap == 2 and back.current_durability == 1 and back.get_max_durability() == 2, "a saved Toolbox keeps its own ceiling (cap %d, has %d)" % [back.charge_cap, back.current_durability])
+	var old_single: ItemInstance = WorldState.instance_from_dict({"item_id": "019", "current_durability": 1, "is_depleted": false})
+	var old_three: ItemInstance = WorldState.instance_from_dict({"item_id": "019", "current_durability": 3, "is_depleted": false})
+	check(old_single.charge_cap == 1 and old_three.charge_cap == 3, "a Toolbox saved before the cap keeps what it held (%d and %d)" % [old_single.charge_cap, old_three.charge_cap])
+
+	# --- the toolbox in node pools: the full weight on the easy floors, half from floor 25 down
+	check(is_equal_approx(WorldState.toolbox_pool_scale(29), 1.0) and is_equal_approx(WorldState.toolbox_pool_scale(27), 0.75) and is_equal_approx(WorldState.toolbox_pool_scale(25), 0.5) and is_equal_approx(WorldState.toolbox_pool_scale(3), 0.5), "the toolbox's pool weight is 1 / .75 / .5 on floors 29 / 27 / 25")
+	var lucky: float = WorldState.luck_weight(1)
+	var rows := []
+	for f in [29, 25]:
+		var copies := 0
+		var expect := 0.0
+		for rt in ["kitchen", "study", "dining_room"]:
+			for k in range(400):
+				for id in WorldState.get_items_for_anchor("n%d" % k, "%d04" % f, rt):
+					copies += 1 if id == "019" else 0
+				expect += lucky * WorldState.loot_gear_scale(f) * WorldState.toolbox_pool_scale(f)
+		rows.append([copies, expect])
+		check(copies > 0 and absf(float(copies) - expect) <= 0.25 * expect, "floor %d: 1200 nodes deal %d Toolbox copies (expect %.0f)" % [f, copies, expect])
+	# the same 1200 nodes on floor 29 vs floor 25 differ in gear scale too; take that out and the pool weight alone has halved
+	var per_unit_29: float = float(rows[0][0]) / (lucky * WorldState.loot_gear_scale(29))
+	var per_unit_25: float = float(rows[1][0]) / (lucky * WorldState.loot_gear_scale(25))
+	check(per_unit_25 < 0.62 * per_unit_29 and per_unit_25 > 0.38 * per_unit_29, "...so the deeper floor deals about half as many per unit of gear weight (%.0f vs %.0f)" % [per_unit_25, per_unit_29])
+
+	# --- the maintenance room's toolbox share: .36 up top, .27 on the first maintenance floor (27), .18 from 25
+	var room_script = load("res://scripts/room.gd").new()
+	for entry in [[29, 0.36], [27, 0.27], [24, 0.18]]:
+		var rng := RandomNumberGenerator.new()
+		rng.seed = 49149
+		var n_tb := 0
+		var n_fuse := 0
+		var n := 8000
+		for i in range(n):
+			var got: String = room_script._maintenance_loot(rng, entry[0])
+			n_tb += 1 if got == "019" else 0
+			n_fuse += 1 if got == "020" else 0
+		check(absf(float(n_tb) / n - float(entry[1])) < 0.02, "a floor-%d maintenance node holds a Toolbox %.1f%% of the time (want %.0f%%)" % [entry[0], 100.0 * n_tb / n, 100.0 * float(entry[1])])
+		check(absf(float(n_fuse) / n - 0.28) < 0.02, "...and a Fuse 28%% (got %.1f%%)" % (100.0 * n_fuse / n))
+	room_script.free()
+
+	# --- bullets: the tutorial's floor and floor 29 roll the old table exactly; the means slide to the new one
+	var LU = load("res://scripts/loot_ui.gd")
+	var old_w := [16, 20, 18, 15, 12, 9, 6, 4]
+	var same := 0
+	var checked := 0
+	for apt in ["3001", "3003", "2904", "2901"]:
+		for k in range(150):
+			var rng := RandomNumberGenerator.new()
+			rng.seed = hash(str(WorldState.master_seed) + "ammobundle" + apt + "anchor_%d" % k)
+			var roll: int = rng.randi() % 100
+			var acc := 0
+			var expected := 3
+			for i in range(old_w.size()):
+				acc += old_w[i]
+				if roll < acc:
+					expected = i + 3
+					break
+			checked += 1
+			same += 1 if LU.ammo_bundle_for(apt, "anchor_%d" % k) == expected else 0
+	check(same == checked, "floors 30 and 29 deal the original bundles exactly (%d of %d)" % [same, checked])
+	var means := {}
+	for f in [29, 28, 27, 26, 25, 10]:
+		var total := 0
+		var n := 5000
+		for k in range(n):
+			total += LU.ammo_bundle_for("%d04" % f, "anchor_%d" % k)
+		means[f] = float(total) / n
+	var m_old := 5.58
+	var m_new := 4.74
+	for f in [29, 28, 27, 26, 25, 10]:
+		var r: float = WorldState.descent_ramp(f)
+		var target: float = lerpf(m_old, m_new, r)
+		check(absf(means[f] - target) < 0.13, "a floor-%d node averages %.2f rounds (want %.2f)" % [f, means[f], target])
+	check(means[29] > means[27] and means[27] > means[25], "...and it falls floor by floor (%.2f > %.2f > %.2f)" % [means[29], means[27], means[25]])

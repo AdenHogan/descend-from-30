@@ -7,7 +7,7 @@ const DETECTION_RANGE = 130.0
 const DETECTION_VARIANCE = 45.0   # +/- band for per-zombie aggro variance
 const SEPARATION_RADIUS = 14.0    # small: allow tight overlap, just avoid perfect stacking
 const SEPARATION_STRENGTH = 12.0
-const ATTACK_RANGE = 63.0   # was 50, but its contact floor (35 + 13 + 7 = 55) won; +8 on what it really reached
+const ATTACK_RANGE = 50.0   # its contact floor (35 + 13 + 7 = 55) wins; +8 more from floor 25 down (the descent ramp, `_reach_bonus`)
 const PUSH_FRICTION = 0.70
 const HIT_DURATION = 0.6
 # No knockdown state — big zombie cannot be knocked down
@@ -411,7 +411,12 @@ func _attack_reach() -> float:
 	var cs = get_node_or_null("CollisionShape2D")
 	if cs != null and cs.shape is CapsuleShape2D:
 		half = cs.shape.radius
-	return maxf(ATTACK_RANGE, half + 13.0 + 7.0)
+	return maxf(ATTACK_RANGE, half + 13.0 + 7.0) + _reach_bonus()
+
+
+## The descent ramp's extra reach for this body's floor (see `enemy_zombie_standard._reach_bonus`).
+func _reach_bonus() -> float:
+	return WorldState.reach_bonus_for(hp_floor if hp_floor >= 0 else WorldState.current_floor)
 
 
 func _drop_key() -> void:

@@ -52,6 +52,8 @@ static func durability_line(d: Dictionary) -> String:
 	var max_d: int = int(d.get("max_durability", -1))
 	if is_gun(d):
 		return "%d wear marks (about %d rounds)" % [max_d, max_d * ItemInstance.GUN_SHOTS_PER_MARK]
+	if ItemInstance.is_toolbox_data(d):
+		return "%d uses (1 use from floor %d down)" % [max_d, WorldState.RAMP_FULL_FLOOR]
 	if d.get("single_use", false) and max_d <= 1:
 		return "Single use"
 	if max_d > 1:

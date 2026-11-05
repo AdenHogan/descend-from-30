@@ -28,6 +28,11 @@ var forge_paid: int = 0
 # is left. 1.0 = as made. Saved with the instance.
 var heal_scale: float = 1.0
 
+# A TOOLBOX's own number of repairs (0 = the item's data). The data says 3 - the tutorial's and floor 29's - and a toolbox is made with
+# `WorldState.toolbox_charges_for(floor)` of them, one from floor 25 down (owner 2026-11-04 "reduce toolbox charges to one"; round 49n: a ramp over the
+# first descent floors). It is THIS item's ceiling, so the in-hand vial reads full when it is new and a repair or a save keeps it honest.
+var charge_cap: int = 0
+
 const MAG_CAP = 18          # Met-issue Glock: 17+1
 const MAG_CAP_DAMAGED = 10
 const GUN_SHOTS_PER_MARK = 6   # rounds fired per durability mark (Durable Hand Cannon doubles it)
@@ -84,6 +89,8 @@ func has_perk_flag(flag: String) -> bool:
 
 # This weapon's durability ceiling: the item's base × its perks (Reinforced Handle doubles it) × 15% per level above Reinforced.
 func get_max_durability() -> int:
+	if charge_cap > 0:
+		return charge_cap
 	var base := int(get_data().get("max_durability", -1))
 	if base <= 0:
 		return base
@@ -102,6 +109,13 @@ func setup(id: String) -> void:
 		current_durability = data["max_durability"]
 	else:
 		current_durability = -1  # ammo-dependent or battery-dependent
+	if is_toolbox_data(data):
+		charge_cap = WorldState.toolbox_charges_for(WorldState.current_floor)
+		current_durability = charge_cap
+
+
+static func is_toolbox_data(data: Dictionary) -> bool:
+	return bool(data.get("is_tool", false)) and bool(data.get("can_repair", false)) and int(data.get("max_durability", -1)) > 0
 
 
 func setup_key(id: String, apartment_id: String) -> void:

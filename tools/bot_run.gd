@@ -5,7 +5,7 @@ extends Node
 # lobby, make notes for analysis and evaluation and continue with run 2 and 3"). docs/BOT_RUNS.md has the policy, the numbers and the caveats.
 #
 #   godot --headless res://tools/bot_run.tscn -- --seed=424242 --speed=6 --out=/tmp/bot_424242.md [--style=fighter|runner] [--runs=3]
-#                                                [--start-floor=30] [--start-run=1] [--keep-going] [--no-crowbar]
+#                                                [--start-floor=30] [--start-run=1] [--keep-going] [--no-crowbar] [--ramp=0|1]
 #
 # It plays the REAL scenes with the REAL rules (no god mode, the real stairs / pans / merchant / lobby door), through the player's own
 # controls: held move / sprint actions, the attack key as an input event, `use_item`, the push action. It sees what a player sees (one
@@ -180,6 +180,9 @@ func _ready() -> void:
 			debug_unarmed = true
 		elif a == "--heirloom":
 			debug_heirloom = true
+		elif a.begins_with("--ramp="):
+			# A/B the descent ramp (round 49n): 0 = the old rules on EVERY floor, 1 = the new rules on every floor, absent = the real ramp (floors 29..25).
+			WorldState.dev_ramp_override = clampf(float(a.substr(7)), 0.0, 1.0)
 		elif a.begins_with("--perm="):
 			perm_ids = a.substr(7).split(",", false)
 		elif a.begins_with("--hammer-level="):

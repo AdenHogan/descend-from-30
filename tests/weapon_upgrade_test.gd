@@ -772,7 +772,7 @@ func _test_repair() -> void:
 	WorldState.inventory = [junk]
 	check(WorldState.repair_weapon(0).contains("can't mend"), "the bench refuses what it cannot mend")
 	# a Toolbox is still the free way - one use, then it is gone
-	check(ItemData.items["019"]["single_use"] == true, "(the Toolbox is the free way: one use)")
+	check(ItemInstance.is_toolbox_data(ItemData.items["019"]), "(the Toolbox is the free way: a few repairs on the first floors, one from floor 25 down)")
 
 
 func _test_upgrade_does_not_mend() -> void:
