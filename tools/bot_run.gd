@@ -707,7 +707,10 @@ func _fight(p, z, zs: Array) -> void:
 	if winded:
 		var active := false
 		for o in zs:
-			if _edge(p, o) < 260.0 and str(o.get("state")) in ["chase", "attack", "hit"]:
+			# "after US": a body in `attack` that is biting a SURVIVOR (an endless performative fight, round 41) is not coming for the bot. Counting it kept
+			# a winded bot kiting for 150 s on an idle-for-it corridor - and since round 49d walking in combat mode stops the bar recovering, the kite
+			# could never end (7 of 18 `none` playthroughs of the round-49n sweep sat in it, the same spot under every rule set)
+			if _edge(p, o) < 260.0 and str(o.get("state")) in ["chase", "attack", "hit"] and (_on_me(p, o) or _edge(p, o) < 90.0):
 				active = true
 		if not active:
 			_walk(0.0)
