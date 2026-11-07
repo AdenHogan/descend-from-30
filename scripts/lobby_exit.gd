@@ -19,6 +19,7 @@ const WALK_TIME := 1.6          # the glare's swell (a little longer than the wa
 
 func _ready() -> void:
 	add_to_group("lobby_exit")
+	add_to_group(InteractArbiter.GROUP)
 
 
 func _process(_delta: float) -> void:
@@ -39,8 +40,24 @@ func _process(_delta: float) -> void:
 		HUD.hide_world_prompt(self)
 		return
 	HUD.show_world_prompt(self, PROMPT, global_position + Vector2(0, -78))
-	if Input.is_action_just_pressed("interact") and not TutorialManager.interact_guarded():
+	if Input.is_action_just_pressed("interact") and not TutorialManager.interact_guarded() and InteractArbiter.take(self):
 		leave()
+
+
+## An [interact] member (InteractArbiter): the way out, the player standing in the doorway and alive.
+func interact_ready() -> bool:
+	if _leaving or not _player_near:
+		return false
+	var p = get_tree().get_first_node_in_group("player")
+	return p != null and not p.is_dead and not p.is_cutscene
+
+
+func interact_x() -> float:
+	return global_position.x
+
+
+func interact_rank() -> int:
+	return InteractArbiter.RANK_THING
 
 
 func _exit_tree() -> void:

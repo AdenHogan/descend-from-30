@@ -204,6 +204,7 @@ func _apply_corridor_art(floor_num: int) -> void:
 
 
 func _ready() -> void:
+	add_to_group(InteractArbiter.GROUP)               # the powered lift's [E] Ride is one of the things that can answer [interact] (interact_ready)
 	var floor_num = setup_floor if setup_floor >= 0 else WorldState.current_floor
 	_built_floor = floor_num
 	var player = get_node("Player")
@@ -725,20 +726,33 @@ func _elevator_ride_process(player) -> void:
 		return
 	if absf(player.global_position.x - ELEVATOR_X) < ELEVATOR_RIDE_RANGE:
 		HUD.show_world_prompt(self, "Lift (powered)  [{interact}] Ride", Vector2(ELEVATOR_X, 300.0))
-		if Input.is_action_just_pressed("interact") and not TutorialManager.interact_guarded() and not _maintenance_door_is_nearer(player) \
-				and not PlayerCorpse.answers_before(get_tree(), player.global_position.x, ELEVATOR_X):
+		if Input.is_action_just_pressed("interact") and not TutorialManager.interact_guarded() and InteractArbiter.take(self):
 			HUD.hide_world_prompt(self)
 			_board_elevator(elevator)
 	else:
 		HUD.hide_world_prompt(self)
 
 
-## The staff door (x 929) and the lift's reach overlap by ~40 px: there the NEARER one answers [interact] (door.gd `_other_is_nearer`).
-func _maintenance_door_is_nearer(player) -> bool:
-	var md = get_node_or_null("MaintenanceDoor")
-	if md == null or md.get("player_nearby") != true:
+## The staff door (x 929), a fallen character's body and the lift's reach overlap: the NEAREST answers [interact], and exactly one does
+## (`InteractArbiter`). The name is what the tests use.
+func _maintenance_door_is_nearer(_player = null) -> bool:
+	return InteractArbiter.beaten(self)
+
+
+## An [interact] member (InteractArbiter): the powered lift's [E] Ride. A pan's backdrop floor never answers (its lift is not the player's).
+func interact_ready() -> bool:
+	if passive:
 		return false
-	return absf(player.global_position.x - md.global_position.x) <= absf(player.global_position.x - ELEVATOR_X)
+	var p = get_tree().get_first_node_in_group("player")
+	return p != null and lift_answers_press(p)
+
+
+func interact_x() -> float:
+	return ELEVATOR_X
+
+
+func interact_rank() -> int:
+	return InteractArbiter.RANK_LIFT
 
 
 ## True while the powered lift is offering [E] Ride to this player (what the maintenance door asks before it answers a press).

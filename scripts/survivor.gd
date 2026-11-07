@@ -186,6 +186,7 @@ func _ready() -> void:
 	monitorable = false
 	z_index = 1
 	add_to_group("survivor")
+	add_to_group(InteractArbiter.GROUP)          # [Talk] is one of the things that can answer [interact]; the nearest answers (interact_ready)
 	key = str(rec.get("key", ""))
 	role = str(rec.get("role", "hider"))
 	weapon = str(rec.get("weapon", ""))
@@ -1240,8 +1241,22 @@ func _door_answers_instead() -> bool:
 	return false
 
 
+## An [interact] member (InteractArbiter): [Talk], offered while the player is in range and no nearer door would take the press.
+func interact_ready() -> bool:
+	return can_talk() and _player_gap() <= TALK_RANGE and not WorldState.loot_open and not _door_answers_instead()
+
+
+func interact_x() -> float:
+	return global_position.x
+
+
+func interact_rank() -> int:
+	return InteractArbiter.RANK_TALK
+
+
 func _update_prompt() -> void:
-	var near: bool = can_talk() and _player_gap() <= TALK_RANGE and not WorldState.loot_open and not _door_answers_instead()
+	# a fallen character's body, a loose drop, a scavenge node… nearer than I am answers the press instead (InteractArbiter)
+	var near: bool = interact_ready() and InteractArbiter.answers(self, true)
 	if near != _talk_near:
 		_talk_near = near
 		if near:
@@ -1250,7 +1265,7 @@ func _update_prompt() -> void:
 			HUD.hide_world_prompt(self)
 	if near:
 		WorldState.claim_interact_for_talk()      # this press is mine — not the door's or the lift's behind me
-		if Input.is_action_just_pressed("interact") and not TutorialManager.tutorial_guard_active():
+		if Input.is_action_just_pressed("interact") and not TutorialManager.tutorial_guard_active() and InteractArbiter.take(self, true):
 			talk()
 
 

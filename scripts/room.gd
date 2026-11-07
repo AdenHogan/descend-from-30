@@ -180,6 +180,7 @@ const ANCHOR_RANGES = {
 }
 
 func _ready() -> void:
+	add_to_group(InteractArbiter.GROUP)            # a maintenance room's fuse box / workbench answer [interact] (interact_ready); a flat answers nothing here
 	# PASSIVE BACKDROP MODE (BalconyPan): build another apartment's interior as
 	# scenery — modules + balcony art only, no player/door/loot/enemies — so the
 	# apartment below can be stacked under this one during the descent pan.
@@ -780,6 +781,35 @@ func _play_fuse_click() -> void:
 	p.finished.connect(p.queue_free)
 
 
+## An [interact] member (InteractArbiter): a maintenance room's fuse box or workbench, the player at it. (A flat has neither: never ready.)
+func interact_ready() -> bool:
+	return _station_x() != INF
+
+
+func interact_x() -> float:
+	var x := _station_x()
+	return x if x != INF else 0.0                  # (never asked unless interact_ready: a room is a plain Node, it has no position of its own)
+
+
+func interact_rank() -> int:
+	return InteractArbiter.RANK_THING
+
+
+## The x of the station the player stands at (the fuse box wins where the two reaches meet, as the prompt does), else INF.
+func _station_x() -> float:
+	if not _fuse_box_active:
+		return INF
+	var player = get_node_or_null("Player")
+	if player == null:
+		return INF
+	var px: float = player.global_position.x
+	if absf(px - _fuse_box_pos.x) < _STATION_REACH:
+		return _fuse_box_pos.x
+	if absf(px - _workbench_pos.x) < _STATION_REACH:
+		return _workbench_pos.x
+	return INF
+
+
 func _maintenance_process(_delta: float) -> void:
 	# Two wall/floor stations, each accessed by standing IN FRONT of it (horizontal
 	# proximity — a wall box sits above the feet, so a point-distance check can't reach
@@ -791,7 +821,7 @@ func _maintenance_process(_delta: float) -> void:
 	if player == null:
 		return
 	var px: float = player.global_position.x
-	var e_pressed: bool = Input.is_action_just_pressed("interact") and not TutorialManager.interact_guarded()
+	var e_pressed: bool = Input.is_action_just_pressed("interact") and not TutorialManager.interact_guarded() and InteractArbiter.take(self)
 	if absf(px - _fuse_box_pos.x) < _STATION_REACH:
 		HUD.show_world_prompt(self, _fuse_box_prompt(), _fuse_box_pos + Vector2(0, -38))
 		if e_pressed:
@@ -2831,7 +2861,9 @@ func _input(event: InputEvent) -> void:
 	# The interact key (whatever it is bound to — it used to be a hard-coded E).
 	if event.is_action_pressed("interact") and not event.is_echo():
 		WorldState.interaction_handled = false
-		nearby[clamp(selected_index, 0, nearby.size() - 1)].try_interact()
+		var chosen = nearby[clamp(selected_index, 0, nearby.size() - 1)]
+		if InteractArbiter.take(chosen, true):         # a body / drop / door / [Talk] nearer than this node answers the press instead
+			chosen.try_interact()
 		return
 
 

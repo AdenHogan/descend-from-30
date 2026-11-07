@@ -42,6 +42,7 @@ var ding_player: AudioStreamPlayer2D = null
 
 
 func _ready() -> void:
+	add_to_group(InteractArbiter.GROUP)
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
 	# Crisp pixel font (default font blurs when the hallway camera zooms in).
@@ -93,27 +94,28 @@ func _process(_delta: float) -> void:
 		var near = global_position.distance_to(player.global_position) <= DOOR_OPEN_DISTANCE
 		if near != doors_open:
 			_set_doors_open(near)
-	if player_nearby and Input.is_action_just_pressed("interact") and not _maintenance_door_is_nearer(player) and not _fallen_body_is_nearer(player):
+	if player_nearby and Input.is_action_just_pressed("interact") and InteractArbiter.take(self):
 		if shop_ui == null or not shop_ui.visible:
 			_open_shop()
 
 
-## The last character's BODY can lie inside the lift's reach (the lift reaches 60 px, a body 30): the nearer answers the press, the body winning a tie
-## (round 49n: one press used to open the shop AND kneel the player over the body's two rings - the bot sat there for 150 s; player_corpse.gd asks the same of us).
-func _fallen_body_is_nearer(player) -> bool:
-	if player == null:
-		return false
-	return PlayerCorpse.answers_before(get_tree(), player.global_position.x, global_position.x)
+## The lift's [interact] reach (60 px) overlaps the staff door's on floor 15 and a fallen character's body can lie inside it (round 49n):
+## where reaches overlap the NEAREST thing answers, and exactly one does (`InteractArbiter`). The name is what the tests use.
+func _maintenance_door_is_nearer(_player = null) -> bool:
+	return InteractArbiter.beaten(self)
 
 
-## The maintenance door's reach overlaps this one on floor 15 — the nearer answers the press (door.gd `_other_is_nearer`).
-func _maintenance_door_is_nearer(player) -> bool:
-	if player == null:
-		return false
-	for n in get_parent().get_children():
-		if n != self and n.get("is_maintenance") == true and n.get("player_nearby") == true:
-			return absf(player.global_position.x - n.global_position.x) <= absf(player.global_position.x - global_position.x)
-	return false
+## An [interact] member (InteractArbiter): the merchant's lift, the player in its reach.
+func interact_ready() -> bool:
+	return player_nearby
+
+
+func interact_x() -> float:
+	return global_position.x
+
+
+func interact_rank() -> int:
+	return InteractArbiter.RANK_LIFT
 
 
 func _set_doors_open(open: bool) -> void:

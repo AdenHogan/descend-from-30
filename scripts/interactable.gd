@@ -57,6 +57,7 @@ var _light: PointLight2D = null
 
 
 func _ready() -> void:
+	add_to_group(InteractArbiter.GROUP)  # the selected node is one of the things that can answer [interact] (interact_ready); room.gd asks before it searches
 	add_to_group("scavenge_anchor")      # a pickup lying under the pointer asks these before it claims a click (world_drop._node_has_the_click)
 	player = get_tree().get_first_node_in_group("player")
 	_tex = FL.light_texture()          # soft round cookie (bright centre → transparent edge)
@@ -253,6 +254,19 @@ static func _spike(ci: CanvasItem, c: Vector2, ang: float, length: float, half_w
 		c - dir * length, c - dir * length * 0.12 - nrm * half_w, c + dir * length * 0.12 - nrm * half_w,
 		c + dir * length, c + dir * length * 0.12 + nrm * half_w, c - dir * length * 0.12 + nrm * half_w])
 	ci.draw_polygon(pts, PackedColorArray([tip, mid, mid, tip, mid, mid]))
+
+
+## An [interact] member (InteractArbiter): the node room.gd has SELECTED (the nearest the player faces, or the one Tab chose), in scavenge mode.
+func interact_ready() -> bool:
+	return is_selected and visible and WorldState.is_scavenge_mode and not WorldState.loot_open
+
+
+func interact_x() -> float:
+	return global_position.x
+
+
+func interact_rank() -> int:
+	return InteractArbiter.RANK_THING
 
 
 func try_interact() -> void:

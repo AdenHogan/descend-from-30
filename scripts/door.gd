@@ -247,6 +247,7 @@ func _is_sealed() -> bool:
 
 func _ready() -> void:
 	add_to_group("door_interact")         # survivor.gd asks which doors the player is at (a Talk must not eat a door's own press)
+	add_to_group(InteractArbiter.GROUP)   # the nearest thing that would answer [interact] answers it (scripts/interact_arbiter.gd)
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
 	# LMB on the door mirrors the X-key action (force / unlock / barricade).
@@ -540,7 +541,7 @@ func _process(delta: float) -> void:
 	if Input.is_action_just_pressed("interact") and not TutorialManager.interact_guarded():
 		match current_state:
 			WorldState.DoorState.OPEN, WorldState.DoorState.BREACHED:
-				if not _other_is_nearer():
+				if InteractArbiter.take(self):
 					_enter_apartment()
 
 	# Listen works in BOTH modes — sound is a first-class read, not a
@@ -569,30 +570,24 @@ func _process(delta: float) -> void:
 ## The maintenance door (x 929) sits close to the lift (x 1029.5), and its reach overlaps the lift's on every maintenance floor: on
 ## floor 15 the MERCHANT's, on any other the elevator's [E] Ride once it is powered. One [interact] press there used to take BOTH — the
 ## shop opened (or the car was boarded) while the player was walked into the maintenance room (found by the descent bot, round 44).
-## Where they overlap the NEARER one answers the press (merchant.gd and building_floors.gd ask the same of the door).
+## A fallen character's body beside a door did the same (round 49n). All of it is now one rule, `InteractArbiter`: of everything that would
+## answer the press, the nearest does. `_other_is_nearer` stays as the name the tests (and the older callers) use.
 func _other_is_nearer() -> bool:
-	var player = get_tree().get_first_node_in_group("player")
-	if player == null:
-		return false
-	var mine: float = absf(player.global_position.x - global_position.x)
-	# A fallen character's BODY at the door (the last character often fell beside one): the nearer answers [interact], the body winning a tie
-	# (round 49n: one press entered the flat AND credited the body's notes; player_corpse.gd asks `answers_interact` of us).
-	if PlayerCorpse.answers_before(get_tree(), player.global_position.x, global_position.x):
-		return true
-	if not is_maintenance:
-		return false
-	for n in get_parent().get_children():
-		if n != self and n.has_method("_open_shop") and n.get("player_nearby") == true:
-			return absf(player.global_position.x - n.global_position.x) < mine
-	var parent = get_parent()
-	if parent != null and parent.has_method("lift_answers_press") and bool(parent.call("lift_answers_press", player)):
-		return absf(player.global_position.x - float(parent.get("ELEVATOR_X"))) < mine
-	return false
+	return InteractArbiter.beaten(self)
 
 
-## Would [interact] enter this door right now? (player_corpse.gd asks, so a body beside a door and the door do not both answer one press.)
-func answers_interact() -> bool:
-	return player_nearby and (current_state == WorldState.DoorState.OPEN or current_state == WorldState.DoorState.BREACHED)
+## An [interact] member (InteractArbiter): a door the press would ENTER (open or breached, not the sealed 3001, the player at it).
+func interact_ready() -> bool:
+	return player_nearby and not _is_sealed() \
+			and (current_state == WorldState.DoorState.OPEN or current_state == WorldState.DoorState.BREACHED)
+
+
+func interact_x() -> float:
+	return global_position.x
+
+
+func interact_rank() -> int:
+	return InteractArbiter.RANK_DOOR
 
 
 func _on_click(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:

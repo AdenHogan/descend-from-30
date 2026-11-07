@@ -24,6 +24,7 @@ func is_searched() -> bool:
 
 func _ready() -> void:
 	add_to_group("corridor_body")
+	add_to_group(InteractArbiter.GROUP)
 	var cs := CollisionShape2D.new()
 	var shape := RectangleShape2D.new()
 	shape.size = Vector2(half_width * 2.0, 70.0)
@@ -48,8 +49,21 @@ func _on_body_exited(body: Node2D) -> void:
 
 
 func _process(_delta: float) -> void:
-	if player_nearby and Input.is_action_just_pressed("interact"):
+	if player_nearby and Input.is_action_just_pressed("interact") and InteractArbiter.take(self):
 		search()
+
+
+## An [interact] member (InteractArbiter): a body lying in the corridor, the player at it and it not yet searched.
+func interact_ready() -> bool:
+	return player_nearby and not is_searched()
+
+
+func interact_x() -> float:
+	return global_position.x
+
+
+func interact_rank() -> int:
+	return InteractArbiter.RANK_BODY
 
 
 func _input(event: InputEvent) -> void:

@@ -261,8 +261,21 @@ func _process(delta: float) -> void:
 		HUD.show_world_prompt(self, _prompt_text(), global_position)
 	else:
 		HUD.hide_world_prompt(self)
-	if focused and Input.is_action_just_pressed("interact"):
+	if focused and Input.is_action_just_pressed("interact") and InteractArbiter.take(self):
 		_try_pickup()
+
+
+## An [interact] member (InteractArbiter): the drop in focus (`focus_drop` picks among drops; the arbiter picks between a drop and everything else).
+func interact_ready() -> bool:
+	return player_nearby and not is_queued_for_deletion() and focus_drop(get_tree()) == self
+
+
+func interact_x() -> float:
+	return global_position.x
+
+
+func interact_rank() -> int:
+	return InteractArbiter.RANK_THING
 
 
 func _orb_level() -> float:

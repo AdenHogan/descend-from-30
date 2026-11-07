@@ -28,6 +28,7 @@ var _light: PointLight2D = null
 func _ready() -> void:
 	z_index = 0                                   # on the floor layer, under the living
 	add_to_group("backpack_pickup")
+	add_to_group(InteractArbiter.GROUP)
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	var cs := CollisionShape2D.new()
 	var shape := CircleShape2D.new()
@@ -83,8 +84,21 @@ func _process(delta: float) -> void:
 		_light.texture_scale = 0.045 + 0.03 * maxf(lvl, pulse)
 	if not player_nearby:
 		return
-	if Input.is_action_just_pressed("interact") and not TutorialManager.interact_guarded():
+	if Input.is_action_just_pressed("interact") and not TutorialManager.interact_guarded() and InteractArbiter.take(self):
 		take()
+
+
+## An [interact] member (InteractArbiter): the pack on the floor, the player at it.
+func interact_ready() -> bool:
+	return player_nearby
+
+
+func interact_x() -> float:
+	return global_position.x
+
+
+func interact_rank() -> int:
+	return InteractArbiter.RANK_THING
 
 
 func _glow_level() -> float:

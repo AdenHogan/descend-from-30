@@ -9,6 +9,10 @@ extends Node
 # A third overlap (round 49n, found by the descent bot as two 150 s "timeouts" on floor 25): the previous character's BODY lies near the lift,
 # and one [interact] press opened the shop AND knelt the player over the body's two rings (merchant.gd and player_corpse.gd each answered it).
 # Where they overlap the NEARER one answers, the body winning a tie, and exactly one does.
+# Round 49n, part 2 (owner: "fix the other interact overlaps too"): the pairwise fixes above were instances of ONE rule — of everything that would answer the
+# press, the nearest does and exactly one does (scripts/interact_arbiter.gd). `_test_one_rule_for_the_rest` pins the rule itself (stubs: nearest, ties, readiness, once
+# a frame) and the pairs nobody had hit yet on real nodes (a body + a loose drop, + a corridor body, + the floor-30 backpack, + the lobby door), and scans every script
+# that reads the press so a NEW answerer cannot join without the rule.
 # Run:  godot --headless res://tests/floor15_test.tscn
 
 var failures: int = 0
@@ -29,6 +33,7 @@ func _ready() -> void:
 	await _test_body_beside_the_lift()
 	await _test_body_beside_the_powered_lift()
 	await _test_body_beside_a_door()
+	await _test_one_rule_for_the_rest()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -117,6 +122,11 @@ func _test_overlap() -> void:
 
 func _test_powered_lift_overlap() -> void:
 	print("[a maintenance floor with a POWERED lift]")
+	# the floor the first test built is still in the tree: free it, so the player the test moves is THIS floor's own (each world is measured from its own player)
+	for child in get_children():
+		child.queue_free()
+	for i in range(4):
+		await get_tree().physics_frame
 	WorldState.dev_seed = 424242
 	WorldState.new_game()
 	WorldState.dev_seed = 0
@@ -304,7 +314,7 @@ func _test_body_beside_the_powered_lift() -> void:
 	for i in range(8):
 		await get_tree().physics_frame
 	check(corpse.player_nearby and bf.lift_answers_press(p), "x 1002: the body's reach and the lift's [E] Ride both hold the player")
-	check(PlayerCorpse.answers_before(get_tree(), 1002.0, 1029.5), "…and at x 1002 the body is the nearer of the two")
+	check(not corpse._other_is_nearer() and bf._maintenance_door_is_nearer(p), "…and at x 1002 the body is the nearer of the two: it answers, the lift yields")
 	WorldState.interaction_handled = false
 	Input.action_press("interact")
 	await get_tree().physics_frame
@@ -318,7 +328,7 @@ func _test_body_beside_the_powered_lift() -> void:
 	p.global_position = Vector2(1028.0, p.global_position.y)
 	for i in range(8):
 		await get_tree().physics_frame
-	check(corpse.player_nearby and not PlayerCorpse.answers_before(get_tree(), 1028.0, 1029.5), "x 1028, body still in reach: the lift is the nearer, so the body yields")
+	check(corpse.player_nearby and corpse._other_is_nearer() and not bf._maintenance_door_is_nearer(p), "x 1028, body still in reach: the lift is the nearer, so the body yields")
 	if p.pack_phase != "":
 		p.end_pack(true)
 	HUD.body_ring.close()
@@ -394,3 +404,290 @@ func _test_body_beside_a_door() -> void:
 	if p.pack_phase != "":
 		p.end_pack(true)
 	HUD.body_ring.close()
+
+
+# ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+# THE ONE RULE (scripts/interact_arbiter.gd) — and the pairs the pairwise fixes never reached
+# ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+## A member with a settable reach, for the rule's own tests.
+class Stub extends Node2D:
+	var ready_now: bool = true
+	var x: float = 0.0
+	var rank: int = InteractArbiter.RANK_THING
+
+	func interact_ready() -> bool:
+		return ready_now
+
+	func interact_x() -> float:
+		return x
+
+	func interact_rank() -> int:
+		return rank
+
+
+func _stub(x: float, rank: int = InteractArbiter.RANK_THING) -> Stub:
+	var s := Stub.new()
+	s.x = x
+	s.rank = rank
+	s.add_to_group(InteractArbiter.GROUP)
+	add_child(s)
+	return s
+
+
+## The last character's body at `x` with a hammer and 40 notes on it, as a live node (a body searched down to nothing frees itself).
+func _fresh_body(bf: Node, x: float, inst: ItemInstance) -> Node:
+	for c in get_tree().get_nodes_in_group("player_corpse"):
+		if is_instance_valid(c):
+			c.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	WorldState.player_corpses.clear()
+	WorldState.player_corpses["1"] = {"floor": 20, "scene": "res://scenes/building_floors.tscn", "apartment_id": "", "x": x, "y": 419.0, "feet": true,
+		"notes": 40, "scrap": 0, "items": [WorldState.instance_to_dict(inst)]}
+	WorldState.spawn_player_corpse_into(bf, 20, bf.scene_file_path, "")
+	var found: Node = null
+	for c in get_tree().get_nodes_in_group("player_corpse"):
+		if is_instance_valid(c) and not c.is_queued_for_deletion():
+			found = c
+	return found
+
+
+func _press_once() -> void:
+	WorldState.interaction_handled = false
+	Input.action_press("interact")
+	await get_tree().physics_frame
+	await get_tree().process_frame
+	Input.action_release("interact")
+	for i in range(10):
+		await get_tree().physics_frame
+
+
+func _test_one_rule_for_the_rest() -> void:
+	print("[one rule: the nearest thing that would answer [interact] answers, and exactly one does]")
+	for child in get_children():
+		child.queue_free()
+	for i in range(4):
+		await get_tree().physics_frame
+	WorldState.loot_open = false
+	# ---- the rule itself, on stubs and a stand-in player
+	var fake := Node2D.new()
+	fake.add_to_group("player")
+	add_child(fake)
+	fake.global_position = Vector2(100.0, 0.0)
+	var near := _stub(110.0)                                   # 10 px
+	var far := _stub(150.0)                                    # 50 px
+	check(InteractArbiter.answers(near) and not InteractArbiter.answers(far), "the nearer of two ready members answers; the other does not")
+	check(InteractArbiter.beaten(far) and not InteractArbiter.beaten(near), "…and `beaten` says the same from the other side")
+	fake.global_position = Vector2(145.0, 0.0)
+	check(InteractArbiter.answers(far) and not InteractArbiter.answers(near), "walk across and the answer follows the player (far 5 px, near 35 px)")
+	far.ready_now = false
+	check(InteractArbiter.answers(near) and not InteractArbiter.answers(far), "a member that would not take a press (not ready) never blocks one that would")
+	far.ready_now = true
+	# ties: a survivor's Talk, then a body, then a door, then a lift, then the rest
+	near.queue_free()
+	far.queue_free()
+	await get_tree().process_frame
+	fake.global_position = Vector2(200.0, 0.0)
+	var order: Array = [InteractArbiter.RANK_LIFT, InteractArbiter.RANK_DOOR, InteractArbiter.RANK_THING, InteractArbiter.RANK_TALK, InteractArbiter.RANK_BODY]
+	var tied: Array = []
+	for r in order:
+		tied.append(_stub(210.0, r))                           # all 10 px away
+	var winner: Stub = null
+	for s in tied:
+		if InteractArbiter.answers(s):
+			check(winner == null, "exactly one of five equally-near members answers")
+			winner = s
+	check(winner != null and winner.rank == InteractArbiter.RANK_TALK, "…and a tie goes to [Talk], then a body, then a door, then a lift, then the rest (rank %s won)" % (str(winner.rank) if winner != null else "none"))
+	# once a frame: the winner that frees itself mid-frame does not hand the same press to the next node
+	var took_a: bool = InteractArbiter.take(winner)
+	winner.ready_now = false                                   # (it was picked up / spent)
+	var took_b := false
+	for s in tied:
+		if s != winner and InteractArbiter.take(s):
+			took_b = true
+	check(took_a and not took_b, "one press is answered ONCE a frame: the next node processed does not also take it after the winner spent itself")
+	await get_tree().process_frame
+	var next_frame := false
+	for s in tied:
+		if s != winner and InteractArbiter.take(s):
+			next_frame = true
+			break
+	check(next_frame, "…and the next frame's press is answered again")
+	# a modal loot panel owns the press
+	WorldState.loot_open = true
+	var any_answers := false
+	for s in tied:
+		if InteractArbiter.answers(s):
+			any_answers = true
+	WorldState.loot_open = false
+	check(not any_answers, "while the loot panel is open nothing behind it answers the press")
+	for s in tied:
+		s.queue_free()
+	fake.queue_free()
+	await get_tree().process_frame
+
+	# ---- real nodes: the last character's body in the corridor beside each other thing that answers
+	WorldState.dev_seed = 424242
+	WorldState.new_game()
+	WorldState.dev_seed = 0
+	WorldState.is_first_run = false
+	WorldState.tutorial_completed = true
+	WorldState.current_floor = 20
+	WorldState.current_run = 2
+	WorldState.has_backpack = false
+	WorldState.wallet_unlocked = true
+	WorldState.wallet_balance = 0
+	WorldState.spawn_source = "stair"
+	WorldState.stair_spawn_side = WorldState.canonical_stair_arrival_side(20)
+	WorldState.stair_direction = "down"
+	WorldState.god_mode = true
+	SettingsManager.last_device = "kbm"
+	var bf = load("res://scenes/building_floors.tscn").instantiate()
+	add_child(bf)
+	for i in range(40):
+		await get_tree().physics_frame
+	var p = get_tree().get_first_node_in_group("player")
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if is_instance_valid(z):
+			z.queue_free()
+	check(p != null, "a corridor with a player (floor 20)")
+	if p == null:
+		return
+	var body_x := 760.0                                        # clear of every door (126 px apart) so only the pair under test is in reach
+	var inst := ItemInstance.new()
+	inst.setup("002")
+	WorldState.player_corpses.clear()
+	WorldState.player_corpses["1"] = {"floor": 20, "scene": "res://scenes/building_floors.tscn", "apartment_id": "", "x": body_x, "y": 419.0, "feet": true,
+		"notes": 40, "scrap": 0, "items": [WorldState.instance_to_dict(inst)]}
+	WorldState.spawn_player_corpse_into(bf, 20, bf.scene_file_path, "")
+	var corpse = null
+	for c in get_tree().get_nodes_in_group("player_corpse"):
+		corpse = c
+	check(corpse != null, "the last character's body lies in the corridor")
+	if corpse == null:
+		return
+	# (1) a loose drop beside it
+	var drop = load("res://scenes/world_drop.tscn").instantiate()
+	drop.item_id = "005"
+	bf.add_child(drop)
+	drop.global_position = Vector2(body_x + 14.0, 412.0)
+	WorldState.inventory.clear()
+	p.global_position = Vector2(body_x + 1.0, p.global_position.y)
+	for i in range(10):
+		await get_tree().physics_frame
+	check(corpse.player_nearby and drop.player_nearby, "x +1: the body's reach and the drop's both hold the player")
+	await _press_once()
+	check(WorldState.wallet_balance == 40 and WorldState.inventory.size() == 1 and WorldState.inventory[0].item_id == "002" and is_instance_valid(drop) and not drop.is_queued_for_deletion(),
+		"x +1 (body 1 px, drop 13 px), [interact]: ONLY the body answers - its things come to the pockets, the drop stays on the floor (inv %d, notes %d)" % [WorldState.inventory.size(), WorldState.wallet_balance])
+	corpse = await _fresh_body(bf, body_x, inst)
+	WorldState.inventory.clear()
+	WorldState.wallet_balance = 0
+	p.global_position = Vector2(body_x + 14.0, p.global_position.y)
+	for i in range(10):
+		await get_tree().physics_frame
+	await _press_once()
+	check(WorldState.inventory.size() == 1 and WorldState.inventory[0].item_id == "005" and WorldState.wallet_balance == 0 and WorldState.player_corpses.has("1"),
+		"x +14 (drop at the player, body 14 px), [interact]: ONLY the drop answers - the body is left alone (inv %d, notes %d)" % [WorldState.inventory.size(), WorldState.wallet_balance])
+	# (2) a searchable body of a stranger beside it
+	WorldState.inventory.clear()
+	WorldState.wallet_balance = 0
+	corpse = await _fresh_body(bf, body_x, inst)
+	var cb = load("res://scripts/corridor_body.gd").new()
+	cb.floor_num = 20
+	cb.body_name = "cdead_9"
+	bf.add_child(cb)
+	cb.global_position = Vector2(body_x + 30.0, 419.0)
+	p.global_position = Vector2(body_x + 28.0, p.global_position.y)
+	for i in range(10):
+		await get_tree().physics_frame
+	check(cb.player_nearby and corpse.player_nearby, "x +28: the stranger's body and the fallen character's both hold the player")
+	await _press_once()
+	check(cb.is_searched() and WorldState.wallet_balance == 0 and WorldState.player_corpses.has("1"),
+		"x +28 (stranger 2 px, fallen 28 px), [interact]: ONLY the stranger is searched - the fallen character's things stay (searched %s, notes %d)" % [str(cb.is_searched()), WorldState.wallet_balance])
+	# …and the other way round: the player stands at the fallen character, the stranger 28 px off
+	WorldState.inventory.clear()
+	WorldState.wallet_balance = 0
+	corpse = await _fresh_body(bf, body_x, inst)
+	cb.queue_free()
+	await get_tree().process_frame
+	cb = load("res://scripts/corridor_body.gd").new()
+	cb.floor_num = 20
+	cb.body_name = "cdead_10"
+	bf.add_child(cb)
+	cb.global_position = Vector2(body_x + 30.0, 419.0)
+	p.global_position = Vector2(body_x + 2.0, p.global_position.y)
+	for i in range(10):
+		await get_tree().physics_frame
+	check(cb.player_nearby and corpse.player_nearby, "x +2: the stranger's body and the fallen character's both hold the player")
+	await _press_once()
+	check(not cb.is_searched() and WorldState.wallet_balance == 40,
+		"x +2 (fallen 2 px, stranger 28 px), [interact]: ONLY the fallen character's body answers - the stranger is left unsearched (searched %s, notes %d)" % [str(cb.is_searched()), WorldState.wallet_balance])
+	# (3) the floor-30 backpack beside it (no pack yet: the body's things come to the pockets)
+	WorldState.inventory.clear()
+	WorldState.wallet_balance = 0
+	corpse = await _fresh_body(bf, body_x, inst)
+	WorldState.has_backpack = false
+	var pack = load("res://scripts/backpack_pickup.gd").new()
+	bf.add_child(pack)
+	pack.global_position = Vector2(body_x - 18.0, 419.0)
+	p.global_position = Vector2(body_x - 3.0, p.global_position.y)
+	for i in range(10):
+		await get_tree().physics_frame
+	check(pack.player_nearby and corpse.player_nearby, "x -3: the backpack and the body both hold the player")
+	await _press_once()
+	check(WorldState.has_backpack == false and WorldState.wallet_balance == 40 and is_instance_valid(pack) and not pack.is_queued_for_deletion(),
+		"x -3 (body 3 px, pack 15 px), [interact]: ONLY the body answers - the backpack stays on the floor (pack %s, notes %d)" % [str(WorldState.has_backpack), WorldState.wallet_balance])
+	corpse = await _fresh_body(bf, body_x, inst)
+	WorldState.wallet_balance = 0
+	WorldState.inventory.clear()
+	p.global_position = Vector2(body_x - 17.0, p.global_position.y)
+	for i in range(10):
+		await get_tree().physics_frame
+	await _press_once()
+	check(WorldState.has_backpack and WorldState.wallet_balance == 0 and WorldState.player_corpses.has("1"),
+		"x -17 (pack 1 px, body 17 px), [interact]: ONLY the backpack answers - the body is left alone (pack %s, notes %d)" % [str(WorldState.has_backpack), WorldState.wallet_balance])
+	# (4) the lobby door: it cannot be walked up to in a corridor, so its readiness is forced (right before each ask - its own _process clears it) and the rule asked
+	# (a real press would leave the building)
+	corpse = await _fresh_body(bf, body_x, inst)
+	var le = load("res://scripts/lobby_exit.gd").new()
+	bf.add_child(le)
+	le.global_position = Vector2(body_x + 34.0, 419.0)
+	p.global_position = Vector2(body_x + 2.0, p.global_position.y)
+	for i in range(8):
+		await get_tree().physics_frame
+	le._player_near = true
+	check(corpse.player_nearby and le.interact_ready() and InteractArbiter.beaten(le) and not InteractArbiter.beaten(corpse),
+		"the lobby door with a body nearer (body 2 px, door 32 px): the body answers, the way out yields")
+	p.global_position = Vector2(body_x + 33.0, p.global_position.y)
+	for i in range(8):
+		await get_tree().physics_frame
+	le._player_near = true
+	check(corpse.player_nearby and le.interact_ready() and not InteractArbiter.beaten(le) and InteractArbiter.beaten(corpse),
+		"…and with the player AT the door (door 1 px, body 33 px) the way out answers, the body yields")
+	le.queue_free()
+	cb.queue_free()
+	pack.queue_free()
+
+	# ---- the lint: every script that reads the press must ask the rule (or say why it need not)
+	var allowed: Dictionary = {
+		"player.gd": "it only CANCELS things (a listen, the pack) on the press - it answers nothing",
+		"hud.gd": "it only closes its own context menu on the press",
+		"loot_ui.gd": "the loot panel is modal: its own take-key; the arbiter holds every other answerer back while it is open (loot_open)",
+		"resident_npc.gd": "a trader's [Trade] offer is a modal bubble - NOT arbitrated (listed in docs/BUG_LEDGER.md as read, not fixed)",
+	}
+	var offenders: Array = []
+	var seen: int = 0
+	var dir := DirAccess.open("res://scripts")
+	for f in dir.get_files():
+		if not f.ends_with(".gd"):
+			continue
+		var src := FileAccess.get_file_as_string("res://scripts/" + f)
+		if src.find("is_action_just_pressed(\"interact\")") == -1 and src.find("is_action_pressed(\"interact\")") == -1:
+			continue
+		seen += 1
+		if src.find("InteractArbiter.take(") == -1 and src.find("InteractArbiter.answers(") == -1 and not allowed.has(f):
+			offenders.append(f)
+	check(offenders.is_empty() and seen >= 12, "every script that answers the [interact] press asks InteractArbiter, or is listed with a reason (%d read; not: %s)" % [seen, str(offenders)])
+	WorldState.has_backpack = true
+	bf.queue_free()
