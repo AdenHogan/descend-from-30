@@ -99,7 +99,6 @@ const ModuleGeo = preload("res://scripts/module_geo.gd")
 const MODULE_WIDTH = ModuleGeo.WIDTH                  # (docs/MODULE_WIDTH.md: ModuleGeo is the one source)
 const LEFT_WALL_X = ModuleGeo.LEFT_WALL_X
 var _arrived_by_balcony: bool = false   # the player came down a balcony, not through the front door (set in _ready before spawn_source is cleared)
-const NOOK_OFFSET := 8.0                # the wall nook (stealth_spot.gd) sits this far further into the flat than where the player arrives
 const ARRIVAL_X_LEFT := 140.0           # where the player stands on arrival (the two `player.position.x =` lines in _ready)
 const ARRIVAL_X_RIGHT := 810.0          # (of a three-room flat at 240 px modules — `_arrival_x_right()` is the one the code asks)
 const ARRIVAL_PLAYER_HALF := 13.0       # the player's capsule half-width
@@ -242,10 +241,6 @@ func _ready() -> void:
 		door.position.x = _right_x() - 1.0
 		player.position.x = _arrival_x_right()
 		player.get_node("AnimatedSprite2D").flip_h = true
-	# The dark corner by the front door: a hiding place the player arrives ON, so its prompt is there from the first step (docs/STEALTH_SPACES.md "the wall nook").
-	if not _is_maintenance() and not WorldState.is_apartment_charred(_apt_floor(), _apt_index()) \
-			and not (WorldState.is_first_run and TUTORIAL_LAYOUTS.has(apartment_id)):
-		StealthSpot.add_nook(self, player.position.x + (NOOK_OFFSET if entrance_side == "left" else -NOOK_OFFSET), ROOM_FEET_Y)
 
 	# Arrived by climbing DOWN a balcony (see player.begin_balcony_descent): land
 	# OUT ON this apartment's balcony plane (not back on the corridor), so the

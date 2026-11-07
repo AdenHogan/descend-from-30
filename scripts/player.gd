@@ -170,6 +170,7 @@ var _hide_fx: Node = null           # the washed-out screen (stealth_fx.gd)
 const HIDE_STEP_TIME = 0.3          # sliding to the middle of the piece
 const HIDE_GRACE_MSEC = 250         # the press that hides us must not also bring us out
 var _hide_msec := -100000
+var _hide_return_y := 0.0           # the walking line to climb back down to when a piece (the bath) had the player rise
 var _back_return_y := 0.0           # the walking line to step back down to
 var _back_base_scale := Vector2.ONE
 var _back_stepping := false         # mid step-up / step-down tween
@@ -2243,13 +2244,19 @@ func enter_hide(spot: Node) -> bool:
 	conceal = Stealth.HIDDEN          # from this frame on the dead cannot see us (the slide into the piece is a beat, not a window to be seen in)
 	_hide_fx = StealthFx.begin(self)
 	_hide_msec = Time.get_ticks_msec()
-	var t := create_tween()
+	_hide_return_y = global_position.y
+	var rise: float = spot.rise_for(global_position.y) if spot.has_method("rise_for") else 0.0     # into the tub: the feet stand IN the piece, not in front of it
+	if spot.has_method("on_hide_begin"):
+		spot.on_hide_begin()
+	var t := create_tween().set_parallel(true)
 	t.tween_property(self, "global_position:x", spot.global_position.x, HIDE_STEP_TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	if rise > 0.0:
+		t.tween_property(self, "global_position:y", _hide_return_y - rise, HIDE_STEP_TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	return true
 
 
 ## Come out. `keep_target` carries a pending click-to-move on (a click while hidden brings us out and walks).
-## `voluntary` = the player chose to come out (not thrown out by a hit or a search): a wardrobe door is not silent (Stealth.EXIT_NOISE; a bare wall makes none), and
+## `voluntary` = the player chose to come out (not thrown out by a hit or a search): a wardrobe door is not silent (the piece's own `exit_noise`: a wardrobe's door 40 px, a bath's water 55), and
 ## if the dead are within a normal footstep's reach they are told to stay low — the way out is the same noise model as every other step (crouch 45 px, walk 120 px).
 func leave_hide(keep_target: bool = false, voluntary: bool = false) -> void:
 	if hide_spot == null and conceal == Stealth.NONE:
@@ -2262,6 +2269,11 @@ func leave_hide(keep_target: bool = false, voluntary: bool = false) -> void:
 	_hide_fx = null
 	if not keep_target:
 		_clear_move_target()
+	if spot != null and is_instance_valid(spot) and spot.has_method("on_hide_end"):
+		spot.on_hide_end()
+	if absf(global_position.y - _hide_return_y) > 0.5 and _hide_return_y != 0.0:     # climb back down out of the tub onto the walking line
+		var back := create_tween()
+		back.tween_property(self, "global_position:y", _hide_return_y, HIDE_STEP_TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	if voluntary:
 		if spot != null and is_instance_valid(spot) and spot.has_method("exit_noise"):
 			var r: float = spot.exit_noise()
@@ -2314,6 +2326,8 @@ func lane_position() -> Vector2:
 	# mid-step) loads standing on the floor in front of it, never floating on a plane that isn't there.
 	if back_spot != null or _back_stepping:
 		return Vector2(global_position.x, _back_return_y)
+	if hide_spot != null and _hide_return_y != 0.0:
+		return Vector2(global_position.x, _hide_return_y)         # a save made in the tub loads on the floor beside it
 	return global_position
 
 
