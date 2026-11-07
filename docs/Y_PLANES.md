@@ -136,6 +136,8 @@ FEET at **339** (`room.ROOM_FEET_Y` 353 − `BACK_PLANE_RISE` 14; origin 306) �
 furniture's base (324): at 328 the player read as standing ON the bookshelf's bottom (owner round 9).
 Sprite scale = the room perspective between the lines, s(339)/s(353) ≈ 0.89. No x movement up there; saves record the walking line.
 
+STEALTH PLANES (owner round 49o): the plane table that says, per plane, what the dead see, whether they can reach you, your noise, the screen and the prompt is `docs/STEALTH_SPACES.md` §2 / `scripts/stealth.gd` `PLANES` — a new plane states all of them there. HIDDEN (inside a wardrobe, or against the wall by the front door) keeps the player on the lane (feet 353): they slide to the piece's x and the camera zooms; nothing on the Y axis moves. COVER (a second line behind low furniture) is designed, not built.
+
 THE BALCONY (owner round 14 — **`scripts/balcony_geo.gd` is the single source**; the art
 `tools/art/balcony.py`, the player, `enemy_plane.gd`, `balcony_pan.gd`, enemy memory and the blueprints
 all read it). A balcony is a LOGGIA behind a doorway in the back wall of a study / dining room (module

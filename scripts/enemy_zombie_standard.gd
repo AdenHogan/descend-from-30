@@ -1358,9 +1358,19 @@ func _physics_process(delta: float) -> void:
 				var effective_detection = DETECTION_RANGE if (alert_timer <= 0 or _alert_positional) else 2000.0
 				if tutorial_scripted:
 					effective_detection = 2000.0  # always aware once released
+				# STEALTH (docs/STEALTH_SPACES.md): a player hiding in furniture (or crouched behind cover) is simply outside my sight — whatever my alert — and a
+				# search that ends at their hiding place can find them (Stealth.tick_finding).
+				var concealed: bool = (not tutorial_scripted) and Stealth.sight_blocked(self, player)
+				if concealed:
+					effective_detection = -1.0
+					if mind == "" and alert_timer > 0.0 and not _alert_positional:
+						Stealth.lose_track(self)         # locked on with no source (a follower): it cannot find what it cannot see — it looks about where it stands
+				Stealth.tick_finding(self, player, delta)
 				# CROWD SPACING (enemy_crowd.gd): my rank on my side of the player sets where I stand,
 				# so a pack fans out into distinct bodies; ranks 1-3 still strike from their spot.
 				var reach := _reach_to_player()
+				if concealed:
+					reach = INF
 				var crank: int = -1 if tutorial_scripted else ENEMY_CROWD.rank(self, player)
 				var stand: float = ENEMY_CROWD.stand_distance(crank, _attack_reach())
 				# The nearer meal: a survivor in sight and closer than the player (docs/NPC_AI.md).

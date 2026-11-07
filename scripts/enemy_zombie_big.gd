@@ -506,7 +506,16 @@ func _physics_process(delta: float) -> void:
 			if player != null:
 				var distance = global_position.distance_to(player.global_position)
 				var effective_detection = detection_range if (alert_timer <= 0 or _alert_positional) else 2000.0
+				# STEALTH (docs/STEALTH_SPACES.md): a player hiding in furniture is outside my sight, whatever my alert; a search that ends at their hiding place can find them
+				var concealed: bool = Stealth.sight_blocked(self, player)
+				if concealed:
+					effective_detection = -1.0
+					if mind == "" and alert_timer > 0.0 and not _alert_positional:
+						Stealth.lose_track(self)
+				Stealth.tick_finding(self, player, delta)
 				var reach := _reach_to_player()
+				if concealed:
+					reach = INF
 				var crank: int = ENEMY_CROWD.rank(self, player)
 				var stand: float = ENEMY_CROWD.stand_distance(crank, _attack_reach())
 				var ally: Node2D = EnemyMind.pick_prey(self, detection_range, reach, distance <= effective_detection)

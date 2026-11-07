@@ -140,3 +140,7 @@ lobby edge case.
 up; it chases only what it sees. Callers that pass no source (the stairwell muster after a pry, the far-zombie pulls in `player.gd`) keep the old
 "it knows" behaviour. `emit_noise(pos, radius, duration, cross_floor=false)` lets a source stay on its own floor (a survivor's gunshot / scream / bang).
 The radii in this document are unchanged; what a noise DOES to a zombie is not.
+
+
+## Round 49o change — hiding and noise are one system (`STEALTH_SPACES.md`)
+The radii in this document are unchanged. A hidden player is silent and invisible to the dead's sight radius; coming out keeps the stance (crouched = `crouch` 45 px, standing = `walk` 120 px), so a dead thing that has just passed hears a standing step and turns round, and does not hear a crouched one; a wardrobe's door adds 40 px of noise on the way out. Sight is still a full circle (no facing): a dead thing within 100 px sees you the moment you are out.

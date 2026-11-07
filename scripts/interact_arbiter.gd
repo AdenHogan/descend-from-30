@@ -50,6 +50,8 @@ static func answers(me: Node, assume_ready: bool = false) -> bool:
 		return false
 	if WorldState.loot_open:
 		return false                     # the loot panel is modal: its own [interact] takes the item, and nothing behind it answers too
+	if _player_hidden(me):
+		return false                     # a hidden player's [interact] brings them OUT (player.gd); it must not also open the door beside the wardrobe
 	if not assume_ready and not _ready(me):
 		return false
 	return _better_than(me) == null
@@ -84,6 +86,14 @@ static func _better_than(me: Node) -> Node:
 	return null
 
 
+static func _player_hidden(me: Node) -> bool:
+	var tree: SceneTree = me.get_tree()
+	if tree == null:
+		return false
+	var pl: Node = _player_of(_world(me), tree)
+	return pl != null and Stealth.conceal_of(pl) == Stealth.HIDDEN
+
+
 ## The world a node belongs to: itself or its nearest ancestor that carries the player (every floor, flat, hallway and lobby does); null for a node outside one.
 static func _world(n: Node) -> Node:
 	var a: Node = n
@@ -92,6 +102,11 @@ static func _world(n: Node) -> Node:
 			return a
 		a = a.get_parent()
 	return null
+
+
+## The world `n` belongs to (public form of `_world`, for the stealth spots: a hiding place only offers itself to the player of its OWN flat).
+static func world_of(n: Node) -> Node:
+	return _world(n)
 
 
 static func _player_of(world: Node, tree: SceneTree) -> Node:

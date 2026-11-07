@@ -92,6 +92,7 @@ const UNJAM_PROGRESS := 3.0       # net px from the reference x that count as "m
 var _stuck_time: float = 0.0
 var _unjam_ref_x: float = 0.0     # where the player was the last time they made real progress (or stopped trying to move)
 var _phased_bodies: Array = []    # bodies the player is currently phasing through
+var _hide_phased: Array = []      # the ones among them a HIDDEN player let through (they also got an exception on their own side: Player._hide_phase)
 var is_pushing = false
 var _hold_cam_tween: Tween = null
 var _push_hint_at: float = -10.0       # when "can't shove while searching" was last said (rate limit)
@@ -162,6 +163,13 @@ const BALCONY_HALF_WIDTH = BalconyGeo.HALF_WIDTH
 const BALCONY_STEP_TIME = 0.4
 var on_balcony_plane: bool = false
 var back_spot: Node = null          # the BACK (scavenge) plane spot we're stepped up to (back_plane_spot.gd)
+# STEALTH (docs/STEALTH_SPACES.md): hidden inside a wardrobe / cupboard (stealth_spot.gd). `conceal` is what the dead's sight reads (Stealth.conceal_of).
+var conceal: String = "none"        # Stealth.NONE / COVER / HIDDEN
+var hide_spot: Node = null          # the hiding place we are in
+var _hide_fx: Node = null           # the washed-out screen (stealth_fx.gd)
+const HIDE_STEP_TIME = 0.3          # sliding to the middle of the piece
+const HIDE_GRACE_MSEC = 250         # the press that hides us must not also bring us out
+var _hide_msec := -100000
 var _back_return_y := 0.0           # the walking line to step back down to
 var _back_base_scale := Vector2.ONE
 var _back_stepping := false         # mid step-up / step-down tween
@@ -299,6 +307,11 @@ func _physics_process(delta: float) -> void:
 	if is_dead:
 		return
 
+	# Anything else that takes over the body (a door's approach walk, a lash, a listen, the pack, a scripted scene) ends the hiding: the screen and the camera must never
+	# be left washed out and zoomed while the player is somewhere else.
+	if hide_spot != null and (is_cutscene or escaping or is_lashing or is_listening or pack_phase != "") \
+			and Time.get_ticks_msec() - _hide_msec >= HIDE_GRACE_MSEC:
+		leave_hide()
 	# A scripted approach/knock owns the body — skip normal control. Escaping = the same, for good.
 	if is_cutscene or escaping:
 		return
@@ -390,6 +403,22 @@ func _physics_process(delta: float) -> void:
 			exit_back_plane()
 		elif has_move_target and not _target_on_back_spot():
 			exit_back_plane(true)
+		direction = 0
+	# Hidden inside a piece of furniture (stealth_spot.gd): not a walking plane either — [W] again, any move key, an action or a click brings us out.
+	# (The stance toggle is read above, so it has already stood us up by here; it counts as coming out.)
+	if hide_spot != null:
+		if not is_instance_valid(hide_spot):
+			leave_hide()
+		elif Time.get_ticks_msec() - _hide_msec < HIDE_GRACE_MSEC:
+			pass            # the press that brought us in is still "just pressed" for a frame or two: it must not take us straight out again (the pack had the same bug)
+		elif Input.is_action_just_pressed("move_up") or Input.is_action_just_pressed("move_down") or Input.is_action_just_pressed("move_left") \
+				or Input.is_action_just_pressed("move_right") or Input.is_action_just_pressed("attack") or Input.is_action_just_pressed("push") \
+				or Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("crouch_toggle"):
+			leave_hide(false, true)
+		elif has_move_target:
+			leave_hide(true, true)
+		else:
+			_hide_phase()
 		direction = 0
 	# Sprint requires a small stamina floor to (re)engage. Without this, stamina
 	# ticking a sliver above 0 between frames lets sprint flicker back on at zero.
@@ -554,6 +583,9 @@ func _update_unjam(wants_move: bool) -> void:
 			continue
 		if absf(b.global_position.x - global_position.x) > UNJAM_CLEAR_RANGE:
 			remove_collision_exception_with(b)
+			if b in _hide_phased:
+				b.remove_collision_exception_with(self)       # (the other half of a hidden player's pass-through exception, _hide_phase)
+				_hide_phased.erase(b)
 			_phased_bodies.remove_at(i)
 	# Genuinely stuck? (trying to move, but no NET horizontal progress since the last time it made some.) A real wall
 	# (corridor end) trips this too but has no zombie nearby to phase, so it's a harmless no-op.
@@ -2084,6 +2116,8 @@ func _begin_hit() -> bool:
 		_cancel_listen()
 	if pack_phase != "":
 		end_pack(true)        # a hit slams the pack shut and knocks you upright
+	if conceal != Stealth.NONE:
+		leave_hide()          # a hit throws you out of the wardrobe
 	if is_lashing:
 		_lash_cancel = true   # a hit knocks you off the rope job
 	is_hit = true
@@ -2190,6 +2224,77 @@ func exit_back_plane(keep_target: bool = false) -> void:
 	is_cutscene = false
 	if keep:
 		set_move_target(tx, ta if (ta != null and is_instance_valid(ta)) else null)
+
+
+## Slip into a hiding place (stealth_spot.gd). Refused — with a red line — while something is looking for us right now (Stealth.seen_by): you can hide from the
+## dead that have LOST you, never from the ones that have you. Returns whether we are (about to be) hidden.
+func enter_hide(spot: Node) -> bool:
+	if spot == null or not is_instance_valid(spot) or hide_spot != null or back_spot != null or on_balcony_plane:
+		return false
+	if is_cutscene or is_dead or is_dying or is_lashing or is_listening or is_switching_mode or pack_phase != "" or escaping:
+		return false
+	if not Stealth.seen_by(self).is_empty():
+		HUD.show_feedback("They're looking right at me.", true)
+		return false
+	_clear_move_target()
+	velocity = Vector2.ZERO
+	is_crouching = true
+	hide_spot = spot
+	conceal = Stealth.HIDDEN          # from this frame on the dead cannot see us (the slide into the piece is a beat, not a window to be seen in)
+	_hide_fx = StealthFx.begin(self)
+	_hide_msec = Time.get_ticks_msec()
+	var t := create_tween()
+	t.tween_property(self, "global_position:x", spot.global_position.x, HIDE_STEP_TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	return true
+
+
+## Come out. `keep_target` carries a pending click-to-move on (a click while hidden brings us out and walks).
+## `voluntary` = the player chose to come out (not thrown out by a hit or a search): a wardrobe door is not silent (Stealth.EXIT_NOISE; a bare wall makes none), and
+## if the dead are within a normal footstep's reach they are told to stay low — the way out is the same noise model as every other step (crouch 45 px, walk 120 px).
+func leave_hide(keep_target: bool = false, voluntary: bool = false) -> void:
+	if hide_spot == null and conceal == Stealth.NONE:
+		return
+	var spot = hide_spot
+	hide_spot = null
+	conceal = Stealth.NONE
+	if _hide_fx != null and is_instance_valid(_hide_fx):
+		_hide_fx.end()
+	_hide_fx = null
+	if not keep_target:
+		_clear_move_target()
+	if voluntary:
+		if spot != null and is_instance_valid(spot) and spot.has_method("exit_noise"):
+			var r: float = spot.exit_noise()
+			if r > 0.0:
+				WorldState.emit_noise(global_position, r * WorldState.get_noise_mult(), 0.4)
+		if not Stealth.dead_within(self, WorldState.NOISE_RADIUS["walk"] * WorldState.get_noise_mult()).is_empty():
+			HUD.show_feedback("They're close. Stay low.")
+
+
+## The dead that walk past a hidden player pass THROUGH the place they hide: the player's body must not wall them in (they would stand pressed against it, blind, for ever).
+## Same mutual exception the anti-stuck net uses, released by it once they are clear (`_update_unjam`).
+func _hide_phase() -> void:
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if not is_instance_valid(z) or not (z is PhysicsBody2D):
+			continue
+		if absf(z.global_position.x - global_position.x) <= Stealth.PHASE_RANGE:
+			add_collision_exception_with(z)
+			z.add_collision_exception_with(self)
+			if not (z in _phased_bodies):
+				_phased_bodies.append(z)
+			if not (z in _hide_phased):
+				_hide_phased.append(z)
+
+
+## A searching dead thing has found the hiding place (Stealth.tick_finding): out we come, and it is on us.
+func found_hiding(by: Node) -> void:
+	if hide_spot == null:
+		return
+	leave_hide()
+	HUD.show_feedback("It's found me.", true)
+	if by != null and is_instance_valid(by) and by is Node2D:
+		EnemyMind.spotted(by, self)
+		by.set("_seen_x", global_position.x)
 
 
 func _drop_back_plane() -> void:
@@ -2385,6 +2490,8 @@ func _do_balcony_descent(apartment_id: String, slot: int, is_jump: bool) -> void
 func take_damage(amount: int = 1) -> void:
 	if escaping:
 		return            # out the door — nothing in the building can hurt them now
+	if conceal != Stealth.NONE:
+		leave_hide()      # (a fall, a drop: damage that did not come through _begin_hit)
 	for i in range(amount):
 		if health_state < HealthState.DYING:
 			health_state = (health_state + 1) as HealthState
@@ -2400,6 +2507,7 @@ func take_damage(amount: int = 1) -> void:
 func _die() -> void:
 	if escaping:
 		return
+	leave_hide()
 	is_dead = true
 	is_dying = false
 	WorldState.is_dying = false

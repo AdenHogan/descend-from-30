@@ -486,7 +486,10 @@ func _test_revenant() -> void:
 	var room := _open_flat(apt)
 	await _frames(3)
 	var npc = room.get("resident")
-	npc.global_position.x = 640.0
+	# Where they fall: well inside the flat and well away from both arrival points (a spitter kites off a player within 110 px). A two-room flat is only 480 px wide
+	# (a random game deals one about one flat in eight), so x 640 — inside a three-room flat — is outside its right wall: the test must read the flat's span.
+	var fell_x: float = 640.0 if WorldState.apartment_span(apt) >= 3 else 353.0
+	npc.global_position.x = fell_x
 	npc.receive_damage(99, "test")
 	check(WorldState.revenants.has(apt), "the flat remembers who died in it")
 	check(WorldState.revenant_for(apt).is_empty(), "...not back the same run")
@@ -522,7 +525,7 @@ func _test_revenant() -> void:
 		return
 	var z = revs[0]
 	check(z.is_in_group(kind), "the right kind (%s)" % kind)
-	check(absf(z.global_position.x - 640.0) < 40.0, "where they fell (%.0f)" % z.global_position.x)
+	check(absf(z.global_position.x - fell_x) < 40.0, "where they fell (%.0f, flat of %d rooms)" % [z.global_position.x, WorldState.apartment_span(apt)])
 	# Against a plain one of its kind, same spot + floor (same seeded health).
 	var plain = room.BREACH_SCENES[kind].instantiate()
 	plain.global_position = Vector2(640.0, 321.0)
