@@ -22,14 +22,12 @@ const SEEN_RANGE := 260.0          # a dead thing in chase / attack within this 
 const FIND_RANGE := 70.0           # a searching dead thing this near the hiding place can find it...
 const FIND_TIME := 2.5             # ...after this long (its search lasts EnemyMind.SEARCH_TIME 4 s)
 
-# The washed-out screen (stealth_fx.gd) — kept here so the rule and the picture share their numbers.
+# The grey screen (stealth_fx.gd) — kept here so the rule and the picture share their numbers. There is NO camera zoom any more (owner: "a really weird zoom").
 const PLAYER_FEET_DROP := 33.0     # the player's origin is this far above their feet (a flat 320 -> 353, a corridor 386 -> 419)
 const PHASE_RANGE := 56.0          # the dead that walk past a hidden player pass THROUGH the place they hide (the player's body must not wall them in)
 
-const ENEMY_FULL := 90.0           # a dead thing this close to the hidden player is lit in full colour...
-const ENEMY_GONE := 260.0          # ...and is washed out like everything else by here
-const ZOOM_IN := 1.9               # the camera closes in on the hidden player by this much (owner: "definitely more zoomed in on player")
-const CAM_DROP := 12.0             # world px the close camera looks lower than the player's origin, so their feet are in the picture
+const ENEMY_FULL := 120.0          # a dead thing this close to the hidden player is a full black silhouette...
+const ENEMY_GONE := 340.0          # ...and is gone into the grey by here: you see it come, you do not see the room
 const FADE_TIME := 0.6
 
 ## HIDING MUST MAKE SENSE (owner round 49o: "hiding beside a toilet is unnatural — it would make more sense to jump into the bathtub and hide in there"; "hiding must

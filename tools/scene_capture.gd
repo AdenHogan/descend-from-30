@@ -350,6 +350,15 @@ func _do(step: String) -> void:
 			WorldState.mark_anchor_searched(p[1], p[2])
 			get_tree().call_group("open_furniture", "on_searched", p[1], p[2])
 			await _frames(1)
+		"zombie":
+			# zombie:<x> — a standard zombie standing at world x on the player's walking line in the current scene (to see it pass a hiding player)
+			var host = get_tree().current_scene
+			var pl2 = _player()
+			if host != null and pl2 != null:
+				var z = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+				host.add_child(z)
+				z.global_position = Vector2(float(p[1]), pl2.global_position.y - 17.0)
+			await _frames(1)
 		"anchors":
 			# list the scavenge nodes in the current scene (name, screen position) — to pick one for a `loot:` step
 			for n in get_tree().get_nodes_in_group("scavenge_anchor"):

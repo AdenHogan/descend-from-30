@@ -1,7 +1,7 @@
 extends Node
 
 # Headless test for STEALTH SPACES, phase 1 — hiding (docs/STEALTH_SPACES.md): the plane table, the dead's sight, the entry rule, the finding rule, leaving,
-# the washed-out screen and its camera, the prompt, and the hiding places in a real flat. Run:
+# the grey screen (and that the camera never moves for it), the prompt, and the hiding places in a real flat. Run:
 #   godot --headless res://tests/stealth_test.tscn
 
 var failures: int = 0
@@ -37,6 +37,7 @@ func _ready() -> void:
 	await _test_hide_context()
 	await _test_real_flat()
 	await _test_shower_curtain()
+	await _test_tub_is_not_a_plane()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -172,7 +173,7 @@ func _test_rules_table() -> void:
 	check(ok, "every plane answers sees / reach / noise / screen / prompt")
 	check(Stealth.PLANES["hidden"]["sees"] == "blocked" and Stealth.PLANES["lane"]["sees"] == "radius", "a hidden player is out of sight; the lane is seen by radius")
 	check(Stealth.focus_for_gap(0.0) == 1.0 and Stealth.focus_for_gap(Stealth.ENEMY_FULL) == 1.0, "a dead thing within %d px is lit in full" % int(Stealth.ENEMY_FULL))
-	check(Stealth.focus_for_gap(Stealth.ENEMY_GONE) == 0.0 and Stealth.focus_for_gap(1000.0) == 0.0, "…and is washed out by %d px" % int(Stealth.ENEMY_GONE))
+	check(Stealth.focus_for_gap(Stealth.ENEMY_GONE) == 0.0 and Stealth.focus_for_gap(1000.0) == 0.0, "…and is gone into the grey by %d px" % int(Stealth.ENEMY_GONE))
 	var a := Stealth.focus_for_gap(130.0)
 	var b := Stealth.focus_for_gap(200.0)
 	check(a > b and a < 1.0 and b > 0.0, "…and fades smoothly between (130 px %.2f > 200 px %.2f)" % [a, b])
@@ -434,8 +435,8 @@ func _test_leaving() -> void:
 	await _seconds(0.8)
 	# the screen and camera are back
 	var cleared := await _until(func(): return not is_instance_valid(p.get_node_or_null("StealthFx")), 240)
-	check(cleared, "the washed-out layer frees itself once it has cleared")
-	check(_camera_zoom(p).distance_to(base_zoom) < 0.001, "…and the camera is back at its own zoom (%s vs %s)" % [str(_camera_zoom(p)), str(base_zoom)])
+	check(cleared, "the grey layer frees itself once it has cleared")
+	check(_camera_zoom(p).distance_to(base_zoom) < 0.001, "…and the camera is at its own zoom (%s vs %s)" % [str(_camera_zoom(p)), str(base_zoom)])
 	# a freed player takes the screen with it
 	WorldState.god_mode = true
 	p.health_state = 0
@@ -445,7 +446,7 @@ func _test_leaving() -> void:
 	check(fx != null and p.conceal == Stealth.HIDDEN, "(setup) hiding again")
 	p.free()
 	await get_tree().process_frame
-	check(not is_instance_valid(fx), "freeing the player frees the washed-out layer (a scene change cannot leave it on)")
+	check(not is_instance_valid(fx), "freeing the player frees the grey layer (a scene change cannot leave it on)")
 	await _finish(bf)
 
 
@@ -486,7 +487,7 @@ class InteractStub extends Node2D:
 # --- the screen ----------------------------------------------------------------------------------------------------------------------------
 
 func _test_screen() -> void:
-	print("[The washed-out screen: only the player stays in colour; a dead thing is lit as it nears and washes out as it goes]")
+	print("[The grey screen: nothing but the player; a dead thing is a shadow as it nears; no static, no zoom]")
 	var bf = await _corridor()
 	var spot := _spot(bf)
 	var p = bf.get_node("Player")
@@ -494,55 +495,66 @@ func _test_screen() -> void:
 	var base_offset := _camera_offset(p)
 	p = await _hide_at(bf, spot, SPOT_X)
 	var fx: StealthFx = p.get_node_or_null("StealthFx")
-	check(fx != null, "hiding puts the washed-out layer on the player")
+	check(fx != null, "hiding puts the grey layer on the player")
 	if fx == null:
 		await _finish(bf)
 		return
 	check(fx.layer == 0 and fx.layer < HUD.layer, "…between the world and the HUD, so the HUD stays readable (layer %d, HUD %d)" % [fx.layer, HUD.layer])
 	await _until(func(): return fx.intensity >= 0.999, 240)
 	var st: Dictionary = fx.state()
-	check(st["intensity"] >= 0.999, "it washes the world out fully (%.2f)" % st["intensity"])
+	check(st["intensity"] >= 0.999, "it greys the world out fully (%.2f)" % st["intensity"])
 	check(fx._mat != null and absf(float(fx._mat.get_shader_parameter("intensity")) - st["intensity"]) < 0.01, "…and hands that to the shader")
-	check(st["foci"].size() == 1 and st["foci"][0]["who"] == "player", "with nothing near, the only thing in colour is the player")
-	# the look (owner: "more greyed out, not black… more like TV static all around"): the world is a grey ghost under animated square-celled static, not a black sheet
-	var cell_v = fx._mat.get_shader_parameter("cell")
-	var cell: float = float(cell_v) if cell_v != null else -1.0
-	check(cell >= 2.0 and absf(cell - StealthFx.static_cell(get_viewport().get_visible_rect().size)) < 0.01, "the static is made of square cells on the pixel-art grid (%.0f px)" % cell)
-	check(StealthFx.static_cell(Vector2(1152, 648)) == 4.0 and StealthFx.static_cell(Vector2(320, 180)) == 2.0, "…never finer than 2 px, and 4 px on the 648-row game window")
-	var t0_v = fx._mat.get_shader_parameter("time")
-	var t0: float = float(t0_v) if t0_v != null else -1.0
-	await _seconds(0.3)
-	var t1_v = fx._mat.get_shader_parameter("time")
-	var t1: float = float(t1_v) if t1_v != null else -1.0
-	check(t0 >= 0.0 and t1 > t0 + 0.2, "…and it moves: the shader's clock runs (%.2f -> %.2f)" % [t0, t1])
-	check(StealthFx.SHADER_CODE.contains("hash(") and StealthFx.SHADER_CODE.contains("tear") and not StealthFx.SHADER_CODE.contains("0.24"), "…snow, a torn row, no black sheet (the old `lum * 0.24` dimming is gone)")
-	check(absf(_camera_zoom(p).x / base_zoom.x - Stealth.ZOOM_IN) < 0.01, "the camera has closed in by %.1fx (%.2f)" % [Stealth.ZOOM_IN, _camera_zoom(p).x / base_zoom.x])
-	check(Stealth.ZOOM_IN >= 1.8, "…and it is a real close-up (owner: 'definitely more zoomed in'), not a nudge (%.1fx)" % Stealth.ZOOM_IN)
-	check(_camera_offset(p).distance_to(base_offset + Vector2(0.0, Stealth.CAM_DROP)) < 0.01, "…looking a little lower than the player so their feet are in the picture (offset %s)" % str(_camera_offset(p)))
-	# a dead thing walks by: close = lit, far = washed out
+	# the look (owner: "really grey so that you can't see anything except for basically just the player… the static is bad… a really weird zoom")
+	var code: String = StealthFx.SHADER_CODE
+	check(code.contains("fog_near") and not code.contains("hash(") and not code.contains("tear") and not code.contains("static") and not code.contains("TIME"), "the picture is one flat grey: no static, no snow, nothing moving in the shader")
+	check(StealthFx.FOG_NEAR.r > 0.45 and StealthFx.FOG_FAR.r > 0.3 and absf(StealthFx.FOG_NEAR.r - StealthFx.FOG_NEAR.b) < 0.06, "…a pale grey with no colour in it, never black (%s / %s)" % [str(StealthFx.FOG_NEAR), str(StealthFx.FOG_FAR)])
+	check(StealthFx.GHOST <= 0.12, "…the room is only the barest ghost in it (%.2f)" % StealthFx.GHOST)
+	check(_camera_zoom(p).distance_to(base_zoom) < 0.0001 and _camera_offset(p).distance_to(base_offset) < 0.0001, "the camera does not move at all (zoom %s, look %s)" % [str(_camera_zoom(p)), str(_camera_offset(p))])
+	# the player: the layer redraws their own sprite frame, on the same screen place
+	var vp := get_viewport()
+	var ps: AnimatedSprite2D = p.animated_sprite
+	var pc: AnimatedSprite2D = fx.player_copy()
+	check(st["player_copy"] and pc != null and pc.visible, "the only thing in colour is the player: their sprite is copied over the grey")
+	check(pc != null and pc.sprite_frames == ps.sprite_frames and pc.animation == ps.animation and pc.frame == ps.frame and pc.flip_h == ps.flip_h, "…the same animation, frame and way round (%s %d)" % [pc.animation if pc != null else "-", pc.frame if pc != null else -1])
+	var want_at: Vector2 = (vp.get_canvas_transform() * ps.get_global_transform()).origin
+	check(pc != null and pc.position.distance_to(want_at) < 1.0, "…on the player's own place on the screen (%s vs %s)" % [str(pc.position if pc != null else Vector2.INF), str(want_at)])
+	check(pc != null and pc.modulate.a > 0.99, "…at full strength")
+	check(st["dead"].is_empty(), "with nothing near there is no shadow")
+	# a dead thing walks by: close = a black silhouette, far = gone into the grey
 	var z = _zombie(bf, SPOT_X + 60.0)
 	z.set_physics_process(false)                     # (it stands where it is — it is the screen being tested)
-	await _seconds(0.7)
+	await _seconds(0.8)
 	st = fx.state()
-	check(st["foci"].size() == 2 and st["foci"][1]["who"] == "enemy" and float(st["foci"][1]["w"]) > 0.95, "a dead thing 60 px away is lit in full colour (w %.2f)" % (float(st["foci"][1]["w"]) if st["foci"].size() > 1 else -1.0))
-	z.global_position.x = SPOT_X + 175.0
-	await _seconds(0.9)
-	st = fx.state()
-	var mid: float = float(st["foci"][1]["w"]) if st["foci"].size() > 1 else -1.0
-	check(mid > 0.0 and mid < 0.9, "…half lit at 175 px (w %.2f)" % mid)
-	z.global_position.x = SPOT_X + 420.0
+	var near_w: float = float(st["dead"][0]["w"]) if st["dead"].size() > 0 else -1.0
+	check(st["dead"].size() == 1 and near_w > 0.95, "a dead thing 60 px away is a full silhouette (w %.2f)" % near_w)
+	var shadow: AnimatedSprite2D = null
+	for id in fx._dead:
+		shadow = fx._dead[id]["node"]
+	check(shadow != null and shadow.modulate.r < 0.1 and shadow.modulate.g < 0.1 and shadow.modulate.b < 0.1 and shadow.modulate.a > 0.95, "…black, not a copy of its colours (%s)" % str(shadow.modulate if shadow != null else "-"))
+	check(shadow != null and shadow.sprite_frames == z.animated_sprite.sprite_frames and shadow.position.distance_to((vp.get_canvas_transform() * z.animated_sprite.get_global_transform()).origin) < 1.0, "…in the shape the dead thing is drawn, where it is drawn")
+	z.global_position.x = SPOT_X + 250.0
 	await _seconds(1.2)
 	st = fx.state()
-	check(st["foci"].size() == 1, "…and once it has moved on it is washed out like everything else (%d lit)" % st["foci"].size())
-	# the screen coordinates are the world's: the player's spotlight sits on the player
-	var vp := get_viewport()
+	var mid: float = float(st["dead"][0]["w"]) if st["dead"].size() > 0 else -1.0
+	check(mid > 0.05 and mid < 0.8, "…a fainter one at 250 px (w %.2f)" % mid)
+	z.global_position.x = SPOT_X + 520.0
+	await _seconds(1.4)
+	st = fx.state()
+	check(st["dead"].is_empty() and fx._dead.is_empty(), "…and once it has moved on it is gone into the grey (%d shadows, %d copies)" % [st["dead"].size(), fx._dead.size()])
+	z.global_position.x = SPOT_X - 90.0
+	await _seconds(0.9)
+	check(fx.state()["dead"].size() == 1, "…and one that passes on the other side is a shadow too")
+	z.free()
+	await _seconds(1.2)
+	check(fx._dead.is_empty(), "a dead thing that stops existing takes its shadow with it")
+	# the screen coordinates are the world's: the grey is centred on the player
+	var centre = fx._mat.get_shader_parameter("centre")
 	var want: Vector2 = (vp.get_canvas_transform() * p.global_position) / vp.get_visible_rect().size
-	check(st["foci"][0]["pos"].distance_to(want) < 0.02, "the player's spotlight is on the player (%s vs %s)" % [str(st["foci"][0]["pos"]), str(want)])
-	check(st["foci"][0]["r"] > 0.1, "…and is a real size (%.2f screen heights)" % st["foci"][0]["r"])
-	# pausing leaves the numbers readable and the layer in place
+	check(centre != null and Vector2(centre).distance_to(want) < 0.02, "the lighter grey is centred on the player (%s vs %s)" % [str(centre), str(want)])
+	# coming out clears the layer and leaves the camera exactly as it was
 	p.leave_hide()
 	await _until(func(): return not is_instance_valid(p.get_node_or_null("StealthFx")), 240)
-	check(_camera_zoom(p).distance_to(base_zoom) < 0.001 and _camera_offset(p).distance_to(base_offset) < 0.001, "the camera is exactly back after the layer clears (zoom and look-down)")
+	check(_camera_zoom(p).distance_to(base_zoom) < 0.001 and _camera_offset(p).distance_to(base_offset) < 0.001, "the camera is exactly as it was after the layer clears")
 	await _finish(bf)
 
 
@@ -813,5 +825,101 @@ func _test_shower_curtain() -> void:
 	check(not found.has_cover() and is_instance_valid(cover) and cover.modulate.a < settled, "stepping out, the curtain lets go (it fades, and the spot no longer holds it)")
 	await _seconds(0.5)
 	check(not is_instance_valid(cover) or cover.is_queued_for_deletion(), "…and is gone")
+	room.free()
+	await get_tree().process_frame
+
+
+## A real flat with a bath (not the curtain one), its dead cleared. Returns [room, spot] or [null, null].
+func _bath_flat() -> Array:
+	for f in [17, 14, 25, 20, 9, 22, 11, 27, 19, 6, 24, 18, 13, 8, 5, 26, 21, 16, 12, 10, 7]:
+		for col in range(1, 6):
+			WorldState.dev_seed = 20261020
+			WorldState.new_game()
+			WorldState.dev_seed = 0
+			WorldState.is_first_run = false
+			WorldState.is_scavenge_mode = false
+			WorldState.current_apartment_id = "%d0%d" % [f, col]
+			WorldState.current_floor = f
+			WorldState.spawn_source = ""
+			var room = load("res://scenes/room.tscn").instantiate()
+			add_child(room)
+			for i in range(4):
+				await get_tree().physics_frame
+			for sp in get_tree().get_nodes_in_group("stealth_spot"):
+				if room.is_ancestor_of(sp) and sp.piece_id == "bath" and not sp.behind_curtain:
+					for z in get_tree().get_nodes_in_group("zombie"):
+						if room.is_ancestor_of(z):
+							z.free()
+					return [room, sp]
+			room.free()
+			await get_tree().process_frame
+	return [null, null]
+
+
+## Owner, on a playtest: "When you press W to get in the tub, that becomes a new Y plane and I could move left right all the way across the apartment."
+## The lane is the player's walking line; a hide raises them off it and a leave must ALWAYS put them back — however fast the presses.
+func _test_tub_is_not_a_plane() -> void:
+	print("[The tub is not a new floor]")
+	var found: Array = await _bath_flat()
+	var room = found[0]
+	var bath = found[1]
+	check(room != null, "(setup) a flat with a bath")
+	if room == null:
+		return
+	var pl = room.get_node("Player")
+	WorldState.god_mode = true
+	pl.global_position.x = bath.global_position.x
+	pl.is_crouching = true
+	await _pframes(4)
+	var y0: float = pl.global_position.y
+	# 1. the regression: out and back in before the first climb has finished must not store a half-climb as the floor
+	check(pl.enter_hide(bath), "the player gets in")
+	await _seconds(0.12)
+	var mid: float = pl.global_position.y
+	check(mid < y0 and mid > y0 - 60.0 and absf(mid - y0) > 0.5, "…and is part-way up the side (y %.1f of %.1f)" % [mid, y0])
+	pl.leave_hide(false, true)
+	await _seconds(0.1)
+	check(pl.enter_hide(bath), "…out and straight back in")
+	check(absf(pl.lane_position().y - y0) < 0.6, "…the floor they stand on is still the floor (lane y %.1f, floor %.1f)" % [pl.lane_position().y, y0])
+	await _seconds(0.9)
+	check(pl.conceal == Stealth.HIDDEN and absf(pl._hide_return_y - y0) < 0.6, "…hidden, with the walking line remembered once (%.1f vs %.1f)" % [pl._hide_return_y, y0])
+	pl.leave_hide(false, true)
+	await _seconds(0.9)
+	check(pl.conceal == Stealth.NONE and absf(pl.global_position.y - y0) < 0.6 and pl._hide_return_y == 0.0, "…and out for good they are back on the floor (y %.1f vs %.1f, remembered %.1f)" % [pl.global_position.y, y0, pl._hide_return_y])
+	# 2. a stress run: random W / A / D taps with random gaps, then walk the whole flat — the player must never be on any line but the floor
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4242
+	var worst := 0.0
+	var stuck_off := 0
+	var bad_walk := 0
+	var runs := 24
+	for run_i in range(runs):
+		pl.global_position = Vector2(bath.global_position.x + rng.randf_range(-10.0, 10.0), y0)
+		pl.is_crouching = true
+		await _pframes(2)
+		var n: int = rng.randi_range(3, 9)
+		for k in range(n):
+			var pick: int = rng.randi_range(0, 3)
+			var act: String = ["move_up", "move_up", "move_left", "move_right"][pick]
+			await _tap(act)
+			await _seconds(rng.randf_range(0.0, 0.5))
+			# the invariant: when no hide is in progress the player is on the floor
+			if pl.conceal == Stealth.NONE and pl._hide_return_y == 0.0:
+				worst = maxf(worst, absf(pl.global_position.y - y0))
+		if pl.conceal == Stealth.HIDDEN:
+			pl.leave_hide(false, true)
+		await _seconds(1.0)
+		if pl.conceal != Stealth.NONE or pl._hide_return_y != 0.0 or absf(pl.global_position.y - y0) > 0.6:
+			stuck_off += 1
+			print("    run %d ended off the floor: conceal %d, remembered %.1f, y %.1f vs %.1f" % [run_i, pl.conceal, pl._hide_return_y, pl.global_position.y, y0])
+		# and the old symptom: walk across the flat on the floor
+		var x_before: float = pl.global_position.x
+		await _hold("move_right", 0.6)
+		if absf(pl.global_position.y - y0) > 0.6 or pl.global_position.x <= x_before:
+			bad_walk += 1
+	check(stuck_off == 0, "after %d runs of fast W / A / D presses the player was never left off the floor (%d were)" % [runs, stuck_off])
+	check(worst < 0.6, "…and was on the floor at every check whenever no hide was under way (worst %.2f px off)" % worst)
+	check(bad_walk == 0, "…and could always walk the flat on the floor (%d walks left the line or went nowhere)" % bad_walk)
+	WorldState.god_mode = false
 	room.free()
 	await get_tree().process_frame

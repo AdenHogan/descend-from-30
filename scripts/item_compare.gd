@@ -129,13 +129,25 @@ static func bbcode(c: Dictionary) -> String:
 	return out.strip_edges()
 
 
-## One line for a world pill: "▲ dmg +2 · ▼ dur -2" (only what differs), "" when there is nothing to say.
+## One short line for a world pill: "dmg ▲ +2 · dur ▼ -2" - only what differs, and only the two that matter most (damage, then durability, speed, reach...; the found-item tag
+## is held to two rows the same way), "" when there is nothing to say. Owner round 49o: the pill read "dmg ▲ +1 · spd ▼ -0.8 · reach ▲ +15 · stam ▲ +10 · dur ▲ +4" - the numbers
+## are the tag's job once the thing is picked up or searched; the pill on the floor says what it is and, at a glance, whether it is better.
+const PILL_ORDER := ["Damage", "Durability", "Speed", "Reach", "Close hit", "Magazine", "Stamina"]
+const PILL_MAX := 2
+
 static func pill_suffix(c: Dictionary) -> String:
 	if c.is_empty() or String(c["vs"]) == "":
 		return ""
-	var bits: PackedStringArray = []
 	var short := {"Damage": "dmg", "Speed": "spd", "Reach": "reach", "Stamina": "stam", "Durability": "dur", "Close hit": "aim", "Magazine": "mag"}
-	for r in c["rows"]:
-		if String(r["delta"]) != "":
-			bits.append("%s %s" % [short.get(r["label"], String(r["label"]).to_lower()), String(r["delta"])])
+	var differing: Array = []
+	for want in PILL_ORDER:
+		for r in c["rows"]:
+			if String(r["label"]) == want and String(r["delta"]) != "":
+				differing.append(r)
+	for r in c["rows"]:                                      # (a label the table does not know still counts, after the known ones)
+		if String(r["delta"]) != "" and not differing.has(r):
+			differing.append(r)
+	var bits: PackedStringArray = []
+	for r in differing.slice(0, PILL_MAX):
+		bits.append("%s %s" % [short.get(r["label"], String(r["label"]).to_lower()), String(r["delta"])])
 	return "  ·  ".join(bits)

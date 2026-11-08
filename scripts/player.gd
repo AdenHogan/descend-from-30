@@ -170,7 +170,8 @@ var _hide_fx: Node = null           # the washed-out screen (stealth_fx.gd)
 const HIDE_STEP_TIME = 0.3          # sliding to the middle of the piece
 const HIDE_GRACE_MSEC = 250         # the press that hides us must not also bring us out
 var _hide_msec := -100000
-var _hide_return_y := 0.0           # the walking line to climb back down to when a piece (the bath) had the player rise
+var _hide_return_y := 0.0           # THE walking line while a piece (the bath) has the player risen off it, or climbing back down; 0 = on the line (never a half-way y: see enter_hide)
+var _hide_tween: Tween = null       # the climb in / the climb out: only one at a time
 var _back_return_y := 0.0           # the walking line to step back down to
 var _back_base_scale := Vector2.ONE
 var _back_stepping := false         # mid step-up / step-down tween
@@ -313,6 +314,10 @@ func _physics_process(delta: float) -> void:
 	if hide_spot != null and (is_cutscene or escaping or is_lashing or is_listening or pack_phase != "") \
 			and Time.get_ticks_msec() - _hide_msec >= HIDE_GRACE_MSEC:
 		leave_hide()
+	# The plane keeper: out of the tub, with nothing climbing us down any more, we are ON the walking line. Whatever stopped the climb (a scene
+	# event, a killed tween), the player never keeps a plane the floor does not have.
+	if hide_spot == null and _hide_return_y != 0.0 and (_hide_tween == null or not _hide_tween.is_valid() or not _hide_tween.is_running()):
+		_hide_landed()
 	# A scripted approach/knock owns the body — skip normal control. Escaping = the same, for good.
 	if is_cutscene or escaping:
 		return
@@ -2244,15 +2249,35 @@ func enter_hide(spot: Node) -> bool:
 	conceal = Stealth.HIDDEN          # from this frame on the dead cannot see us (the slide into the piece is a beat, not a window to be seen in)
 	_hide_fx = StealthFx.begin(self)
 	_hide_msec = Time.get_ticks_msec()
-	_hide_return_y = global_position.y
-	var rise: float = spot.rise_for(global_position.y) if spot.has_method("rise_for") else 0.0     # into the tub: the feet stand IN the piece, not in front of it
+	# THE walking line is stored ONCE. A quick re-entry (in, out, in again within the climb) used to read the half-way y of the climb back down as the line,
+	# so coming out put the player on a new plane that was never the floor, and they walked the whole flat on it (owner's playtest, round 49o).
+	if _hide_return_y == 0.0:
+		_hide_return_y = global_position.y
+	_kill_hide_tween()
+	var rise: float = spot.rise_for(_hide_return_y) if spot.has_method("rise_for") else 0.0     # into the tub: the feet stand IN the piece, not in front of it
 	if spot.has_method("on_hide_begin"):
 		spot.on_hide_begin()
-	var t := create_tween().set_parallel(true)
-	t.tween_property(self, "global_position:x", spot.global_position.x, HIDE_STEP_TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	if rise > 0.0:
-		t.tween_property(self, "global_position:y", _hide_return_y - rise, HIDE_STEP_TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	var tw := create_tween().set_parallel(true)
+	_hide_tween = tw
+	tw.tween_property(self, "global_position:x", spot.global_position.x, HIDE_STEP_TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	if absf(global_position.y - (_hide_return_y - rise)) > 0.5:      # up into the tub, or (a wardrobe, entered while still climbing down from a tub) back to the line
+		tw.tween_property(self, "global_position:y", _hide_return_y - rise, HIDE_STEP_TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	return true
+
+
+func _kill_hide_tween() -> void:
+	if _hide_tween != null and _hide_tween.is_valid():
+		_hide_tween.kill()
+	_hide_tween = null
+
+
+## Back on the walking line, exactly: the one place the hide plane is given up.
+func _hide_landed() -> void:
+	if hide_spot == null and _hide_return_y != 0.0:
+		global_position.y = _hide_return_y
+	if hide_spot == null:
+		_hide_return_y = 0.0
+	_hide_tween = null
 
 
 ## Come out. `keep_target` carries a pending click-to-move on (a click while hidden brings us out and walks).
@@ -2271,9 +2296,15 @@ func leave_hide(keep_target: bool = false, voluntary: bool = false) -> void:
 		_clear_move_target()
 	if spot != null and is_instance_valid(spot) and spot.has_method("on_hide_end"):
 		spot.on_hide_end()
-	if absf(global_position.y - _hide_return_y) > 0.5 and _hide_return_y != 0.0:     # climb back down out of the tub onto the walking line
-		var back := create_tween()
-		back.tween_property(self, "global_position:y", _hide_return_y, HIDE_STEP_TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_kill_hide_tween()                  # (the climb in may still be running: one tween at a time, or two fight over y)
+	if _hide_return_y != 0.0:
+		if absf(global_position.y - _hide_return_y) > 0.5:      # climb back down out of the tub onto the walking line
+			var back := create_tween()
+			_hide_tween = back
+			back.tween_property(self, "global_position:y", _hide_return_y, HIDE_STEP_TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+			back.tween_callback(_hide_landed)
+		else:
+			_hide_landed()
 	if voluntary:
 		if spot != null and is_instance_valid(spot) and spot.has_method("exit_noise"):
 			var r: float = spot.exit_noise()
@@ -2326,8 +2357,8 @@ func lane_position() -> Vector2:
 	# mid-step) loads standing on the floor in front of it, never floating on a plane that isn't there.
 	if back_spot != null or _back_stepping:
 		return Vector2(global_position.x, _back_return_y)
-	if hide_spot != null and _hide_return_y != 0.0:
-		return Vector2(global_position.x, _hide_return_y)         # a save made in the tub loads on the floor beside it
+	if _hide_return_y != 0.0:
+		return Vector2(global_position.x, _hide_return_y)         # a save made in the tub (or climbing out of it) loads on the floor beside it
 	return global_position
 
 

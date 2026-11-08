@@ -104,7 +104,9 @@ func _ready() -> void:
 	var bb: String = ItemCompare.bbcode(c)
 	check(bb.contains("compared with your") and bb.contains("Damage") and bb.contains("▲"), "the panel text names what it is compared with and carries the arrows")
 	var pill: String = ItemCompare.pill_suffix(c)
-	check(pill.contains("dmg ▲ +2") and pill.contains("spd ▼"), "the floor pill is one line of what differs (%s)" % pill)
+	check(pill.contains("dmg ▲ +2") and pill.count("·") == 1 and not pill.contains("stam") and not pill.contains("reach"), "the floor pill is one short line: the two differences that matter most, damage first (%s)" % pill)
+	var pill_bits := pill.split("·")
+	check(pill_bits.size() == ItemCompare.PILL_MAX and pill.find("dmg") < pill.find("dur"), "…never more than %d of them, in the order damage, durability (%s)" % [ItemCompare.PILL_MAX, pill])
 	check(ItemCompare.pill_suffix(ItemCompare.card(bat, _weapon("014"))) == "", "an identical weapon says nothing")
 
 	print("[wired in]")

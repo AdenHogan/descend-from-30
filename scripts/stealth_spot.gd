@@ -34,6 +34,7 @@ var variant: String = ""             # the drawn variant's key ("bath_gold"): th
 var cover_alpha: float = 1.0         # how opaque the cover is over the player (a shower curtain is plastic: a shade less than 1)
 var behind_curtain: bool = false     # a drawn-shut shower curtain hangs between the player and the room (the whole sprite is the cover)
 var piece_sprite: Sprite2D = null    # the piece's own sprite (to copy its front rows)
+var rim_from_row: int = -1           # first row of the tub's front lip (the same as cover_from_row, except behind a curtain, whose cover starts at row 0)
 var cover_from_row: int = -1         # first row of the sprite drawn over the player, -1 = none
 var _cover: Sprite2D = null
 var _prompt_on: bool = false
@@ -68,6 +69,7 @@ static func add_for(module: Node2D, plan: Dictionary) -> Array:
 			s.piece_sprite = _sprite_of(module, id, float(it["x"]) - float(int(it.get("rx", 0))), sprite_top)
 			if s.piece_sprite != null and s.piece_sprite.texture != null:
 				s.cover_from_row = maxi(0, int(it.get("ry", 0)) - lip_rows(def, String(it.get("file", ""))))
+				s.rim_from_row = s.cover_from_row
 				var curtain: Dictionary = def.get("curtain", {})
 				if curtain.has(s.variant):
 					s.behind_curtain = true
@@ -169,6 +171,11 @@ func _drop_cover(fade: bool = false) -> void:
 
 func has_cover() -> bool:
 	return _cover != null and is_instance_valid(_cover)
+
+
+## The live cover sprite (the screen's grey layer copies it over its copy of the player), or null.
+func cover_node() -> Sprite2D:
+	return _cover if has_cover() else null
 
 
 func in_reach(p: Node2D) -> bool:

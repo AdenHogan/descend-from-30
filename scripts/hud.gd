@@ -41,7 +41,12 @@ var selected_slot: int = -1
 var feedback_label: Label = null
 var feedback_pill: PanelContainer = null     # the Lamplight pill round the feedback line (what fades)
 var feedback_style: StyleBoxFlat = null
-const FEEDBACK_MAX_W := 700.0                # a longer line wraps at this width
+const FEEDBACK_MAX_W := 260.0                # a longer line wraps at this width (a dialogue bubble's own column)
+# the speech bubble's look, shared by the player's lines (`dialogue_panel`) and what the game says in passing (`feedback_pill`)
+const BUBBLE_BG := Color(0.05, 0.05, 0.06, 0.88)
+const BUBBLE_EDGE := Color(0.78, 0.82, 0.92)        # the player's: pale steel-blue (a resident's border is its temper's colour)
+const BUBBLE_TEXT := Color(0.96, 0.94, 0.88)
+const BUBBLE_PX := 14
 var feedback_timer: float = 0.0
 # Player-speech dialogue (tutorial prompts): a centred first-person line, its
 # own panel above the action bar. Transient lines auto-hide; prompt lines
@@ -373,30 +378,30 @@ func _create_slot_icons() -> void:
 		slot.gui_input.connect(_on_slot_gui_input.bind(i))
 
 func _create_feedback_label() -> void:
-	# The one-line message at the top of the screen ("Equipped Hammer.", "Inventory full."): the Lamplight kit's dark glass pill with brass edges, the body face at the kit's body size (owner
-	# round 48l: it was 14 px yellow text — "small and tough to read"). A refusal (`show_feedback(text, true)`) is red. `feedback_label` stays the Label (callers and tests read its text);
-	# the pill around it is what fades.
+	# What the game says in passing ("Equipped Hammer.", "Inventory full.", "Nothing.", "Hammer picked up.") is a SPEECH BUBBLE over the player's head - the same dark bordered bubble and
+	# pixel face as their other lines (owner round 49o: "this text box at the top of the screen needs to go and be replaced with a conversation bubble like we have in other areas";
+	# it was a pill pinned to the top of the screen from round 48l). A refusal (`show_feedback(text, true)`) is red-edged and red. `feedback_label` stays the Label (callers and tests read its
+	# text), `feedback_pill` the bubble that fades; `_position_feedback` pins it over the head and steps it above the player's own dialogue bubble and any world pill.
 	feedback_pill = PanelContainer.new()
 	feedback_pill.name = "FeedbackPill"
 	feedback_pill.mouse_filter = Control.MOUSE_FILTER_IGNORE  # never eat world clicks
+	feedback_pill.z_index = 29
 	feedback_style = StyleBoxFlat.new()
-	feedback_style.bg_color = Color(Lamp.GLASS_TOP.r, Lamp.GLASS_TOP.g, Lamp.GLASS_TOP.b, 0.94)
-	feedback_style.border_color = Lamp.BRASS_DIM
+	feedback_style.bg_color = BUBBLE_BG
+	feedback_style.border_color = BUBBLE_EDGE
 	feedback_style.set_border_width_all(2)
-	feedback_style.content_margin_left = 22
-	feedback_style.content_margin_right = 22
-	feedback_style.content_margin_top = 8
-	feedback_style.content_margin_bottom = 8
+	feedback_style.set_corner_radius_all(5)
+	feedback_style.set_content_margin_all(8)
 	feedback_pill.add_theme_stylebox_override("panel", feedback_style)
 	feedback_label = Label.new()
 	feedback_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	feedback_label.add_theme_font_override("font", Lamp.font("body"))
-	feedback_label.add_theme_font_size_override("font_size", Lamp.PX_BODY)
-	feedback_label.add_theme_color_override("font_color", Lamp.TEXT)
+	feedback_label.add_theme_font_override("font", DIALOGUE_FONT)
+	feedback_label.add_theme_font_size_override("font_size", BUBBLE_PX)
+	feedback_label.add_theme_color_override("font_color", BUBBLE_TEXT)
 	feedback_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	feedback_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	feedback_pill.add_child(feedback_label)
-	feedback_pill.position = Vector2(SCREEN_W / 2 - 100, 30.0)   # top-centre
+	feedback_pill.position = Vector2(SCREEN_W / 2 - 100, 96.0)
 	feedback_pill.visible = false
 	$Control.add_child(feedback_pill)
 
@@ -565,8 +570,8 @@ func _create_dialogue_panel() -> void:
 	# Pure display — must NEVER swallow world clicks (click-to-move).
 	dialogue_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.05, 0.05, 0.06, 0.88)
-	style.border_color = Color(0.78, 0.82, 0.92)           # the player's: pale steel-blue (a resident's border is its temper's colour)
+	style.bg_color = BUBBLE_BG
+	style.border_color = BUBBLE_EDGE
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(5)
 	style.set_content_margin_all(8)
@@ -584,8 +589,8 @@ func _create_dialogue_panel() -> void:
 	dialogue_label = Label.new()
 	dialogue_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dialogue_label.add_theme_font_override("font", DIALOGUE_FONT)
-	dialogue_label.add_theme_font_size_override("font_size", 14)
-	dialogue_label.add_theme_color_override("font_color", Color(0.96, 0.94, 0.88))
+	dialogue_label.add_theme_font_size_override("font_size", BUBBLE_PX)
+	dialogue_label.add_theme_color_override("font_color", BUBBLE_TEXT)
 	dialogue_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	dialogue_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	dialogue_label.custom_minimum_size = Vector2(DIALOGUE_W, 0)
@@ -611,11 +616,17 @@ func _position_dialogue() -> void:
 	if dialogue_panel == null or not dialogue_panel.visible:
 		return
 	dialogue_panel.reset_size()
-	var sz: Vector2 = dialogue_panel.size
+	dialogue_panel.position = _bubble_rect(dialogue_panel.size, _dialogue_speaker_at, dialogue_panel, []).position
+
+
+## Where a bubble of size `sz` hangs: over the player's head (or `speaker_at`, a world point, for somebody else's line), inside the screen, clear of every world pill and every other speech bubble
+## (and of the `also_avoid` panels, if they are showing): when it would land on one it rises above it. `me` is never counted against itself. With no player (a cut-scene between scenes) it
+## falls back to the top-centre of the screen.
+func _bubble_rect(sz: Vector2, speaker_at: Vector2, me: Control, also_avoid: Array) -> Rect2:
 	var pos := Vector2((SCREEN_W - sz.x) * 0.5, 96.0)
 	var player = get_tree().get_first_node_in_group("player")
-	if _dialogue_speaker_at != Vector2.INF:
-		var mouth: Vector2 = get_viewport().get_canvas_transform() * (_dialogue_speaker_at + Vector2(0, DIALOGUE_HEAD_DY))
+	if speaker_at != Vector2.INF:
+		var mouth: Vector2 = get_viewport().get_canvas_transform() * (speaker_at + Vector2(0, DIALOGUE_HEAD_DY))
 		pos = Vector2(mouth.x - sz.x * 0.5, mouth.y - sz.y)
 	elif player != null and is_instance_valid(player):
 		var head: Vector2 = get_viewport().get_canvas_transform() * (player.global_position + Vector2(0, DIALOGUE_HEAD_DY))
@@ -628,8 +639,11 @@ func _position_dialogue() -> void:
 		if e["panel"].visible:
 			others.append(Rect2(e["panel"].position, e["panel"].size))
 	for b in get_tree().get_nodes_in_group("speech_bubble"):
-		if b is Control and b.is_visible_in_tree() and b != dialogue_panel:
+		if b is Control and b.is_visible_in_tree() and b != me:
 			others.append(b.get_global_rect())
+	for c in also_avoid:
+		if c is Control and is_instance_valid(c) and c.visible and c != me:
+			others.append(Rect2(c.position, c.size))
 	for pass_i in range(4):                                  # a few steps up is always enough; never loop for ever
 		var hit := -1
 		for i in range(others.size()):
@@ -640,7 +654,15 @@ func _position_dialogue() -> void:
 			break
 		r.position.y = others[hit].position.y - r.size.y - DIALOGUE_GAP
 	r.position.y = clampf(r.position.y, 8.0, SCREEN_H - sz.y - 8.0)
-	dialogue_panel.position = r.position
+	return r
+
+
+## What the game says in passing hangs over the player's head too - above their own dialogue bubble when both are up.
+func _position_feedback() -> void:
+	if feedback_pill == null or not feedback_pill.visible:
+		return
+	feedback_pill.reset_size()
+	feedback_pill.position = _bubble_rect(feedback_pill.size, Vector2.INF, feedback_pill, [dialogue_panel]).position
 
 
 func show_dialogue(text: String, hint: String = "", persist: bool = false, seconds: float = 5.0, speaker_at: Vector2 = Vector2.INF) -> void:
@@ -926,11 +948,11 @@ func _process(delta: float) -> void:
 		feedback_timer -= delta
 		var alpha = min(feedback_timer / 0.5, 1.0)
 		feedback_pill.modulate = Color(1, 1, 1, alpha)
-		feedback_pill.position.x = (SCREEN_W - feedback_pill.size.x) * 0.5
 		if feedback_timer <= 0:
 			feedback_pill.visible = false
 
 	_position_dialogue()
+	_position_feedback()
 	# Transient dialogue auto-hide (persistent prompt lines keep timer at 0).
 	if dialogue_timer > 0:
 		dialogue_timer -= delta
@@ -1710,16 +1732,17 @@ func _context_cancel() -> void:
 ## `bad` = a refusal (red): the pack is full, there are not enough notes. Everything else is the kit's cream on glass.
 func show_feedback(text: String, bad: bool = false) -> void:
 	feedback_label.text = SettingsManager.localize(text)
-	var w: float = minf(Lamp.font("body").get_string_size(feedback_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, Lamp.PX_BODY).x + 2.0, FEEDBACK_MAX_W)
+	var w: float = minf(DIALOGUE_FONT.get_string_size(feedback_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, BUBBLE_PX).x + 2.0, FEEDBACK_MAX_W)
 	feedback_label.custom_minimum_size = Vector2(w, 0)
-	feedback_label.size = Vector2(w, 0)                        # an autowrapping label measures its height at its CURRENT width: give it the new one first, or the pill keeps the last (taller) line's height
-	feedback_label.add_theme_color_override("font_color", Lamp.RED if bad else Lamp.TEXT)
-	feedback_style.border_color = Lamp.RED.darkened(0.35) if bad else Lamp.BRASS_DIM
-	feedback_timer = 2.0
+	feedback_label.size = Vector2(w, 0)                        # an autowrapping label measures its height at its CURRENT width: give it the new one first, or the bubble keeps the last (taller) line's height
+	feedback_label.add_theme_color_override("font_color", Lamp.RED if bad else BUBBLE_TEXT)
+	feedback_style.border_color = Lamp.RED.darkened(0.35) if bad else BUBBLE_EDGE
+	feedback_timer = 2.4
 	feedback_pill.visible = true
 	feedback_pill.reset_size()
-	feedback_pill.position.x = (SCREEN_W - feedback_pill.size.x) * 0.5
 	feedback_pill.modulate = Color(1, 1, 1, 1)
+	_position_feedback()
+	call_deferred("_position_feedback")        # the label's wrapped height settles a frame later
 
 func _make_slot_style(locked: bool) -> StyleBoxFlat:
 	var style = StyleBoxFlat.new()
