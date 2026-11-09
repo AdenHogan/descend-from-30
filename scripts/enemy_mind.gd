@@ -65,6 +65,12 @@ static func lose(e: Node2D) -> void:
 	tell(e, "search")
 
 
+## Head for `x` and look about there (the public form of `_begin_investigate`: a chaser that has lost a hidden player carries on past them — Stealth.pass_by).
+static func investigate(e: Node2D, x: float) -> void:
+	if can_think(e):
+		_begin_investigate(e, x)
+
+
 ## Head for `x` — with a time limit: the walk there plus a little slack. A spot it can never reach (past the corridor's end,
 ## behind a wall, a jam) would otherwise leave it pressed against the obstacle for ever, neither searching nor giving up.
 static func _begin_investigate(e: Node2D, x: float) -> void:

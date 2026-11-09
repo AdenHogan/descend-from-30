@@ -511,7 +511,7 @@ func _physics_process(delta: float) -> void:
 				if concealed:
 					effective_detection = -1.0
 					if mind == "" and alert_timer > 0.0 and not _alert_positional:
-						Stealth.lose_track(self)
+						Stealth.lose_track(self, player)
 				Stealth.tick_finding(self, player, delta)
 				var reach := _reach_to_player()
 				if concealed:
@@ -549,7 +549,10 @@ func _physics_process(delta: float) -> void:
 				else:
 					# Out of sight: go to where I last saw them / heard something, and look (EnemyMind).
 					if state == "chase" and _seen_valid and mind == "":
-						EnemyMind.lose(self)
+						if concealed:
+							Stealth.pass_by(self, player)         # a hidden player: carry on THROUGH the place they hide, look about on the far side
+						else:
+							EnemyMind.lose(self)
 					if not EnemyMind.idle_tick(self, delta, SPEED):
 						state = "idle"
 						velocity.x = 0

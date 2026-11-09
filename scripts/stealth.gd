@@ -9,8 +9,14 @@ extends RefCounted
 # the player, `alert_timer`, is blinded too). What it does next is what it always does when it loses someone (`EnemyMind.lose`): go to
 # where it last saw them, look about, give up.
 #
-# Hiding is a risk, not a wall: a dead thing that is SEARCHING (it reached a noise or a last-seen spot) within FIND_RANGE of the hidden
-# player for FIND_TIME seconds finds them (`tick_finding`). Walking past never does.
+# HIDING IS A RISK, NOT A WALL (owner round 49q: "if the player hides when an enemy is too close, they can be discovered. And I mean too close within attack distance and one
+# length more. Outside of that, while enemies may track and move toward player when spotted, if player hides ... the enemy will shamble past. That could be good for player, but
+# it could result in player now being stuck with enemies between them, and now having to rethink their plan"):
+#   - you can hide from a dead thing that is chasing you, as long as it is not TOO CLOSE when you commit — inside its attack reach and one more length (`too_close`). Hide
+#     inside that and it SEES you go in: a beat (`DISCOVER_DELAY`, and nothing brings you out in it), then it has found you and you are thrown out, and it is on you — no second chance;
+#   - outside it, a chaser that loses you does not stop at the place it last saw you and stand over you — it carries on the way it was going, through the place you hide and out
+#     the far side (`pass_by`, `PASS_BEYOND`), and only then looks about. The player is left with the dead on the other side of them;
+#   - a dead thing that is SEARCHING (a noise took it there) within FIND_RANGE of the hiding place for FIND_TIME seconds finds them (`tick_finding`). Walking past never does.
 
 ## How the player is concealed (Player.conceal): "none" / "cover" (crouched behind furniture, phase 2) / "hidden" (inside a piece).
 const NONE := "none"
@@ -18,16 +24,19 @@ const COVER := "cover"
 const HIDDEN := "hidden"
 
 const COVER_REVEAL := 24.0         # behind cover, a dead thing this close (horizontally) sees you anyway
-const SEEN_RANGE := 260.0          # a dead thing in chase / attack within this is looking for you RIGHT NOW: you cannot hide from it
+const TOO_CLOSE_LENGTHS := 2.0     # hide with a dead thing within this many of ITS attack reaches (its reach, and one more length) and it sees you go in
+const TOO_CLOSE_MAX := 160.0       # (a spitter's "reach" is a 300 px spit: the zone is capped so it stays a few steps)
+const DISCOVER_DELAY := 0.35       # the beat between the dive and "it's found me" (long enough to hear the breath and see the dark come; no way out in it — the owner: "it's on the player")
+const PASS_BEYOND := 240.0         # a chaser that loses you carries on this far past the place you hide before it looks about
 const FIND_RANGE := 70.0           # a searching dead thing this near the hiding place can find it...
 const FIND_TIME := 2.5             # ...after this long (its search lasts EnemyMind.SEARCH_TIME 4 s)
 
-# The grey screen (stealth_fx.gd) — kept here so the rule and the picture share their numbers. There is NO camera zoom any more (owner: "a really weird zoom").
+# The dark screen (stealth_fx.gd) — kept here so the rule and the picture share their numbers.
 const PLAYER_FEET_DROP := 33.0     # the player's origin is this far above their feet (a flat 320 -> 353, a corridor 386 -> 419)
 const PHASE_RANGE := 56.0          # the dead that walk past a hidden player pass THROUGH the place they hide (the player's body must not wall them in)
 
-const ENEMY_FULL := 120.0          # a dead thing this close to the hidden player is a full black silhouette...
-const ENEMY_GONE := 340.0          # ...and is gone into the grey by here: you see it come, you do not see the room
+const ENEMY_FULL := 160.0          # a dead thing this close to the hidden player is "right there": the heart is at its quickest...
+const ENEMY_GONE := 420.0          # ...and it is out of the heart's reach by here
 const FADE_TIME := 0.6
 
 ## HIDING MUST MAKE SENSE (owner round 49o: "hiding beside a toilet is unnatural — it would make more sense to jump into the bathtub and hide in there"; "hiding must
@@ -88,7 +97,7 @@ const PLANES := {
 	"back": {"sees": "radius", "reach": true, "noise": "gait", "screen": "normal", "prompt": "tutorial arrow only"},
 	"balcony": {"sees": "radius", "reach": true, "noise": "gait", "screen": "normal", "prompt": "standing pill"},
 	"cover": {"sees": "blocked", "reach": true, "noise": "gait", "screen": "normal", "prompt": "Duck behind the {piece}  [{move_up}]"},
-	"hidden": {"sees": "blocked", "reach": false, "noise": "silent", "screen": "washed", "prompt": "{piece}  [{move_up}] Hide / Get in"},
+	"hidden": {"sees": "blocked", "reach": false, "noise": "silent", "screen": "dark", "prompt": "{piece}  [{interact}] Hide / Come out"},
 }
 
 
@@ -110,19 +119,26 @@ static func sight_blocked(enemy: Node, player: Node) -> bool:
 	return false
 
 
-## The dead that are looking for the player right now (chasing or striking, near enough to matter) — hiding is refused while any exist.
-static func seen_by(player: Node) -> Array:
+## The dead too close for the player to hide from: awake (not knocked down, not lying as a body, not on the stairs), within TOO_CLOSE_LENGTHS of their own attack reach — capped at TOO_CLOSE_MAX —
+## horizontally, on the player's plane. Asked once, at the moment they commit to a hiding place.
+static func too_close(player: Node) -> Array:
 	var out: Array = []
 	if player == null or not is_instance_valid(player):
 		return out
 	for z in player.get_tree().get_nodes_in_group("zombie"):
-		if not AiMind.present(z):
+		if not AiMind.present(z) or not EnemyMind.can_think(z):
 			continue
-		if str(z.get("state")) not in ["chase", "attack"]:
+		if str(z.get("state")) in ["knockdown", "dead"]:
 			continue
-		if AiMind.gap(z, player) <= SEEN_RANGE:
+		if AiMind.gap(z, player) <= zone_of(z):
 			out.append(z)
 	return out
+
+
+## How near is "too close" for this dead thing: its attack reach and one more (TOO_CLOSE_LENGTHS), never more than TOO_CLOSE_MAX.
+static func zone_of(z: Node) -> float:
+	var reach: float = float(z.call("_attack_reach")) if z.has_method("_attack_reach") else 40.0
+	return minf(reach * TOO_CLOSE_LENGTHS, TOO_CLOSE_MAX)
 
 
 ## Run every frame on an enemy that can think. A dead thing SEARCHING within FIND_RANGE of a hidden player for FIND_TIME finds them.
@@ -144,8 +160,8 @@ static func tick_finding(enemy: Node2D, player: Node, delta: float) -> bool:
 	return false
 
 
-## 0..1: how fully a dead thing at horizontal `gap` from the hidden player stays in colour on the washed-out screen (full inside ENEMY_FULL,
-## nothing by ENEMY_GONE — it comes into the light as it nears and washes out again as it moves off).
+## 0..1: how fully a dead thing at horizontal `gap` from the hidden player shows on the dark screen (full inside ENEMY_FULL, nothing by ENEMY_GONE — it comes out of the dark as it
+## nears and goes back into it as it moves off).
 static func focus_for_gap(gap: float) -> float:
 	if gap >= ENEMY_GONE:
 		return 0.0
@@ -156,16 +172,32 @@ static func focus_for_gap(gap: float) -> float:
 
 
 ## A dead thing that was locked on to the player with NO source (a follower that walked in after them, a stairwell muster: `alert_timer`, the 2000
-## "it knows" case) cannot find a player it cannot see. It stops knowing: the lock-on ends, and it goes to where it last saw them (or, never having
-## seen them, where it stands) and looks about — `EnemyMind.lose`. If that is within FIND_RANGE of the hiding place, the search finds them
-## (`tick_finding`); if the player hid further off, it gives up and stands. Ending the lock-on matters: left running, it would charge across the
-## flat the moment the player came out.
-static func lose_track(e: Node2D) -> void:
+## "it knows" case) cannot find a player it cannot see. It stops knowing: the lock-on ends, and it carries on past the hiding place the way it was going
+## (`pass_by`) and looks about on the far side. Ending the lock-on matters: left running, it would charge across the flat the moment the player came out.
+static func lose_track(e: Node2D, player: Node = null) -> void:
 	e.set("alert_timer", 0.0)
 	e.set("_alert_positional", false)
+	if player != null and is_instance_valid(player) and conceal_of(player) == HIDDEN:
+		pass_by(e, player)
+		return
 	if not bool(e.get("_seen_valid")):
 		e.set("_seen_x", e.global_position.x)
 	EnemyMind.lose(e)
+
+
+## A chaser has lost a player who has hidden: it does NOT go and stand where it last saw them (that is the hiding place — it would stand over them and find them). It carries
+## on the way it was going, through the place they hide (the player's body lets it pass: `Player._hide_phase`) and PASS_BEYOND px out the far side, and only there looks about.
+## The player is left with the dead on the other side of them.
+static func pass_by(e: Node2D, player: Node) -> void:
+	if not EnemyMind.can_think(e) or player == null or not is_instance_valid(player):
+		return
+	var px: float = player.global_position.x
+	var dir: float = signf(px - e.global_position.x)
+	if dir == 0.0:
+		var spr = e.get("animated_sprite")
+		dir = -1.0 if (spr != null and spr.flip_h) else 1.0
+	EnemyMind.investigate(e, px + dir * PASS_BEYOND)
+	EnemyMind.tell(e, "search")
 
 
 ## The living dead within `radius` (horizontal) of the player, on their plane — what a footstep of that loudness would reach.

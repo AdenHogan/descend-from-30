@@ -32,8 +32,8 @@ const RUN_BOONS := {
 	"B_eye": {"name": "Sharp Eye", "d": 3, "desc": "+15% scavenge find rate", "mods": {"scavenge_bonus": {"add": 0.15}}},
 	"B_lungs": {"name": "Big Lungs", "d": 3, "desc": "+40 max stamina", "mods": {"max_stamina": {"add": 40}}},
 	"B_light": {"name": "Light Feet", "d": 3, "desc": "-40% sprint stamina cost", "mods": {"sprint_drain": {"mult": 0.60}}},
-	"B_brawler": {"name": "Brawler", "d": 3, "desc": "Pushes cost 40% less and shove 50% harder",
-		"mods": {"push_cost": {"mult": 0.60}, "push_force": {"mult": 1.50}}},
+	"B_brawler": {"name": "Brawler", "d": 3, "desc": "One more shove from a full bar, and shove 50% harder",
+		"mods": {"push_cost": {"mult": 0.60}, "push_charges": {"add": 1}, "push_force": {"mult": 1.50}}},
 	"B_senses": {"name": "Heightened Senses", "d": 2, "desc": "-40% listen time", "mods": {"listen_speed": {"mult": 0.60}}},
 }
 

@@ -213,6 +213,13 @@ func _do(step: String) -> void:
 				WorldState.permanent_perks.append(p[1])
 		"finish":
 			WorldState.finish_session()
+		"say":
+			# say:<text> — what the game says in passing (the speech bubble over the head); speak:<text> — the player's own line
+			HUD.show_feedback(p[1].replace("_", " "))
+			await _frames(2)
+		"speak":
+			HUD.show_dialogue(p[1].replace("_", " "), "", false, 30.0)
+			await _frames(2)
 		"hud":
 			if HUD.has_method(p[1]):
 				HUD.call(p[1])
@@ -357,7 +364,9 @@ func _do(step: String) -> void:
 			if host != null and pl2 != null:
 				var z = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
 				host.add_child(z)
-				z.global_position = Vector2(float(p[1]), pl2.global_position.y - 17.0)
+				# on the walking line: a hidden player stands RAISED in a tub, so their own y is not the floor (that put the first render's dead thing on an 'upper plane')
+				var lane_y: float = pl2.lane_position().y if pl2.has_method("lane_position") else pl2.global_position.y
+				z.global_position = Vector2(float(p[1]), lane_y - 17.0)
 			await _frames(1)
 		"anchors":
 			# list the scavenge nodes in the current scene (name, screen position) — to pick one for a `loot:` step

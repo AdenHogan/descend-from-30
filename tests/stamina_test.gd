@@ -6,6 +6,9 @@ extends Node
 #   • walking at the COMBAT pace drains STAMINA_COMBAT_WALK_DRAIN a second — gradual (about a fifth of a sprint) — and nothing comes back while it does;
 #   • the slow scavenge walk, a crouch and god mode cost nothing (and the first two recover);
 #   • every rate runs through the character's / the upgrades' sprint-drain multiplier, so the check reads it (a random cast deals any of the four).
+# And the SHOVE (owner round 49q: "why hide when you can just push? push should come at a cost"): from floor 25 down (the descent ramp, `WorldState.descent_ramp`) a shove needs a FULL
+# bar (a character with two charges: half a bar), wipes it out (or half), and the bar then waits a long beat before it fills again — a bar that has refilled to 99 % does not shove. Joe
+# (the Tenant) has two charges, the Brawler perk gives another character two; everyone else one. The first floors (30, 29) keep the old numbers exactly.
 # Run: godot --headless res://tests/stamina_test.tscn
 
 var failures: int = 0
@@ -29,6 +32,10 @@ func _ready() -> void:
 	await _test_free_movement()
 	await _test_empty_bar()
 	await _test_sprint_floor()
+	await _test_push_easy_floors()
+	await _test_push_deep()
+	await _test_push_charges()
+	WorldState.dev_ramp_override = -1
 	Input.action_release("move_right")
 	Input.action_release("sprint")
 	p.queue_free()
@@ -190,3 +197,143 @@ func _test_sprint_floor() -> void:
 	Input.action_release("sprint")
 	Input.action_release("move_right")
 	check(not low and ok, "below 2.4 a sprint will not start; above it, it does (low %s, ok %s)" % [str(low), str(ok)])
+
+
+## Deal a playthrough whose first run is `cid` (the cast is a seeded draw), with no upgrades.
+func _play_as(cid: String) -> void:
+	WorldState.new_game()
+	WorldState.god_mode = false
+	WorldState.is_scavenge_mode = false
+	WorldState.active_upgrades.clear()
+	for sd in range(1, 5000):
+		WorldState.master_seed = sd
+		if WorldState.run_character(1) == cid:
+			break
+	WorldState.current_run = 1
+	WorldState.stamina = WorldState.get_max_stamina()
+	p.global_position = Vector2(300, 386)
+	p.last_push_time = -100.0
+	p.stamina_recovery_timer = 0.0
+	p.push_count_window = 0
+	p.is_pushing = false
+	p.push_timer = 0.0
+
+
+func _shove() -> void:
+	p.is_pushing = false
+	p.push_timer = 0.0
+	p.last_push_time = -100.0
+	p._do_push()
+
+
+## The first floors keep the old numbers EXACTLY: the floor-30 / floor-29 shove costs what it cost, refuses only a spent bar, and the bar waits a short beat.
+func _test_push_easy_floors() -> void:
+	print("[the first floors (30, 29): the shove is what it was]")
+	for who in ["blond_woman", "blond_man"]:
+		_play_as(who)
+		for fl in [30, 29]:
+			WorldState.current_floor = fl
+			WorldState.dev_ramp_override = -1
+			var bar: float = WorldState.get_max_stamina()
+			WorldState.stamina = bar
+			p.stamina_recovery_timer = 0.0
+			_shove()
+			var spent: float = bar - WorldState.stamina
+			check(absf(spent - 28.0 * WorldState.get_push_cost_mult()) < 0.01, "%s, floor %d: a shove costs %.1f, the old 28 x the character's push cost" % [who, fl, spent])
+			check(p.stamina_recovery_timer >= WorldState.PUSH_RECOVERY_EASY - 0.01 and p.stamina_recovery_timer < 1.5, "…and the bar waits a short beat (%.2f s) before it refills" % p.stamina_recovery_timer)
+			WorldState.stamina = 12.0
+			var before: float = WorldState.stamina
+			_shove()
+			check(WorldState.stamina < before, "…and a bar at 12 still has a shove in it (as before)")
+			WorldState.stamina = 6.0
+			_shove()
+			check(WorldState.stamina == 6.0, "…but a nearly spent one does not (%.1f)" % WorldState.stamina)
+		check(WorldState.push_min_stamina_for(30) == 10.0 and WorldState.push_min_stamina_for(29) == 10.0, "(the floor a shove needs on floors 30 and 29 is the old 10)")
+
+
+## From floor 25 down: a full bar, all of it gone, a long wait, and a bar at 99 % does not do.
+func _test_push_deep() -> void:
+	print("[floor 25 and below: a shove needs a FULL bar, wipes it, and the bar waits]")
+	_play_as("blond_woman")                                  # (one charge: not the Tenant, no perk)
+	WorldState.current_floor = 20
+	WorldState.dev_ramp_override = -1
+	check(WorldState.descent_ramp(20) == 1.0 and WorldState.get_push_charges() == 1, "(setup) floor 20, full ramp, one charge (%d)" % WorldState.get_push_charges())
+	var bar: float = WorldState.get_max_stamina()
+	check(is_equal_approx(WorldState.push_cost_for(20), bar) and WorldState.push_min_stamina_for(20) > bar - 0.01 and WorldState.push_min_stamina_for(20) < bar, "a shove costs the whole bar (%.1f of %.1f) and needs all of it" % [WorldState.push_cost_for(20), bar])
+	WorldState.stamina = bar
+	p.stamina_recovery_timer = 0.0
+	_shove()
+	check(WorldState.stamina <= 0.001, "a shove from a full bar leaves nothing (%.2f)" % WorldState.stamina)
+	check(p.stamina_recovery_timer >= WorldState.PUSH_RECOVERY_DEEP - 0.01, "…and stamina does not start to come back for a long beat (%.2f s, the old rest was %.1f)" % [p.stamina_recovery_timer, p.STAMINA_RECOVERY_DELAY])
+	# the beat is real: it refills only after it
+	var t0: float = WorldState.stamina
+	await _run(1.5)
+	check(WorldState.stamina <= t0 + 0.5, "…and for the first second and a half there is none (%.2f)" % WorldState.stamina)
+	# a bar that has refilled to 99 % does not shove; a full one does
+	WorldState.stamina = bar * 0.99
+	var shown_before := HUD.feedback_label.text
+	_shove()
+	check(is_equal_approx(WorldState.stamina, bar * 0.99), "a bar at 99 %% will not shove: it needs ALL of it, regenerating or not (%.2f of %.2f)" % [WorldState.stamina, bar])
+	check(HUD.feedback_label.text == "I need my wind back to shove.", "…and says why ('%s')" % HUD.feedback_label.text)
+	WorldState.stamina = 5.0
+	_shove()
+	check(HUD.feedback_label.text == "Too exhausted to push.", "…a spent bar says it is spent ('%s')" % HUD.feedback_label.text)
+	WorldState.stamina = bar
+	_shove()
+	check(WorldState.stamina <= 0.001, "…and a full bar shoves again")
+	# repeated shoves are not doubled deep down: the bar itself is the limit
+	WorldState.stamina = bar
+	p.push_count_window = 5
+	p.last_push_time = Time.get_ticks_msec() / 1000.0
+	p.is_pushing = false
+	p._do_push()
+	check(WorldState.stamina <= 0.001, "(a quick second shove from a full bar takes the bar, not a doubled bar)")
+	# god mode pays nothing
+	WorldState.god_mode = true
+	WorldState.stamina = 3.0
+	HUD.feedback_label.text = ""
+	_shove()
+	check(WorldState.stamina == 3.0 and not HUD.feedback_label.text.begins_with("Too exhausted"), "god mode shoves from anything, for nothing")
+	WorldState.god_mode = false
+	# the ramp: floor 28 is a quarter of the way, floor 25 all the way
+	WorldState.dev_ramp_override = -1
+	check(is_equal_approx(WorldState.push_cost_for(28), lerpf(28.0 * WorldState.get_push_cost_mult(), bar, 0.25)) and is_equal_approx(WorldState.push_cost_for(25), bar), "the cost climbs with the descent: a quarter of the way at 28 (%.1f), all of it at 25 (%.1f)" % [WorldState.push_cost_for(28), WorldState.push_cost_for(25)])
+
+
+## Two charges (Joe; the Brawler perk for anyone): two shoves from a full bar, none from half of one.
+func _test_push_charges() -> void:
+	print("[two charges: Joe, and the Brawler perk]")
+	_play_as("blond_man")
+	WorldState.current_floor = 20
+	var bar: float = WorldState.get_max_stamina()
+	check(WorldState.get_push_charges() == 2, "Joe (the Tenant) has two shoves in a full bar")
+	check(is_equal_approx(WorldState.push_cost_for(20), bar * 0.5), "…each half the bar (%.1f)" % WorldState.push_cost_for(20))
+	WorldState.stamina = bar
+	_shove()
+	check(absf(WorldState.stamina - bar * 0.5) < 0.01, "the first takes half (%.1f left)" % WorldState.stamina)
+	_shove()
+	check(WorldState.stamina <= 0.001, "…the second takes the rest, with no refill between")
+	_shove()
+	check(WorldState.stamina <= 0.001, "…and there is no third")
+	WorldState.stamina = bar * 0.49
+	var before: float = WorldState.stamina
+	_shove()
+	check(is_equal_approx(WorldState.stamina, before), "less than half a bar will not shove (%.1f)" % WorldState.stamina)
+	WorldState.stamina = bar * 0.5
+	_shove()
+	check(WorldState.stamina <= 0.5, "…half a bar will")
+	# another character, one charge — and the Brawler perk makes it two
+	_play_as("dark_woman")
+	WorldState.current_floor = 20
+	check(WorldState.get_push_charges() == 1, "everyone else has one")
+	WorldState.active_upgrades = ["B_brawler"]
+	check(WorldState.get_push_charges() == 2, "…the Brawler perk gives them a second")
+	bar = WorldState.get_max_stamina()
+	WorldState.stamina = bar
+	_shove()
+	check(absf(WorldState.stamina - bar * 0.5) < 0.01, "…and a shove then takes half the bar (%.1f left)" % WorldState.stamina)
+	WorldState.active_upgrades.clear()
+	_play_as("blond_man")
+	WorldState.active_upgrades = ["B_brawler"]
+	check(WorldState.get_push_charges() == 3, "Joe with the Brawler has three: the charges add")
+	WorldState.active_upgrades.clear()

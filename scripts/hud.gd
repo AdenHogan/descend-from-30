@@ -404,6 +404,7 @@ func _create_feedback_label() -> void:
 	feedback_pill.position = Vector2(SCREEN_W / 2 - 100, 96.0)
 	feedback_pill.visible = false
 	$Control.add_child(feedback_pill)
+	feedback_tail = _make_bubble_tail()
 
 
 # --- World-anchored loot prompt -------------------------------------------
@@ -423,6 +424,7 @@ const WORLD_PROMPT_FONT_SIZE := 17
 const WORLD_PROMPT_PAD := Vector2(13, 6)   # padding around the text inside the pill
 const WORLD_PROMPT_GAP := 12.0             # screen px the pill floats above its anchor
 const WORLD_PROMPT_STACK_GAP := 3.0        # screen px kept between two pills that would overlap (they stack)
+const PROMPT_MAX_RISE := 12.0              # world px: the highest a pill's anchor may stand above the top of the player's head (owner round 49q: "we really need to stop having text so high")
 var _world_prompts: Dictionary = {}        # owner instance_id -> {panel, label, pos}
 
 
@@ -487,6 +489,7 @@ func _update_world_prompt() -> void:
 	# behind being locked, it should disappear. it overlaps the wheel"). Faded, not hidden — `visible` is the pill's own state,
 	# so each comes straight back when the ring closes.
 	var hush: bool = pack_wheel != null and pack_wheel.is_visible_in_tree()
+	var ceiling_y: float = _prompt_ceiling_y()
 	var shown: Array = []
 	for id in _world_prompts.keys():
 		# Owner gone (scene change, freed drop): drop its pill so nothing leaks.
@@ -507,7 +510,9 @@ func _update_world_prompt() -> void:
 		panel.size = Vector2(pw, ph)
 		# Project the anchor into design pixels, float the pill above it, then clamp
 		# fully on-screen and above the HUD bar.
-		var screen: Vector2 = (e["pos"] - cam.get_screen_center_position()) * cam.zoom \
+		var anchor: Vector2 = e["pos"]
+		anchor.y = maxf(anchor.y, ceiling_y)       # a pill is for the person at the thing: never a screen's height above their head
+		var screen: Vector2 = (anchor - cam.get_screen_center_position()) * cam.zoom \
 			+ Vector2(SCREEN_W, SCREEN_H) / 2.0
 		var x: float = clampf(screen.x - pw / 2.0, 6.0, SCREEN_W - pw - 6.0)
 		var y: float = clampf(screen.y - ph - WORLD_PROMPT_GAP, 6.0, SCREEN_H - 6.0 - ph)
@@ -516,12 +521,21 @@ func _update_world_prompt() -> void:
 	_separate_world_prompts(shown)
 
 
+## The world y above which no pill's anchor may stand: `PROMPT_MAX_RISE` over the top of the player's head (-INF when there is no player, so nothing is clamped between scenes).
+func _prompt_ceiling_y() -> float:
+	var pl = get_tree().get_first_node_in_group("player")
+	if pl == null or not is_instance_valid(pl):
+		return -INF
+	var head: Vector2 = pl.head_top_position() if pl.has_method("head_top_position") else pl.global_position + Vector2(0, -26)
+	return head.y - PROMPT_MAX_RISE
+
+
 ## Two pills never overlap (owner round 48i, on a screenshot of "Fire…" hidden behind "Torn Clothes [Click] Take": two pickups lay side by side, so their pills
 ## floated at the same spot). They are laid left to right by their anchor's screen x (a stable order: a pill never swaps places as the player walks), and one that
 ## would land on an earlier pill steps UP above it; if that leaves the screen it goes BELOW the stack instead, so every pill stays readable and on-screen.
 func _separate_world_prompts(shown: Array) -> void:
 	shown.sort_custom(func(a, b): return a["sx"] < b["sx"] or (a["sx"] == b["sx"] and int(a["id"]) < int(b["id"])))
-	var placed: Array[Rect2] = []
+	var placed: Array[Rect2] = _bubble_rects()      # a speech bubble keeps its place over the head (owner round 49q): the pills are the ones that step round it
 	for e in shown:
 		var panel: Panel = e["panel"]
 		var r := Rect2(panel.position, panel.size)
@@ -530,6 +544,18 @@ func _separate_world_prompts(shown: Array) -> void:
 			up = _free_spot(r, placed, false)
 		panel.position = up.position
 		placed.append(up)
+
+
+## Every speech bubble that is up right now (the player's dialogue and passing words, a resident's / survivor's), as screen rects.
+func _bubble_rects() -> Array[Rect2]:
+	var out: Array[Rect2] = []
+	for c in [dialogue_panel, feedback_pill]:
+		if c is Control and is_instance_valid(c) and c.visible:
+			out.append(Rect2(c.position, c.size))
+	for b in get_tree().get_nodes_in_group("speech_bubble"):
+		if b is Control and b.is_visible_in_tree() and b != dialogue_panel and b != feedback_pill:
+			out.append(b.get_global_rect())
+	return out
 
 
 func _free_spot(r: Rect2, placed: Array[Rect2], upward: bool) -> Rect2:
@@ -557,7 +583,12 @@ func world_prompt_panel(prompt_owner: Node) -> Panel:
 ## [E] Talk pill). The same dark bordered bubble, the same pixel face; `_position_dialogue` pins it above the head and steps it clear of any pill or other bubble.
 const DIALOGUE_FONT := preload("res://assets/fonts/PixelOperator8.ttf")
 const DIALOGUE_W := 260.0               # the bubble's text column (a resident's is 250)
-const DIALOGUE_HEAD_DY := -64.0         # world px above the player's origin where the bubble's foot sits
+const BUBBLE_HEAD_GAP := 3.0            # screen px between the top of the head and the tip of the tail
+const BUBBLE_TAIL_H := 9.0              # the tail's height (scripts/bubble_tail.gd)
+const BUBBLE_TAILED_SLACK := 6.0        # a bubble stacked more than this above its own head spot has been pushed up out of reach of it: no tail
+const SPEAKER_HEAD_DY := -56.0          # world px above somebody ELSE's origin (the merchant's) where their head is
+var dialogue_tail: Control = null
+var feedback_tail: Control = null
 var _dialogue_speaker_at := Vector2.INF  # a line that is NOT the player's (the merchant's) hangs over this WORLD point (the speaker's origin) instead of the player's head
 const DIALOGUE_GAP := 6.0
 
@@ -608,36 +639,51 @@ func _create_dialogue_panel() -> void:
 	vbox.add_child(dialogue_hint)
 
 	$Control.add_child(dialogue_panel)
+	dialogue_tail = _make_bubble_tail()
 
 
-## Pin the bubble over the player's head, inside the screen, and clear of every world pill ([E] Talk, a door's prompt) and every other speech bubble: when
-## it would land on one it rises above it. With no player (a cut-scene between scenes) it falls back to the top-centre of the screen.
+func _make_bubble_tail() -> Control:
+	var t: Control = preload("res://scripts/bubble_tail.gd").new()
+	t.style_like(BUBBLE_BG, BUBBLE_EDGE)
+	t.visible = false
+	$Control.add_child(t)
+	return t
+
+
+## Pin the bubble right over the player's head with a tail at it (owner round 49q: "it's still far too high, I don't like how disconnected it is from everything below"): the tail's
+## tip sits `BUBBLE_HEAD_GAP` above the top of the head (`Player.head_top_position`), so the bubble is read as the person's, at every zoom. The bubble keeps the head: it steps only clear of
+## another SPEECH BUBBLE (a resident's, the player's own other line) - world pills step round the bubble instead (`_separate_world_prompts`), a pill is the one that moves.
+## With no player (a cut-scene between scenes) it falls back to the top-centre of the screen.
 func _position_dialogue() -> void:
 	if dialogue_panel == null or not dialogue_panel.visible:
+		if dialogue_tail != null:
+			dialogue_tail.visible = false
 		return
 	dialogue_panel.reset_size()
-	dialogue_panel.position = _bubble_rect(dialogue_panel.size, _dialogue_speaker_at, dialogue_panel, []).position
+	var lay := _bubble_layout(dialogue_panel.size, _dialogue_speaker_at, dialogue_panel, [])
+	dialogue_panel.position = lay["rect"].position
+	_place_tail(dialogue_tail, lay)
 
 
-## Where a bubble of size `sz` hangs: over the player's head (or `speaker_at`, a world point, for somebody else's line), inside the screen, clear of every world pill and every other speech bubble
-## (and of the `also_avoid` panels, if they are showing): when it would land on one it rises above it. `me` is never counted against itself. With no player (a cut-scene between scenes) it
-## falls back to the top-centre of the screen.
-func _bubble_rect(sz: Vector2, speaker_at: Vector2, me: Control, also_avoid: Array) -> Rect2:
+## Where a bubble of size `sz` hangs: its tail's tip just over the player's head (or `speaker_at`, a world point, for somebody else's line), inside the screen. It rises only to clear another speech bubble
+## (and the `also_avoid` panels, if they are showing); `me` is never counted against itself. Returns {rect, tip, tailed}: `tailed` is false once it was pushed up (or clamped) away from the head - a tail
+## that no longer points at anyone is not drawn. With no player it falls back to the top-centre of the screen (no tail).
+func _bubble_layout(sz: Vector2, speaker_at: Vector2, me: Control, also_avoid: Array) -> Dictionary:
 	var pos := Vector2((SCREEN_W - sz.x) * 0.5, 96.0)
+	var tip := Vector2.INF
 	var player = get_tree().get_first_node_in_group("player")
 	if speaker_at != Vector2.INF:
-		var mouth: Vector2 = get_viewport().get_canvas_transform() * (speaker_at + Vector2(0, DIALOGUE_HEAD_DY))
-		pos = Vector2(mouth.x - sz.x * 0.5, mouth.y - sz.y)
+		tip = get_viewport().get_canvas_transform() * (speaker_at + Vector2(0, SPEAKER_HEAD_DY))
 	elif player != null and is_instance_valid(player):
-		var head: Vector2 = get_viewport().get_canvas_transform() * (player.global_position + Vector2(0, DIALOGUE_HEAD_DY))
-		pos = Vector2(head.x - sz.x * 0.5, head.y - sz.y)
+		var head_world: Vector2 = player.head_top_position() if player.has_method("head_top_position") else player.global_position + Vector2(0, -26)
+		tip = get_viewport().get_canvas_transform() * head_world
+	if tip != Vector2.INF:
+		tip.y -= BUBBLE_HEAD_GAP
+		pos = Vector2(tip.x - sz.x * 0.5, tip.y - BUBBLE_TAIL_H - sz.y)
+	var home := pos.y
 	pos = Vector2(clampf(pos.x, 8.0, SCREEN_W - sz.x - 8.0), clampf(pos.y, 8.0, SCREEN_H - sz.y - 8.0))
 	var r := Rect2(pos, sz)
 	var others: Array = []
-	for id in _world_prompts.keys():
-		var e = _world_prompts[id]
-		if e["panel"].visible:
-			others.append(Rect2(e["panel"].position, e["panel"].size))
 	for b in get_tree().get_nodes_in_group("speech_bubble"):
 		if b is Control and b.is_visible_in_tree() and b != me:
 			others.append(b.get_global_rect())
@@ -654,15 +700,39 @@ func _bubble_rect(sz: Vector2, speaker_at: Vector2, me: Control, also_avoid: Arr
 			break
 		r.position.y = others[hit].position.y - r.size.y - DIALOGUE_GAP
 	r.position.y = clampf(r.position.y, 8.0, SCREEN_H - sz.y - 8.0)
-	return r
+	return {"rect": r, "tip": tip, "tailed": tip != Vector2.INF and absf(r.position.y - home) <= BUBBLE_TAILED_SLACK}
+
+
+func _bubble_rect(sz: Vector2, speaker_at: Vector2, me: Control, also_avoid: Array) -> Rect2:
+	return _bubble_layout(sz, speaker_at, me, also_avoid)["rect"]
+
+
+## Hang a bubble's tail on its bottom edge, pointing at the head the layout found - or hide it (stacked up out of reach, no speaker).
+func _place_tail(tail: Control, lay: Dictionary) -> void:
+	if tail == null:
+		return
+	var rect: Rect2 = lay["rect"]
+	tail.visible = bool(lay["tailed"])
+	if not tail.visible:
+		return
+	var tip: Vector2 = lay["tip"]
+	# the tail stays inside the bubble's width, so a bubble clamped against the screen edge still points at the head's side of itself
+	var x := clampf(tip.x, rect.position.x + 14.0, rect.end.x - 14.0)
+	tail.point_at(Vector2(x, rect.end.y + BUBBLE_TAIL_H - 1.0))
 
 
 ## What the game says in passing hangs over the player's head too - above their own dialogue bubble when both are up.
 func _position_feedback() -> void:
 	if feedback_pill == null or not feedback_pill.visible:
+		if feedback_tail != null:
+			feedback_tail.visible = false
 		return
 	feedback_pill.reset_size()
-	feedback_pill.position = _bubble_rect(feedback_pill.size, Vector2.INF, feedback_pill, [dialogue_panel]).position
+	var lay := _bubble_layout(feedback_pill.size, Vector2.INF, feedback_pill, [dialogue_panel])
+	feedback_pill.position = lay["rect"].position
+	_place_tail(feedback_tail, lay)
+	if feedback_tail != null:
+		feedback_tail.modulate.a = feedback_pill.modulate.a
 
 
 func show_dialogue(text: String, hint: String = "", persist: bool = false, seconds: float = 5.0, speaker_at: Vector2 = Vector2.INF) -> void:
@@ -706,6 +776,8 @@ func hide_dialogue() -> void:
 	if dialogue_panel == null:
 		return
 	dialogue_panel.visible = false
+	if dialogue_tail != null:
+		dialogue_tail.visible = false
 	dialogue_timer = 0.0
 
 
@@ -937,6 +1009,8 @@ func _process(delta: float) -> void:
 		pack_button.is_pack_open = pl != null and is_instance_valid(pl) and str(pl.get("pack_phase")) in ["kneel", "open"]
 	_update_drag()
 	_update_item_tip(delta)
+	_position_dialogue()          # the speech bubbles first: a world pill steps round them, never the other way
+	_position_feedback()
 	_update_world_prompt()
 	_update_smoke_fog(delta)
 	if speech_timer > 0.0:
@@ -950,9 +1024,9 @@ func _process(delta: float) -> void:
 		feedback_pill.modulate = Color(1, 1, 1, alpha)
 		if feedback_timer <= 0:
 			feedback_pill.visible = false
+			if feedback_tail != null:
+				feedback_tail.visible = false
 
-	_position_dialogue()
-	_position_feedback()
 	# Transient dialogue auto-hide (persistent prompt lines keep timer at 0).
 	if dialogue_timer > 0:
 		dialogue_timer -= delta
@@ -1265,7 +1339,7 @@ func mode_tip_content() -> Dictionary:
 		"scavenge": {"head": "SCAVENGE" + ("   ◂ you are here" if scav else ""),
 			"body": "Searching mode. Loot nodes can only be searched here. You move slowly and quietly (about half speed, a small noise ring) and can't sprint, shove or swing a weapon — pressing attack with one drawn switches you to combat."},
 		"combat": {"head": "COMBAT" + ("" if scav else "   ◂ you are here"),
-			"body": "Fighting mode. Swing, shoot and shove, walk at full pace and sprint (sprinting is loud). Moving here wears your stamina down — slowly walking, fast sprinting — and an empty bar can't swing or shove. Nothing can be searched from here — switch to scavenge first."},
+			"body": "Fighting mode. Swing, shoot and shove, walk at full pace and sprint (sprinting is loud). Moving here wears your stamina down — slowly walking, fast sprinting — and an empty bar can't swing. A shove costs a FULL bar (two for Joe) once you are below floor 25, and the bar waits a moment before it fills again. Nothing can be searched from here — switch to scavenge first."},
 		"hint": "Click here or press [%s] to switch. It takes a moment — you can't move while you do." % key,
 		"current": "scavenge" if scav else "combat",
 	}
@@ -1737,6 +1811,8 @@ func show_feedback(text: String, bad: bool = false) -> void:
 	feedback_label.size = Vector2(w, 0)                        # an autowrapping label measures its height at its CURRENT width: give it the new one first, or the bubble keeps the last (taller) line's height
 	feedback_label.add_theme_color_override("font_color", Lamp.RED if bad else BUBBLE_TEXT)
 	feedback_style.border_color = Lamp.RED.darkened(0.35) if bad else BUBBLE_EDGE
+	if feedback_tail != null:
+		feedback_tail.style_like(BUBBLE_BG, feedback_style.border_color)
 	feedback_timer = 2.4
 	feedback_pill.visible = true
 	feedback_pill.reset_size()

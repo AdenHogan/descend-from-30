@@ -5,19 +5,18 @@ extends Node2D
 # `Stealth.HOW`; owner, on a screenshot of a player hiding by a toilet: "hiding must contextually make sense"). Placed by `StealthSpot.add_for` on the planned pieces of a LIVE
 # flat as a child of the room module, centred on the piece. There is no generic "against the wall" spot: a bare wall is nowhere to hide.
 #
-# It owns the PROMPT (owner: "a prompt appear for those areas where the player can hide") and the entry key:
-#   in reach, crouched   ->  "Wardrobe   [W] Hide"  /  "Bath   [W] Get in"
-#   in reach, standing   ->  "Wardrobe   [C] Crouch to hide"  /  "Bath   [C] Crouch to get in"   (the verb is taught by the place)
-#   inside               ->  "[W] Come out"  (over the player's head: the camera is close)
-# Search wins over hiding in SCAVENGE stance while a back-plane search spot with a live node is in reach (back_plane_spot.gd already owns [W] there); a piece that is searched
-# out, or the combat stance, hides (`yield_to_search`).
+# It owns the PROMPT (owner: "a prompt appear for those areas where the player can hide") and the entry key — ONE press of [interact], in any stance (owner round 49q: "it should be
+# automatic, not a move up or down or anything like that, just a hide prompt… and then another press and the player leaves their hiding spot"):
+#   in reach             ->  "Wardrobe   [E] Hide"  /  "Bath   [E] Get in"  /  "Shower   [E] Hide behind the curtain"
+#   inside               ->  "[E] Come out"  (over the player's head: the camera is close)
+# The press goes through the InteractArbiter like every other [interact]: the nearest answerer takes it, and while a back-plane search spot with a live node is in reach in SCAVENGE
+# stance the search owns it (`yield_to_search`); a piece that is searched out, or the combat stance, hides.
 #
 # A piece whose FRONT stands between the player and the room (the bath's rim) is drawn over them while they are in it: `cover` is a copy of the piece's lower rows laid over the
 # player (z 1, the actors' own layer: above the player, below every dead thing added to the flat after it), and the player rises to stand in the tub (`feet_y`).
 
 const REACH := 10.0                  # px beyond the piece's face the player may stand and still be offered it
 const LIFT_PAD := 8.0
-const INSIDE_LIFT := 62.0            # the "Come out" pill hangs this far above the player's origin while they are hidden
 const MAX_RISE := 40.0               # the most the player rises to stand in a piece
 const ENTER_FADE := 0.3              # the cover over the player comes in over the step in (the same time as the step: Player.HIDE_STEP_TIME)
 
@@ -34,7 +33,6 @@ var variant: String = ""             # the drawn variant's key ("bath_gold"): th
 var cover_alpha: float = 1.0         # how opaque the cover is over the player (a shower curtain is plastic: a shade less than 1)
 var behind_curtain: bool = false     # a drawn-shut shower curtain hangs between the player and the room (the whole sprite is the cover)
 var piece_sprite: Sprite2D = null    # the piece's own sprite (to copy its front rows)
-var rim_from_row: int = -1           # first row of the tub's front lip (the same as cover_from_row, except behind a curtain, whose cover starts at row 0)
 var cover_from_row: int = -1         # first row of the sprite drawn over the player, -1 = none
 var _cover: Sprite2D = null
 var _prompt_on: bool = false
@@ -69,7 +67,6 @@ static func add_for(module: Node2D, plan: Dictionary) -> Array:
 			s.piece_sprite = _sprite_of(module, id, float(it["x"]) - float(int(it.get("rx", 0))), sprite_top)
 			if s.piece_sprite != null and s.piece_sprite.texture != null:
 				s.cover_from_row = maxi(0, int(it.get("ry", 0)) - lip_rows(def, String(it.get("file", ""))))
-				s.rim_from_row = s.cover_from_row
 				var curtain: Dictionary = def.get("curtain", {})
 				if curtain.has(s.variant):
 					s.behind_curtain = true
@@ -106,6 +103,7 @@ static func _sprite_of(module: Node2D, id: String, x: float, y: float) -> Sprite
 
 func _ready() -> void:
 	add_to_group("stealth_spot")
+	add_to_group(InteractArbiter.GROUP)      # hiding is an [interact] press (round 49q): the nearest answerer takes it, like every other [interact]
 
 
 func _exit_tree() -> void:
@@ -173,16 +171,11 @@ func has_cover() -> bool:
 	return _cover != null and is_instance_valid(_cover)
 
 
-## The live cover sprite (the screen's grey layer copies it over its copy of the player), or null.
-func cover_node() -> Sprite2D:
-	return _cover if has_cover() else null
-
-
 func in_reach(p: Node2D) -> bool:
 	return absf(p.global_position.x - global_position.x) <= half_w + REACH
 
 
-## Would a search take the [W] press here right now? (a scavenge-stance player, a back-plane spot with a live node in reach)
+## Would a search take the [interact] press here right now? (a scavenge-stance player, a back-plane spot with a live node in reach)
 func search_owns_the_key(p: Node2D) -> bool:
 	if not yield_to_search or not WorldState.is_scavenge_mode:
 		return false
@@ -205,27 +198,45 @@ func offered_to(p: Node) -> bool:
 	return in_reach(p)
 
 
+## An [interact] member (InteractArbiter): offered to the player in reach, not while they are already in a place, not while a live search up here owns the press.
+func interact_ready() -> bool:
+	var p := get_tree().get_first_node_in_group("player") as Node2D
+	if p == null or not is_instance_valid(p) or p.get("hide_spot") != null or Stealth.conceal_of(p) != Stealth.NONE:
+		return false
+	return offered_to(p) and not WorldState.loot_open and not search_owns_the_key(p)
+
+
+func interact_x() -> float:
+	return global_position.x
+
+
+func interact_rank() -> int:
+	return InteractArbiter.RANK_THING
+
+
 func _process(_delta: float) -> void:
 	var p := get_tree().get_first_node_in_group("player") as Node2D
 	if p == null or not is_instance_valid(p):
 		_set_prompt("")
 		return
 	if p.get("hide_spot") == self:
-		_set_prompt("[{move_up}] Come out", p.global_position + Vector2(0.0, -INSIDE_LIFT))     # over the player's head: the camera is close, the place's own pill would be off the screen
+		_set_prompt("[{interact}] Come out", _over_head(p))     # right over the player's head, like a speech bubble (owner round 49q: "the text for come out is just too damn high")
 		return
 	if p.get("hide_spot") != null or Stealth.conceal_of(p) != Stealth.NONE:
 		_set_prompt("")
 		return
-	if not offered_to(p) or WorldState.loot_open or search_owns_the_key(p):
+	if not interact_ready():
 		_set_prompt("")
 		return
-	var crouched: bool = p.get("is_crouching") == true
-	if crouched:
-		_set_prompt("%s   [{move_up}] %s" % [label(), verb])
-		if Input.is_action_just_pressed("move_up") and p.has_method("enter_hide"):
-			p.enter_hide(self)
-	else:
-		_set_prompt("%s   [{crouch_toggle}] Crouch to %s" % [label(), verb.to_lower()])
+	# ONE press, any stance: the prompt says what it does and the press does it (owner round 49q — no up / crouch to learn).
+	_set_prompt("%s   [{interact}] %s" % [label(), verb], _over_head(p))
+	if Input.is_action_just_pressed("interact") and InteractArbiter.take(self) and p.has_method("enter_hide"):
+		p.enter_hide(self)
+
+
+## Where the prompt hangs: the top of the player's head (a bath's curtain rail or a wardrobe's top is not where a person looks).
+func _over_head(p: Node2D) -> Vector2:
+	return p.head_top_position() if p.has_method("head_top_position") else p.global_position + Vector2(0.0, -26.0)
 
 
 func _set_prompt(text: String, at: Vector2 = Vector2.INF) -> void:

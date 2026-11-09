@@ -54,5 +54,5 @@ Edit the data in `scripts/world_state.gd` `UPGRADE_POOL` (the merchant's own upg
 | `B_eye` | Sharp Eye | Upgrade (once a run boon) | +15% scavenge find rate | 3 | 3 | 250 |
 | `B_lungs` | Big Lungs | Upgrade (once a run boon) | +40 max stamina | 3 | 3 | 250 |
 | `B_light` | Light Feet | Upgrade (once a run boon) | -40% sprint stamina cost | 3 | 3 | 250 |
-| `B_brawler` | Brawler | Upgrade (once a run boon) | Pushes cost 40% less and shove 50% harder | 3 | 3 | 250 |
+| `B_brawler` | Brawler | Upgrade (once a run boon) | One more shove from a full bar, and shove 50% harder | 3 | 3 | 250 |
 | `B_senses` | Heightened Senses | Upgrade (once a run boon) | -40% listen time | 3 | 2 | 250 |

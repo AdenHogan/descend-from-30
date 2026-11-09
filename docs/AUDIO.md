@@ -88,6 +88,15 @@ position, so the wiring and the pure `step_position` are what is checked), one h
 to the bed after the hold**, never stuck after the room is freed mid-fight, an ordinary flat stays on the bed); **mutation-checked** (no claim in the room, a claim check that ignores freed nodes, no limiter, no win hit,
 no in-step start, a slow hand-over, and the old release-when-clear rule each fail it).
 
+## The sounds of hiding — `tools/gen_hide_audio.py` (owner round 49q)
+
+*"I just mean the sounds of a heartbeat. It's the player's heart beating, like taking a deep breath and waiting… deep, tense."* Three procedural CC0 sounds (mono 22.05 kHz, deterministic; `tools/audiolib.py` pink noise / zero-phase filters / `polish`) in `assets/audio/stealth/`, played by `StealthFx` (docs/STEALTH_SPACES.md §5) and nothing else:
+
+* `breath_in.wav` (~1.5 s) — one slow deep breath drawn in, pink noise 260-2300 Hz swelling to a late peak, as the player slips in; `breath_out.wav` (~1.0 s) — the breath let go, as they come out (a one-shot on the player's parent so it outlives the layer).
+* `heartbeat_deep.wav` — a SEAMLESS 4-beat loop of a slow deep heart, "lub-dub" at 54 bpm: low sine thumps (lub 58→44 Hz, dub 70→52 Hz, the dub 0.31 s later) with a quick pitch drop and exponential decay, a soft chest knock of band-limited noise on each attack, nothing above ~500 Hz (felt more than heard), a dark short room whose tail is folded back over the head so the loop has no tick. It starts under the end of the breath (`BREATH_IN_S` x 0.55), runs at -7 dB, and goes a touch quicker (pitch x1.22) and louder (+4 dB) the nearer the dead are — **a sound only; nothing on screen pulses**.
+
+The gate's `audio_audit.py --check` covers them (121 files, 0 violations when added). **Not listened to** — numbers and spectra only; the tempo, depth and the breath's level are the owner's ear.
+
 ## What needs an ear (owner)
 
 * Whether the breach track *feels* like pounding horror — tempo (140), how hard the kick / sub sit, the screech's pitch, the riser. The dials are all at the top of `breach_loop()` / `dread_loop()`.

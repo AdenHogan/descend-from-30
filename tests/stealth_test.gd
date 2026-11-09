@@ -1,7 +1,9 @@
 extends Node
 
-# Headless test for STEALTH SPACES, phase 1 — hiding (docs/STEALTH_SPACES.md): the plane table, the dead's sight, the entry rule, the finding rule, leaving,
-# the grey screen (and that the camera never moves for it), the prompt, and the hiding places in a real flat. Run:
+# Headless test for STEALTH SPACES, phase 1 — hiding (docs/STEALTH_SPACES.md): the plane table, the dead's sight, hiding as ONE [interact] press, the too-close rule (a dead thing
+# within its attack reach and one more length finds you, with no way out) and the pass-by rule (further off, a chaser that loses you carries on through the place and out the far
+# side), the finding rule, leaving, the dark screen (the Last of Us listen-mode look: the player a dark figure, the dead glowing outlines, a slow push-in that is undone), the prompt,
+# and the hiding places in a real flat. Run:
 #   godot --headless res://tests/stealth_test.tscn
 
 var failures: int = 0
@@ -25,24 +27,48 @@ func check(cond: bool, label: String) -> void:
 func _ready() -> void:
 	print("=== stealth test ===")
 	AllyCombat.performative = false
-	_test_rules_table()
-	await _test_sight()
-	await _test_entry_refused_when_seen()
-	await _test_finding()
-	await _test_noise_link()
-	await _test_leaving()
-	await _test_interact_is_theirs()
-	await _test_screen()
-	await _test_prompt()
-	await _test_hide_context()
-	await _test_real_flat()
-	await _test_shower_curtain()
-	await _test_tub_is_not_a_plane()
+	# `-- --only=pass_by,screen` runs just those sections (the whole suite takes ~10 minutes); no argument runs everything
+	var only: Array = []
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--only="):
+			only = a.substr(7).split(",")
+	if _want(only, "rules"):
+		_test_rules_table()
+	if _want(only, "sight"):
+		await _test_sight()
+	if _want(only, "too_close"):
+		await _test_too_close()
+	if _want(only, "pass_by"):
+		await _test_pass_by()
+	if _want(only, "finding"):
+		await _test_finding()
+	if _want(only, "noise"):
+		await _test_noise_link()
+	if _want(only, "leaving"):
+		await _test_leaving()
+	if _want(only, "interact"):
+		await _test_interact_is_theirs()
+	if _want(only, "screen"):
+		await _test_screen()
+	if _want(only, "prompt"):
+		await _test_prompt()
+	if _want(only, "context"):
+		await _test_hide_context()
+	if _want(only, "flat"):
+		await _test_real_flat()
+	if _want(only, "curtain"):
+		await _test_shower_curtain()
+	if _want(only, "tub"):
+		await _test_tub_is_not_a_plane()
 	print("=== %s (%d failures) ===" % ["FAILED" if failures > 0 else "ALL PASSED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
 
 # --- helpers -----------------------------------------------------------------------------------------------------------------------------
+
+func _want(only: Array, name: String) -> bool:
+	return only.is_empty() or name in only
+
 
 func _corridor() -> Node:
 	WorldState.new_game()
@@ -139,13 +165,12 @@ func _spot(bf: Node, x: float = SPOT_X) -> StealthSpot:
 	return s
 
 
-## The player, standing at `x` and crouched, with the spot beside them; presses [W] the way a player does.
+## The player, standing at `x` in whatever stance they are in (the hide is ONE [interact] press in any stance, owner round 49q), with the spot beside them; presses [interact] the way a player does.
 func _hide_at(bf: Node, spot: StealthSpot, x: float) -> Node:
 	var p = bf.get_node("Player")
 	p.global_position = Vector2(x, 386.0)
-	p.is_crouching = true
 	await _pframes(4)
-	await _tap("move_up")
+	await _tap("interact")
 	return p
 
 
@@ -172,11 +197,14 @@ func _test_rules_table() -> void:
 				print("    plane '%s' has no '%s'" % [k, field])
 	check(ok, "every plane answers sees / reach / noise / screen / prompt")
 	check(Stealth.PLANES["hidden"]["sees"] == "blocked" and Stealth.PLANES["lane"]["sees"] == "radius", "a hidden player is out of sight; the lane is seen by radius")
-	check(Stealth.focus_for_gap(0.0) == 1.0 and Stealth.focus_for_gap(Stealth.ENEMY_FULL) == 1.0, "a dead thing within %d px is lit in full" % int(Stealth.ENEMY_FULL))
-	check(Stealth.focus_for_gap(Stealth.ENEMY_GONE) == 0.0 and Stealth.focus_for_gap(1000.0) == 0.0, "…and is gone into the grey by %d px" % int(Stealth.ENEMY_GONE))
-	var a := Stealth.focus_for_gap(130.0)
-	var b := Stealth.focus_for_gap(200.0)
-	check(a > b and a < 1.0 and b > 0.0, "…and fades smoothly between (130 px %.2f > 200 px %.2f)" % [a, b])
+	check(Stealth.PLANES["hidden"]["screen"] == "dark" and Stealth.PLANES["hidden"]["noise"] == "silent" and not Stealth.PLANES["hidden"]["reach"], "…the screen goes dark, the player makes no noise, and the dead cannot reach them")
+	check(Stealth.TOO_CLOSE_LENGTHS == 2.0 and Stealth.DISCOVER_DELAY > 0.0 and Stealth.DISCOVER_DELAY < 0.6 and Stealth.PASS_BEYOND > Stealth.FIND_RANGE * 2.0,
+		"too close = its attack reach and one more length (x%.1f); the beat before it has you is short (%.2f s); a pass-by ends well clear of a search (%d px)" % [Stealth.TOO_CLOSE_LENGTHS, Stealth.DISCOVER_DELAY, int(Stealth.PASS_BEYOND)])
+	check(Stealth.focus_for_gap(0.0) == 1.0 and Stealth.focus_for_gap(Stealth.ENEMY_FULL) == 1.0, "a dead thing within %d px is right there (the heart is at its quickest)" % int(Stealth.ENEMY_FULL))
+	check(Stealth.focus_for_gap(Stealth.ENEMY_GONE) == 0.0 and Stealth.focus_for_gap(1000.0) == 0.0, "…and is out of the heart's reach by %d px" % int(Stealth.ENEMY_GONE))
+	var a := Stealth.focus_for_gap(200.0)
+	var b := Stealth.focus_for_gap(300.0)
+	check(a > b and a < 1.0 and b > 0.0, "…and eases off between (200 px %.2f > 300 px %.2f)" % [a, b])
 	check(Stealth.HIDE_PIECES.has("wardrobe_wood") and not Stealth.HIDE_PIECES.has("sofa"), "wardrobes hide you; a sofa does not (that is cover, phase 2)")
 	var data: Dictionary = FurniturePlanner.data().get("items", {})
 	var all_real := true
@@ -202,7 +230,8 @@ func _test_sight() -> void:
 	z0.free()
 	await _frames(2)
 	p = await _hide_at(bf, spot, SPOT_X)
-	check(p.conceal == Stealth.HIDDEN and p.hide_spot == spot, "[W] crouched at the wardrobe hides the player (%s)" % p.conceal)
+	check(p.conceal == Stealth.HIDDEN and p.hide_spot == spot, "one [interact] press at the wardrobe hides the player, standing as they were (%s)" % p.conceal)
+	check(p.is_crouching, "…and they are down in there (a hidden player is always crouched)")
 	await _seconds(0.4)
 	check(p.conceal == Stealth.HIDDEN, "…and the press that hid them does not also bring them out (the pack had that bug)")
 	var z = _zombie(bf, SPOT_X + 60.0)
@@ -233,28 +262,135 @@ func _test_sight() -> void:
 	await _finish(bf)
 
 
-func _test_entry_refused_when_seen() -> void:
-	print("[You cannot hide from something that is looking at you]")
+func _test_too_close() -> void:
+	print("[Too close: a dead thing within its attack reach and one more length has you — and there is no way out of the beat]")
 	var bf = await _corridor()
 	var spot := _spot(bf)
 	var p = bf.get_node("Player")
 	p.global_position = Vector2(SPOT_X, 386.0)
-	p.is_crouching = true
-	var z = _zombie(bf, SPOT_X + 80.0)
-	var chasing := await _until(func(): return z.state in ["chase", "attack"], 90)
-	check(chasing, "(setup) the zombie is on them (%s)" % z.state)
-	var took: bool = p.enter_hide(spot)
-	check(not took and p.conceal == Stealth.NONE and p.hide_spot == null, "hiding is refused while it is chasing them")
-	check(Stealth.seen_by(p).size() == 1, "…because it is one of the dead that are looking for them")
-	# it loses them (they get far away), then they can hide
-	p.global_position = Vector2(SPOT_X, 386.0)
+	await _pframes(2)
+	# the zone is the dead thing's own reach and one more length (never more than the cap: a spitter's "reach" is a 300 px spit)
+	var probe = _zombie(bf, SPOT_X + 300.0)
+	probe.set_physics_process(false)
+	await _frames(2)
+	var reach: float = probe._attack_reach()
+	var zone: float = Stealth.zone_of(probe)
+	check(is_equal_approx(zone, reach * 2.0) and zone > reach * 1.5, "the zone is its attack reach (%.0f px) and one more length: %.0f px" % [reach, zone])
+	probe.global_position.x = SPOT_X + zone - 6.0
+	check(Stealth.too_close(p).size() == 1, "a dead thing %.0f px off is too close" % (zone - 6.0))
+	probe.global_position.x = SPOT_X + zone + 6.0
+	check(Stealth.too_close(p).is_empty(), "…%.0f px off it is not" % (zone + 6.0))
+	probe.global_position.x = SPOT_X - (zone - 6.0)
+	check(Stealth.too_close(p).size() == 1, "…and behind them counts the same")
+	probe.state = "knockdown"
+	probe.global_position.x = SPOT_X + 20.0
+	check(Stealth.too_close(p).is_empty(), "a dead thing that is knocked down is not looking at anything")
+	probe.free()
+	await _frames(2)
+	var spitter = _zombie(bf, SPOT_X + 500.0, "res://scenes/enemy_zombie_spitter.tscn")
+	spitter.set_physics_process(false)
+	await _frames(2)
+	check(is_equal_approx(Stealth.zone_of(spitter), Stealth.TOO_CLOSE_MAX), "a spitter's 300 px spit is not its reach: its zone is capped (%.0f px)" % Stealth.zone_of(spitter))
+	spitter.free()
+	await _frames(2)
+	var big = _zombie(bf, SPOT_X + 500.0, BIG)
+	big.set_physics_process(false)
+	await _frames(2)
+	var big_zone: float = Stealth.zone_of(big)
+	check(big_zone > zone, "a big zombie reaches further, so its zone does (%.0f vs %.0f px)" % [big_zone, zone])
+	big.free()
+	await _frames(2)
+
+	# (1) hide with a standard dead thing well inside its zone: it saw them go in, and after a beat it has them — whatever they press
+	var z = _zombie(bf, SPOT_X + zone - 10.0)
+	z.set_physics_process(false)
+	await _frames(2)
+	HUD.feedback_label.text = ""
+	p.is_crouching = false
+	p = await _hide_at(bf, spot, SPOT_X)
+	check(p.conceal == Stealth.HIDDEN and p._hide_doomed_by == z, "(setup) the dive is made with it %.0f px away: it saw them go in" % (zone - 10.0))
+	p._hide_msec -= 600                                      # (past the press-that-hid-them grace: what is tested is the beat itself)
+	await _tap("interact")
+	check(p.hide_spot == spot and p.conceal == Stealth.HIDDEN, "…and a second [interact] during the beat does NOT bring them out (no second chance)")
+	await _until(func(): return p.conceal == Stealth.NONE, 90)
+	check(p.conceal == Stealth.NONE and p.hide_spot == null, "…it has found them: they are out of the place")
+	check(HUD.feedback_label.text == "It's found me.", "…and the game says so ('%s')" % HUD.feedback_label.text)
+	z.set_physics_process(true)
+	var on_them := await _until(func(): return z.state in ["chase", "attack"] and z.prey == p, 120)
+	check(on_them, "…and it is on them (%s)" % z.state)
 	z.free()
 	await _frames(2)
-	var z2 = _zombie(bf, SPOT_X + 400.0)
-	await _frames(20)
-	check(Stealth.seen_by(p).is_empty(), "a zombie that is not on them does not stop them hiding")
-	check(p.enter_hide(spot), "…so they can")
+
+	# (2) a big zombie, the same, at the edge of ITS zone (further than a standard's)
+	big = _zombie(bf, SPOT_X + big_zone - 10.0, BIG)
+	big.set_physics_process(false)
+	await _frames(2)
+	p.global_position = Vector2(SPOT_X, 386.0)
+	await _seconds(0.9)
+	p = await _hide_at(bf, spot, SPOT_X)
+	check(p._hide_doomed_by == big, "a big zombie %.0f px away (a standard would not mind at that distance) is too close" % (big_zone - 10.0))
+	await _until(func(): return p.conceal == Stealth.NONE, 90)
+	check(p.conceal == Stealth.NONE, "…and it finds them")
+	big.free()
+	await _frames(2)
+
+	# (3) just outside the zone it does not: they are hidden for good and no beat runs
+	await _seconds(0.9)
+	z = _zombie(bf, SPOT_X + zone + 14.0)
+	z.set_physics_process(false)
+	await _frames(2)
+	p = await _hide_at(bf, spot, SPOT_X)
+	check(p.conceal == Stealth.HIDDEN and p._hide_doomed_by == null, "…%.0f px away it did not see them go in: no beat" % (zone + 14.0))
+	await _seconds(Stealth.DISCOVER_DELAY + 0.6)
+	check(p.conceal == Stealth.HIDDEN, "…and they are still hidden after the beat would have run out")
 	p.leave_hide()
+	z.free()
+	await _finish(bf)
+
+
+## Further off, a chaser that loses a hidden player SHAMBLES PAST: on through the place they hide and out the far side. The dead are then between the player and where they came from.
+func _test_pass_by() -> void:
+	print("[Pass-by: a chaser that loses a hidden player carries on past them, and leaves the dead on the far side]")
+	var bf = await _corridor()
+	var X := 700.0                                           # (mid-corridor: the spot a chaser carries on to, 240 px out the far side, must be INSIDE the corridor, or it stands at the end wall)
+	var spot := _spot(bf, X)
+	var p = bf.get_node("Player")
+	p.global_position = Vector2(X, 386.0)
+	await _pframes(2)
+	var z = _zombie(bf, X + 150.0)
+	z.DETECTION_RANGE = 260.0                                # (it sees them from where it stands: this is about a CHASE that loses them)
+	var chasing := await _until(func(): return z.state in ["chase", "attack"] and z.prey == p, 90)
+	check(chasing, "(setup) a zombie 150 px off is chasing them (%s)" % z.state)
+	var gap0: float = absf(z.global_position.x - p.global_position.x)
+	check(gap0 > Stealth.zone_of(z) + 12.0, "(setup) and it is outside its too-close zone (%.0f px, zone %.0f)" % [gap0, Stealth.zone_of(z)])
+	await _tap("interact")
+	check(p.conceal == Stealth.HIDDEN and p._hide_doomed_by == null, "they dive into the wardrobe with it coming: hidden, no beat (the owner: outside the zone, hiding works)")
+	var side0: float = signf(z.global_position.x - X)
+	# it loses them and shambles on, THROUGH the wardrobe and out the other side
+	var passed := await _until(func(): return z.global_position.x < X - 120.0, 60 * 22)
+	check(passed, "the chaser walks right through the place they hide and on past it (x %.0f, %s / %s)" % [z.global_position.x, z.state, z.mind])
+	check(p.conceal == Stealth.HIDDEN, "…and never finds them walking through (find %.2f)" % float(z.get_meta("stealth_find_t", 0.0)))
+	check(z.state not in ["chase", "attack"] or z.prey != p, "…it is not chasing them any more (%s)" % z.state)
+	await _until(func(): return z.mind == "search", 60 * 12)
+	var out_by: float = z.global_position.x - X
+	check(z.mind == "search" and signf(out_by) == -side0 and absf(out_by) > Stealth.FIND_RANGE * 2.0, "…and it stops to look about on the FAR side, %d px past them (x %.0f, %s)" % [int(absf(out_by)), z.global_position.x, z.mind])
+	await _seconds(Stealth.FIND_TIME + 0.8)
+	check(p.conceal == Stealth.HIDDEN, "…and that search does not find them")
+	check(signf(z.global_position.x - p.global_position.x) == -side0, "the dead are now between the player and where they were heading (it is on the far side)")
+	# the pass-by is the hide's doing, not the dead's habit: without a hiding place the same chaser DOES stand over the last place it saw them
+	p.leave_hide()
+	z.free()
+	await _finish(bf)
+
+	# the control: the same chaser, the same distance, no hiding place -> it reaches them and attacks
+	bf = await _corridor()
+	p = bf.get_node("Player")
+	p.global_position = Vector2(X, 386.0)
+	z = _zombie(bf, X + 150.0)
+	z.DETECTION_RANGE = 260.0
+	WorldState.god_mode = false
+	var reached := await _until(func(): return z.state == "attack" or p.health_state > 0, 60 * 10)
+	check(reached, "(control) with nowhere to hide the same chaser reaches them and strikes (%s)" % z.state)
 	await _finish(bf)
 
 
@@ -403,24 +539,48 @@ func _test_noise_link() -> void:
 # --- leaving -------------------------------------------------------------------------------------------------------------------------------
 
 func _test_leaving() -> void:
-	print("[Leaving: every input, a hit, damage, and the camera and screen come back]")
+	print("[Leaving: ONE more [interact] press (or a click to walk); nothing else; a hit, damage, and the camera and screen come back]")
 	var bf = await _corridor()
 	WorldState.god_mode = false
 	var spot := _spot(bf)
 	var p = bf.get_node("Player")
 	var base_zoom := _camera_zoom(p)
 	check(base_zoom != Vector2.ZERO, "(setup) the player has a camera (zoom %s)" % str(base_zoom))
-	for action in ["move_left", "move_right", "move_down", "move_up", "crouch_toggle", "interact", "attack", "push"]:
+	# the keys that used to bring a player out of hiding do NOTHING now: a hidden player holding still is the point
+	WorldState.stamina = WorldState.get_max_stamina()
+	for action in ["move_left", "move_right", "move_down", "move_up", "crouch_toggle", "attack", "push", "sprint"]:
 		p = await _hide_at(bf, spot, SPOT_X)
 		await _seconds(0.4)
 		if p.conceal != Stealth.HIDDEN:
 			check(false, "(setup) hidden before pressing %s" % action)
 			continue
+		var x0: float = p.global_position.x
 		await _tap(action)
 		await _frames(3)
-		check(p.conceal == Stealth.NONE and p.hide_spot == null, "'%s' brings them out" % action)
+		check(p.conceal == Stealth.HIDDEN and p.hide_spot == spot and p.is_crouching, "'%s' does nothing: they stay hidden and down" % action)
+		check(absf(p.global_position.x - x0) < 2.0, "…and do not move (x %.1f -> %.1f)" % [x0, p.global_position.x])
+		p.leave_hide()
 		await _seconds(0.8)
-		p.is_crouching = true
+	check(WorldState.stamina >= WorldState.get_max_stamina() - 0.01, "a shove pressed in there spent nothing (stamina %.1f)" % WorldState.stamina)
+	# a held walking key does not walk them out either
+	p = await _hide_at(bf, spot, SPOT_X)
+	await _seconds(0.4)
+	await _hold("move_right", 0.5)
+	check(p.conceal == Stealth.HIDDEN and absf(p.global_position.x - SPOT_X) < 2.0, "holding a walking key for half a second does not move them (x %.1f)" % p.global_position.x)
+	# the one press that does: [interact]
+	await _tap("interact")
+	await _frames(3)
+	check(p.conceal == Stealth.NONE and p.hide_spot == null, "[interact] brings them out")
+	check(p.is_crouching, "…still crouched (a way out is a quiet step: the noise model says what a crouched step costs)")
+	await _seconds(0.8)
+	# a click to walk elsewhere also takes them out, and carries on walking
+	p = await _hide_at(bf, spot, SPOT_X)
+	await _seconds(0.4)
+	p.set_move_target(SPOT_X + 120.0)
+	await _frames(4)
+	check(p.conceal == Stealth.NONE and p.hide_spot == null, "a click to walk elsewhere brings them out")
+	await _seconds(0.8)
+	p.is_crouching = false
 	# a hit
 	p = await _hide_at(bf, spot, SPOT_X)
 	await _seconds(0.4)
@@ -435,7 +595,7 @@ func _test_leaving() -> void:
 	await _seconds(0.8)
 	# the screen and camera are back
 	var cleared := await _until(func(): return not is_instance_valid(p.get_node_or_null("StealthFx")), 240)
-	check(cleared, "the grey layer frees itself once it has cleared")
+	check(cleared, "the dark layer frees itself once it has cleared")
 	check(_camera_zoom(p).distance_to(base_zoom) < 0.001, "…and the camera is at its own zoom (%s vs %s)" % [str(_camera_zoom(p)), str(base_zoom)])
 	# a freed player takes the screen with it
 	WorldState.god_mode = true
@@ -446,13 +606,14 @@ func _test_leaving() -> void:
 	check(fx != null and p.conceal == Stealth.HIDDEN, "(setup) hiding again")
 	p.free()
 	await get_tree().process_frame
-	check(not is_instance_valid(fx), "freeing the player frees the grey layer (a scene change cannot leave it on)")
+	check(not is_instance_valid(fx), "freeing the player frees the dark layer (a scene change cannot leave it on)")
 	await _finish(bf)
 
 
-## Nothing else answers [interact] while the player is hidden: the press that brings them out must not also open the door beside the wardrobe.
+## Nothing else answers [interact] while the player is hidden: the press that brings them out must not also open the door beside the wardrobe. And the press that hides them goes to the
+## NEAREST answerer like every other [interact]: a door right beside them gets it, not the wardrobe.
 func _test_interact_is_theirs() -> void:
-	print("[A hidden player's [interact] brings them out — it opens nothing else]")
+	print("[A hidden player's [interact] brings them out — it opens nothing else; the nearer answerer gets the press that would hide them]")
 	var bf = await _corridor()
 	var spot := _spot(bf)
 	var stub := InteractStub.new()
@@ -460,14 +621,23 @@ func _test_interact_is_theirs() -> void:
 	stub.global_position = Vector2(SPOT_X + 10.0, 419.0)
 	stub.add_to_group(InteractArbiter.GROUP)
 	var p = bf.get_node("Player")
+	p.global_position = Vector2(SPOT_X + 12.0, 386.0)
+	await _pframes(4)
+	check(InteractArbiter.answers(stub, true) and not InteractArbiter.answers(spot, true), "(control) with a door answerer nearer than the wardrobe, the door answers the press, not the wardrobe")
+	await _tap("interact")
+	check(p.conceal == Stealth.NONE, "…so [interact] there does not hide them (the nearer thing took the press)")
 	p.global_position = Vector2(SPOT_X, 386.0)
-	await _frames(2)
-	check(InteractArbiter.answers(stub, true), "(control) an answerer beside the player answers when they are not hidden")
-	p = await _hide_at(bf, spot, SPOT_X)
+	stub.global_position = Vector2(SPOT_X + 40.0, 419.0)
+	await _pframes(4)
+	check(InteractArbiter.answers(spot, true) and not InteractArbiter.answers(stub, true), "with the wardrobe nearer, the wardrobe answers")
+	await _tap("interact")
+	check(p.conceal == Stealth.HIDDEN, "…and one press hides them")
 	await _seconds(0.4)
+	stub.global_position = Vector2(SPOT_X + 10.0, 419.0)
 	check(p.conceal == Stealth.HIDDEN and not InteractArbiter.answers(stub, true) and not InteractArbiter.take(stub, true),
-		"…and answers nothing while they are hidden")
+		"…and the answerer beside them answers nothing while they are hidden")
 	p.leave_hide(false, true)
+	stub.global_position = Vector2(p.global_position.x, 419.0)       # (level with the wardrobe now - a tie, which a door wins: the hidden-player rule is what is under test, not the order)
 	await _frames(2)
 	check(InteractArbiter.answers(stub, true), "…and answers again once they are out")
 	await _finish(bf)
@@ -486,86 +656,124 @@ class InteractStub extends Node2D:
 
 # --- the screen ----------------------------------------------------------------------------------------------------------------------------
 
+func _lum(c: Color) -> float:
+	return c.r * 0.299 + c.g * 0.587 + c.b * 0.114
+
+
 func _test_screen() -> void:
-	print("[The grey screen: nothing but the player; a dead thing is a shadow as it nears; no static, no zoom]")
+	print("[The dark: REAL lighting — the ambient brought down to a very dull low light, the player's own small pool, natural colours, no outline; a gentle push-in that is undone; a heartbeat that is only a sound]")
 	var bf = await _corridor()
 	var spot := _spot(bf)
 	var p = bf.get_node("Player")
 	var base_zoom := _camera_zoom(p)
 	var base_offset := _camera_offset(p)
+	var vp := get_viewport()
+	var grade: CanvasModulate = bf.get_node_or_null("WorldGrade")
+	var aura: PointLight2D = p.get_node_or_null("PlayerAura")
+	check(grade != null and aura != null, "(setup) the floor has its ambient light and the player their own light")
+	if grade == null or aura == null:
+		await _finish(bf)
+		return
+	var grade0: Color = grade.color
+	var aura_e0: float = aura.energy
+	var aura_s0: float = aura.texture_scale
+	p.global_position = Vector2(SPOT_X, 386.0)
+	await _pframes(4)
+	var screen_before: Vector2 = vp.get_canvas_transform() * p.global_position
 	p = await _hide_at(bf, spot, SPOT_X)
 	var fx: StealthFx = p.get_node_or_null("StealthFx")
-	check(fx != null, "hiding puts the grey layer on the player")
+	check(fx != null, "hiding puts the dark on the player")
 	if fx == null:
 		await _finish(bf)
 		return
 	check(fx.layer == 0 and fx.layer < HUD.layer, "…between the world and the HUD, so the HUD stays readable (layer %d, HUD %d)" % [fx.layer, HUD.layer])
 	await _until(func(): return fx.intensity >= 0.999, 240)
 	var st: Dictionary = fx.state()
-	check(st["intensity"] >= 0.999, "it greys the world out fully (%.2f)" % st["intensity"])
+	check(st["intensity"] >= 0.999, "it comes in fully (%.2f)" % st["intensity"])
 	check(fx._mat != null and absf(float(fx._mat.get_shader_parameter("intensity")) - st["intensity"]) < 0.01, "…and hands that to the shader")
-	# the look (owner: "really grey so that you can't see anything except for basically just the player… the static is bad… a really weird zoom")
+	# (1) the ambient light: very dull, low, cool — never brighter than the room's own
+	var amb: Color = grade.color
+	var want_amb := StealthFx.dark_ambient(grade0)
+	check(amb.is_equal_approx(want_amb), "the room's ambient light is brought down to %s (%s)" % [str(want_amb), str(amb)])
+	check(_lum(amb) <= StealthFx.HIDE_AMBIENT + 0.005 and _lum(amb) <= _lum(grade0) + 0.0001, "…a very dull low light (luminance %.3f, was %.3f) and never brighter than it was" % [_lum(amb), _lum(grade0)])
+	check(amb.b >= amb.r - 0.0001, "…cool, not warm")
+	var dim := StealthFx.dark_ambient(Color(0.01, 0.01, 0.01))
+	check(dim.is_equal_approx(Color(0.01, 0.01, 0.01)) , "a room already darker than that (the night run) is left as it is (%s)" % str(dim))
+	check(is_equal_approx(StealthFx.gain_for(Color(0.95, 0.95, 0.95)), sqrt(StealthFx.HIDE_AMBIENT / 0.95)) and StealthFx.gain_for(Color(0.95, 0.95, 0.95)) < StealthFx.gain_for(Color(0.42, 0.42, 0.42)) and is_equal_approx(StealthFx.gain_for(Color(0.03, 0.03, 0.03)), 1.0),
+		"the picture is dimmed in proportion: a morning room most (x%.2f), an afternoon one less (x%.2f), a night one not at all (x%.2f)" % [StealthFx.gain_for(Color(0.95, 0.95, 0.95)), StealthFx.gain_for(Color(0.42, 0.42, 0.42)), StealthFx.gain_for(Color(0.03, 0.03, 0.03))])
+	check(float(st["post_gain"]) >= StealthFx.POST_GAIN_MIN and float(st["post_gain"]) <= 1.0 and absf(float(fx._mat.get_shader_parameter("gain")) - float(st["post_gain"])) < 0.001, "…and the shader is given that (x%.2f)" % float(st["post_gain"]))
+	# (2) the player's own pool: raised, lit by real light (never a copy), and given back
+	check(aura.energy >= StealthFx.GLOW_ENERGY - 0.001 and aura.texture_scale >= StealthFx.GLOW_SCALE - 0.001, "the player's own light is raised to a small dim pool (energy %.2f, scale %.2f)" % [aura.energy, aura.texture_scale])
+	var radius: float = aura.texture_scale * float(aura.texture.get_width()) * 0.5
+	check(radius >= 160.0 and radius <= 320.0, "…wide enough for a dead thing within a couple of steps to be lit by it, no more (%.0f px)" % radius)
+	check(aura.energy >= aura_e0 - 0.0001 and aura.texture_scale >= aura_s0 - 0.0001, "…and never DIMMER than their own light was (%.2f / %.2f)" % [aura_e0, aura_s0])
+	# (3) the look is lighting, not a filter: nothing is redrawn, nothing is outlined, nothing moves
 	var code: String = StealthFx.SHADER_CODE
-	check(code.contains("fog_near") and not code.contains("hash(") and not code.contains("tear") and not code.contains("static") and not code.contains("TIME"), "the picture is one flat grey: no static, no snow, nothing moving in the shader")
-	check(StealthFx.FOG_NEAR.r > 0.45 and StealthFx.FOG_FAR.r > 0.3 and absf(StealthFx.FOG_NEAR.r - StealthFx.FOG_NEAR.b) < 0.06, "…a pale grey with no colour in it, never black (%s / %s)" % [str(StealthFx.FOG_NEAR), str(StealthFx.FOG_FAR)])
-	check(StealthFx.GHOST <= 0.12, "…the room is only the barest ghost in it (%.2f)" % StealthFx.GHOST)
-	check(_camera_zoom(p).distance_to(base_zoom) < 0.0001 and _camera_offset(p).distance_to(base_offset) < 0.0001, "the camera does not move at all (zoom %s, look %s)" % [str(_camera_zoom(p)), str(_camera_offset(p))])
-	# the player: the layer redraws their own sprite frame, on the same screen place
-	var vp := get_viewport()
-	var ps: AnimatedSprite2D = p.animated_sprite
-	var pc: AnimatedSprite2D = fx.player_copy()
-	check(st["player_copy"] and pc != null and pc.visible, "the only thing in colour is the player: their sprite is copied over the grey")
-	check(pc != null and pc.sprite_frames == ps.sprite_frames and pc.animation == ps.animation and pc.frame == ps.frame and pc.flip_h == ps.flip_h, "…the same animation, frame and way round (%s %d)" % [pc.animation if pc != null else "-", pc.frame if pc != null else -1])
-	var want_at: Vector2 = (vp.get_canvas_transform() * ps.get_global_transform()).origin
-	check(pc != null and pc.position.distance_to(want_at) < 1.0, "…on the player's own place on the screen (%s vs %s)" % [str(pc.position if pc != null else Vector2.INF), str(want_at)])
-	check(pc != null and pc.modulate.a > 0.99, "…at full strength")
-	check(st["dead"].is_empty(), "with nothing near there is no shadow")
-	# a dead thing walks by: close = a black silhouette, far = gone into the grey
+	check(not code.contains("fog") and not code.contains("hash(") and not code.contains("TIME") and not code.contains("sin(") and not code.contains("dot("), "the one post-process is a dimming and a vignette: no fog, no static, no luminance map (so the colours stay), and nothing moving (no pulse)")
+	check(StealthFx.VIGNETTE_EDGE < 0.3 and StealthFx.VIGNETTE_CENTRE > 1.0, "…closing the screen in toward the edges, round the player (edge %.2f, centre %.2f)" % [StealthFx.VIGNETTE_EDGE, StealthFx.VIGNETTE_CENTRE])
+	var consts: Dictionary = (fx.get_script() as Script).get_script_constant_map()
+	check(not consts.has("OUTLINE_SHADER_CODE") and not consts.has("GLOW") and not consts.has("BODY") and not consts.has("COPY_SHADER_CODE"), "no outline and no black body for the dead: their own colours carry (the owner: \"you don't even need the outline\")")
+	check(fx.get_node_or_null("Stage") == null and not st.has("dead") and not st.has("player_copy"), "…and nothing is copied over the picture: the player and the dead are lit like everything else")
+	# the push-in: a slow, small zoom with the player held exactly where they stand on the screen, undone when they come out
+	var zr: float = _camera_zoom(p).x / base_zoom.x
+	check(absf(zr - StealthFx.ZOOM_IN) < 0.01 and absf(st["zoom"] - StealthFx.ZOOM_IN) < 0.01, "the camera pushes in a touch while they hide (x%.3f)" % zr)
+	check(StealthFx.ZOOM_IN > 1.0 and StealthFx.ZOOM_IN <= 1.2, "…gently (x%.2f at most)" % StealthFx.ZOOM_IN)
+	var screen_now: Vector2 = vp.get_canvas_transform() * p.global_position
+	check(absf(screen_now.x - screen_before.x) < 1.5 and absf(screen_now.y - screen_before.y) < 40.0, "…and the player stays where they were on the screen (%s -> %s): the room closes in round them (a corridor's camera is limited to its band, so up here the height can give a little — in a flat it holds exactly)" % [str(screen_before), str(screen_now)])
+	# the heart: a SOUND (a breath in, then a slow deep heart), never a picture
+	await _until(func(): return fx.state()["heart"], 240)
+	check(fx._breath != null and fx._breath.stream != null, "a breath is drawn in as they go in")
+	check(fx._heart != null and fx._heart.stream is AudioStreamWAV and fx._heart.stream.loop_mode == AudioStreamWAV.LOOP_FORWARD, "then a heart beats, a seamless loop")
+	check(fx.state()["heart"] and absf(fx._heart.pitch_scale - 1.0) < 0.01, "…at its own slow pace while nothing is near (pitch %.2f)" % fx._heart.pitch_scale)
+	# a dead thing walks by: the heart quickens, and what lights it is the pool, in ITS colours
 	var z = _zombie(bf, SPOT_X + 60.0)
-	z.set_physics_process(false)                     # (it stands where it is — it is the screen being tested)
-	await _seconds(0.8)
-	st = fx.state()
-	var near_w: float = float(st["dead"][0]["w"]) if st["dead"].size() > 0 else -1.0
-	check(st["dead"].size() == 1 and near_w > 0.95, "a dead thing 60 px away is a full silhouette (w %.2f)" % near_w)
-	var shadow: AnimatedSprite2D = null
-	for id in fx._dead:
-		shadow = fx._dead[id]["node"]
-	check(shadow != null and shadow.modulate.r < 0.1 and shadow.modulate.g < 0.1 and shadow.modulate.b < 0.1 and shadow.modulate.a > 0.95, "…black, not a copy of its colours (%s)" % str(shadow.modulate if shadow != null else "-"))
-	check(shadow != null and shadow.sprite_frames == z.animated_sprite.sprite_frames and shadow.position.distance_to((vp.get_canvas_transform() * z.animated_sprite.get_global_transform()).origin) < 1.0, "…in the shape the dead thing is drawn, where it is drawn")
-	z.global_position.x = SPOT_X + 250.0
-	await _seconds(1.2)
-	st = fx.state()
-	var mid: float = float(st["dead"][0]["w"]) if st["dead"].size() > 0 else -1.0
-	check(mid > 0.05 and mid < 0.8, "…a fainter one at 250 px (w %.2f)" % mid)
+	z.set_physics_process(false)                     # (it stands where it is)
+	await _seconds(0.5)
+	check(absf(fx.state()["nearest_gap"] - 60.0) < 2.0, "it knows how near the nearest dead thing is (%.0f px)" % fx.state()["nearest_gap"])
+	check(fx._heart.pitch_scale > 1.1 and fx._heart.volume_db > StealthFx.HEART_DB + 1.0, "the heart quickens and rises with it right there (pitch %.2f, %.1f dB)" % [fx._heart.pitch_scale, fx._heart.volume_db])
+	check(z.animated_sprite.modulate.is_equal_approx(Color(1, 1, 1, 1)) and z.animated_sprite.material == null, "the dead thing is its own sprite in its own colours (untinted, no shader of ours on it)")
 	z.global_position.x = SPOT_X + 520.0
-	await _seconds(1.4)
-	st = fx.state()
-	check(st["dead"].is_empty() and fx._dead.is_empty(), "…and once it has moved on it is gone into the grey (%d shadows, %d copies)" % [st["dead"].size(), fx._dead.size()])
-	z.global_position.x = SPOT_X - 90.0
-	await _seconds(0.9)
-	check(fx.state()["dead"].size() == 1, "…and one that passes on the other side is a shadow too")
+	await _seconds(0.5)
+	check(fx._heart.pitch_scale < 1.05, "…and the heart settles once it has gone (pitch %.2f)" % fx._heart.pitch_scale)
 	z.free()
-	await _seconds(1.2)
-	check(fx._dead.is_empty(), "a dead thing that stops existing takes its shadow with it")
-	# the screen coordinates are the world's: the grey is centred on the player
+	# the screen coordinates are the world's: the vignette is centred on the player
 	var centre = fx._mat.get_shader_parameter("centre")
 	var want: Vector2 = (vp.get_canvas_transform() * p.global_position) / vp.get_visible_rect().size
-	check(centre != null and Vector2(centre).distance_to(want) < 0.02, "the lighter grey is centred on the player (%s vs %s)" % [str(centre), str(want)])
-	# coming out clears the layer and leaves the camera exactly as it was
+	check(centre != null and Vector2(centre).distance_to(want) < 0.02, "the pool is centred on the player (%s vs %s)" % [str(centre), str(want)])
+	# someone else re-grades the room while they hide (a floor going live): that is the new light to come back to
+	var regrade := Color(0.5, 0.45, 0.4)
+	grade.color = regrade
+	await _pframes(3)
+	check(_lum(grade.color) <= StealthFx.HIDE_AMBIENT + 0.005, "a re-grade of the room while they hide does not undo the dark (%s)" % str(grade.color))
+	# coming out clears the layer and gives everything back EXACTLY
 	p.leave_hide()
 	await _until(func(): return not is_instance_valid(p.get_node_or_null("StealthFx")), 240)
-	check(_camera_zoom(p).distance_to(base_zoom) < 0.001 and _camera_offset(p).distance_to(base_offset) < 0.001, "the camera is exactly as it was after the layer clears")
+	check(_camera_zoom(p).distance_to(base_zoom) < 0.001 and _camera_offset(p).distance_to(base_offset) < 0.001, "the camera is exactly as it was after the layer clears (zoom %s, look %s)" % [str(_camera_zoom(p)), str(_camera_offset(p))])
+	check(grade.color.is_equal_approx(regrade), "the room's light is back to what it is NOW (%s), not to a stale copy" % str(grade.color))
+	check(is_equal_approx(aura.energy, aura_e0) and is_equal_approx(aura.texture_scale, aura_s0), "the player's own light is exactly as it was (%.3f / %.3f)" % [aura.energy, aura.texture_scale])
+	# a freed player gives the light back too (a scene change cannot leave the world dark)
+	grade.color = grade0
+	WorldState.god_mode = true
+	p = await _hide_at(bf, spot, SPOT_X)
+	await _seconds(0.9)
+	var fx2: StealthFx = p.get_node_or_null("StealthFx")
+	check(fx2 != null and _lum(grade.color) < _lum(grade0) + 0.0001, "(setup) hidden again, the room dark")
+	var aura2: PointLight2D = p.get_node_or_null("PlayerAura")
+	p.free()
+	await get_tree().process_frame
+	check(grade.color.is_equal_approx(grade0), "freeing the player gives the room its light back (%s vs %s)" % [str(grade.color), str(grade0)])
 	await _finish(bf)
 
 
 # --- the prompt ----------------------------------------------------------------------------------------------------------------------------
 
 func _test_prompt() -> void:
-	print("[A prompt where the player can hide]")
+	print("[A prompt where the player can hide: ONE press, any stance]")
 	var bf = await _corridor()
 	var spot := _spot(bf)
 	var p = bf.get_node("Player")
 	WorldState.is_scavenge_mode = false
+	var key: String = HUD.action_key_name("interact", "E")
 	p.global_position = Vector2(SPOT_X + 200.0, 386.0)
 	p.is_crouching = false
 	await _pframes(4)
@@ -573,12 +781,16 @@ func _test_prompt() -> void:
 	p.global_position = Vector2(SPOT_X + 10.0, 386.0)
 	await _pframes(4)
 	var t := spot.prompt_text()
-	check(t.contains("Wardrobe") and t.to_lower().contains("crouch to hide"), "standing at it: the place teaches the verb ('%s')" % t)
-	check(not t.contains("{"), "…with the key written as the player's own (no raw token)")
+	check(t == "Wardrobe   [%s] Hide" % key, "standing at it: 'Wardrobe   [E] Hide' ('%s')" % t)
+	check(not t.contains("{") and not t.to_lower().contains("crouch"), "…with the key written as the player's own, and nothing about crouching or moving up")
+	var pill := HUD.world_prompt_panel(spot)
+	var cam: Camera2D = get_viewport().get_camera_2d()
+	var head_y: float = (p.head_top_position().y - cam.get_screen_center_position().y) * cam.zoom.y + HUD.SCREEN_H / 2.0
+	check(pill != null and pill.visible and pill.position.y + pill.size.y <= head_y + 1.0 and head_y - (pill.position.y + pill.size.y) < 14.0 * cam.zoom.y + HUD.WORLD_PROMPT_GAP + 4.0,
+		"…hanging right over the player's head, not up the wall (the pill's foot is %.0f px over it)" % (head_y - (pill.position.y + pill.size.y) if pill != null else -1.0))
 	p.is_crouching = true
 	await _pframes(4)
-	t = spot.prompt_text()
-	check(t.contains("Wardrobe") and t.contains("Hide") and not t.to_lower().contains("crouch"), "crouched at it: 'Wardrobe  [W] Hide' ('%s')" % t)
+	check(spot.prompt_text() == t, "crouched it says exactly the same (no stance to learn)")
 	p.global_position = Vector2(SPOT_X + 23.0 + StealthSpot.REACH - 1.0, 386.0)
 	await _pframes(4)
 	check(spot.prompt_text() != "", "…it is offered right to the edge of its reach")
@@ -586,11 +798,17 @@ func _test_prompt() -> void:
 	await _pframes(4)
 	check(spot.prompt_text() == "", "…and not beyond it")
 	p.global_position = Vector2(SPOT_X, 386.0)
+	p.is_crouching = false
 	await _pframes(4)
-	await _tap("move_up")
+	await _tap("interact")
 	await _seconds(0.5)
-	check(p.conceal == Stealth.HIDDEN and spot.prompt_text().contains("Come out"), "inside, the prompt says how to come out ('%s')" % spot.prompt_text())
-	# a scavenge-stance player at a wardrobe whose search is still live: [W] is the search's, so no hide prompt
+	check(p.conceal == Stealth.HIDDEN and spot.prompt_text() == "[%s] Come out" % key, "inside, the prompt says how to come out: '[E] Come out' ('%s')" % spot.prompt_text())
+	var pill2 := HUD.world_prompt_panel(spot)
+	var cam2: Camera2D = get_viewport().get_camera_2d()
+	var head_y2: float = (p.head_top_position().y - cam2.get_screen_center_position().y) * cam2.zoom.y + HUD.SCREEN_H / 2.0
+	check(pill2 != null and head_y2 - (pill2.position.y + pill2.size.y) >= 0.0 and head_y2 - (pill2.position.y + pill2.size.y) < 14.0 * cam2.zoom.y + HUD.WORLD_PROMPT_GAP + 4.0,
+		"…right over their head (owner: \"the text for come out is just too damn high\"): the foot of the pill is %.0f px over it" % (head_y2 - (pill2.position.y + pill2.size.y) if pill2 != null else -1.0))
+	# a scavenge-stance player at a wardrobe whose search is still live: [interact] is the search's, so no hide prompt
 	p.leave_hide()
 	await _seconds(0.5)
 	WorldState.is_scavenge_mode = true
@@ -599,7 +817,7 @@ func _test_prompt() -> void:
 	bf.add_child(bps)
 	bps.add_to_group("back_plane_spot")
 	await _pframes(4)
-	check(spot.search_owns_the_key(p) and spot.prompt_text() == "", "a wardrobe you can still search, in scavenge stance: the search owns [W], no hide prompt")
+	check(spot.search_owns_the_key(p) and spot.prompt_text() == "", "a wardrobe you can still search, in scavenge stance: the search owns [interact], no hide prompt")
 	WorldState.is_scavenge_mode = false
 	await _pframes(4)
 	check(not spot.search_owns_the_key(p) and spot.prompt_text() != "", "…and in combat stance it hides")
@@ -803,10 +1021,10 @@ func _test_shower_curtain() -> void:
 	pl.global_position.x = found.global_position.x
 	pl.is_crouching = true
 	await _pframes(4)
-	check(found.prompt_text() == "Shower   [%s] Hide behind the curtain" % HUD.action_key_name("move_up", "W"), "at the curtain: 'Shower   [W] Hide behind the curtain' ('%s')" % found.prompt_text())
+	check(found.prompt_text() == "Shower   [%s] Hide behind the curtain" % HUD.action_key_name("interact", "E"), "at the curtain: 'Shower   [E] Hide behind the curtain' ('%s')" % found.prompt_text())
 	pl.is_crouching = false
 	await _pframes(4)
-	check(found.prompt_text().contains("Crouch to hide behind the curtain"), "standing, the place teaches the verb ('%s')" % found.prompt_text())
+	check(found.prompt_text().contains("Hide behind the curtain") and not found.prompt_text().to_lower().contains("crouch"), "standing, the same (any stance) ('%s')" % found.prompt_text())
 	pl.is_crouching = true
 	await _pframes(2)
 	check(pl.enter_hide(found), "…the player can step in")
@@ -886,7 +1104,7 @@ func _test_tub_is_not_a_plane() -> void:
 	pl.leave_hide(false, true)
 	await _seconds(0.9)
 	check(pl.conceal == Stealth.NONE and absf(pl.global_position.y - y0) < 0.6 and pl._hide_return_y == 0.0, "…and out for good they are back on the floor (y %.1f vs %.1f, remembered %.1f)" % [pl.global_position.y, y0, pl._hide_return_y])
-	# 2. a stress run: random W / A / D taps with random gaps, then walk the whole flat — the player must never be on any line but the floor
+	# 2. a stress run: random [interact] / A / D taps with random gaps, then walk the whole flat — the player must never be on any line but the floor
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 4242
 	var worst := 0.0
@@ -900,7 +1118,7 @@ func _test_tub_is_not_a_plane() -> void:
 		var n: int = rng.randi_range(3, 9)
 		for k in range(n):
 			var pick: int = rng.randi_range(0, 3)
-			var act: String = ["move_up", "move_up", "move_left", "move_right"][pick]
+			var act: String = ["interact", "interact", "move_left", "move_right"][pick]
 			await _tap(act)
 			await _seconds(rng.randf_range(0.0, 0.5))
 			# the invariant: when no hide is in progress the player is on the floor
@@ -917,7 +1135,7 @@ func _test_tub_is_not_a_plane() -> void:
 		await _hold("move_right", 0.6)
 		if absf(pl.global_position.y - y0) > 0.6 or pl.global_position.x <= x_before:
 			bad_walk += 1
-	check(stuck_off == 0, "after %d runs of fast W / A / D presses the player was never left off the floor (%d were)" % [runs, stuck_off])
+	check(stuck_off == 0, "after %d runs of fast [interact] / A / D presses the player was never left off the floor (%d were)" % [runs, stuck_off])
 	check(worst < 0.6, "…and was on the floor at every check whenever no hide was under way (worst %.2f px off)" % worst)
 	check(bad_walk == 0, "…and could always walk the flat on the floor (%d walks left the line or went nowhere)" % bad_walk)
 	WorldState.god_mode = false

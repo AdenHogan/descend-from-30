@@ -698,8 +698,9 @@ func _test_feedback_pill() -> void:
 	var dlg: StyleBoxFlat = HUD.dialogue_panel.get_theme_stylebox("panel")
 	check(HUD.feedback_style.bg_color == dlg.bg_color and HUD.feedback_style.border_color == dlg.border_color and HUD.feedback_style.get_corner_radius(CORNER_TOP_LEFT) == dlg.get_corner_radius(CORNER_TOP_LEFT), "…the very bubble the player's own lines use (dark, steel-edged, rounded)")
 	check(HUD.feedback_label.get_theme_font("font") == HUD.DIALOGUE_FONT and HUD.feedback_label.get_theme_font_size("font_size") == HUD.BUBBLE_PX and HUD.feedback_label.get_theme_color("font_color") == HUD.BUBBLE_TEXT, "…in the same pixel face, size and cream")
-	var head_y := 400.0 + HUD.DIALOGUE_HEAD_DY
+	var head_y := 400.0 - 26.0 - HUD.BUBBLE_HEAD_GAP - HUD.BUBBLE_TAIL_H        # the bubble's foot: the head (26 px over this stand-in's origin), the gap, then the tail
 	check(absf(HUD.feedback_pill.position.x + HUD.feedback_pill.size.x * 0.5 - 576.0) < 3.0 and absf(HUD.feedback_pill.position.y + HUD.feedback_pill.size.y - head_y) < 3.0, "…hanging over the player's head, not the top of the screen (bubble at %s, head line %.0f)" % [str(HUD.feedback_pill.position), head_y])
+	check(HUD.feedback_tail != null and HUD.feedback_tail.visible and HUD.feedback_tail.mouse_filter == Control.MOUSE_FILTER_IGNORE, "…with a tail at the head, and the tail never eats a click either")
 	check(HUD.feedback_pill.mouse_filter == Control.MOUSE_FILTER_IGNORE and HUD.feedback_label.mouse_filter == Control.MOUSE_FILTER_IGNORE, "…and never eats a click meant for the world")
 	HUD.show_feedback("Inventory full.", true)
 	check(HUD.feedback_label.get_theme_color("font_color") == Lamp.RED and HUD.feedback_style.border_color != HUD.BUBBLE_EDGE, "a refusal is red, edge and words")

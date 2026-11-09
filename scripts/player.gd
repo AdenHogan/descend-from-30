@@ -26,7 +26,7 @@ const DEV_MODE = true
 const STAMINA_SPRINT_DRAIN = 14.4          # per second of sprinting (was 12.0: +20%)
 const STAMINA_SPRINT_MIN = 2.4             # the stamina sprint needs to (re)engage — it was STAMINA_SPRINT_DRAIN * 0.2 while that was 12.0
 const STAMINA_COMBAT_WALK_DRAIN = 3.0      # per second of walking at the COMBAT pace (150 px/s, nearly twice scavenge's): about a fifth of a sprint's
-const STAMINA_PUSH_COST = 28.0
+const STAMINA_PUSH_COST = 28.0            # the shove's cost on the easy floors (WorldState.PUSH_COST_EASY is the one number; this stays for the tests that read it)
 const STAMINA_PUSH_REPEAT_WINDOW = 0.6
 const STAMINA_PUSH_REPEAT_MULT = 2.0
 const STAMINA_PASSIVE_RATE = 10.0
@@ -169,6 +169,8 @@ var hide_spot: Node = null          # the hiding place we are in
 var _hide_fx: Node = null           # the washed-out screen (stealth_fx.gd)
 const HIDE_STEP_TIME = 0.3          # sliding to the middle of the piece
 const HIDE_GRACE_MSEC = 250         # the press that hides us must not also bring us out
+var _hide_doomed_by: Node = null    # a dead thing too close when we hid: it saw us go in, and finds us when _hide_doomed_t runs out
+var _hide_doomed_t := 0.0
 var _hide_msec := -100000
 var _hide_return_y := 0.0           # THE walking line while a piece (the bath) has the player risen off it, or climbing back down; 0 = on the line (never a half-way y: see enter_hide)
 var _hide_tween: Tween = null       # the climb in / the climb out: only one at a time
@@ -375,7 +377,7 @@ func _physics_process(delta: float) -> void:
 		request_mode_toggle()
 		return
 
-	if Input.is_action_just_pressed("crouch_toggle"):
+	if Input.is_action_just_pressed("crouch_toggle") and hide_spot == null:       # (hidden, you stay down: the stance is the hiding)
 		is_crouching = !is_crouching
 
 	if attack_cooldown_timer > 0:
@@ -410,16 +412,22 @@ func _physics_process(delta: float) -> void:
 		elif has_move_target and not _target_on_back_spot():
 			exit_back_plane(true)
 		direction = 0
-	# Hidden inside a piece of furniture (stealth_spot.gd): not a walking plane either — [W] again, any move key, an action or a click brings us out.
-	# (The stance toggle is read above, so it has already stood us up by here; it counts as coming out.)
+	# Hidden inside a piece of furniture (stealth_spot.gd): not a walking plane either, and nothing moves us — ONE more press of [interact] brings us out (owner round 49q), or a click
+	# elsewhere (click-to-move) walks us out. The walking keys, an attack, a shove and the stance toggle do NOTHING in there: a hidden player holding still is the whole point.
 	if hide_spot != null:
 		if not is_instance_valid(hide_spot):
 			leave_hide()
 		elif Time.get_ticks_msec() - _hide_msec < HIDE_GRACE_MSEC:
 			pass            # the press that brought us in is still "just pressed" for a frame or two: it must not take us straight out again (the pack had the same bug)
-		elif Input.is_action_just_pressed("move_up") or Input.is_action_just_pressed("move_down") or Input.is_action_just_pressed("move_left") \
-				or Input.is_action_just_pressed("move_right") or Input.is_action_just_pressed("attack") or Input.is_action_just_pressed("push") \
-				or Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("crouch_toggle"):
+		elif _hide_doomed_by != null:
+			# A dead thing was too close when we dived in: it saw us go. Nothing brings us out of this beat (no second chance — owner round 49q), and then it has us.
+			_hide_phase()
+			_hide_doomed_t -= delta
+			if _hide_doomed_t <= 0.0:
+				var by = _hide_doomed_by
+				_hide_doomed_by = null
+				found_hiding(by if is_instance_valid(by) else null)
+		elif Input.is_action_just_pressed("interact"):
 			leave_hide(false, true)
 		elif has_move_target:
 			leave_hide(true, true)
@@ -432,7 +440,7 @@ func _physics_process(delta: float) -> void:
 	var is_sprinting = Input.is_action_pressed("sprint") and not is_crouching and not WorldState.is_scavenge_mode and can_sprint_stamina
 
 	if not WorldState.is_scavenge_mode:
-		if Input.is_action_just_pressed("push") and not is_pushing:
+		if Input.is_action_just_pressed("push") and not is_pushing and hide_spot == null:
 			# The HUD gate is for a mouse button (RMB) pressed ON a widget. A touch / pad press arrives as an action whose
 			# pointer is wherever the last tap emulated a mouse — on a phone that is the PUSH button itself, so gating
 			# there made PUSH dead (owner phone playtest). Headless can't see it (`_is_mouse_over_hud` is false there).
@@ -458,13 +466,13 @@ func _physics_process(delta: float) -> void:
 	var combat_walking: bool = direction != 0 and not is_pushing and not is_sprinting and not is_crouching and not WorldState.is_scavenge_mode
 	if is_sprinting and direction != 0 and WorldState.stamina > 0 and not WorldState.god_mode:
 		WorldState.stamina = max(WorldState.stamina - STAMINA_SPRINT_DRAIN * WorldState.get_sprint_drain_mult() * delta, 0.0)
-		stamina_recovery_timer = STAMINA_RECOVERY_DELAY
+		stamina_recovery_timer = maxf(stamina_recovery_timer, STAMINA_RECOVERY_DELAY)
 		HUD.update_stamina(WorldState.stamina, WorldState.get_max_stamina())
 	elif combat_walking and not WorldState.god_mode:
 		if WorldState.stamina > 0.0:
 			WorldState.stamina = max(WorldState.stamina - STAMINA_COMBAT_WALK_DRAIN * WorldState.get_sprint_drain_mult() * delta, 0.0)
 			HUD.update_stamina(WorldState.stamina, WorldState.get_max_stamina())
-		stamina_recovery_timer = STAMINA_RECOVERY_DELAY
+		stamina_recovery_timer = maxf(stamina_recovery_timer, STAMINA_RECOVERY_DELAY)
 	else:
 		if stamina_recovery_timer > 0:
 			stamina_recovery_timer -= delta
@@ -791,7 +799,7 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 
 	if not WorldState.god_mode:
 		WorldState.stamina = max(WorldState.stamina - stamina_cost, 0.0)
-		stamina_recovery_timer = STAMINA_RECOVERY_DELAY
+		stamina_recovery_timer = maxf(stamina_recovery_timer, STAMINA_RECOVERY_DELAY)
 		HUD.update_stamina(WorldState.stamina, WorldState.get_max_stamina())
 
 	is_attacking = true
@@ -1057,22 +1065,29 @@ func _calculate_gun_outcome(distance: float, damaged: bool = false, instance: It
 
 
 func _do_push() -> void:
-	if WorldState.stamina < 10.0 and not WorldState.god_mode:
-		HUD.show_feedback("Too exhausted to push.", true)
+	# THE SHOVE COSTS A BAR (owner round 49q): from floor 25 down it needs a FULL bar (a character with two charges needs half) and takes it all (or half), and stamina then waits a long
+	# beat before it comes back — a bar that has regenerated to 99 % does not shove. The easy floors keep the old numbers (WorldState.push_cost_for / push_min_stamina_for blend them).
+	var floor_n: int = WorldState.current_floor
+	if WorldState.stamina < WorldState.push_min_stamina_for(floor_n) and not WorldState.god_mode:
+		if WorldState.stamina < 10.0:
+			HUD.show_feedback("Too exhausted to push.", true)
+		else:
+			HUD.show_feedback("I need my wind back to shove.", true)
 		return
 	var now = Time.get_ticks_msec() / 1000.0
 	var time_since_last = now - last_push_time
-	# Character traits / upgrades scale the push cost (The Tenant: 3 → 5 pushes a bar).
-	var base_cost: float = STAMINA_PUSH_COST * WorldState.get_push_cost_mult()
+	var base_cost: float = WorldState.push_cost_for(floor_n)
 	var cost = base_cost
+	var ramp: float = WorldState.descent_ramp(floor_n)
 	if time_since_last < STAMINA_PUSH_REPEAT_WINDOW:
 		push_count_window += 1
-		cost = base_cost * pow(STAMINA_PUSH_REPEAT_MULT, push_count_window)
+		cost = base_cost * lerpf(pow(STAMINA_PUSH_REPEAT_MULT, push_count_window), 1.0, ramp)      # (the doubling is for the easy floors: deep, the bar itself is the limit)
 	else:
 		push_count_window = 1
 	last_push_time = now
 	if not WorldState.god_mode:
 		WorldState.stamina = max(WorldState.stamina - cost, 0.0)
+		stamina_recovery_timer = maxf(stamina_recovery_timer, WorldState.push_recovery_delay_for(floor_n))
 		HUD.update_stamina(WorldState.stamina, WorldState.get_max_stamina())
 	is_pushing = true
 	push_timer = PUSH_DURATION
@@ -1681,6 +1696,22 @@ func _input(event: InputEvent) -> void:
 #  • Mouse SIDE buttons (rebindable attack) were treated as pointer clicks; they now act like
 #    a key, as the attack binding always intended.
 
+## Where a speech bubble's tail touches: just over the top of the head, measured up from the FEET (an origin differs per rig; the feet line is the one plane every actor shares), so the
+## bubble sits on the person and not far above them (owner round 49q: "it's still far too high, I don't like how disconnected it is from everything below"). A crouch, a kneel at the pack
+## and a hiding place are lower; the back plane and the balcony draw the player smaller (`_set_plane_depth`) and the head follows.
+const HEAD_HEIGHT_STAND := 59.0       # world px from the feet to the top of the head, standing (measured: origin -26, feet +33)
+const HEAD_HEIGHT_CROUCH := 43.0      # crouching / kneeling / hidden (origin -10)
+func head_top_position() -> Vector2:
+	var h: float = HEAD_HEIGHT_CROUCH if (is_crouching or pack_phase != "" or hide_spot != null) else HEAD_HEIGHT_STAND
+	var depth: float = 1.0
+	if back_spot != null and _back_base_scale.y > 0.0:
+		depth = animated_sprite.scale.y / _back_base_scale.y
+	elif on_balcony_plane and _plane_base_scale.y > 0.0:
+		depth = animated_sprite.scale.y / _plane_base_scale.y
+	var f := feet_position()
+	return Vector2(f.x, f.y - h * clampf(depth, 0.5, 1.0))
+
+
 func feet_position() -> Vector2:
 	# Where the player's FEET touch the floor (collision-bottom) — the plane every actor stands on
 	# (419 in a corridor). Things left where the player stood (their corpse) are placed by feet,
@@ -1719,6 +1750,8 @@ func _handle_attack_press(event: InputEvent) -> bool:
 	# click-to-move / click-to-scavenge.
 	if WorldState.loot_open:
 		return false
+	if hide_spot != null:
+		return not _is_pointer_click(event)     # hidden: a key press is swallowed (you hold still in there); a pointer click falls through to click-to-move, which walks you out
 	var pointer := _is_pointer_click(event)
 	if hud_blocks_attack(pointer, _is_mouse_over_hud() if pointer else false):
 		return false
@@ -1752,7 +1785,7 @@ func _try_buffered_attack() -> void:
 		_attack_buffered_until = -1.0      # window closed — a stale press never fires late
 		return
 	if is_attacking or is_switching_mode or WorldState.is_scavenge_mode or is_dead or is_dying \
-			or is_cutscene or is_listening or WorldState.loot_open:
+			or is_cutscene or is_listening or WorldState.loot_open or hide_spot != null:
 		return                             # not yet — keep waiting inside the window
 	_attack_buffered_until = -1.0
 	if _selected_weapon_instance() != null:
@@ -2232,16 +2265,17 @@ func exit_back_plane(keep_target: bool = false) -> void:
 		set_move_target(tx, ta if (ta != null and is_instance_valid(ta)) else null)
 
 
-## Slip into a hiding place (stealth_spot.gd). Refused — with a red line — while something is looking for us right now (Stealth.seen_by): you can hide from the
-## dead that have LOST you, never from the ones that have you. Returns whether we are (about to be) hidden.
+## Slip into a hiding place (stealth_spot.gd) — ONE press of [interact], in any stance (owner round 49q: "when a player hops into hiding, it should be automatic, not a move up or
+## down or anything like that, just a hide prompt"). You can hide from the dead that are chasing you, but not from one that is TOO CLOSE when you commit — inside its attack
+## reach and one more length (Stealth.too_close): it sees you go in, and after a beat of dread (Stealth.DISCOVER_DELAY) it has found you. Returns whether we are (about to be) hidden.
 func enter_hide(spot: Node) -> bool:
 	if spot == null or not is_instance_valid(spot) or hide_spot != null or back_spot != null or on_balcony_plane:
 		return false
 	if is_cutscene or is_dead or is_dying or is_lashing or is_listening or is_switching_mode or pack_phase != "" or escaping:
 		return false
-	if not Stealth.seen_by(self).is_empty():
-		HUD.show_feedback("They're looking right at me.", true)
-		return false
+	var close: Array = Stealth.too_close(self)
+	_hide_doomed_by = close[0] if not close.is_empty() else null
+	_hide_doomed_t = Stealth.DISCOVER_DELAY if not close.is_empty() else 0.0
 	_clear_move_target()
 	velocity = Vector2.ZERO
 	is_crouching = true
@@ -2289,6 +2323,8 @@ func leave_hide(keep_target: bool = false, voluntary: bool = false) -> void:
 	var spot = hide_spot
 	hide_spot = null
 	conceal = Stealth.NONE
+	_hide_doomed_by = null
+	_hide_doomed_t = 0.0
 	if _hide_fx != null and is_instance_valid(_hide_fx):
 		_hide_fx.end()
 	_hide_fx = null

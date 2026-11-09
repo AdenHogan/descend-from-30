@@ -2479,9 +2479,9 @@ var upgrade_offers: Dictionary = {}  # "run:floor" -> {"offer": [id,id,id], "res
 const CHARACTER_TRAITS := {
 	"blond_man": {   # The Tenant — all-rounder, the brawler's stamina
 		"tagline": "Steady all-rounder. Shoves and swings for longer.",
-		"perks": ["Pushes cost 30% less stamina (3 → 5 pushes a bar)", "Melee swings cost 15% less stamina"],
+		"perks": ["Two shoves from a full bar (everyone else gets one)", "Melee swings cost 15% less stamina"],
 		"flaws": [],
-		"mods": {"push_cost": {"mult": 0.70}, "melee_cost": {"mult": 0.85}},
+		"mods": {"push_cost": {"mult": 0.70}, "push_charges": {"add": 1}, "melee_cost": {"mult": 0.85}},
 		"flags": [],
 	},
 	"blond_woman": {  # The Neighbour — endurance + quiet, but not quick
@@ -3475,6 +3475,12 @@ const TOOLBOX_POOL_DEEP := 0.5  # a node pool's toolbox weight at full ramp (was
 const TOOLBOX_CHARGES_EASY := 3 # a toolbox found at ramp 0 mends this many times; at full ramp one
 const MAINT_TOOLBOX_EASY := 0.36    # a maintenance node's chance of a toolbox at ramp 0 ...
 const MAINT_TOOLBOX_DEEP := 0.18    # ... and at full ramp (the fuse / scrap / notes shares keep their widths either way)
+# PUSH COSTS A BAR (owner round 49q: "push should drop stamina entirely... for those groups? No, push should really come at a cost. Push and stamina doesn't even begin
+# to regen immediately, it takes a moment. So hiding to allow enemies to pass, that needs to be a viable solution"): at full ramp a shove spends the WHOLE bar (so a crowd cannot
+# be shoved through - at zero you can neither swing, shove nor sprint) and stamina waits `PUSH_RECOVERY_DEEP` seconds before it starts to come back. Ramped like every other cut.
+const PUSH_COST_EASY := 28.0        # a shove at ramp 0 (the original number)
+const PUSH_RECOVERY_EASY := 0.8     # seconds before stamina regenerates after a shove at ramp 0 (the same beat as after a swing or a sprint)
+const PUSH_RECOVERY_DEEP := 2.5     # ... and at full ramp
 # Tests and A/B bot sweeps force a ramp on EVERY floor (0 = the old rules, 1 = the new): -1 = off. Never saved, never set by the game.
 var dev_ramp_override: float = -1.0
 
@@ -3487,6 +3493,31 @@ func descent_ramp(floor_num: int) -> float:
 
 func reach_bonus_for(floor_num: int) -> float:
 	return REACH_BONUS_PX * descent_ramp(floor_num)
+
+
+## How many shoves a FULL bar holds: 1 for everyone, +1 for Joe (the Tenant) and for a perk that says so (`push_charges`, a stat). Owner round 49q: "push needs full stamina to use and wipes
+## it out. Joe gets two, and we can even skill upgrade this so other characters can get two. Anyone not Joe gets one push and stamina depleted."
+func get_push_charges() -> int:
+	return maxi(1, roundi(1.0 + _upgrade_stat_add("push_charges")))
+
+
+## What one shove costs on this floor, in stamina. At ramp 0 (floors 30 / 29) it is the original PUSH_COST_EASY times the character's push-cost multiplier; at full ramp it is
+## the bar divided by the shoves a bar holds (the WHOLE bar for one charge, half for Joe's two) — a straight blend between, like every ramped number.
+func push_cost_for(floor_num: int) -> float:
+	var easy: float = PUSH_COST_EASY * get_push_cost_mult()
+	var deep: float = get_max_stamina() / float(get_push_charges())
+	return lerpf(easy, deep, descent_ramp(floor_num))
+
+
+## The least stamina a shove needs. The easy floors keep the old "not too exhausted" 10; at full ramp it is the shove's own cost — so with one charge the bar must be FULL, and
+## regenerating is not enough until it is whole again (a shove with a bar that is back to 99 % is refused).
+func push_min_stamina_for(floor_num: int) -> float:
+	return lerpf(10.0, push_cost_for(floor_num) - 0.001, descent_ramp(floor_num))
+
+
+## How long stamina waits after a shove before it starts to come back.
+func push_recovery_delay_for(floor_num: int) -> float:
+	return lerpf(PUSH_RECOVERY_EASY, PUSH_RECOVERY_DEEP, descent_ramp(floor_num))
 
 
 func toolbox_pool_scale(floor_num: int) -> float:
