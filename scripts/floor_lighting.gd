@@ -225,6 +225,23 @@ static func make_window_light(pos: Vector2, energy_scale: float = 1.0) -> PointL
 	return lt
 
 
+# A FLAT'S daylight (owner round 49s: "improvements to lighting and colour"; round 49q: "so much of our colour palette looks so lifeless... we need lighting, shadows"). A room's
+# window light used to be the corridor's broad wash at any hour - at the flat's closer zoom that is the whole screen, so by dusk and by night every wall was the same flat grey.
+# By DAY it is still a wash (the morning is a bright day). At DUSK the light is a pool round the glass in the sunset's own colour, and by NIGHT a smaller pool of moonlight -
+# so the room has a lit side and a dark side, and the dark between the windows belongs to the lamps and to the player's own light.
+const ROOM_WINDOW_REACH := [1.6, 1.05, 0.9]            # texture_scale by run (the round cookie is 256 px: x1.6 = a 205 px radius, x0.9 = 115)
+const ROOM_WINDOW_GAIN := [1.0, 1.7, 1.5]              # energy on top of the caller's scale: tighter, so brighter where it falls
+const ROOM_WINDOW_CAST := [Color(0.80, 0.88, 1.00), Color(1.00, 0.72, 0.50), Color(0.48, 0.64, 1.00)]
+
+
+static func make_room_window_light(pos: Vector2, energy_scale: float = 1.0) -> PointLight2D:
+	var i: int = clampi(WorldState.current_run - 1, 0, 2)
+	var lt := make_window_light(pos, energy_scale * float(ROOM_WINDOW_GAIN[i]))
+	lt.texture_scale = float(ROOM_WINDOW_REACH[i])
+	lt.color = ROOM_WINDOW_CAST[i]
+	return lt
+
+
 func setup(floor_num: int, window_sides: Array = ["left", "right"], style: String = "",
 		xs: Array = SCONCE_X) -> void:
 	# window_sides: which stairwells this floor actually HAS (the hallway at 30 has no up

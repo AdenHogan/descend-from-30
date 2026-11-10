@@ -80,10 +80,10 @@ func _build() -> bool:
 	var art_path: String = BuildingFloors.corridor_art_path(FLOOR, RUN)
 	if not ResourceLoader.exists(art_path):
 		return false
-	BuildingFloors.add_corridor_art(self, art_path)
+	BuildingFloors.add_corridor_art(self, art_path, [], false)        # (no depth shade: the title's look is the owner's approved one - round 48g/48h)
 	_build_doors()
 	# the floor's dressing + its horror (seeded by SEED / RUN above); the doors are already in so the door-face marks land over them
-	Decals.add_to(self, FLOOR, RUN, BuildingFloors.corridor_base_name(FLOOR), BuildingFloors.CORRIDOR_ART_POS, [], HORROR_BOOST)
+	Decals.add_to(self, FLOOR, RUN, BuildingFloors.corridor_base_name(FLOOR), BuildingFloors.CORRIDOR_ART_POS, [], HORROR_BOOST, false)   # (no cast shadows: the approved title look)
 	_strip_interactions()
 	lights = Lighting.new()
 	lights.name = "FloorLighting"

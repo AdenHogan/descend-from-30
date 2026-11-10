@@ -404,7 +404,7 @@ static func _tex(name: String) -> Texture2D:
 
 ## Adds "CorridorDecals" (wall + floor, right above the corridor art — under the doors) and
 ## "CorridorDoorDecals" (on the door faces — right after the Elevator, over the doors).
-static func add_to(root: Node, floor_num: int, run: int, base_name: String, art_pos: Vector2, extra_taken: Array = [], horror_boost: float = 0.0) -> void:
+static func add_to(root: Node, floor_num: int, run: int, base_name: String, art_pos: Vector2, extra_taken: Array = [], horror_boost: float = 0.0, cast_shadows: bool = true) -> void:
 	if root.get_node_or_null("CorridorDecals") != null:
 		return
 	var wall := Node2D.new()
@@ -436,6 +436,9 @@ static func add_to(root: Node, floor_num: int, run: int, base_name: String, art_
 		(door if d["layer"] == "door" else wall).add_child(s)
 		if float(d["pos"].y) >= FLOOR_Y and s.texture != null:
 			floor_rects.append(Rect2(d["pos"], s.texture.get_size()))
+		# what STANDS on the floor against the wall (a pram, a planter, a chair) throws its shadow up the paper behind it, away from the nearest light (scripts/room_depth.gd)
+		elif cast_shadows and d["layer"] != "door" and s.texture != null and float(d["pos"].y) + float(s.texture.get_height()) > FLOOR_Y:
+			RoomDepth.add_corridor_cast(wall, s, run)
 	var deads: Array = dead_plan(floor_num, run, floor_rects + ([story_rect.grow(24)] if story_tex != null else []))
 	if story_tex != null:
 		deads.push_front(story)

@@ -40,7 +40,7 @@ func setup(pos: Vector2, live: bool, variant_seed: int = -1) -> void:
 	z_index = 0
 	var run: int = clampi(WorldState.current_run, 1, 3)
 	_night = run == 3
-	light = FL.make_window_light(Vector2.ZERO, APARTMENT_WINDOW_ENERGY_SCALE)
+	light = FL.make_room_window_light(Vector2.ZERO, APARTMENT_WINDOW_ENERGY_SCALE)      # a wash by day, a pool round the glass at dusk and by night
 	# The storm driver finds every window this way to flash them as one lightning event.
 	light.add_to_group("apt_window_light")
 	# Remember the run's base energy so a flash can return to it exactly.

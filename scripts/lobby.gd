@@ -58,7 +58,7 @@ func _build_world(as_scenery: bool) -> void:
 	# Everything that belongs to the PLACE — identical for a fresh load and a pan backdrop,
 	# so the commit shows exactly what already scrolled into view.
 	load("res://scripts/building_floors.gd").add_corridor_art(self,
-		load("res://scripts/building_floors.gd").corridor_art_named("corridor_lobby", WorldState.current_run))
+		load("res://scripts/building_floors.gd").corridor_art_named("corridor_lobby", WorldState.current_run), ["right"])
 	CorpseDepth.ensure(self)                          # the dead draw in front of whoever stands level with them (owner round 48h)
 	load("res://scripts/building_floors.gd").add_endpoint_signs(self, 0, ["right"], false)
 	load("res://scripts/stair_window.gd").attach(get_node_or_null("LobbyRight"), "up", true, 1)   # the city behind its glass

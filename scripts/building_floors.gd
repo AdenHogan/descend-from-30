@@ -121,7 +121,7 @@ static func corridor_art_named(art_name: String, run: int) -> String:
 	return base + ".png"
 
 
-static func add_corridor_art(root: Node, path: String) -> void:
+static func add_corridor_art(root: Node, path: String, window_sides: Array = ["left", "right"], shade: bool = true) -> void:
 	# A painted overlay over the old tile look, placed right ABOVE the TileMapLayer so every door,
 	# stair sprite, the elevator, lamps, fire and actors still draw over it (same z, later in the
 	# tree). Shared by the floors 1-29, the hallway (30) and the lobby (0); built in their passive
@@ -138,6 +138,10 @@ static func add_corridor_art(root: Node, path: String) -> void:
 	var tm = root.get_node_or_null("TileMapLayer")
 	if tm != null:
 		root.move_child(art, tm.get_index() + 1)
+	# DEPTH (scripts/room_depth.gd, round 49s): the dark under the ceiling and along the floor's near edge, and a long hall's own light - daylight at the stairwell windows
+	# (`window_sides`: which ends have one), dimmer toward the middle where the wall lamps do their work. Part of the art, so live and backdrop agree.
+	if shade:
+		RoomDepth.add_to_corridor(root, window_sides, WorldState.current_run)
 
 
 ## The endpoint floors' version of the signs (hallway 30: left stairwell only; lobby: right only): the

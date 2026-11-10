@@ -1002,7 +1002,7 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 			if show_balcony:
 				# (from the middle of the doorway, just under its lintel — scripts/balcony_geo.gd)
 				var bdoor := Vector2(LEFT_WALL_X + i * MODULE_WIDTH + BalconyGeo.CENTER_DX, BalconyGeo.LINTEL_Y + 16.0)
-				var win = load("res://scripts/floor_lighting.gd").make_window_light(bdoor)
+				var win = load("res://scripts/floor_lighting.gd").make_room_window_light(bdoor)
 				add_child(win)
 				# A slanting daylight beam through the balcony door (see window_beam.gd).
 				var bbeam = load("res://scripts/window_beam.gd").new()
@@ -1067,6 +1067,11 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 			instance.add_child(window)
 			_place_before_anchors(instance, window)
 			window.setup(Vector2(wlx, MODULE_WINDOW_Y - instance.position.y), live, absi(hash(apartment_id + "_win_" + str(i))))
+		# DEPTH AND LIGHT (scripts/room_depth.gd, round 49s): the shade a room keeps where light does not reach (ceiling, corners, away from its daylight) and, in a planned
+		# room, each piece's own shadow thrown on the wall behind it, away from the window by day and from a lit lamp by night. Live and backdrop alike.
+		var day_x: float = BalconyGeo.CENTER_DX if has_balcony else (MODULE_WINDOW_INSET if WorldState.window_side_of(scene_path if fplan.is_empty() else baked_scene_for(apartment_id, i, layout[i]), apartment_id, i) == "left" else MODULE_WIDTH - MODULE_WINDOW_INSET)
+		RoomDepth.add_to(instance, {"width": MODULE_WIDTH, "end_l": i == 0, "end_r": i == layout.size() - 1, "day_x": day_x, "run": WorldState.current_run,
+			"planned": not fplan.is_empty() and not charred_flat, "lamps": lamps})
 		_add_front_art(instance, has_balcony, charred_flat)
 		_add_over_art(instance, charred_flat)
 

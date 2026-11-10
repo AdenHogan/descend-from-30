@@ -257,6 +257,7 @@ func _ready() -> void:
 	# z 0 and they'll sit behind bodies automatically.
 	z_index = 1
 	_setup_player_light()
+	GroundShadow.attach(self, animated_sprite)        # the contact shadow under the feet (scripts/ground_shadow.gd)
 	_setup_gun_animations()
 	footstep_player = AudioStreamPlayer2D.new()
 	footstep_player.name = "FootstepPlayer"

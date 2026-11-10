@@ -760,6 +760,7 @@ func _ready() -> void:
 	animated_sprite = $AnimatedSprite2D
 	animated_sprite.play("Idle")
 	EnemyFeet.lift_sprite(self, animated_sprite)   # drawn feet on the player's line, alive or dead (round 33)
+	GroundShadow.attach(self, animated_sprite)     # the contact shadow under the feet (scripts/ground_shadow.gd)
 	ai_tell = AiTell.attach(self, TELL_LIFT)
 	player = get_tree().get_first_node_in_group("player")
 	base_walk_y = global_position.y

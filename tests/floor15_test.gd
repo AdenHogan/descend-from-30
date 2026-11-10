@@ -665,9 +665,10 @@ func _test_one_rule_for_the_rest() -> void:
 	le._player_near = true
 	check(corpse.player_nearby and le.interact_ready() and not InteractArbiter.beaten(le) and InteractArbiter.beaten(corpse),
 		"…and with the player AT the door (door 1 px, body 33 px) the way out answers, the body yields")
-	le.queue_free()
-	cb.queue_free()
-	pack.queue_free()
+	# (the backpack was TAKEN two steps up and freed itself: calling queue_free on it again is a use-after-free - it crashed the engine with signal 11 in about half the runs)
+	for gone in [le, cb, pack]:
+		if is_instance_valid(gone):
+			gone.queue_free()
 
 	# ---- the lint: every script that reads the press must ask the rule (or say why it need not)
 	var allowed: Dictionary = {
