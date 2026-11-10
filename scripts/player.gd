@@ -26,14 +26,9 @@ const DEV_MODE = true
 const STAMINA_SPRINT_DRAIN = 14.4          # per second of sprinting (was 12.0: +20%)
 const STAMINA_SPRINT_MIN = 2.4             # the stamina sprint needs to (re)engage — it was STAMINA_SPRINT_DRAIN * 0.2 while that was 12.0
 const STAMINA_COMBAT_WALK_DRAIN = 3.0      # per second of walking at the COMBAT pace (150 px/s, nearly twice scavenge's): about a fifth of a sprint's
-const STAMINA_PUSH_COST = 28.0            # the shove's cost on the easy floors (WorldState.PUSH_COST_EASY is the one number; this stays for the tests that read it)
-const STAMINA_PUSH_REPEAT_WINDOW = 0.6
-const STAMINA_PUSH_REPEAT_MULT = 2.0
 const STAMINA_PASSIVE_RATE = 10.0
 const STAMINA_RECOVERY_DELAY = 0.8
 var stamina_recovery_timer: float = 0.0
-var last_push_time: float = 0.0
-var push_count_window: int = 0
 
 # Weapon attack
 const WEAPON_RANGES = {
@@ -479,11 +474,6 @@ func _physics_process(delta: float) -> void:
 		elif WorldState.stamina < WorldState.get_max_stamina():
 			WorldState.stamina = min(WorldState.stamina + STAMINA_PASSIVE_RATE * WorldState.get_stamina_regen_mult() * delta, WorldState.get_max_stamina())
 			HUD.update_stamina(WorldState.stamina, WorldState.get_max_stamina())
-
-	if push_count_window > 0:
-		var time_since_push = Time.get_ticks_msec() / 1000.0 - last_push_time
-		if time_since_push > STAMINA_PUSH_REPEAT_WINDOW:
-			push_count_window = 0
 
 	if direction > 0:
 		animated_sprite.flip_h = false
@@ -1065,29 +1055,17 @@ func _calculate_gun_outcome(distance: float, damaged: bool = false, instance: It
 
 
 func _do_push() -> void:
-	# THE SHOVE COSTS A BAR (owner round 49q): from floor 25 down it needs a FULL bar (a character with two charges needs half) and takes it all (or half), and stamina then waits a long
-	# beat before it comes back — a bar that has regenerated to 99 % does not shove. The easy floors keep the old numbers (WorldState.push_cost_for / push_min_stamina_for blend them).
-	var floor_n: int = WorldState.current_floor
-	if WorldState.stamina < WorldState.push_min_stamina_for(floor_n) and not WorldState.god_mode:
+	# THE SHOVE COSTS A BAR, ON EVERY FLOOR (owner rounds 49q / 49r): it needs a FULL bar (a character with two charges needs half), takes it all (or half), and stamina then waits a long
+	# beat before it comes back - a bar that has regenerated to 99 % does not shove. Not on the descent ramp: floor 30 and the tutorial play by the same rule as floor 5.
+	if WorldState.stamina < WorldState.push_min_stamina() and not WorldState.god_mode:
 		if WorldState.stamina < 10.0:
 			HUD.show_feedback("Too exhausted to push.", true)
 		else:
 			HUD.show_feedback("I need my wind back to shove.", true)
 		return
-	var now = Time.get_ticks_msec() / 1000.0
-	var time_since_last = now - last_push_time
-	var base_cost: float = WorldState.push_cost_for(floor_n)
-	var cost = base_cost
-	var ramp: float = WorldState.descent_ramp(floor_n)
-	if time_since_last < STAMINA_PUSH_REPEAT_WINDOW:
-		push_count_window += 1
-		cost = base_cost * lerpf(pow(STAMINA_PUSH_REPEAT_MULT, push_count_window), 1.0, ramp)      # (the doubling is for the easy floors: deep, the bar itself is the limit)
-	else:
-		push_count_window = 1
-	last_push_time = now
 	if not WorldState.god_mode:
-		WorldState.stamina = max(WorldState.stamina - cost, 0.0)
-		stamina_recovery_timer = maxf(stamina_recovery_timer, WorldState.push_recovery_delay_for(floor_n))
+		WorldState.stamina = max(WorldState.stamina - WorldState.push_cost(), 0.0)
+		stamina_recovery_timer = maxf(stamina_recovery_timer, WorldState.push_recovery_delay())
 		HUD.update_stamina(WorldState.stamina, WorldState.get_max_stamina())
 	is_pushing = true
 	push_timer = PUSH_DURATION

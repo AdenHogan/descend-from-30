@@ -64,13 +64,11 @@ func CharacterPanelScript():
 
 
 func _test_tenant() -> void:
-	print("[The Tenant — all-rounder: more pushes, cheaper swings]")
+	print("[The Tenant — all-rounder: two shoves in a bar, cheaper swings]")
 	_play_as("blond_man")
-	var P = load("res://scripts/player.gd")
 	var bar: float = WorldState.get_max_stamina()
-	var base_pushes := int(floor(bar / P.STAMINA_PUSH_COST))
-	var his_pushes := int(floor(bar / (P.STAMINA_PUSH_COST * WorldState.get_push_cost_mult())))
-	check(his_pushes == base_pushes + 2, "two more pushes from a full bar (%d → %d)" % [base_pushes, his_pushes])
+	check(WorldState.get_push_charges() == 2, "two shoves from a full bar (one more than anyone else: %d)" % WorldState.get_push_charges())
+	check(_near(WorldState.push_cost(), bar * 0.5), "…each half the bar (%.1f of %.1f)" % [WorldState.push_cost(), bar])
 	check(_near(WorldState.get_melee_cost_mult(), 0.85), "melee swings cost 15% less")
 	check(_near(WorldState.get_sprint_speed_mult(), 1.0) and _near(WorldState.get_enemy_count_mult(), 1.0),
 		"no weakness — his other stats are baseline")
@@ -155,10 +153,9 @@ func _test_player_costs() -> void:
 	p.global_position = Vector2(600, 386)
 	await get_tree().physics_frame
 	WorldState.stamina = WorldState.get_max_stamina()
-	p.last_push_time = -100.0
 	p._do_push()
-	check(_near(100.0 - WorldState.stamina, p.STAMINA_PUSH_COST * 0.70),
-		"a Tenant push costs %.1f (not %.1f)" % [100.0 - WorldState.stamina, p.STAMINA_PUSH_COST])
+	check(_near(WorldState.get_max_stamina() - WorldState.stamina, WorldState.get_max_stamina() * 0.5),
+		"a Tenant push costs half the bar (%.1f of %.1f)" % [WorldState.get_max_stamina() - WorldState.stamina, WorldState.get_max_stamina()])
 	# Melee swing cost.
 	WorldState.inventory.clear()
 	WorldState.add_to_inventory("002")

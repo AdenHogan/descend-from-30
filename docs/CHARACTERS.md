@@ -14,7 +14,7 @@ upgrades stack on top and nothing is ever written directly into a stat.
 
 | id | Name (owner-set: Joe, Vivianne, Alex, Amina) | Identity | Strengths | Weakness |
 |---|---|---|---|---|
-| `blond_man` | Joe (the Tenant) | Steady all-rounder | Push −30% stamina (**3 → 5 pushes** per bar on floors 30 / 29, then — from floor 25 down — **two shoves from a full bar, where everyone else gets one**, `push_charges` +1); melee −15% stamina | none — the baseline |
+| `blond_man` | Joe (the Tenant) | Steady all-rounder | **Two shoves from a full bar, where everyone else gets one** (`push_charges` +1, on every floor from 30 — round 49r); melee −15% stamina | none — the baseline |
 | `blond_woman` | Vivianne (the Neighbour) | Endurance + quiet | Sprint drain −20%; stamina regen +15%; 15% quieter | Sprints 12% slower |
 | `bald_man` | Alex (the Super) | Knows the building by sound | Hears the **EXACT** enemy count at doors + down the stairwell; listens 25% faster; melee −10% stamina | Unlucky: ~20% more enemies per floor |
 | `dark_woman` | Amina (the Nurse) | Lucky hands, shaky aim | Scavenge spots hold something +8% more often; rare finds likelier, junk rarer | −15% gun hit chance |
@@ -26,7 +26,7 @@ and locked out. See docs/CHARACTER_STORIES.md.
 ## The owner's brief → what was built
 
 - **White male (blond_man)** — "all-rounder, two more pushes from the stamina bar, less melee
-  drain" → built as asked. Push cost ×0.70 turns 3 pushes (28 of 100) into 5 on the early floors; from floor 25 down (owner round 49q: a shove needs a FULL bar and wipes it, docs/STEALTH_SPACES.md §8) his edge is the second charge — two shoves from a full bar. The Brawler perk gives another character that second charge.
+  drain" → built as asked. His push edge was a ×0.70 push cost (3 pushes into 5); since owner rounds 49q / 49r a shove needs a FULL bar and wipes it, on every floor (docs/STEALTH_SPACES.md §8), so his edge is the second charge — two shoves from a full bar — and the cost multiplier is gone. The Brawler perk gives another character that second charge.
 - **White female (blond_woman)** — "slightly less stamina drain, slower run speed" → built as
   asked (sprint drain + regen), plus **quieter movement** (Claude's addition, to give her a
   distinct stealth identity: slow-but-enduring-and-quiet). Only the SPRINT is slower, not walking.
@@ -44,8 +44,8 @@ and locked out. See docs/CHARACTER_STORIES.md.
 
 ## New stats added for this (all via the fold)
 
-`push_cost`, `melee_cost`, `sprint_speed`, `enemy_count` (mult) and `loot_luck` (add) — getters
-`get_push_cost_mult` / `get_melee_cost_mult` / `get_sprint_speed_mult` / `get_enemy_count_mult`
+`melee_cost`, `sprint_speed`, `enemy_count` (mult) and `loot_luck` (add) (`push_cost` was one until round 49r: the shove's cost is now the bar over `push_charges`) — getters
+`get_melee_cost_mult` / `get_sprint_speed_mult` / `get_enemy_count_mult`
 / `get_loot_luck`. They're also usable by future UPGRADES (e.g. a "Lucky" boon = `loot_luck`).
 
 ## Testing note
