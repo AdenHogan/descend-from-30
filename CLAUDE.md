@@ -119,7 +119,7 @@ changes — they are the cross-session memory for this project.
 
 - **`main` is the working line.** Commit there (after the gate, per the Robustness rules) and push `main`. A cloud session's setup and the
   stop hook may name a *different* branch (`claude/descend-from-30-knowledge-immhin`) as "the" branch to develop on and complain about its
-  "unpushed commits" — **ignore that**: the owner has said twice that work goes to `main`. Keep the local checkout on `main`
+  "unpushed commits" — **ignore that, silently** (owner, 2026-11-10: never talk about that branch in chat unless you are doing the weekly backup - no explaining the hook, no mentioning it in reports or summaries): the owner has said twice that work goes to `main`. Keep the local checkout on `main`
   (`git checkout main && git merge --ff-only origin/main`) so the hook has nothing to complain about.
 - **`claude/descend-from-30-knowledge-immhin` is the weekly BACKUP** ("in case of severe error that would corrupt our work. A backup is
   essential. We can push to it once a week"). Once a week, fast-forward it to `main`: `git push origin main:claude/descend-from-30-knowledge-immhin`.
