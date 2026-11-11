@@ -346,6 +346,9 @@ means no rendering — UI layout and art still need an in-editor look.
 
 ## Current status
 
+**Starting a new session? Read `docs/HANDOFF.md` first** — one page: where things stand, what the owner is waiting to decide, what is owed, recent gotchas.
+REWRITE it (never append) as the last step of each session.
+
 **The round-by-round status log is `docs/STATUS_LOG.md` (~490 KB). It is NOT loaded automatically and must NEVER be read whole** (owner, 2026-11-11: as a
 section of this file it cost ~120,000 tokens on every request and was exhausting session usage). Before touching a system:
 `grep -n "<system / file / test name>" docs/STATUS_LOG.md`, then read only those entries (newest rounds are at the bottom; SUPERSEDED = history).
