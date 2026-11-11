@@ -212,45 +212,79 @@ def pound(frame):
 # ---- the cat ----------------------------------------------------------------------------------------------------------------
 # Joints in a 15 x 8 box (the L tier), facing right. `a` = stretched (the fore legs reaching, the hind legs thrown back, the spine long and
 # low); `b` = gathered (all four feet bunched under the body, the back arched).
-CAT = {
-    'a': dict(shoulder=(9.4, 4.4), hip=(5.0, 4.5), head=(11.6, 3.3), tail=[(4.2, 4.3), (2.6, 3.8), (1.4, 2.6), (1.5, 1.0)],
-              nf=[(9.6, 5.4), (11.2, 6.9), (12.8, 8.4)], ff=[(9.0, 5.4), (10.4, 6.8), (11.4, 8.5)],
-              nh=[(4.8, 5.4), (3.2, 6.9), (1.4, 8.4)], fh=[(5.6, 5.4), (4.4, 6.8), (2.8, 8.5)]),
-    'b': dict(shoulder=(9.0, 4.0), hip=(5.2, 3.9), head=(11.0, 3.1), tail=[(4.4, 3.8), (3.0, 3.2), (2.0, 2.0), (2.1, 0.6)],
-              nf=[(9.2, 5.2), (9.6, 6.8), (10.8, 8.5)], ff=[(8.6, 5.2), (8.8, 6.8), (9.6, 8.5)],
-              nh=[(5.0, 5.0), (6.0, 6.9), (7.2, 8.5)], fh=[(5.6, 5.0), (6.6, 6.8), (8.0, 8.5)]),
+# ---- the cat: HAND-PLACED pixels (owner 2026-11-11: "I hate how the cat looks and runs up towards the building and disappears"). The old cat
+# was a line-skeleton galloping INTO the picture in three shrinking sizes and fading out at the door: a side-view drawing moving away from the
+# viewer. Now it does what a cat does: it trots in across the front of the garden, side on (the way it is drawn), stops on the path and SITS,
+# its tail flicking, and looks up when the crows go. It never leaves. One size (the front of the garden), every pixel placed by hand:
+# K the coat, L the sheen along the back, D the far legs, E the eye.
+CAT_TONES = {'K': PAL['cat'], 'L': (50, 50, 64, 255), 'D': (36, 36, 48, 255), 'E': PAL['eye']}
+CAT_FRAMES = ('a', 'p1', 'b', 'p2', 'sit_a', 'sit_b', 'look')
+_CAT_TOP = [
+    '.K..........K.K.',
+    'K...........KKK.',
+    'K..........KKKEK',
+    'K..LLLLLLLLKKKKK',
+    '.KKKKKKKKKKKKKK.',
+    '.KKKKKKKKKKKK...',
+    '..KKKKKKKKKK....',
+]
+_CAT_TOP2 = ['K...........K.K.', 'K...........KKK.', '.K.........KKKEK', '.K.LLLLLLLLKKKKK'] + _CAT_TOP[4:]      # the tail's tip the other way
+_CAT = {
+    'a': _CAT_TOP + ['..K.D.....D.K...', '.K..D....D...K..', 'K....D...D....K.'],
+    'p1': _CAT_TOP2 + ['...KD.....DK....', '...KD.....DK....', '...K.D....D.K...'],
+    'b': _CAT_TOP + ['....DK...K.D....', '...D.K...K..D...', '..D...K.K....D..'],
+    'p2': _CAT_TOP2 + ['...DK.....KD....', '...DK.....KD....', '...D.K....K.D...'],
+    'sit_a': [
+        '.....K.K..',
+        '.....KKK..',
+        '....KKKEK.',
+        '....KKKKK.',
+        '....LKKK..',
+        '...LKKKK..',
+        '..LKKKKK..',
+        '.LKKKKDK..',
+        '.KKKKKDK..',
+        'KKKKKKDKKK',
+    ],
+    'sit_b': [
+        '.....K.K..',
+        '.....KKK..',
+        '....KKKEK.',
+        '....KKKKK.',
+        '....LKKK..',
+        '...LKKKK..',
+        '..LKKKKK..',
+        '.LKKKKDK..',
+        '.KKKKKDK.K',
+        'KKKKKKDKK.',
+    ],
+    'look': [
+        '......K.KK',
+        '.....KKKEK',
+        '....KKKKK.',
+        '....KKKK..',
+        '....LKKK..',
+        '...LKKKK..',
+        '..LKKKKK..',
+        '.LKKKKDK..',
+        '.KKKKKDK..',
+        'KKKKKKDKKK',
+    ],
 }
 
 
 def cat(tier, frame):
-    H = CAT_H[tier]
-    k = H / 9.0
-    W = int(math.ceil(14 * k)) + 1
-    c = CAT[frame]
-    S = lambda p: (p[0] * k + 0.4, p[1] * k)
-    sh, hp, hd = S(c['shoulder']), S(c['hip']), S(c['head'])
-    wb = {'L': 3.0, 'M': 2.6, 'S': 2.2}[tier]
-    wl = {'L': 1.3, 'M': 1.1, 'S': 1.0}[tier]
-    layers = []
-
-    def part(col, fn):
-        m = _canvas(W, H)
-        fn(ImageDraw.Draw(m))
-        layers.append((m, col))
-
-    part(PAL['cat_lit'], lambda d: _line(d, [S(p) for p in c['ff']], wl))                    # the far legs (a shade lighter)
-    part(PAL['cat_lit'], lambda d: _line(d, [S(p) for p in c['fh']], wl))
-    part(PAL['cat'], lambda d: _line(d, [S(p) for p in c['tail']], 1.0))                      # the tail
-    part(PAL['cat'], lambda d: _line(d, [hp, sh], wb))                                        # the body
-    part(PAL['cat'], lambda d: _line(d, [S(p) for p in c['nh']], wl * 1.15))                  # the near legs
-    part(PAL['cat'], lambda d: _line(d, [S(p) for p in c['nf']], wl * 1.15))
-    r = {'L': 1.8, 'M': 1.6, 'S': 1.35}[tier]
-    part(PAL['cat'], lambda d: _ellipse(d, hd[0], hd[1], r, r * 0.95))                         # the head
-    part(PAL['cat'], lambda d: _poly(d, [(hd[0] - r * 1.0, hd[1] - r * 0.2), (hd[0] - r * 0.6, hd[1] - r * 1.95), (hd[0] + 0.0, hd[1] - r * 0.6)]))   # the ears
-    part(PAL['cat'], lambda d: _poly(d, [(hd[0] + 0.1, hd[1] - r * 0.6), (hd[0] + r * 0.75, hd[1] - r * 1.95), (hd[0] + r * 1.05, hd[1] - r * 0.2)]))
-    part(PAL['eye'], lambda d: _ellipse(d, hd[0] + r * 0.45, hd[1] - r * 0.15, 0.5, 0.5))
-    img = _sample(layers, W, H)
-    return _trim(img, H)
+    """The cat's drawing for `frame` (one size: `tier` is accepted for the callers that ask by ground row)."""
+    rows = _CAT[frame]
+    w = len(rows[0])
+    assert all(len(r) == w for r in rows), 'cat %s: a ragged grid' % frame
+    im = Image.new('RGBA', (w, len(rows)), (0, 0, 0, 0))
+    px = im.load()
+    for y, row in enumerate(rows):
+        for x, ch in enumerate(row):
+            if ch != '.':
+                px[x, y] = CAT_TONES[ch]
+    return im
 
 
 # ---- the sheet ------------------------------------------------------------------------------------------------------------------
@@ -261,9 +295,8 @@ def all_sprites():
             out['person_%s_%s' % (tier, f)] = person(tier, f)
     for f in ('a', 'b'):
         out['person_S_pound_%s' % f] = pound(f)
-    for tier in CAT_H:
-        for f in ('a', 'b'):
-            out['cat_%s_%s' % (tier, f)] = cat(tier, f)
+    for f in CAT_FRAMES:
+        out['cat_L_%s' % f] = cat('L', f)
     return out
 
 

@@ -1094,9 +1094,9 @@ def garden_runner(meta, run):
 # drawn in one of three hand-drawn sizes by the row it stands on (`opening_figures.TIERS`), and `runner_clearance(run)` checks that nothing standing
 # NEARER than it covers it on the way (it is drawn over the garden, so the path has to stay clear of every nearer object).
 RUNNERS = {
-    # the black cat comes up out of the bottom of the screen at the front-left, cuts across the lawn's front corner, then climbs the path to
-    # the open door and is gone in the dark
-    1: {'kind': 'cat', 'speed': 46.0, 'start': 0.5, 'end': 'vanish', 'path': [[60, 47], [67, 40], [110, 40], [113, 37], [113, 33], [117, 29], [117, 28], [142, 3]]},
+    # the black cat comes up out of the bottom of the screen at the front-left, trots across the front of the lawn SIDE ON (the way it is drawn),
+    # stops on the path and sits there; when the crows go it looks up after them. It never runs at the building and never vanishes (owner 2026-11-11).
+    1: {'kind': 'cat', 'speed': 40.0, 'start': 0.2, 'end': 'sit', 'path': [[60, 47], [67, 40], [110, 40], [126, 40]]},
     # a person comes up from the front-right and runs for the barricaded door — and stands there, hammering on it (the camera leaves them)
     2: {'kind': 'human', 'speed': 52.0, 'start': 0.3, 'end': 'pound', 'path': [[230, 47], [225, 42], [200, 42], [198, 40], [186, 40], [185, 39], [182, 39], [176, 33], [165, 33], [163, 31], [163, 30], [167, 26], [169, 26], [171, 24], [151, 4], [142, 4]]},
     3: {'kind': ''},

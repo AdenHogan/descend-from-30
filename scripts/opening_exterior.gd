@@ -764,6 +764,7 @@ func _decorate_garden() -> void:
 		if ftex != null:
 			runner.art = _FigureArt.make(ftex, meta.get("figures", {}))
 		runner.setup(rn)
+		runner.look_from = BIRDS_TAKE_OFF + 0.25
 		node.add_child(runner)
 
 
@@ -1045,6 +1046,7 @@ class _BirdArt:
 	var tex: Texture2D = null
 	var near: Dictionary = {}       # name -> Rect2 on the sheet
 	var far: Dictionary = {}
+	var tiny: Dictionary = {}       # the same bird further off
 
 	static func make(texture: Texture2D, m: Dictionary) -> _BirdArt:
 		var a := _BirdArt.new()
@@ -1053,6 +1055,8 @@ class _BirdArt:
 			a.near[String(e["name"])] = Rect2(float(e["x"]), float(e["y"]), float(e["w"]), float(e["h"]))
 		for e in m.get("far", []):
 			a.far[String(e["name"])] = Rect2(float(e["x"]), float(e["y"]), float(e["w"]), float(e["h"]))
+		for e in m.get("tiny", []):
+			a.tiny[String(e["name"])] = Rect2(float(e["x"]), float(e["y"]), float(e["w"]), float(e["h"]))
 		return a
 
 	## The wing cycle of a crow: `phase` counts whole beats. Six poses, so the stroke eases (down, level, raised, up, raised, level).
@@ -1061,62 +1065,55 @@ class _BirdArt:
 		return cyc[int(floor(fposmod(phase, 1.0) * 6.0)) % 6]
 
 	static func far_beat(phase: float) -> String:
-		var cyc := ["down", "level", "up", "level"]
-		return cyc[int(floor(fposmod(phase, 1.0) * 4.0)) % 4]
+		var cyc := ["down", "level", "raised", "up", "raised", "level"]
+		return cyc[int(floor(fposmod(phase, 1.0) * 6.0)) % 6]
 
 
-## The flock over the roof: birds that fly BACK AND FORTH across the sky, flapping in bursts and gliding between, banking round at each end.
+## The flock over the roof (owner 2026-11-11: "I hate the look of the daytime birds flying above the building"). The old flock was side-view
+## crows shuttling back and forth on rails, squashed to turn round. Now they WHEEL: each bird rides its own slow, flat loop over the roof, seen
+## from below and far off (a symmetric two-wing drawing, so it never needs flipping), beating in bursts and gliding between. The birds on the
+## far loops are the smaller drawing. A pure function of the clock.
 class _Birds:
 	extends Node2D
 
-	const RANGE := 86.0                                # they wander this far either side of the building's middle
 	const FLOCK := [
-		{"y": -4.0, "v": 15.0, "ph": 0.00, "per": 4.6, "bob": 3.4, "rate": 4.2},
-		{"y": -15.0, "v": 19.0, "ph": 0.31, "per": 5.3, "bob": 2.6, "rate": 4.6},
-		{"y": 5.0, "v": 12.0, "ph": 0.57, "per": 3.9, "bob": 3.0, "rate": 3.9},
-		{"y": -24.0, "v": 17.0, "ph": 0.80, "per": 6.1, "bob": 2.2, "rate": 4.4},
-		{"y": 13.0, "v": 21.0, "ph": 0.12, "per": 4.9, "bob": 2.8, "rate": 4.8},
-		{"y": -9.0, "v": 13.0, "ph": 0.66, "per": 5.7, "bob": 3.2, "rate": 4.1},
+		{"cx": -6.0, "cy": -6.0, "rx": 58.0, "ry": 9.0, "per": 11.0, "ph": 0.00, "rate": 2.6, "set": "far"},
+		{"cx": 10.0, "cy": -19.0, "rx": 44.0, "ry": 7.0, "per": 9.5, "ph": 0.37, "rate": 2.9, "set": "far"},
+		{"cx": -18.0, "cy": 4.0, "rx": 72.0, "ry": 11.0, "per": 13.0, "ph": 0.62, "rate": 2.4, "set": "far"},
+		{"cx": 22.0, "cy": -10.0, "rx": 64.0, "ry": 8.0, "per": 12.0, "ph": 0.18, "rate": 2.7, "set": "far"},
+		{"cx": 0.0, "cy": -30.0, "rx": 36.0, "ry": 5.0, "per": 10.0, "ph": 0.81, "rate": 3.1, "set": "tiny"},
+		{"cx": -30.0, "cy": -38.0, "rx": 50.0, "ry": 6.0, "per": 14.0, "ph": 0.45, "rate": 3.0, "set": "tiny"},
+		{"cx": 34.0, "cy": -44.0, "rx": 40.0, "ry": 5.0, "per": 12.5, "ph": 0.08, "rate": 3.3, "set": "tiny"},
 	]
 	var art: _BirdArt = null
 	var clock := 0.0
 	var tint := Color(1, 1, 1, 1)
 
-	## {pos, scale_x, frame}: where bird `i` is at time `t`, which way it faces (scale_x < 0 = leftward; its magnitude shrinks while it banks round), and its pose.
+	## {pos, frame, set}: where bird `i` is at time `t`, its wing pose, and which drawing ("far" / "tiny") it uses.
 	static func pose(i: int, t: float) -> Dictionary:
 		var p: Dictionary = FLOCK[i % FLOCK.size()]
-		var span := 2.0 * RANGE
-		var v: float = p["v"]
-		var s := fposmod(float(p["ph"]) * span * 2.0 + v * t, 2.0 * span)
-		var right := s < span
-		var along := s if right else s - span                       # how far along this leg
-		var x := -RANGE + along if right else RANGE - along
-		var to_turn := minf(along, span - along) / v                 # seconds to the nearest turn
-		var mag := 1.0 if to_turn >= 0.5 else (0.62 if to_turn >= 0.25 else 0.32)
-		var banking := to_turn < 0.5
-		var dir := 1.0 if right else -1.0
-		var per: float = p["per"]
-		var cyc := fposmod(t + float(p["ph"]) * 7.0, per) / per
+		var turn := 1.0 if i % 2 == 0 else -1.0                           # half the flock circles the other way
+		var th := TAU * (float(p["ph"]) + turn * t / float(p["per"]))
+		var x := float(p["cx"]) + float(p["rx"]) * cos(th)
+		var y := float(p["cy"]) + float(p["ry"]) * sin(th)
+		var cyc := fposmod(t * 0.23 + float(p["ph"]) * 5.0, 1.0)          # a burst of beats, then a glide
 		var frame := "glide"
-		var y: float = float(p["y"]) + float(p["bob"]) * sin(t * 0.7 + float(p["ph"]) * 6.0)
-		if not banking and cyc < 0.62:
-			var beat := t * float(p["rate"]) + float(p["ph"]) * 3.0
-			frame = _BirdArt.far_beat(beat)
+		if cyc < 0.58:
+			frame = _BirdArt.far_beat(t * float(p["rate"]) + float(p["ph"]) * 3.0)
 			y += (1.0 if frame == "up" else (-1.0 if frame == "down" else 0.0))      # the body rises on the downstroke
-		return {"pos": Vector2(roundf(x), roundf(y)), "scale_x": dir * mag, "frame": frame}
+		return {"pos": Vector2(roundf(x), roundf(y)), "frame": frame, "set": String(p["set"])}
 
 	func _draw() -> void:
 		if art == null:
 			return
 		for i in FLOCK.size():
 			var q := pose(i, clock)
-			var r: Rect2 = art.far.get(q["frame"], art.far.get("glide", Rect2()))
+			var sheet: Dictionary = art.tiny if String(q["set"]) == "tiny" and not art.tiny.is_empty() else art.far
+			var r: Rect2 = sheet.get(q["frame"], sheet.get("glide", Rect2()))
 			if r.size == Vector2.ZERO:
 				continue
-			var sx: float = q["scale_x"]
-			draw_set_transform(q["pos"], 0.0, Vector2(sx, 1.0))
-			draw_texture_rect_region(art.tex, Rect2(-r.size.x * 0.5, -r.size.y * 0.5, r.size.x, r.size.y), r, tint)
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			var at: Vector2 = q["pos"]
+			draw_texture_rect_region(art.tex, Rect2(at.x - floorf(r.size.x * 0.5), at.y - floorf(r.size.y * 0.5), r.size.x, r.size.y), r, tint)
 
 
 ## The crows on the telephone wire. They sit on it until something spooks them, then — one after another, the last a beat late — flinch,
@@ -1175,7 +1172,7 @@ class _WireBirds:
 			var at: Vector2 = q["pos"]
 			var feet := Vector2(roundf(at.x * 4.0) / 4.0, roundf(at.y * 4.0) / 4.0)
 			draw_set_transform(feet, 0.0, Vector2(float(q["dir"]), 1.0))
-			draw_texture_rect_region(art.tex, Rect2(-8.0, -r.size.y, r.size.x, r.size.y), r, tint)     # origin = the feet, the body centred on x
+			draw_texture_rect_region(art.tex, Rect2(-9.0, -r.size.y, r.size.x, r.size.y), r, tint)     # origin = the feet (columns 8 and 10 of the 16-wide cell)
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
@@ -1382,7 +1379,8 @@ class _SkyBolts:
 # (tools/art/opening.py `RUNNERS` / `plan_lane` — the art tool checks that nothing standing nearer ever covers it). It is drawn from HAND-DRAWN
 # sprites (assets/opening/figures.png, tools/art/opening_figures.py) in one of THREE sizes picked by the ground row it stands on — never a
 # drawing rescaled to a fractional size (owner round 49c: "he gets weirdly smaller… strange body pixel proportions") — and goes a little slower
-# the deeper it is. The cat slips into the dark doorway; the person reaches the barricaded door and stands there hammering on it.
+# the deeper it is. The person reaches the barricaded door and stands there hammering on it. The CAT is different (owner 2026-11-11): it trots in
+# side on across the front of the garden, sits down on the path and looks up when the crows go; it is one size and never leaves.
 # A pure function of the opening's clock.
 class _FigureArt:
 	var tex: Texture2D = null
@@ -1402,7 +1400,8 @@ class _Runner:
 
 	const RUN_FRAMES := ["a", "p1", "b", "p2"]     # a person's run: contact, passing, contact (other leg), passing
 	const RUN_HZ := 9.0                 # run frames a second (a stride is two contacts)
-	const GALLOP_HZ := 6.0              # a cat's gallop frames (stretched, gathered) a second
+	const TROT_HZ := 8.0                # a cat's trot frames a second (the same four-frame cycle: contact, passing, contact, passing)
+	var look_from := -1.0                 # the cat looks up from this time on (the crows leaving the wire); < 0 = never
 	var spec: Dictionary = {}
 	var art: _FigureArt = null
 	var clock := 0.0
@@ -1443,8 +1442,12 @@ class _Runner:
 	func local_time() -> float:
 		return clock - float(spec.get("start", 0.0))
 
+	## Does it stay where its route ends? The person hammers on the door; the cat sits down on the path.
+	func stays() -> bool:
+		return String(spec.get("end", "")) in ["pound", "sit"]
+
 	func active() -> bool:
-		return _pts.size() >= 2 and local_time() >= 0.0 and (String(spec.get("end", "")) == "pound" or local_time() <= total() + 0.6)
+		return _pts.size() >= 2 and local_time() >= 0.0 and (stays() or local_time() <= total() + 0.6)
 
 	## {pos: Vector2 (x, row), dir, done (the route is over)} at the runner's time.
 	func pose() -> Dictionary:
@@ -1472,7 +1475,11 @@ class _Runner:
 		var kind := "cat" if String(spec.get("kind", "")) == "cat" else "person"
 		var fr: String
 		if kind == "cat":
-			fr = "a" if int(floor(clock * GALLOP_HZ)) % 2 == 0 else "b"
+			if bool(q["done"]):                                                          # sitting on the path
+				if look_from >= 0.0 and clock >= look_from:
+					return "cat_L_look"                                                  # the crows have gone up: it watches them
+				return "cat_L_sit_b" if fposmod(clock, 1.1) < 0.22 else "cat_L_sit_a"    # the tail's tip flicks
+			return "cat_L_" + String(RUN_FRAMES[int(floor(clock * TROT_HZ)) % RUN_FRAMES.size()])
 		else:
 			fr = String(RUN_FRAMES[int(floor(clock * RUN_HZ)) % RUN_FRAMES.size()])
 		if kind == "person" and bool(q["done"]) and String(spec.get("end", "")) == "pound":
@@ -1483,16 +1490,13 @@ class _Runner:
 		if art == null or not active():
 			return
 		var q := pose()
-		var kind := String(spec.get("kind", ""))
 		var name := sprite_name()
 		var r: Rect2 = art.rects.get(name, Rect2())
 		if r.size == Vector2.ZERO:
 			return
 		var f := feet()
 		var dir: float = q["dir"]
-		var alpha := 1.0
-		if bool(q["done"]) and kind == "cat":
-			alpha = clampf(1.0 - (local_time() - total()) / 0.5, 0.0, 1.0)         # gone into the dark doorway
+		var alpha := 1.0                                                                # nothing fades: the cat stays where it sat down
 		var pound := name.contains("pound")
 		draw_set_transform(f, 0.0, Vector2(1.0 if pound else dir, 1.0))                 # facing +x, mirrored for a leftward runner; the figure at the door is seen from behind
 		var half := floorf(r.size.x * 0.5)

@@ -190,3 +190,15 @@ The owner's list: "a lot of noise… some windows look good and normal, whereas 
 - **Missing art** is handled like any other layer: `art_present` is false for run >= 2 when `growth_<run>.png` is missing (the old black title screen); run 1 never loads one.
 - **Locked by** `opening_test._test_growth` (run 1 clean; the picture exists at the scene's size; there is growth; every growth pixel is opaque; nothing above floor 12; none over a HELP sheet; the exterior lays it directly over the facade and under the people; the amplitude is the run's; the clock is the timeline's; the night heaves harder; the displacement snaps to whole texels) — mutation-checked: the `_lay_growth` call removed fails the two "exterior lays the growth" checks, the clock frozen to 0 fails the two "its clock is the timeline's" checks. `opening.py --check` holds the new PNGs current.
 - **Not checked / owner's eye:** the LOOK of the motion on a real monitor — judged from xvfb frames only (the vines change shape between 1.0 and 1.75 s; I did not watch it play). `WRITHE_AMP`, the wave speeds (`wt * 2.3 / 1.9`) and the swell are first guesses: if it reads as shimmer rather than reaching, raise the amplitude; if it reads too frantic, slow the two `wt` multipliers.
+
+## 2026-11-11 — the cat and the birds, redrawn and re-staged
+
+Owner: "I hate how the cat looks and runs up towards the building and disappears. I also hate the look of the daytime birds flying above the building. They look poorly designed."
+This supersedes the cat's route and the roof flock described above (the person in run 2 and the night's fliers are unchanged).
+
+- **The cat** (`opening_figures._CAT`, `RUNNERS[1]`, `_Runner`): every pixel placed by hand on a grid (coat, a sheen along the back, the far legs a tone lighter, a yellow eye), ONE size. It comes up at the front-left, trots SIDE ON across the front of the garden (a four-frame trot, 8 Hz), stops on the path and sits, its tail's tip flicking; a quarter of a second after the crows leave the wire it looks up after them. It never runs at the building, never changes size, never fades (`end: 'sit'`, `_Runner.stays()`).
+- **The crows on the wire** (`opening_birds._NEAR`, 16 x 13): hand-placed — a perched crow with a head, a beak, an eye glint, a folded wing and a tail; in flight a broad wing (lit along its leading edge) in five poses over a body that does not change between them.
+- **The flock over the roof** (`_FAR` 11 x 6, `_TINY` 7 x 4; `_Birds`): seen from below and far off, where a bird is two wings and a dot of body — a symmetric drawing in five wing poses, so nothing is flipped or squashed to turn. Seven birds, each on its own slow flat loop over the roof (half one way round, half the other), beating in bursts and gliding between; the three on the far loops use the smaller drawing.
+- `opening_test`: the cat stays at the front, ends side on, sits before the crows go, looks up after, and is in the same place 30 s later.
+
+**Not checked:** the motion itself was judged from still engine frames, not watched; the flock passes behind the title's lettering at the top of the climb.

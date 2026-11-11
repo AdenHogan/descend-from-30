@@ -579,6 +579,40 @@ func _test_runner() -> void:
 			len_all += a.distance_to(b)
 			if a.y >= 40.0 and b.y >= 40.0 and a.y <= 43.0 and b.y <= 43.0:        # the strip along the picture's bottom edge (rows below 43 are off-screen)
 				len_front += a.distance_to(b)
+		if run == 1:
+			# owner 2026-11-11: "I hate how the cat looks and runs up towards the building and disappears" — it crosses SIDE ON and sits down on the path
+			var c_last: Vector2 = pts[pts.size() - 1]
+			var c_prev: Vector2 = pts[pts.size() - 2]
+			check(rows_min >= 28.0, "run 1: the cat stays at the front of the garden, it never runs at the building (deepest row %d)" % int(rows_min))
+			check(c_last.y == c_prev.y and c_last.x > c_prev.x, "run 1: it ends its route side on, going right along one row (row %d)" % int(c_last.y))
+			check(String(rn.spec["end"]) == "sit" and rn.stays(), "run 1: and it sits down where it stops")
+			var cat_ok := rn.art != null
+			for f_name in ["a", "p1", "b", "p2", "sit_a", "sit_b", "look"]:
+				cat_ok = cat_ok and rn.art.rects.has("cat_L_" + f_name)
+			check(cat_ok, "run 1: the trot, the sit and the look-up are all on the sheet")
+			var trot := {}
+			for i in range(24):
+				rn.clock = float(rn.spec["start"]) + 0.05 * float(i) + 0.1
+				trot[rn.sprite_name()] = true
+			check(trot.size() == 4, "run 1: a four-frame trot (%s)" % str(trot.keys()))
+			var st1: float = float(rn.spec["start"])
+			check(st1 + float(rn.total()) < e.BIRDS_TAKE_OFF, "run 1: it is sitting before the crows go (%.2f s < %.2f s)" % [st1 + float(rn.total()), e.BIRDS_TAKE_OFF])
+			e.t = st1 - 0.1
+			e._apply(0.0)
+			check(not rn.active(), "run 1: not there before it sets off")
+			e.t = st1 + float(rn.total()) + 0.05
+			e._apply(0.0)
+			var sat: Vector2 = rn.feet()
+			check(rn.active() and rn.sprite_name().begins_with("cat_L_sit"), "run 1: sitting on the path (%s)" % rn.sprite_name())
+			e.t = e.BIRDS_TAKE_OFF + 1.0
+			e._apply(0.0)
+			check(rn.sprite_name() == "cat_L_look", "run 1: it looks up after the crows (%s)" % rn.sprite_name())
+			e.t = e.BIRDS_TAKE_OFF + 30.0
+			e._apply(0.0)
+			check(rn.active() and rn.feet() == sat, "run 1: and it is still there, in the same place, long after — it never vanishes")
+			e.queue_free()
+			await get_tree().process_frame
+			continue
 		check(rows_max - rows_min >= 30.0, "run %d: it travels deep into the scene (rows %d down to %d)" % [run, int(rows_max), int(rows_min)])
 		check(len_front < 0.45 * len_all, "run %d: no more than 45%% of the way is spent along the bottom edge (%d of %d px)" % [run, int(len_front), int(len_all)])
 		var last: Vector2 = pts[pts.size() - 1]
@@ -622,9 +656,7 @@ func _test_runner() -> void:
 		check(f0.y > f1.y and f1.y > f2.y, "run %d: its feet go UP the picture the whole way (y %d → %d → %d)" % [run, int(f0.y), int(f1.y), int(f2.y)])
 		e.t = st + float(rn.total()) + 1.5
 		e._apply(0.0)
-		if run == 1:
-			check(not rn.active(), "run 1: the cat has gone into the doorway")
-		else:
+		if true:
 			check(rn.active() and bool(rn.pose()["done"]), "run 2: the person is still at the door, hammering on it")
 		e.queue_free()
 		await get_tree().process_frame
