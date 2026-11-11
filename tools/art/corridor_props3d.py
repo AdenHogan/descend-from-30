@@ -1186,7 +1186,7 @@ def tall_plant(save, name, seed, dead=False):
             x = rng.randrange(4, 20)
             leaf(c, x, C + rng.randrange(-1, 1) + 0.5, rng.uniform(-0.3, 0.3), rng.uniform(3, 4), 2.0, hexc('7a6a3a'), rib=False)
     save(name, c)
-    record(name, "open", d, C)
+    record(name, "door", d, C)      # a plant is SOMEBODY's: it stands by its owner's door, never alone on a bare stretch of wall (owner 2026-11-11)
 
 
 def planter_fallen(save, name, seed):
@@ -1229,7 +1229,7 @@ def planter_fallen(save, name, seed):
                 c.put(x, y, hexc('1e140e'))
     c.put(int(px1 - 1), int(cy - r + 1), tn[5])
     save(name, c)
-    record(name, "open", d, C)
+    record(name, "door", d, C)      # a plant is SOMEBODY's: it stands by its owner's door, never alone on a bare stretch of wall (owner 2026-11-11)
 
 
 def snake_plant(save, name, seed, dead=False):
@@ -1269,7 +1269,7 @@ def snake_plant(save, name, seed, dead=False):
         x = 7.0 + k * 2.4
         leaf(c, x, top + 1, -math.pi / 2.0 + (x - 11) * 0.06, rng.uniform(6, 9) if not dead else rng.uniform(3, 5), 3.2, shade(green, 0.95), edge=hexc('d0cc5a') if not dead else None, band=(3.0, 0.8))
     save(name, c)
-    record(name, "open", d, C)
+    record(name, "door", d, C)      # a plant is SOMEBODY's: it stands by its owner's door, never alone on a bare stretch of wall (owner 2026-11-11)
 
 
 def palm(save, name, seed):
@@ -1306,7 +1306,7 @@ def palm(save, name, seed):
     propkit.frustum(c, cx, top, bot, 8.0, 6.0, pot, ry_t=3.0, ry_b=2.4, rim=shade(pot, 1.3), n=6, lo=0.42, hi=1.3)
     soil_top(c, cx, top, 6.8, 2.3, seed)
     save(name, c)
-    record(name, "open", d, C)
+    record(name, "door", d, C)      # a plant is SOMEBODY's: it stands by its owner's door, never alone on a bare stretch of wall (owner 2026-11-11)
 
 
 def _stand(c, ty, wood, shadow_legs=True):
@@ -1342,7 +1342,7 @@ def plant_stand(save, name, seed):
         for k in range(3):
             leaf(c, x - 0.2, y + 1.5 + k * 2.0, math.pi / 2.0 + (0.9 if k % 2 else -0.9), 3.0, 2.0, hexc('4a8c3c'), rib=False)
     save(name, c)
-    record(name, "open", d, C)
+    record(name, "door", d, C)      # a plant is SOMEBODY's: it stands by its owner's door, never alone on a bare stretch of wall (owner 2026-11-11)
 
 
 def plant_stand_fallen(save, name, seed):
@@ -1387,7 +1387,7 @@ def plant_stand_fallen(save, name, seed):
     c.poly([(31, C - 1), (33, C - 1), (32, C - 3)], tn[3])
     c.line(31, C - 1, 33, C - 1, tn[1])
     save(name, c)
-    record(name, "open", d, C)
+    record(name, "door", d, C)      # a plant is SOMEBODY's: it stands by its owner's door, never alone on a bare stretch of wall (owner 2026-11-11)
 
 
 # ------------------------------------------------------------------------------------------------------------------------------------ recycling crate

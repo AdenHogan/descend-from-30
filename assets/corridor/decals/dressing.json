@@ -101,61 +101,61 @@
    "base": "plant_dead",
    "contact": 51,
    "depth": 8,
-   "rule": "open"
+   "rule": "door"
   },
   "plant_dead__2": {
    "base": "plant_dead",
    "contact": 47,
    "depth": 8,
-   "rule": "open"
+   "rule": "door"
   },
   "plant_fallen": {
    "base": "plant_fallen",
    "contact": 23,
    "depth": 12,
-   "rule": "open"
+   "rule": "door"
   },
   "plant_stand": {
    "base": "plant_stand",
    "contact": 46,
    "depth": 7,
-   "rule": "open"
+   "rule": "door"
   },
   "plant_stand__2": {
    "base": "plant_stand",
    "contact": 46,
    "depth": 7,
-   "rule": "open"
+   "rule": "door"
   },
   "plant_stand_fallen": {
    "base": "plant_stand_fallen",
    "contact": 50,
    "depth": 11,
-   "rule": "open"
+   "rule": "door"
   },
   "plant_stand_fallen__2": {
    "base": "plant_stand_fallen",
    "contact": 50,
    "depth": 11,
-   "rule": "open"
+   "rule": "door"
   },
   "plant_tall": {
    "base": "plant_tall",
    "contact": 51,
    "depth": 8,
-   "rule": "open"
+   "rule": "door"
   },
   "plant_tall__2": {
    "base": "plant_tall",
    "contact": 47,
    "depth": 8,
-   "rule": "open"
+   "rule": "door"
   },
   "plant_tall__3": {
    "base": "plant_tall",
    "contact": 49,
    "depth": 8,
-   "rule": "open"
+   "rule": "door"
   },
   "pram": {
    "base": "pram",
