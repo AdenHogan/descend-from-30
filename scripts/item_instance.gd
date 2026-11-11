@@ -33,6 +33,10 @@ var heal_scale: float = 1.0
 # first descent floors). It is THIS item's ceiling, so the in-hand vial reads full when it is new and a repair or a save keeps it honest.
 var charge_cap: int = 0
 
+# A TORCH's battery: seconds of light left in it (-1 = not a torch). It only runs down while the torch is lit (player.gd "THE TORCH"); a Battery (021)
+# brings it back to WorldState.TORCH_FULL. Saved with the instance, so a dropped torch, a corpse's torch and a loaded game all keep what was left.
+var charge: float = -1.0
+
 const MAG_CAP = 18          # Met-issue Glock: 17+1
 const MAG_CAP_DAMAGED = 10
 const GUN_SHOTS_PER_MARK = 6   # rounds fired per durability mark (Durable Hand Cannon doubles it)
@@ -112,6 +116,8 @@ func setup(id: String) -> void:
 	if is_toolbox_data(data):
 		charge_cap = WorldState.toolbox_charges_for(WorldState.current_floor)
 		current_durability = charge_cap
+	if data.get("is_torch", false):
+		charge = WorldState.TORCH_FULL * WorldState.TORCH_FOUND      # a found torch has part of a battery left in it
 
 
 static func is_toolbox_data(data: Dictionary) -> bool:

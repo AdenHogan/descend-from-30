@@ -158,6 +158,20 @@ const BALCONY_HALF_WIDTH = BalconyGeo.HALF_WIDTH
 const BALCONY_STEP_TIME = 0.4
 var on_balcony_plane: bool = false
 var back_spot: Node = null          # the BACK (scavenge) plane spot we're stepped up to (back_plane_spot.gd)
+# THE TORCH (owner 2026-11-10: "get the flashlight working… for now using the gun animations, and then the flashlight can be a natural light source for darkness"; docs/TORCH_AND_DARK.md).
+# The Torch (015) in hand + the use key = a real cone of light the way we face (a PointLight2D: it lights the wall, the floor and whatever stands in it, like every other light),
+# held in the gun's aiming pose. Lit, it runs its battery down (ItemInstance.charge, WorldState.TORCH_FULL seconds); a Battery (021) refills it. A lit torch in the dark is also
+# what the dead see you by (Stealth.sight_scale) — switching it off is how you disappear.
+const TORCH_ENERGY_BY_RUN := [0.5, 1.0, 1.55]     # additive, like every light: barely needed by day, the thing you see by at night
+const TORCH_SCALE := 0.95                         # x the 256 px cookie reach = ~243 world px of beam
+const TORCH_COLOR := Color(1.0, 0.95, 0.82)
+const TORCH_LENS := Vector2(9.0, -7.0)            # the lens from our origin, facing right (the aiming pose's hands)
+const TORCH_HUD_EVERY := 1.0                      # how often the in-hand vial is redrawn as the battery runs down
+var torch_on: bool = false
+var _torch_light: PointLight2D = null
+var _torch_inst: ItemInstance = null              # the torch that is lit
+var _torch_hud_t := 0.0
+
 # STEALTH (docs/STEALTH_SPACES.md): hidden inside a wardrobe / cupboard (stealth_spot.gd). `conceal` is what the dead's sight reads (Stealth.conceal_of).
 var conceal: String = "none"        # Stealth.NONE / COVER / HIDDEN
 var hide_spot: Node = null          # the hiding place we are in
@@ -169,6 +183,7 @@ var _hide_doomed_t := 0.0
 var _hide_msec := -100000
 var _hide_return_y := 0.0           # THE walking line while a piece (the bath) has the player risen off it, or climbing back down; 0 = on the line (never a half-way y: see enter_hide)
 var _hide_tween: Tween = null       # the climb in / the climb out: only one at a time
+var _hide_was_crouching := false    # the stance before a STANDING hiding place (a doorway's wall) stood us up
 var _back_return_y := 0.0           # the walking line to step back down to
 var _back_base_scale := Vector2.ONE
 var _back_stepping := false         # mid step-up / step-down tween
@@ -258,6 +273,7 @@ func _ready() -> void:
 	z_index = 1
 	_setup_player_light()
 	GroundShadow.attach(self, animated_sprite)        # the contact shadow under the feet (scripts/ground_shadow.gd)
+	DarkSpot.ensure(self)                             # the dark itself is a place to hide (scripts/dark_spot.gd): one per player, always where they are
 	_setup_gun_animations()
 	footstep_player = AudioStreamPlayer2D.new()
 	footstep_player.name = "FootstepPlayer"
@@ -304,6 +320,7 @@ func _physics_process(delta: float) -> void:
 		if hit_flash_timer <= 0:
 			is_hit = false
 			animated_sprite.modulate = Color(1, 1, 1, 1)
+	_torch_tick(delta)
 	if is_dead:
 		return
 
@@ -424,6 +441,7 @@ func _physics_process(delta: float) -> void:
 				_hide_doomed_by = null
 				found_hiding(by if is_instance_valid(by) else null)
 		elif Input.is_action_just_pressed("interact"):
+			InteractArbiter.claim()         # this press is spent on coming out: the hiding place must not take it again in this frame's idle step, nor the door beside it
 			leave_hide(false, true)
 		elif has_move_target:
 			leave_hide(true, true)
@@ -504,6 +522,8 @@ func _physics_process(delta: float) -> void:
 		pass
 	else:
 		var equipped_weapon = _get_equipped_weapon_type()
+		if torch_on:
+			equipped_weapon = "gun"          # a lit torch is held out in the gun's aiming pose (owner: "for now using the gun animations")
 		if direction == 0:
 			match equipped_weapon:
 				"sword", "knife", "bat": animated_sprite.play("katana_idle")
@@ -1681,7 +1701,7 @@ func _input(event: InputEvent) -> void:
 const HEAD_HEIGHT_STAND := 59.0       # world px from the feet to the top of the head, standing (measured: origin -26, feet +33)
 const HEAD_HEIGHT_CROUCH := 43.0      # crouching / kneeling / hidden (origin -10)
 func head_top_position() -> Vector2:
-	var h: float = HEAD_HEIGHT_CROUCH if (is_crouching or pack_phase != "" or hide_spot != null) else HEAD_HEIGHT_STAND
+	var h: float = HEAD_HEIGHT_CROUCH if (is_crouching or pack_phase != "") else HEAD_HEIGHT_STAND        # (hidden = crouched, except standing flat against a doorway's wall)
 	var depth: float = 1.0
 	if back_spot != null and _back_base_scale.y > 0.0:
 		depth = animated_sprite.scale.y / _back_base_scale.y
@@ -2010,6 +2030,25 @@ func use_item(slot_index: int) -> void:
 			HUD.selected_slot = slot_index
 			HUD._update_slot_highlights()
 			HUD.show_feedback("Equipped — mag %d/%d." % [instance.mag_count, instance.get_mag_cap()])
+	elif item_data.get("is_torch", false):
+		# The torch: the first use takes it in hand and switches it on; using the one in hand switches it off / on.
+		if HUD.selected_slot != slot_index:
+			HUD.selected_slot = slot_index
+			HUD._update_slot_highlights()
+			if not torch_on:
+				toggle_torch()
+		else:
+			toggle_torch()
+	elif item_data.get("is_battery", false):
+		var wants: ItemInstance = WorldState.torch_wanting_battery()
+		if wants == null:
+			var any_torch := false
+			for other in WorldState.inventory:
+				any_torch = any_torch or WorldState.is_torch_instance(other)
+			HUD.show_feedback("The torch's battery is still good." if any_torch else "A battery. A torch would take it.")
+		else:
+			var res: Dictionary = WorldState.load_torch_battery(wants)
+			HUD.show_feedback(String(res["msg"]), not bool(res["loaded"]))
 	elif item_data.get("is_throwable", false):
 		_throw_can(slot_index)
 	elif item_data.get("is_extinguisher", false):
@@ -2244,6 +2283,113 @@ func exit_back_plane(keep_target: bool = false) -> void:
 		set_move_target(tx, ta if (ta != null and is_instance_valid(ta)) else null)
 
 
+## The torch in hand (the selected item, if it is a torch), or null.
+func torch_in_hand() -> ItemInstance:
+	var inst = WorldState.get_instance_at(HUD.selected_slot)
+	return inst if WorldState.is_torch_instance(inst) else null
+
+
+## Is our torch throwing light right now? (What the dead's sight and the dark hiding place ask — Stealth.torch_lit.)
+func torch_lit() -> bool:
+	return torch_on and _torch_light != null and is_instance_valid(_torch_light) and _torch_light.visible
+
+
+## Switch the torch in hand on or off. A dead torch takes a carried battery by itself (one press: swap it and light it); with none it says so. Returns whether it is now lit.
+func toggle_torch() -> bool:
+	var inst := torch_in_hand()
+	if inst == null or is_dead or is_dying or is_cutscene or escaping or hide_spot != null:
+		return false
+	if torch_on:
+		_torch_off()
+		HUD.show_feedback("Torch off.")
+		_torch_click()
+		return false
+	if inst.charge <= 0.0:
+		var res: Dictionary = WorldState.load_torch_battery(inst)
+		if not bool(res["loaded"]):
+			HUD.show_feedback("The torch is dead. It needs a battery.", true)
+			_torch_click(0.7)
+			return false
+		HUD.show_feedback(String(res["msg"]))
+	torch_on = true
+	_torch_inst = inst
+	_torch_hud_t = 0.0
+	if _torch_light == null or not is_instance_valid(_torch_light):
+		var l := PointLight2D.new()
+		l.name = "TorchBeam"
+		l.texture = load("res://scripts/floor_lighting.gd").torch_texture()
+		l.texture_scale = TORCH_SCALE
+		l.color = TORCH_COLOR
+		add_child(l)
+		_torch_light = l
+	_torch_light.visible = true
+	_torch_aim(1.0)
+	_torch_click()
+	Stealth.forget_light(self)
+	HUD._update_equipped_chip()
+	return true
+
+
+func _torch_off() -> void:
+	torch_on = false
+	_torch_inst = null
+	if _torch_light != null and is_instance_valid(_torch_light):
+		_torch_light.visible = false
+	Stealth.forget_light(self)
+	if HUD != null:
+		HUD._update_equipped_chip()
+
+
+func _torch_click(pitch: float = 1.0) -> void:
+	var path := "res://assets/audio/room/switch_0.wav"
+	if not ResourceLoader.exists(path) or not is_inside_tree():
+		return
+	var ap := AudioStreamPlayer2D.new()
+	ap.stream = load(path)
+	ap.volume_db = -14.0
+	ap.pitch_scale = pitch
+	ap.finished.connect(ap.queue_free)
+	add_child(ap)
+	ap.play()
+
+
+## Point the beam the way we face, from the hands, at the run's strength (x `gain`: the stutter of a dying battery).
+func _torch_aim(gain: float) -> void:
+	if _torch_light == null or not is_instance_valid(_torch_light):
+		return
+	var left: bool = animated_sprite.flip_h
+	_torch_light.position = Vector2(-TORCH_LENS.x if left else TORCH_LENS.x, TORCH_LENS.y + (10.0 if is_crouching else 0.0))
+	_torch_light.rotation = PI if left else 0.0
+	_torch_light.energy = float(TORCH_ENERGY_BY_RUN[clampi(WorldState.current_run - 1, 0, 2)]) * gain
+
+
+## Every physics frame: a lit torch follows the hands, runs its battery down, stutters when it is nearly spent and dies when it is; it goes out the moment it is no
+## longer the thing in hand (put away, dropped, sold, a body's ring), or we die / hide / are taken over for good.
+func _torch_tick(delta: float) -> void:
+	if not torch_on:
+		return
+	var inst := torch_in_hand()
+	if inst == null or inst != _torch_inst or is_dead or is_dying or escaping or hide_spot != null:
+		_torch_off()
+		return
+	inst.charge = maxf(0.0, inst.charge - delta)
+	if inst.charge <= 0.0:
+		_torch_off()
+		_torch_click(0.7)
+		HUD.show_feedback("The torch dies. It needs a battery.", true)
+		return
+	var gain := 1.0
+	if WorldState.torch_fraction(inst) < WorldState.TORCH_LOW:
+		# a dying battery: the beam drops out in short stutters (whole steps, no smooth pulse)
+		var beat: int = int(Time.get_ticks_msec() / 90)
+		gain = 0.35 if (hash(beat) % 7) < 2 else 1.0
+	_torch_aim(gain)
+	_torch_hud_t += delta
+	if _torch_hud_t >= TORCH_HUD_EVERY:
+		_torch_hud_t = 0.0
+		HUD._update_equipped_chip()
+
+
 ## Slip into a hiding place (stealth_spot.gd) — ONE press of [interact], in any stance (owner round 49q: "when a player hops into hiding, it should be automatic, not a move up or
 ## down or anything like that, just a hide prompt"). You can hide from the dead that are chasing you, but not from one that is TOO CLOSE when you commit — inside its attack
 ## reach and one more length (Stealth.too_close): it sees you go in, and after a beat of dread (Stealth.DISCOVER_DELAY) it has found you. Returns whether we are (about to be) hidden.
@@ -2257,8 +2403,16 @@ func enter_hide(spot: Node) -> bool:
 	_hide_doomed_t = Stealth.DISCOVER_DELAY if not close.is_empty() else 0.0
 	_clear_move_target()
 	velocity = Vector2.ZERO
-	is_crouching = true
+	if spot.has_method("prepare"):
+		spot.prepare(self)            # (a doorway settles which side of its wall hides us from what is coming)
+	_hide_was_crouching = is_crouching
+	is_crouching = spot.get("stands") != true          # down, crouched — except flat against a doorway's wall, where we stand straight
+	if torch_on:
+		_torch_off()                  # nobody hides with a light on
 	hide_spot = spot
+	var face = spot.get("face_dir")
+	if face != null and int(face) != 0:
+		animated_sprite.flip_h = int(face) < 0          # pressed beside a doorway: back to the wall, facing the room
 	conceal = Stealth.HIDDEN          # from this frame on the dead cannot see us (the slide into the piece is a beat, not a window to be seen in)
 	_hide_fx = StealthFx.begin(self)
 	_hide_msec = Time.get_ticks_msec()
@@ -2272,7 +2426,8 @@ func enter_hide(spot: Node) -> bool:
 		spot.on_hide_begin()
 	var tw := create_tween().set_parallel(true)
 	_hide_tween = tw
-	tw.tween_property(self, "global_position:x", spot.global_position.x, HIDE_STEP_TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	var into_x: float = float(spot.hide_x()) if spot.has_method("hide_x") else spot.global_position.x
+	tw.tween_property(self, "global_position:x", into_x, HIDE_STEP_TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	if absf(global_position.y - (_hide_return_y - rise)) > 0.5:      # up into the tub, or (a wardrobe, entered while still climbing down from a tub) back to the line
 		tw.tween_property(self, "global_position:y", _hide_return_y - rise, HIDE_STEP_TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	return true
@@ -2302,6 +2457,8 @@ func leave_hide(keep_target: bool = false, voluntary: bool = false) -> void:
 	var spot = hide_spot
 	hide_spot = null
 	conceal = Stealth.NONE
+	if spot != null and is_instance_valid(spot) and spot.get("stands") == true:
+		is_crouching = _hide_was_crouching        # (stood flat against a wall: they come away in the stance they went in with)
 	_hide_doomed_by = null
 	_hide_doomed_t = 0.0
 	if _hide_fx != null and is_instance_valid(_hide_fx):

@@ -115,7 +115,7 @@
     "015": {
       "ITEM_NAME": "Torch",
       "ITEM_DESCRIPTION": "Hey, who turned out the lights?! It's shocking that at the end of the world, some people didn't pay their electricity bill!",
-      "VALUE_PROPERTY": "is_tool",
+      "VALUE_PROPERTY": "is_tool, is_torch",
       "PROPERTY_DURABILITY": "requires battery",
       "PROPERTY_SPAWN_RARITY": 2,
       "PROPERTY_WEIGHT_SIZE": null
@@ -163,7 +163,7 @@
     "021": {
       "ITEM_NAME": "Battery",
       "ITEM_DESCRIPTION": "Who would have thought that the humble battery could be so useful for powering up lights, and lifts. For a time…",
-      "VALUE_PROPERTY": "is_tool",
+      "VALUE_PROPERTY": "is_tool, is_battery",
       "PROPERTY_DURABILITY": "single use, holds charge state for power",
       "PROPERTY_SPAWN_RARITY": 2,
       "PROPERTY_WEIGHT_SIZE": null

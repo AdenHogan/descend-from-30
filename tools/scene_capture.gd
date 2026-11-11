@@ -48,6 +48,8 @@ extends Node
 #   breach:<apt>     make that flat's door BREACHED (before its room loads)
 #   anchor:<apt>:<anchor>:<item>  put an item in a node BEFORE its room loads (so the node is live and drawn)
 #   anchors          print the scavenge nodes of the current scene (name + screen position)
+#   flats:<room>     print the current floor's flats that hold that room type;  spots  print the scene's hiding places;  hidein:<piece|way>  hide the player in the first one of that kind
+#   lightsout        put out every light of the scene but the player's own;  face:<left|right>  turn the player;  use:<slot>  use an inventory slot (the torch: on / off)
 #   eval:<method>    call a no-arg method on the current scene
 #   call:<group>:<method>[:<arg>]  call a method on the first node in a group (e.g. modal_panel)
 # Other args: --tutorial=1|0 (first-run tutorial on/off), --seed=<n>.
@@ -373,6 +375,51 @@ func _do(step: String) -> void:
 			for n in get_tree().get_nodes_in_group("scavenge_anchor"):
 				if n is Node2D:
 					print("anchor ", n.name, " at ", get_viewport().get_canvas_transform() * (n as Node2D).global_position)
+			await _frames(1)
+		"flats":
+			# flats:<room type> — which flats of the current floor hold that room, and where (to pick one for a capture)
+			for i in range(1, 6):
+				var fid := "%d%02d" % [WorldState.current_floor, i]
+				var lay: Array = WorldState.get_apartment_layout(fid)
+				if p.size() < 2 or p[1] in lay:
+					print("flat ", fid, " ", lay, " door ", WorldState.get_door_state(fid) if WorldState.has_method("get_door_state") else "?")
+			await _frames(1)
+		"spots":
+			# list the hiding places of the current scene (piece, how, world x)
+			for sp in get_tree().get_nodes_in_group("stealth_spot"):
+				print("spot ", sp.get("piece_id"), " how ", sp.get("how"), " x ", (sp as Node2D).global_position.x, " variant ", sp.get("variant"))
+			await _frames(1)
+		"hidein":
+			# hidein:<piece id or way> — put the player at the first hiding place of that kind and hide them there
+			var pl2 = get_tree().get_first_node_in_group("player")
+			for sp in get_tree().get_nodes_in_group("stealth_spot"):
+				if p.size() < 2 or String(sp.get("piece_id")) == p[1] or String(sp.get("how")) == p[1]:
+					if pl2 != null and pl2.has_method("enter_hide"):
+						pl2.global_position.x = (sp as Node2D).global_position.x + (0.0 if p.size() < 3 else (-22.0 if p[2] == "l" else 22.0))      # hidein:against:l|r = from that side of the doorway
+						await _frames(2)
+						print("hidein ", sp.get("piece_id"), " -> ", pl2.enter_hide(sp))
+					break
+			await _frames(1)
+		"lightsout":
+			# put out every light of the scene but the player's own (a floor with its power gone)
+			var pl3 = get_tree().get_first_node_in_group("player")
+			var sc3 = get_tree().current_scene
+			if sc3 != null:
+				for l in sc3.find_children("*", "PointLight2D", true, false):
+					if pl3 == null or not pl3.is_ancestor_of(l):
+						l.enabled = false
+			await _frames(1)
+		"face":
+			# face:<left|right> — turn the player
+			var pl4 = get_tree().get_first_node_in_group("player")
+			if pl4 != null and p.size() > 1:
+				pl4.animated_sprite.flip_h = p[1] == "left"
+			await _frames(1)
+		"use":
+			# use:<slot> — Player.use_item(slot): what the use key / a double-click does
+			var pl5 = get_tree().get_first_node_in_group("player")
+			if pl5 != null and p.size() > 1:
+				pl5.use_item(int(p[1]))
 			await _frames(1)
 		"eval":
 			var sc = get_tree().current_scene

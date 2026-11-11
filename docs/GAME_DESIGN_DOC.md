@@ -262,6 +262,9 @@ fuse box takes 3 fuses → single-use, 5-floor jump in an animated car; `MAINTEN
 Real PointLight2D lighting on a time-of-day ambient (morning near-fully lit, afternoon dusk, night near-black), sconces
 that flicker / blink / die, window and balcony light-beams, a player aura, fire light, storm + lightning + thunder at night,
 and descent dimming. Ambient animation (swaying plants, dripping, exit-sign decay) per `MOTION.md`.
+**Depth (round 49s, `LIGHT_AND_DEPTH.md`):** rooms and corridors keep shade where light does not reach, furniture and props cast shadows on the wall and (round 49t) on the floor,
+a flat's window light pools at dusk and by night, every actor has a contact shadow. **The torch (round 49t, `TORCH_AND_DARK.md`):** the Torch is a real beam you switch on
+and off, fed by Batteries; the night's own aura round the player is a small pool, so the dark is dark.
 
 ## 8. Audio, listening and stealth (BUILT v1 — `SOUND_STEALTH.md`)
 
@@ -269,6 +272,10 @@ Sound lives under the hood: every action has a radius (crouch 45 → walk 120 �
 gunshot whole floor). The one player-facing mode is **anchored Listen (R)** at an apartment door or down-stairwell: rooted ~3 s
 in real time (any hit or movement cancels, no report), the world greys, red pings pulse faster the nearer the dead are,
 and you get a deliberately vague report (a number only for Alex). The roaming "TLOU" listen mode was *dropped* by design.
+**Hiding (BUILT v1, rounds 49o-49t — `STEALTH_SPACES.md`, `TORCH_AND_DARK.md`):** one `[interact]` press hides the player in a wardrobe, a bath, behind a shower curtain,
+behind a sofa or an armchair, flat against the wall beside a doorway (on the side the dead are not coming from), or — at night, torch off — in the dark itself. A dead thing too
+close when you commit has you; one further off shambles past; a searcher that lingers finds you. The dead see less far into the dark and further to a lit torch. PARTIAL: story
+(baked) rooms have no furniture to hide in, corridors have only the dark, creeping behind furniture as cover and combat from cover are not built.
 Audio is CC0 / generated: footsteps, zombie shuffles, moans, glass, fire, storm, room hums, a tonal opening drone. **Round 46 (`AUDIO.md`):** cleaned of static (pink noise under steep ceilings,
 a Master limiter, a gate that measures every file), a recomposed stereo exploration loop, and a **pulse-pounding 140 BPM breach-room track** that takes over while a breach flat's dead stand.
 
@@ -435,6 +442,8 @@ controls for three input families, the opening and the run bookends, saves. The 
 | Stair barricades, hordes, cross-floor noise | `STAIR_BARRICADES.md`, `STAIRWELL_LAYERS.md` |
 | Backpack, crafting, codex | `BACKPACK.md` |
 | Sound and stealth | `SOUND_STEALTH.md` |
+| Hiding places, the dark, the torch | `STEALTH_SPACES.md`, `TORCH_AND_DARK.md` |
+| Shade, cast shadows, window pools | `LIGHT_AND_DEPTH.md` |
 | Tutorial | `TUTORIAL.md` |
 | Characters, personal quests | `CHARACTERS.md`, `CHARACTER_STORIES.md` |
 | Residents | `RESIDENTS.md` |

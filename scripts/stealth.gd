@@ -39,14 +39,105 @@ const ENEMY_FULL := 160.0          # a dead thing this close to the hidden playe
 const ENEMY_GONE := 420.0          # ...and it is out of the heart's reach by here
 const FADE_TIME := 0.6
 
+# LIGHT (owner 2026-11-10: "hide in total dark spaces during the night run when lighting may be out on a floor… turning off the flashlight in those dark zones would be real
+# dark"; docs/TORCH_AND_DARK.md). The dead see by a radius; how far that radius reaches follows the LIGHT ON THE PLAYER (LightSense: the room's ambient + every real light
+# whose cookie covers them — never their own aura or torch beam, which is how they see, not what lights them):
+#   - plainly lit (any morning, any afternoon, under a working lamp, by a fire, in a window's pool): x1.0 — exactly as before;
+#   - in the dark, torch off: x DARK_SIGHT standing, x DARK_SIGHT_CROUCHED crouched — they have to come close to make you out;
+#   - in the dark with a LIT TORCH: x TORCH_SIGHT — a light in the dark is seen from further than a person in daylight. Switching it off is how you disappear.
+# Smooth between LightSense.DARK and LIT. An alerted "it knows" (the 2000 px lock-on) is not scaled. Hiding IN the dark is the DarkSpot's job (dark_spot.gd).
+const DARK_SIGHT := 0.6
+const DARK_SIGHT_CROUCHED := 0.45
+const TORCH_SIGHT := 1.5
+const LIGHT_SENSE_MSEC := 150      # the light on the player is read at most this often (every enemy asks every frame)
+
+
+## The light on the player right now (LightSense.level_at, their own lights left out) — read fresh.
+static func light_now(player: Node) -> float:
+	if player == null or not is_instance_valid(player) or not (player is Node2D) or not player.is_inside_tree():
+		return 1.0
+	var root: Node = WorldState.owning_scene_root(player)
+	if root == null:
+		root = player.get_parent()
+	return LightSense.level_at((player as Node2D).global_position, root, player)
+
+
+## The same, remembered for LIGHT_SENSE_MSEC (what the dead's sight asks every frame).
+static func light_on(player: Node) -> float:
+	if player == null or not is_instance_valid(player):
+		return 1.0
+	var now: int = Time.get_ticks_msec()
+	if player.has_meta("light_msec") and now - int(player.get_meta("light_msec")) < LIGHT_SENSE_MSEC:
+		return float(player.get_meta("light_level", 1.0))
+	var v: float = light_now(player)
+	player.set_meta("light_msec", now)
+	player.set_meta("light_level", v)
+	return v
+
+
+## Read the light afresh on the next ask (a torch just switched, a test that moved a lamp).
+static func forget_light(player: Node) -> void:
+	if player != null and is_instance_valid(player) and player.has_meta("light_msec"):
+		player.remove_meta("light_msec")
+
+
+static func torch_lit(player: Node) -> bool:
+	return player != null and is_instance_valid(player) and player.has_method("torch_lit") and bool(player.torch_lit())
+
+
+## Does the player stand in the dark with no light of their own showing?
+static func in_the_dark(player: Node) -> bool:
+	return light_on(player) <= LightSense.DARK and not torch_lit(player)
+
+
+## What the dead's sight radius is multiplied by for this player, by the light on them (see LIGHT above). 1.0 whenever they are plainly lit.
+static func sight_scale(player: Node) -> float:
+	if player == null or not is_instance_valid(player):
+		return 1.0
+	return sight_scale_for(light_on(player), torch_lit(player), player.get("is_crouching") == true)
+
+
+## The rule itself, as a pure function (tests pin it).
+static func sight_scale_for(level: float, torch: bool, crouched: bool) -> float:
+	var dark_share: float = 1.0 - LightSense.lit_share(level)
+	if dark_share <= 0.0:
+		return 1.0
+	if torch:
+		return lerpf(1.0, TORCH_SIGHT, dark_share)
+	return lerpf(1.0, DARK_SIGHT_CROUCHED if crouched else DARK_SIGHT, dark_share)
+
+
 ## HIDING MUST MAKE SENSE (owner round 49o: "hiding beside a toilet is unnatural — it would make more sense to jump into the bathtub and hide in there"; "hiding must
-## contextually make sense"). A place to hide is a PIECE a person would hide in, in the room it stands in — never a bare patch of wall. Each way of hiding states the only
-## rooms it can happen in and the least a piece must measure (a person has to fit); `hide_rule_problems()` re-checks the table against the furniture library and
-## the test proves it fails on a toilet, a sofa and a wardrobe in a kitchen.
+## contextually make sense"; round 49t: "jumping behind a sofa, hiding behind or beside a chair, hiding up against a module wall for enemies to pass by, hiding behind a shower
+## curtain or in a bathtub or in a wardrobe… when the furniture has physical real shape, we can specifically identify a place where a player can actively hide within or beside
+## or behind"). A place to hide is a PIECE a person would hide in, behind or beside, in the room it stands in — or the wall beside a DOORWAY, where a person can flatten
+## themselves behind the frame and be passed (`WALL_HIDE`, and only where that stretch of wall is bare: never "beside a toilet"). Each way of hiding states the only rooms it
+## can happen in, the least a piece must measure (a person has to fit) and, for hiding BEHIND, that the piece stands out from the wall (there has to be a behind);
+## `hide_rule_problems()` re-checks the table against the furniture library and the test proves it fails on a toilet, a wardrobe in a kitchen and a sofa "inside".
 const HOW := {
 	"inside": {"rooms": ["bedroom"], "min_w": 34, "min_h": 60, "why": "a person fits in a wardrobe and pulls the door to"},
 	"in": {"rooms": ["bathroom"], "min_w": 90, "min_h": 40, "why": "a person can climb into a bath and keep down below its rim"},
+	"behind": {"rooms": ["living_room", "bedroom", "study", "dining_room"], "min_w": 30, "min_h": 36, "planes": ["front"],
+		"why": "a person crouched behind a sofa or an armchair that stands out from the wall is covered to the eyes"},
 }
+
+## THE WALL BESIDE A DOORWAY (owner round 49o: "if a player enters a module and immediately has a hide prompt to hide against the module wall, enemies can move past"; round 49t:
+## "hiding up against a module wall for enemies to pass by", and on the first capture of it: "it should be more like a standing flat and straight up against the wall on
+## either side, up from the main y plane so as to indicate the player has moved to a spot out of sight of enemies. Then the contextual left or right side based on where
+## enemies might be coming from. This needs to not be an overwhelming prompt").
+## Between the back wall and the door's opening every doorway has a stub of wall with the frame's jamb on it (module_walls.gd: the opening starts at floor depth 338). A person
+## STANDING flat against that stub, stepped back off the walking line, is behind the frame for anything coming through the door. ONE place per doorway — between two rooms,
+## and at the flat's front door — and WHICH SIDE of the wall they stand on is the game's choice, not a second prompt: the side AWAY from the nearest of the dead (one coming
+## from the right-hand room finds nobody: they are flat against the left of the wall); with nobody about, the side they are already on. A side is only ever used if its corner
+## is bare: `clear_from`..`clear_to` px from the wall, measured off the room's own furniture (a planned room's pieces, a baked room's clear-floor skyline), must hold nothing
+## standing — never "beside a toilet". If the side that would hide them is not bare the doorway offers nothing (the other side is in plain view of what is coming).
+## A solid end wall with no door has no such place: nothing passes it.
+## NOT OVERWHELMING: the prompt is two words ("[E] Hide"), it shows only once they have all but stopped beside the doorway (`still`: a doorway is walked through all day)
+## and only when hiding is on their mind — they are crouched, or one of the dead is up and within THREAT_RANGE.
+## `offset` = where the player's middle is, from the wall (the whole standing figure on its own side of the frame, back to the wall, facing the room).
+const WALL_HIDE := {"noun": "", "verb": "Hide", "noise": 0.0, "offset": 16.0, "reach": 30.0, "clear_from": 1, "clear_to": 29, "clear_rows": 62,
+	"floor_y": 338.0, "still": 30.0, "shield": 1.0, "fire": true}
+const THREAT_RANGE := 420.0        # one of the dead, up and this near, puts hiding on the player's mind: the quiet prompts (a doorway, the dark) show without a crouch
 
 ## Pieces you can hide in (planned rooms): piece id -> how, the noun and verb the prompt uses, the noise of getting out (px: a wardrobe's door, water slopping off a bath),
 ## and for a piece whose FRONT must stand between the player and the dead (the bath's lip) `lip_up`: how many sprite rows ABOVE the piece's feet line the front lip's top edge is,
@@ -55,13 +146,25 @@ const HOW := {
 ## (`curtain`: the wetroom's shower-bath) is hidden behind: the whole curtain is laid over the player, a shade less than opaque so a dark figure shows through the plastic, and it
 ## fades in as they step in (the player is sliced by it as they go behind). The pulled-back curtain of the pink bath hides nobody, so that tub hides by its lip. Not yet: under a bed (needs a lying figure
 ## and the dark gap drawn), behind a sofa or a table (that is COVER, phase 2), a walk-in shower (glass — you would be seen).
+##
+## BEHIND a piece (`how: "behind"`, round 49t): the player crouches on the wall side of a sofa / loveseat / armchair and the piece — with everything standing in front of it
+## (the coffee table, what is on it) — is drawn over them, so the eyes and the top of the head show over its back. `feet_dy` = how far below the piece's own feet line the
+## player's feet go (still behind its front edge), which is what sets how much head shows.
+##
+## COVER, for a fight that does not exist yet (owner round 49t: "hide beside a chair, it can be cover to avoid bullets from a neighbour who is shooting… and then the player
+## if they have a gun can shoot from cover. I'm not saying we need it now, but if we have the tools ready"): every place states `shield` — the share of a shot the thing
+## would stop (cast iron stops nearly all, a wardrobe door very little, a curtain nothing, a wall everything) — and `fire`, whether a person could shoot back from there
+## (over a sofa's back, round a door frame: yes; from inside a wardrobe or behind a curtain: no). `Stealth.cover_info(player)` reads them. NOTHING consumes it yet.
 const HIDE_PIECES := {
-	"wardrobe_wood": {"how": "inside", "noun": "wardrobe", "verb": "Hide", "noise": 40.0},
-	"wardrobe_mirror": {"how": "inside", "noun": "wardrobe", "verb": "Hide", "noise": 40.0},
-	"wardrobe_small": {"how": "inside", "noun": "wardrobe", "verb": "Hide", "noise": 40.0},
-	"bath": {"how": "in", "noun": "bath", "verb": "Get in", "noise": 55.0, "stand_up": 6.0, "lip_default": 20,
+	"wardrobe_wood": {"how": "inside", "noun": "wardrobe", "verb": "Hide", "noise": 40.0, "shield": 0.25, "fire": false},
+	"wardrobe_mirror": {"how": "inside", "noun": "wardrobe", "verb": "Hide", "noise": 40.0, "shield": 0.25, "fire": false},
+	"wardrobe_small": {"how": "inside", "noun": "wardrobe", "verb": "Hide", "noise": 40.0, "shield": 0.25, "fire": false},
+	"bath": {"how": "in", "noun": "bath", "verb": "Get in", "noise": 55.0, "stand_up": 6.0, "lip_default": 20, "shield": 0.9, "fire": true,
 		"lip_up": {"bath_claw": 18, "bath_gold": 17, "bath_panel": 21, "bath_curtain": 23, "bath_tiled": 22},
-		"curtain": {"bath_curtain": {"alpha": 0.9, "noun": "shower", "verb": "Hide behind the curtain"}}},
+		"curtain": {"bath_curtain": {"alpha": 0.9, "noun": "shower", "verb": "Hide behind the curtain", "shield": 0.0, "fire": false}}},
+	"sofa": {"how": "behind", "noun": "sofa", "verb": "Hide behind it", "noise": 30.0, "feet_dy": 0.0, "shield": 0.6, "fire": true},
+	"loveseat": {"how": "behind", "noun": "sofa", "verb": "Hide behind it", "noise": 30.0, "feet_dy": 0.0, "shield": 0.6, "fire": true},
+	"armchair": {"how": "behind", "noun": "armchair", "verb": "Hide behind it", "noise": 30.0, "feet_dy": 0.0, "shield": 0.5, "fire": true},
 }
 
 
@@ -83,6 +186,10 @@ static func hide_rule_problems(table: Dictionary = HIDE_PIECES, library: Diction
 		for room in rec.get("rooms", {}):
 			if not (String(room) in rule["rooms"]):
 				out.append("%s: stands in a %s, but you can only hide %s in a %s (%s)" % [id, room, how, " or ".join(rule["rooms"]), rule["why"]])
+		if rule.has("planes") and not (String(rec.get("plane", "")) in rule["planes"]):
+			out.append("%s: stands on the %s plane — there is no %s it (%s)" % [id, String(rec.get("plane", "?")), how, rule["why"]])
+		if float(def.get("shield", -1.0)) < 0.0 or float(def.get("shield", -1.0)) > 1.0 or not def.has("fire"):
+			out.append("%s: no cover numbers (shield 0..1, fire yes / no)" % id)
 		if int(rec.get("w", 0)) < int(rule["min_w"]) or int(rec.get("h", 0)) < int(rule["min_h"]):
 			out.append("%s: %dx%d is too small to hide %s (needs %dx%d)" % [id, int(rec.get("w", 0)), int(rec.get("h", 0)), how, int(rule["min_w"]), int(rule["min_h"])])
 		if float(def.get("noise", -1.0)) < 0.0 or String(def.get("noun", "")) == "" or String(def.get("verb", "")) == "":
@@ -99,6 +206,26 @@ const PLANES := {
 	"cover": {"sees": "blocked", "reach": true, "noise": "gait", "screen": "normal", "prompt": "Duck behind the {piece}  [{move_up}]"},
 	"hidden": {"sees": "blocked", "reach": false, "noise": "silent", "screen": "dark", "prompt": "{piece}  [{interact}] Hide / Come out"},
 }
+# (Round 49t: "behind a sofa" was designed as the COVER plane above — crouch-walk behind it, seen only from close. It was built instead as a HIDDEN place like the wardrobe:
+# one press, the same rules. The cover row stays for the creeping version, still not built; darkness is a HIDDEN place too — dark_spot.gd.)
+
+
+## What the player is behind / in right now, as COVER (see HIDE_PIECES): {"shield": 0..1, "fire": bool, "piece": id} — {"shield": 0, "fire": true, "piece": ""} in the open.
+## A tool for a fight that is not built: nothing reads it yet.
+static func cover_info(player: Node) -> Dictionary:
+	var open := {"shield": 0.0, "fire": true, "piece": ""}
+	if player == null or not is_instance_valid(player):
+		return open
+	var spot = player.get("hide_spot")
+	if spot == null or not is_instance_valid(spot):
+		return open
+	return {"shield": clampf(float(spot.get("shield")) if spot.get("shield") != null else 0.0, 0.0, 1.0),
+		"fire": spot.get("fire_from") == true, "piece": String(spot.get("piece_id")) if spot.get("piece_id") != null else ""}
+
+
+## Would a shot at the player be stopped by what they are behind? `roll` is the caller's own 0..1 draw (seeded by them): under the shield, it is stopped.
+static func shot_stopped(player: Node, roll: float) -> bool:
+	return roll < float(cover_info(player)["shield"])
 
 
 static func conceal_of(player: Node) -> String:
@@ -198,6 +325,35 @@ static func pass_by(e: Node2D, player: Node) -> void:
 		dir = -1.0 if (spr != null and spr.flip_h) else 1.0
 	EnemyMind.investigate(e, px + dir * PASS_BEYOND)
 	EnemyMind.tell(e, "search")
+
+
+## The dead that are UP (not lying as a body, not knocked down, able to think) in the player's own world — the ones a hiding place is about.
+static func threats(player: Node) -> Array:
+	var out: Array = []
+	if player == null or not is_instance_valid(player) or not player.is_inside_tree():
+		return out
+	for z in player.get_tree().get_nodes_in_group("zombie"):
+		if not AiMind.present(z) or not EnemyMind.can_think(z) or not AiMind.same_world(z, player):
+			continue
+		if str(z.get("state")) in ["knockdown", "dead"]:
+			continue
+		out.append(z)
+	return out
+
+
+## Is one of them within THREAT_RANGE of the player?
+static func threat_near(player: Node) -> bool:
+	if not (player is Node2D):
+		return false
+	for z in threats(player):
+		if absf((z as Node2D).global_position.x - (player as Node2D).global_position.x) <= THREAT_RANGE:
+			return true
+	return false
+
+
+## Is hiding on the player's mind? Crouched, or one of the dead up and near. The quiet hiding places (a doorway's wall, the dark) only show their prompt then.
+static func wants_hiding(player: Node) -> bool:
+	return player != null and is_instance_valid(player) and (player.get("is_crouching") == true or threat_near(player))
 
 
 ## The living dead within `radius` (horizontal) of the player, on their plane — what a footstep of that loudness would reach.

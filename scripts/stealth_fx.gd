@@ -231,8 +231,11 @@ func _drive_light() -> void:
 		_grade.color = _grade_base.lerp(dark, k)
 		_grade_set = _grade.color
 	if _aura != null and is_instance_valid(_aura):
-		_aura.energy = lerpf(_aura_energy0, maxf(_aura_energy0, GLOW_ENERGY), k)
-		_aura.texture_scale = lerpf(_aura_scale0, maxf(_aura_scale0, GLOW_SCALE), k)
+		# (hidden IN THE DARK — dark_spot.gd — the pool is not raised: a light coming up round them is the one thing that hiding place must not have)
+		var in_dark: bool = player != null and is_instance_valid(player) and player.get("hide_spot") != null and is_instance_valid(player.get("hide_spot")) \
+				and str(player.get("hide_spot").get("how")) == "dark"
+		_aura.energy = lerpf(_aura_energy0, _aura_energy0 if in_dark else maxf(_aura_energy0, GLOW_ENERGY), k)
+		_aura.texture_scale = lerpf(_aura_scale0, _aura_scale0 if in_dark else maxf(_aura_scale0, GLOW_SCALE), k)
 
 
 ## Everything borrowed goes back exactly as it was.

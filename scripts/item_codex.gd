@@ -59,7 +59,7 @@ static func durability_line(d: Dictionary) -> String:
 	if max_d > 1:
 		return "%d uses" % max_d
 	if d.get("requires_battery", false):
-		return "Runs on a battery"
+		return "Runs on a battery (about %d minutes of light)" % int(round(WorldState.TORCH_FULL / 60.0))
 	if d.get("is_ammo", false):
 		return "One round per shot"
 	return "Doesn't wear"
@@ -100,9 +100,11 @@ static func wear_text(d: Dictionary) -> String:
 	if d.get("is_fuse", false):
 		return "Fitted into the fuse box; three power the lift for one ride."
 	if d.get("requires_battery", false):
-		return "Drains the battery it is fed; it never wears out itself."
+		return "In hand, the use key switches it on and off. Lit, it runs its battery down and never wears out itself. A lit torch shows you the dark — and shows you to the dead. Switch it off to save it, and to go unseen."
+	if d.get("is_battery", false):
+		return "One battery refills a torch: use it, or drag it onto the torch. A dead torch takes one by itself when you switch it on."
 	if d.get("is_ammo", false):
-		return "Loaded into a gun (up to 8 to a slot); each shot uses one round."
+		return "Loaded into a gun (up to %d to a slot); each shot uses one round." % WorldState.MAX_AMMO_PER_SLOT
 	if d.get("is_scrap", false):
 		return "Emptied straight into your scrap counter — it never takes a slot."
 	if d.get("is_money", false):

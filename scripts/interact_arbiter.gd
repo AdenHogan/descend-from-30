@@ -30,6 +30,8 @@ const RANK_LIFT := 3
 const RANK_THING := 4
 
 static var _taken_frame: int = -1
+static var _claimed_msec: int = -100000
+const CLAIM_MSEC := 50        # a press claimed by the player themself is spent for this long (one frame's physics step and idle step are a few ms apart; nobody presses twice in 50 ms)
 
 
 ## The nearest ready member answers; true for `me` only (and only once a frame). `assume_ready` = `me` is the node a caller has already
@@ -38,10 +40,18 @@ static func take(me: Node, assume_ready: bool = false) -> bool:
 	if not answers(me, assume_ready):
 		return false
 	var frame: int = Engine.get_process_frames()
-	if _taken_frame == frame:
+	if _taken_frame == frame or Time.get_ticks_msec() - _claimed_msec < CLAIM_MSEC:
 		return false
 	_taken_frame = frame
 	return true
+
+
+## The PLAYER has used this press themself (the [interact] that brings them out of a hiding place): no member answers it too. Round 49t: the player polls the
+## press in the physics step and the members poll it in the idle step of the same frame — by then the player was no longer hidden, so the hiding place hid them
+## again and the door beside it opened, on the one press. Marked by frame AND by a few milliseconds, so it holds whichever step runs first.
+static func claim() -> void:
+	_taken_frame = Engine.get_process_frames()
+	_claimed_msec = Time.get_ticks_msec()
 
 
 ## Would `me` be the one to answer right now? (Read-only: claims nothing.)

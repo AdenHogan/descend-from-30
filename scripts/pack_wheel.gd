@@ -297,6 +297,12 @@ func craft_onto(from: int, to: int) -> Dictionary:
 		var res: Dictionary = WorldState.load_gun_from_pack(gun)
 		HUD.show_feedback(String(res["msg"]))
 		return {"ok": int(res["loaded"]) > 0, "name": "", "why": String(res["msg"]), "loaded": int(res["loaded"])}
+	# A battery onto a torch (or the torch onto the battery) refills the torch.
+	var torch: ItemInstance = WorldState.battery_torch_pair(_slot_inst(from), _slot_inst(to))
+	if torch != null:
+		var tres: Dictionary = WorldState.load_torch_battery(torch)
+		HUD.show_feedback(String(tres["msg"]), not bool(tres["loaded"]))
+		return {"ok": bool(tres["loaded"]), "name": "", "why": String(tres["msg"]), "loaded": 1 if bool(tres["loaded"]) else 0}
 	# The same medical item onto itself: pour the units across (up to three a slot).
 	var moved: int = WorldState.merge_medical_slots(int(slots[from]), int(slots[to]))
 	if moved > 0:
@@ -527,6 +533,10 @@ func _drag_plans(n: int) -> Dictionary:
 			if ld != null:
 				var full: bool = ld.mag_count >= ld.get_mag_cap()
 				pl = {"ok": not full and WorldState.get_ammo_total() > 0, "name": "LOAD THE GUN", "why": "Magazine full." if full else "No bullets to load.", "load": true}
+			var tl: ItemInstance = WorldState.battery_torch_pair(_slot_inst(drag_k), _slot_inst(k2))
+			if tl != null:
+				var good: bool = WorldState.torch_fraction(tl) >= WorldState.TORCH_SWAP_BELOW
+				pl = {"ok": not good, "name": "LOAD THE TORCH", "why": "The torch's battery is still good.", "load": true}
 			if not pl.is_empty():
 				plans[k2] = pl
 	return plans

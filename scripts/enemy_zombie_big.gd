@@ -506,7 +506,7 @@ func _physics_process(delta: float) -> void:
 				player = get_tree().get_first_node_in_group("player")
 			if player != null:
 				var distance = global_position.distance_to(player.global_position)
-				var effective_detection = detection_range if (alert_timer <= 0 or _alert_positional) else 2000.0
+				var effective_detection = detection_range * Stealth.sight_scale(player) if (alert_timer <= 0 or _alert_positional) else 2000.0
 				# STEALTH (docs/STEALTH_SPACES.md): a player hiding in furniture is outside my sight, whatever my alert; a search that ends at their hiding place can find them
 				var concealed: bool = Stealth.sight_blocked(self, player)
 				if concealed:

@@ -69,6 +69,7 @@ static var _cone: Texture2D = null
 static var _radial: Texture2D = null
 static var _beam: Texture2D = null
 static var _sconce: Texture2D = null
+static var _torch: Texture2D = null
 
 
 static func beam_texture() -> Texture2D:
@@ -101,6 +102,35 @@ static func beam_texture() -> Texture2D:
 				img.set_pixel(x, y, Color(1, 1, 1, clampf(a, 0.0, 1.0)))
 		_beam = ImageTexture.create_from_image(img)
 	return _beam
+
+## A hand TORCH's beam: the lens at the texture CENTRE, a cone thrown along +X (the node is turned to the way the player faces), bright and narrow near the hand and
+## opening out, with a crisp edge so it reads as a beam on the wall and floor and not a wash; a small round spill at the lens so whoever holds it is lit too.
+static func torch_texture() -> Texture2D:
+	if _torch == null:
+		var w := 512
+		var h := 288
+		var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
+		var cx := float(w) * 0.5
+		var cy := float(h) * 0.5
+		var reach := float(w) * 0.5
+		for y in range(h):
+			var dy := absf(float(y) - cy)
+			for x in range(w):
+				var d := float(x) - cx
+				var a := 0.0
+				if d > 0.0:
+					var vf := d / reach
+					var half := lerpf(7.0, cy - 8.0, pow(vf, 0.85))
+					if dy <= half:
+						var hf := dy / half
+						a = pow(clampf(1.0 - vf, 0.0, 1.0), 1.15) * pow(1.0 - hf * hf, 1.5)
+				var rd := sqrt(d * d + dy * dy)
+				if rd < 30.0:
+					a = maxf(a, (1.0 - rd / 30.0) * 0.5)
+				img.set_pixel(x, y, Color(1, 1, 1, clampf(a, 0.0, 1.0)))
+		_torch = ImageTexture.create_from_image(img)
+	return _torch
+
 
 var _lamps: Array = []
 

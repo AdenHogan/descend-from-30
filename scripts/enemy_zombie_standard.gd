@@ -1356,7 +1356,8 @@ func _physics_process(delta: float) -> void:
 				var distance = global_position.distance_to(player.global_position)
 				# A noise that carried its source (_alert_positional) tells me WHERE, not who/where-now: my sight stays
 				# normal and I go and look (EnemyMind). Only a source-less alert still means "I know".
-				var effective_detection = DETECTION_RANGE if (alert_timer <= 0 or _alert_positional) else 2000.0
+				# (My sight reaches as far as the LIGHT ON THEM lets it: less into the dark, further to a lit torch — Stealth.sight_scale, 1.0 whenever they are plainly lit.)
+				var effective_detection = DETECTION_RANGE * Stealth.sight_scale(player) if (alert_timer <= 0 or _alert_positional) else 2000.0
 				if tutorial_scripted:
 					effective_detection = 2000.0  # always aware once released
 				# STEALTH (docs/STEALTH_SPACES.md): a player hiding in furniture (or crouched behind cover) is simply outside my sight — whatever my alert — and a

@@ -203,38 +203,44 @@ func _draw() -> void:
 
 
 func _door_frame(xb: float, door: bool) -> void:
-	# The doorway between two rooms, straight on and STATIC (see HEAD_Y): the wall over the door seen
-	# cut (dark section between two plaster skims) from the ceiling down to the head casing; then the
-	# door frame's timber jamb down to the floor at the back of the opening, lit on its left edge, a
-	# stop line down it and a plinth block at its foot; the saddle (_threshold) carries on across the
-	# floor from there. It stands exactly on the join between the two rooms' walls and floors.
+	draw_door_frame(self, xb, door)
+
+
+## The doorway between two rooms, straight on and STATIC (see HEAD_Y): the wall over the door seen
+## cut (dark section between two plaster skims) from the ceiling down to the head casing; then the
+## door frame's timber jamb down to the floor at the back of the opening, lit on its left edge, a
+## stop line down it and a plinth block at its foot; the saddle (_threshold) carries on across the
+## floor from there. It stands exactly on the join between the two rooms' walls and floors.
+## Static, on any canvas item, in the room's space: the walls draw it, and so does the cover laid over a player pressed against the wall beside the doorway
+## (stealth_spot.gd — the frame is what they are behind).
+static func draw_door_frame(ci: CanvasItem, xb: float, door: bool) -> void:
 	var l := xb - FRAME_HALF
 	var w := FRAME_HALF * 2.0 + 1.0
 	var foot := DOOR_FLOOR
 	var head := HEAD_Y if door else foot
 	# the wall over the door (all the way down when there's no doorway)
-	draw_rect(Rect2(l, TOP, w, head - TOP), SECTION_COL)
-	draw_rect(Rect2(l, TOP, 1.0, head - TOP), PLASTER_COL)
-	draw_rect(Rect2(l + w - 1.0, TOP, 1.0, head - TOP), PLASTER_COL)
-	draw_rect(Rect2(l + 1.0, TOP, 1.0, head - TOP), Color(0.47, 0.43, 0.37))
-	draw_rect(Rect2(l + w - 2.0, TOP, 1.0, head - TOP), Color(0.47, 0.43, 0.37))
+	ci.draw_rect(Rect2(l, TOP, w, head - TOP), SECTION_COL)
+	ci.draw_rect(Rect2(l, TOP, 1.0, head - TOP), PLASTER_COL)
+	ci.draw_rect(Rect2(l + w - 1.0, TOP, 1.0, head - TOP), PLASTER_COL)
+	ci.draw_rect(Rect2(l + 1.0, TOP, 1.0, head - TOP), Color(0.47, 0.43, 0.37))
+	ci.draw_rect(Rect2(l + w - 2.0, TOP, 1.0, head - TOP), Color(0.47, 0.43, 0.37))
 	if not door:
 		return
 	# the head casing, a touch wider than the jamb
-	draw_rect(Rect2(l - 1.0, head, w + 2.0, HEAD_H), TRIM_COL)
-	draw_rect(Rect2(l - 1.0, head, w + 2.0, 1.0), TRIM_LT)
-	draw_rect(Rect2(l - 1.0, head + HEAD_H - 1.0, w + 2.0, 1.0), TRIM_DK)
+	ci.draw_rect(Rect2(l - 1.0, head, w + 2.0, HEAD_H), TRIM_COL)
+	ci.draw_rect(Rect2(l - 1.0, head, w + 2.0, 1.0), TRIM_LT)
+	ci.draw_rect(Rect2(l - 1.0, head + HEAD_H - 1.0, w + 2.0, 1.0), TRIM_DK)
 	# the jamb
 	var j0 := head + HEAD_H
-	draw_rect(Rect2(l, j0, w, foot - j0), TRIM_COL)
-	draw_rect(Rect2(l, j0, 1.0, foot - j0), TRIM_LT)
-	draw_rect(Rect2(l + w - 1.0, j0, 1.0, foot - j0), TRIM_DK)
-	draw_rect(Rect2(xb, j0 + 2.0, 1.0, foot - j0 - PLINTH_H - 2.0), TRIM_DK)       # the door stop
+	ci.draw_rect(Rect2(l, j0, w, foot - j0), TRIM_COL)
+	ci.draw_rect(Rect2(l, j0, 1.0, foot - j0), TRIM_LT)
+	ci.draw_rect(Rect2(l + w - 1.0, j0, 1.0, foot - j0), TRIM_DK)
+	ci.draw_rect(Rect2(xb, j0 + 2.0, 1.0, foot - j0 - PLINTH_H - 2.0), TRIM_DK)       # the door stop
 	# the plinth block at its foot
-	draw_rect(Rect2(l - 1.0, foot - PLINTH_H, w + 2.0, PLINTH_H), TRIM_COL)
-	draw_rect(Rect2(l - 1.0, foot - PLINTH_H, w + 2.0, 1.0), TRIM_LT)
-	draw_rect(Rect2(l - 1.0, foot - PLINTH_H, 1.0, PLINTH_H), TRIM_LT)
-	draw_rect(Rect2(l + w, foot - PLINTH_H, 1.0, PLINTH_H), TRIM_DK)
+	ci.draw_rect(Rect2(l - 1.0, foot - PLINTH_H, w + 2.0, PLINTH_H), TRIM_COL)
+	ci.draw_rect(Rect2(l - 1.0, foot - PLINTH_H, w + 2.0, 1.0), TRIM_LT)
+	ci.draw_rect(Rect2(l - 1.0, foot - PLINTH_H, 1.0, PLINTH_H), TRIM_LT)
+	ci.draw_rect(Rect2(l + w, foot - PLINTH_H, 1.0, PLINTH_H), TRIM_DK)
 
 
 func _floor_wedge(cx: float, xb: float, room: Node, room_is_left: bool) -> void:

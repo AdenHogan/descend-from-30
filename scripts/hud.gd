@@ -1136,6 +1136,12 @@ func _drop_on_slot(from: int, to: int) -> void:
 		if gun_inst != null:
 			show_feedback(String(WorldState.load_gun_from_pack(gun_inst)["msg"]))
 			return
+		# A battery onto a torch (either direction) refills it.
+		var torch_inst: ItemInstance = WorldState.battery_torch_pair(from_inst, WorldState.get_instance_at(to))
+		if torch_inst != null:
+			var tres: Dictionary = WorldState.load_torch_battery(torch_inst)
+			show_feedback(String(tres["msg"]), not bool(tres["loaded"]))
+			return
 		# The same medical item onto itself: pour the units across (up to three a slot).
 		if WorldState.merge_medical_slots(from, to) > 0:
 			refresh_inventory()
@@ -1417,6 +1423,9 @@ func item_tip_content(inst) -> Dictionary:
 		if inst.is_damaged:
 			broken = true
 			stats.append("Damaged — shoots wide until repaired")
+	elif d.get("is_torch", false):
+		var tf: float = WorldState.torch_fraction(inst)
+		stats.append("Battery %d%%" % int(round(tf * 100.0)) if tf > 0.0 else "Battery dead")
 	elif max_d > 1:
 		stats.append(("Durability %d / %d" if d.get("is_weapon", false) else "Uses left %d / %d") % [inst.current_durability, max_d])
 	if d.get("is_money", false):
@@ -1435,6 +1444,10 @@ func item_tip_content(inst) -> Dictionary:
 				else ("Its cabinet is gone — nothing in " + WorldState.key_where(tgt) + " takes this key now")
 		else:
 			hint = "Opens the front door of " + WorldState.key_where(tgt)
+	elif d.get("is_torch", false):
+		hint = "Use it to switch it on and off · a lit torch shows you the dark, and shows you to the dead"
+	elif d.get("is_battery", false):
+		hint = "Use it, or drag it onto a torch, to refill the torch"
 	elif d.get("is_molotov", false):
 		hint = "Double-click to throw — it bursts into flame where it lands"
 	elif d.get("is_bottle", false):
@@ -1596,6 +1609,8 @@ func _update_equipped_chip() -> void:
 	var ammo := ""
 	if d.get("is_weapon", false) and _is_gun_data(d) and not broken:
 		ammo = "%d/%d" % [inst.mag_count, inst.get_mag_cap()]
+	if d.get("is_torch", false):
+		frac = WorldState.torch_fraction(inst)          # the vial is the battery: it drains as the torch burns, and is empty when the torch is dead
 	equip_box.set_item(ItemData.get_texture(inst.item_id), frac, broken, ammo)
 
 
@@ -1615,6 +1630,10 @@ func hand_context() -> Dictionary:
 				return {"label": "DRAW", "action": "attack"}
 			return {"label": "SHOOT" if _is_gun_data(d) else "HIT", "action": "attack"}
 		if not broken:
+			if d.get("is_torch", false):
+				return {"label": "LIGHT", "action": "item_use"}
+			if d.get("is_battery", false) and WorldState.torch_wanting_battery() != null:
+				return {"label": "LOAD", "action": "item_use"}
 			if d.get("is_health_item", false):
 				return {"label": "HEAL", "action": "item_use"}
 			if d.get("is_extinguisher", false):

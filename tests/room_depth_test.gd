@@ -31,6 +31,7 @@ func _ready() -> void:
 	_test_shade_numbers()
 	_test_window_light()
 	await _test_planned_flat()
+	await _test_floor_shadows()
 	await _test_baked_flat()
 	await _test_corridor()
 	await _test_ground_shadow()
@@ -239,6 +240,99 @@ func _test_planned_flat() -> void:
 		check(dir_ok and seen > 0, "run %d: every shadow falls away from the room's light, never toward it (%d checked)" % [run, seen])
 		room.free()
 		await get_tree().process_frame
+
+
+## STANDING furniture lays its shadow on the FLOOR (owner round 49t: "so that the furniture does have its weight from shadow, lighting, that depth").
+func _test_floor_shadows() -> void:
+	print("[standing furniture throws its shadow on the floor]")
+	var total := 0
+	var standing := 0
+	var ok := true
+	var why := ""
+	var thrown := 0
+	var dir_ok := true
+	var apt := ""
+	for run in [1, 2]:
+		var room = null
+		for cand in ["2204", "2201", "1703", "1402", "2503", "2001"]:
+			room = await _flat(cand, run, false)
+			apt = cand
+			var any_planned := false
+			for m in _modules(room):
+				for c in m.get_children():
+					if c.has_meta("furniture"):
+						any_planned = true
+			if any_planned:
+				break
+			room.free()
+			await get_tree().process_frame
+			room = null
+		if room == null:
+			check(false, "(setup) a planned flat for run %d" % run)
+			continue
+		var mods := _modules(room)
+		for m in mods:
+			var by_name := {}
+			var first_standing := -1
+			var last_rug := -1
+			var k := 0
+			for c in m.get_children():
+				if c.has_meta("furniture"):
+					by_name[String(c.name)] = c
+					var plane := String(c.get_meta("plane", ""))
+					if plane == "rug":
+						last_rug = k
+					elif first_standing < 0:
+						first_standing = k
+					if plane in ["front", "floor", "wall"]:
+						standing += 1
+				k += 1
+			if by_name.is_empty():
+				continue
+			var lamps = room.get_node_or_null("Lamps%d" % mods.find(m))
+			var lx: float = RD.light_x_for(m, lamps, _day_x(room, m, mods.find(m), apt), run, ModuleGeo.WIDTH)
+			for c in m.get_children():
+				if not c.has_meta("floor_shadow"):
+					continue
+				total += 1
+				var fs := c as Sprite2D
+				var src: Sprite2D = by_name.get(String(fs.name).substr(6), null) as Sprite2D
+				if src == null:
+					ok = false
+					why = "a floor shadow with no piece (%s)" % fs.name
+					continue
+				if fs.modulate.r > 0.001 or fs.modulate.a < 0.05 or fs.modulate.a > 0.5 or not (fs.material is CanvasItemMaterial) \
+						or (fs.material as CanvasItemMaterial).light_mode != CanvasItemMaterial.LIGHT_MODE_UNSHADED:
+					ok = false
+					why = "a floor shadow is not a faint unlit black"
+				if fs.get_index() > first_standing or (last_rug >= 0 and fs.get_index() < last_rug):
+					ok = false
+					why = "a floor shadow is not over the rugs and under what stands (%s)" % fs.name
+				var h: float = float(src.texture.get_height())
+				var w: float = float(src.texture.get_width())
+				var foot: float = src.position.y + h
+				# where the piece's foot row and its top row land
+				var at_foot: Vector2 = fs.transform * Vector2(w * 0.5, h)
+				var at_top: Vector2 = fs.transform * Vector2(w * 0.5, 0.0)
+				var length: float = at_top.y - at_foot.y
+				if absf(at_foot.y - foot) > 0.01 or absf(at_foot.x - (src.position.x + w * 0.5)) > 0.01:
+					ok = false
+					why = "a shadow does not start at its piece's foot (%s)" % fs.name
+				if length < RD.FLOOR_MIN_LEN - 0.01 or length > RD.FLOOR_MAX_LEN + 0.01:
+					ok = false
+					why = "a shadow is %.1f rows long (%s)" % [length, fs.name]
+				var throw: float = at_top.x - at_foot.x
+				var cx: float = src.position.x + w * 0.5
+				if absf(throw) >= 1.0:
+					thrown += 1
+				if (cx > lx + 30.0 and throw < 0.0) or (cx < lx - 30.0 and throw > 0.0):
+					dir_ok = false
+		room.free()
+		await get_tree().process_frame
+	check(total > 0 and total == standing, "every piece that stands (front / floor / against the wall) lays a shadow on the floor: %d shadows for %d pieces" % [total, standing])
+	check(ok, "each starts at its piece's foot, runs %d..%d rows down the floor, a faint unlit black, over the rugs and under the furniture%s" % [int(RD.FLOOR_MIN_LEN), int(RD.FLOOR_MAX_LEN), "" if ok else " - " + why])
+	check(dir_ok and thrown > 0, "they lean away from the room's light, never toward it (%d leaning)" % thrown)
+	check(float(RD.FLOOR_LEN_BY_RUN[1]) > float(RD.FLOOR_LEN_BY_RUN[0]), "the afternoon's low sun throws them further")
 
 
 func _day_x(room: Node, m: Node, slot: int, apt: String) -> float:

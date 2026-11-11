@@ -1490,13 +1490,16 @@ func player_aura_energy() -> float:
 	# Faint by DAY (the scene is already lit — a strong aura would wash the player out);
 	# it's the personal light that matters at NIGHT.
 	var i: int = clampi(current_run - 1, 0, 2)
-	var base: float = [0.10, 0.40, 0.62][i]   # morning: barely any aura (it's daytime)
+	# NIGHT (round 49t — owner: "turning off the flashlight in those dark zones would be real dark in a night run"): the aura was 0.62 over a 269 px radius, which lit the
+	# whole screen round the player and left the dark nothing to hide; it is a small dim pool now (0.36 over 160 px: you see your own footing and what is about to touch
+	# you) and the TORCH is how you see further (player.gd "THE TORCH"). Morning and afternoon are unchanged.
+	var base: float = [0.10, 0.40, 0.36][i]   # morning: barely any aura (it's daytime)
 	return base + get_night_vision() * (0.9 if current_run >= 3 else 0.4)
 
 
 func player_aura_scale() -> float:
 	var i: int = clampi(current_run - 1, 0, 2)
-	var base: float = [1.3, 1.7, 2.1][i]
+	var base: float = [1.3, 1.7, 1.25][i]
 	return base + get_night_vision() * (1.7 if current_run >= 3 else 0.8)
 
 
@@ -2131,6 +2134,80 @@ func ammo_gun_pair(a, b) -> ItemInstance:
 	if bool(db.get("is_ammo", false)) and is_gun_instance(a):
 		return a
 	return null
+
+
+# --- THE TORCH (owner 2026-11-10: "we need to get the flashlight working now… I know the batteries and flashlights aren't working yet… the flashlight can be a natural light
+# source for darkness. Turning off the flashlight in those dark zones would be real dark in a night run") ------------------------------------------------------------
+# The Torch (015) is a light you hold: in hand, the use key (or the attack key) switches it on and off; lit, it throws a real cone of light the way you face and runs its
+# battery down. A Battery (021) is one refill. The light is the player's (player.gd "THE TORCH"); these are the item's numbers and its one loading rule.
+const TORCH_FULL := 180.0          # seconds of light in a fresh battery
+const TORCH_FOUND := 0.5           # the share of a battery a found torch still holds
+const TORCH_LOW := 0.15            # under this share the beam stutters (the warning)
+const TORCH_SWAP_BELOW := 0.9      # a battery is only swapped into a torch holding less than this share (a fresh one is never wasted on a nearly-full torch)
+
+
+func is_torch_instance(inst) -> bool:
+	return inst != null and bool(inst.get_data().get("is_torch", false))
+
+
+func is_battery_instance(inst) -> bool:
+	return inst != null and bool(inst.get_data().get("is_battery", false))
+
+
+## 0..1: how much of a battery the torch holds.
+func torch_fraction(inst) -> float:
+	if not is_torch_instance(inst):
+		return 0.0
+	return clampf(float(inst.charge) / TORCH_FULL, 0.0, 1.0)
+
+
+## A battery + a torch, in either order, is a LOAD (the pack ring's drag and the hotbar's — the same shape as `ammo_gun_pair`). Returns the torch of such a pair, else null.
+func battery_torch_pair(a, b) -> ItemInstance:
+	if is_battery_instance(a) and is_torch_instance(b):
+		return b
+	if is_battery_instance(b) and is_torch_instance(a):
+		return a
+	return null
+
+
+## The slot of a carried battery, or -1.
+func battery_slot() -> int:
+	for i in range(inventory.size()):
+		if is_battery_instance(inventory[i]):
+			return i
+	return -1
+
+
+## The torch a battery would go into: the one in hand if it wants one, else the emptiest carried torch that does. Null when no torch wants a battery.
+func torch_wanting_battery() -> ItemInstance:
+	var held = get_instance_at(HUD.selected_slot) if HUD.selected_slot >= 0 and HUD.selected_slot < inventory.size() else null
+	if is_torch_instance(held) and torch_fraction(held) < TORCH_SWAP_BELOW:
+		return held
+	var best: ItemInstance = null
+	for inst in inventory:
+		if is_torch_instance(inst) and torch_fraction(inst) < TORCH_SWAP_BELOW and (best == null or inst.charge < best.charge):
+			best = inst
+	return best
+
+
+## Put one carried Battery into `torch`. {"loaded": bool, "msg": text}. The battery is spent only when it goes in: a torch that is still nearly full keeps
+## what it has and the battery stays in the pack (robustness rule 5: nothing of the player's is destroyed for nothing).
+func load_torch_battery(torch: ItemInstance) -> Dictionary:
+	if not is_torch_instance(torch):
+		return {"loaded": false, "msg": "That doesn't take a battery."}
+	if torch_fraction(torch) >= TORCH_SWAP_BELOW:
+		return {"loaded": false, "msg": "The torch's battery is still good."}
+	var at: int = battery_slot()
+	if at < 0:
+		return {"loaded": false, "msg": "No battery to put in."}
+	inventory.remove_at(at)
+	if HUD.selected_slot == at:
+		HUD.selected_slot = -1
+	elif HUD.selected_slot > at:
+		HUD.selected_slot -= 1                    # the hand keeps pointing at the same item when the indices shift
+	torch.charge = TORCH_FULL
+	HUD.refresh_inventory()
+	return {"loaded": true, "msg": "Fresh battery in the torch."}
 
 
 ## Is this item THE gun (item 004)? An exact name, not "contains gun": the Gun Cabinet Key's name does, and bullets dragged onto it used to "load" it.
@@ -6517,6 +6594,7 @@ func instance_to_dict(instance) -> Dictionary:
 		"forge_paid": instance.forge_paid,
 		"heal_scale": instance.heal_scale,
 		"charge_cap": instance.charge_cap,
+		"charge": instance.charge,
 	}
 
 
@@ -6549,6 +6627,9 @@ func instance_from_dict(entry: Dictionary) -> ItemInstance:
 	instance.charge_cap = int(entry.get("charge_cap", 0))
 	if instance.charge_cap <= 0 and ItemInstance.is_toolbox_data(instance.get_data()):
 		instance.charge_cap = maxi(1, instance.current_durability)
+	# A torch's battery (round 49t). A save from before torches worked holds none: it gets what a found torch has.
+	if bool(instance.get_data().get("is_torch", false)):
+		instance.charge = clampf(float(entry.get("charge", TORCH_FULL * TORCH_FOUND)), 0.0, TORCH_FULL)
 	# Guns had no durability before they wore (-1 = "runs on ammo"): an old save's gun is as new.
 	if instance.current_durability < 0 and instance.get_max_durability() > 0:
 		instance.current_durability = instance.get_max_durability()

@@ -51,6 +51,14 @@ const CAST := {
 	"ceiling": [],
 }
 const CAST_SPAN := 64.0              # px from the light at which a shadow is thrown its full length
+# A piece that STANDS OUT in the room (the `front` and `floor` planes: a sofa, a bed, a table, a chair, a plant) and one against the wall throws a shadow on the FLOOR
+# (owner round 49t: "so that the furniture does have its weight from shadow, lighting, that depth"): its own silhouette laid down on the boards from its foot, toward the
+# camera and away from the room's light — plane -> [length as a share of the piece's height, darkness].
+const FLOOR_CAST := {"front": [0.30, 0.20], "floor": [0.30, 0.18], "wall": [0.18, 0.14]}
+const FLOOR_MAX_LEN := 15.0          # rows: a shadow never runs further down the floor than this (it stops short of the room's near edge)
+const FLOOR_MIN_LEN := 3.0
+const FLOOR_THROW := 0.9             # px sideways per row of length, at the light's full angle (away from the light)
+const FLOOR_LEN_BY_RUN := [1.0, 1.35, 0.9]     # the afternoon's low sun throws them further
 const CAST_LEN_BY_RUN := [1.0, 1.5, 1.0]       # the afternoon's low sun throws them further
 const CAST_ALPHA_BY_RUN := [1.0, 1.1, 0.9]
 
@@ -249,6 +257,49 @@ static func _cast_shadows(module: Node2D, at: int, light_x: float, run: int) -> 
 			module.move_child(sh, at)
 			at += 1
 			out.append(sh)
+	out.append_array(_floor_shadows(module, pieces, light_x, run))
+	return out
+
+
+## The shadow each standing piece lays on the FLOOR: its own texture, black, flipped about its foot and squashed down the boards, leaning away from the light (a shear —
+## the tip of a tall piece's shadow lands furthest from it). Drawn over the rugs (a sofa's shadow falls on its rug) and under every other piece. Marked `floor_shadow`.
+static func _floor_shadows(module: Node2D, pieces: Array, light_x: float, run: int) -> Array:
+	var out: Array = []
+	var r := clampi(run - 1, 0, 2)
+	# after the rugs (which the planner lays first), before everything that stands
+	var at := -1
+	for c in module.get_children():
+		if c is Sprite2D and c.has_meta("furniture") and String(c.get_meta("plane", "")) != "rug":
+			at = c.get_index()
+			break
+	if at < 0:
+		return out
+	for c in pieces:
+		var s := c as Sprite2D
+		var spec: Array = FLOOR_CAST.get(String(s.get_meta("plane", "")), [])
+		if spec.is_empty() or s.texture == null:
+			continue
+		var w: float = float(s.texture.get_width())
+		var h: float = float(s.texture.get_height())
+		var length: float = clampf(h * float(spec[0]) * float(FLOOR_LEN_BY_RUN[r]), FLOOR_MIN_LEN, FLOOR_MAX_LEN)
+		var k: float = clampf((s.position.x + w * 0.5 - light_x) / CAST_SPAN, -1.0, 1.0)
+		var throw: float = round(length * FLOOR_THROW * k)
+		var sh := Sprite2D.new()
+		sh.name = "Floor_%s" % String(s.name)
+		sh.texture = s.texture
+		sh.centered = false
+		sh.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		# texel (u, v) -> (x + u + (h - v) * throw / h,  foot + (h - v) * length / h): the foot row stays on the foot line, the top lands `length` rows down and `throw` px across
+		sh.transform = Transform2D(Vector2(1.0, 0.0), Vector2(-throw / h, -length / h), s.position + Vector2(throw, h + length))
+		sh.modulate = Color(0, 0, 0, clampf(float(spec[1]) * float(CAST_ALPHA_BY_RUN[r]), 0.0, 0.5))
+		sh.material = unshaded()
+		sh.set_meta("floor_shadow", String(s.get_meta("furniture")))
+		sh.set_meta("throw", throw)
+		sh.set_meta("length", length)
+		module.add_child(sh)
+		module.move_child(sh, at)
+		at += 1
+		out.append(sh)
 	return out
 
 

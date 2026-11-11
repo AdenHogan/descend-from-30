@@ -109,7 +109,9 @@ func _load_data() -> void:
 			"single_use": durability_data["single_use"],
 			"max_durability": durability_data["max_durability"],
 			"heals_states": durability_data["heals_states"],
-			"requires_battery": raw["ITEM_NAME"] == "Torch"
+			"is_torch": properties.has("is_torch"),            # the Torch (015): a light you carry, fed by a Battery (player.gd "THE TORCH")
+			"is_battery": properties.has("is_battery"),        # the Battery (021): one refills a torch (WorldState.load_torch_battery)
+			"requires_battery": properties.has("is_torch")
 		}
 	
 	for item_name in data["ROOM_SPAWN_POOLS"]:

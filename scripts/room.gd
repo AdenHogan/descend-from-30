@@ -940,6 +940,7 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 	var layout = WorldState.get_apartment_layout(apartment_id)
 	_span = layout.size()                                      # two rooms or three
 	var built_modules: Array = []
+	var corner_info: Array = []                                # per module: are its two back corners bare (the doorways' hiding places)
 	var breached: bool = WorldState.get_door_state(apartment_id) == WorldState.DoorState.BREACHED
 	for i in range(layout.size()):
 		var scene_path: String
@@ -1070,10 +1071,16 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 		# DEPTH AND LIGHT (scripts/room_depth.gd, round 49s): the shade a room keeps where light does not reach (ceiling, corners, away from its daylight) and, in a planned
 		# room, each piece's own shadow thrown on the wall behind it, away from the window by day and from a lit lamp by night. Live and backdrop alike.
 		var day_x: float = BalconyGeo.CENTER_DX if has_balcony else (MODULE_WINDOW_INSET if WorldState.window_side_of(scene_path if fplan.is_empty() else baked_scene_for(apartment_id, i, layout[i]), apartment_id, i) == "left" else MODULE_WIDTH - MODULE_WINDOW_INSET)
+		# (what the doorways' hiding places need to know of this room: are its back corners bare — _add_doorway_hides, after the loop)
+		corner_info.append(_bare_corners(instance, fplan, has_balcony) if (live and not charred_flat and not (WorldState.is_first_run and TUTORIAL_LAYOUTS.has(apartment_id))) else {})
 		RoomDepth.add_to(instance, {"width": MODULE_WIDTH, "end_l": i == 0, "end_r": i == layout.size() - 1, "day_x": day_x, "run": WorldState.current_run,
 			"planned": not fplan.is_empty() and not charred_flat, "lamps": lamps})
 		_add_front_art(instance, has_balcony, charred_flat)
 		_add_over_art(instance, charred_flat)
+
+	# THE WALL BESIDE A DOORWAY is a place to hide (Stealth.WALL_HIDE, stealth_spot.gd): one per doorway, standing flat against whichever side of its wall hides them.
+	if live:
+		_add_doorway_hides(corner_info, entrance_side)
 
 	# The walls BETWEEN the modules (and at both ends), drawn in live perspective so the flat reads
 	# as the inside of a box and each doorway shows the right face from either side
@@ -1095,6 +1102,74 @@ func _build_modules(entrance_side: String, live: bool) -> void:
 	# all the windows just built. Skipped on passive backdrops and on day/afternoon runs.
 	if live and WorldState.current_run == 3:
 		add_child(load("res://scripts/apartment_storm.gd").new())
+
+
+## What a doorway's hiding place needs to know about one room (owner round 49t: "hiding up against a module wall for enemies to pass by"): is each of its two back
+## corners bare? {"l": bool, "r": bool} for the module's own left / right edge. What stands in the room is read from its furniture plan; a baked room (a breach room, a story
+## room) from its clear-floor skyline (assets/rooms/growth_meta.json) plus whatever its story laid on the floor there (the dead, dropped things). A room that knows neither
+## has no bare corner. A balcony's doors take the left of their module.
+func _bare_corners(module: Node2D, fplan: Dictionary, has_balcony: bool) -> Dictionary:
+	var standing: Array = []
+	var skyline: Array = []
+	if not fplan.is_empty():
+		standing = StealthSpot.standing_spans(fplan)
+	else:
+		skyline = ROOM_GROWTH.map_for(String(module.scene_file_path).get_file().get_basename()).get("up_floor", [])
+		if skyline.is_empty():
+			return {"l": false, "r": false}
+		for c in module.get_children():                 # the story's own things on the floor: nobody presses into a corner a body lies in, or a dropped bag
+			if not (c is Sprite2D) or (c as Sprite2D).texture == null:
+				continue
+			var sp := c as Sprite2D
+			if sp.is_in_group("nest_dead"):
+				standing.append([sp.position.x, sp.position.x + float(sp.texture.get_width()) * absf(sp.scale.x)])
+			elif sp.is_in_group("breach_nest"):
+				standing.append_array(_nest_corner_spans(sp))
+	return {"l": not has_balcony and StealthSpot.wall_is_bare("l", standing, skyline), "r": StealthSpot.wall_is_bare("r", standing, skyline)}
+
+
+## ONE hiding place per doorway (Stealth.WALL_HIDE): at each doorway between two rooms, and at the flat's front door — wherever a side of its wall has a bare corner.
+## `corners[i]` = `_bare_corners` of module i ({} for a module that takes none: a burnt room, a tutorial flat).
+func _add_doorway_hides(corners: Array, entrance_side: String) -> Array:
+	var made: Array = []
+	var n: int = corners.size()
+	for b in range(0, n + 1):
+		var xb: float = float(LEFT_WALL_X + b * MODULE_WIDTH)
+		var left_room: Dictionary = corners[b - 1] if b > 0 else {}
+		var right_room: Dictionary = corners[b] if b < n else {}
+		var partition: bool = b > 0 and b < n
+		var front_door: bool = (b == 0 and entrance_side == "left") or (b == n and entrance_side == "right")
+		if not (partition or front_door):
+			continue                    # the solid end wall: nothing passes it
+		var spot := StealthSpot.add_doorway(self, xb, partition, {"l": bool(left_room.get("r", false)), "r": bool(right_room.get("l", false))})
+		if spot != null:
+			made.append(spot)
+	return made
+
+
+## Which of a story overlay's two back corners hold something (marks, dropped things): the module-local span of each corner whose floor band carries more than a few
+## of the overlay's pixels. Read off the overlay's own image, once per room build.
+const NEST_CORNER_W := 30
+const NEST_CORNER_ROWS := [96, 124]
+const NEST_CORNER_PIXELS := 24
+static func _nest_corner_spans(nest: Sprite2D) -> Array:
+	var out: Array = []
+	var img: Image = nest.texture.get_image()
+	if img == null or img.is_empty():
+		return out
+	if img.is_compressed():
+		img.decompress()
+	var w: int = img.get_width()
+	var x_off: float = nest.position.x - (float(w) * 0.5 if nest.centered else 0.0)
+	for corner in [[0, NEST_CORNER_W], [w - NEST_CORNER_W, w]]:
+		var n := 0
+		for y in range(int(NEST_CORNER_ROWS[0]), mini(int(NEST_CORNER_ROWS[1]), img.get_height())):
+			for x in range(maxi(0, int(corner[0])), mini(w, int(corner[1]))):
+				if img.get_pixel(x, y).a > 0.5:
+					n += 1
+		if n > NEST_CORNER_PIXELS:
+			out.append([x_off + float(corner[0]), x_off + float(corner[1])])
+	return out
 
 
 # A BREACH ROOM shows what happened there (owner rounds 21b/21c — "logical and immersive", and SHORT:

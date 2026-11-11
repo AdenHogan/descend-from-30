@@ -22,6 +22,7 @@ The LOOK was judged from engine captures under xvfb only (`docs/art_reference/li
 | **Shade** | every room (planned and baked), every corridor, floor 30, the lobby | the dark a real room keeps where light does not reach: under the ceiling, in the flat's END corners (less at a partition), along the floor's near edge, and a falling-off away from the room's daylight — so the wall is brightest by the glass. A corridor is dimmer in its middle than by a stairwell window | `RoomDepth.shade_at` / `add_to` / `add_to_corridor` |
 | **Seam** | planned rooms (under the furniture) | the wall darkening down to the skirting and the strip of floor against it | `RoomDepth.seam_at` |
 | **Cast shadows** | planned rooms; corridor props | every piece against the wall, every picture and everything standing on a surface throws its own silhouette on the wall behind it, AWAY from the light: the window by day, a lit lamp in the room from dusk on (a corridor prop: the nearer stairwell window by day, the nearest wall lamp after). The afternoon's low sun throws them 1.5x as far | `RoomDepth._cast_shadows` / `add_corridor_cast` |
+| **Floor shadows** *(round 49t)* | planned rooms | every piece that stands — out in the room (`front` / `floor`: a sofa, a bed, a table, a chair, a plant) or against the wall — lays its own silhouette on the FLOOR from its foot, toward the camera and leaning away from the room's light; over the rugs, under the furniture | `RoomDepth._floor_shadows` |
 | **Window light** | flats (wall windows and balcony doors) | by day the same wide wash as before; at dusk a POOL round the glass in the sunset's own colour, by night a smaller pool of moonlight — so a room has a lit side and a dark side | `FloorLighting.make_room_window_light` |
 | **Contact shadow** | the player, every enemy type | a low dark ellipse under the feet, on the body's own layer; hidden on a staircase's slice, on a wall or ceiling, lying down, hidden in a wardrobe / bath, on a rope, dead | `GroundShadow` |
 
@@ -47,6 +48,8 @@ Rules they all keep:
 | … its colour (day / sunset / moon) | cool white / orange / blue | `FloorLighting.ROOM_WINDOW_CAST` |
 | corridor: middle against the window ends | 0.14 / 0.22 / 0.10 | `RoomDepth.HALL_FALLOFF_BY_RUN` |
 | the contact shadow's darkness | 0.34 core | `GroundShadow.CORE` |
+| a floor shadow: how long (share of the piece's height) and how dark, by plane | front 0.30 / 0.20 · floor 0.30 / 0.18 · wall 0.18 / 0.14, 3..15 rows | `RoomDepth.FLOOR_CAST`, `FLOOR_MIN_LEN`, `FLOOR_MAX_LEN` |
+| … how far it leans away from the light / how much longer in the afternoon | 0.9 px a row · x1.35 | `RoomDepth.FLOOR_THROW`, `FLOOR_LEN_BY_RUN` |
 
 ## A behaviour change to know about
 
@@ -58,17 +61,20 @@ by in play, `ROOM_WINDOW_REACH` is the dial.
 
 - **Baked rooms** (the tutorial's flats, breach / dead / burnt story rooms, the gun-cabinet lodge) get the shade only: their furniture is
   one picture, so nothing in them casts a shadow. The first rooms a new player sees are therefore the least improved.
-- Furniture standing OUT in the room (tables, chairs, sofas — the `floor` / `front` planes) casts no shadow; only what stands against the
-  wall, hangs on it or stands on a surface does.
+- ~~Furniture standing OUT in the room casts no shadow~~ — **built in round 49t** (floor shadows, above). Still true: a piece does not shade the
+  piece BEHIND it, and no piece is lit from one side by the room's light (the sprites carry their own fixed upper-left light).
 - Shadows do not follow a lamp that flickers or cuts out (they are laid once, when the room is built).
 - No light casts a real-time shadow of the player or the dead on a wall.
 - Survivors, residents, the merchant and the cat have no contact shadow yet (only the player and the dead).
 - The maintenance room and the lift car are not shaded.
-- Darkness as a place to hide (docs/STEALTH_SPACES.md §9) — still a design thread, nothing built.
+- ~~Darkness as a place to hide~~ — **built in round 49t** with a working torch (`docs/TORCH_AND_DARK.md`): the light on a spot is measured from
+  these same lights, the dead see less far into the dark, and the dark is a hiding place. That round also made the player's own NIGHT aura a small
+  pool (0.36 over 160 px, was 0.62 over 269 px) — it had been lighting the whole screen round the player.
 
 ## Tests
 
-`tests/room_depth_test.tscn` (the 84th suite): the shade's numbers (ceiling, corners, falloff, the morning is not gloom, bands), the
+`tests/room_depth_test.tscn` (the 84th suite; round 49t added the floor shadows — one per standing piece, from its foot, 3..15 rows, unlit
+black, over the rugs and under the furniture, leaning away from the light): the shade's numbers (ceiling, corners, falloff, the morning is not gloom, bands), the
 window light by run with the stairwell's unchanged, a real planned flat on runs 1 and 2 (every room shaded and unlit, the draw order,
 shadows thrown away from the light), a baked flat (shade only, end corners), a real corridor (two profiles, two shadows under every
 standing prop), the title hall untouched, the contact shadow on the player and three enemy types and when it hides.

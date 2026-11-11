@@ -48,6 +48,14 @@ func _ready() -> void:
 		await _test_leaving()
 	if _want(only, "interact"):
 		await _test_interact_is_theirs()
+	if _want(only, "same_press"):
+		await _test_same_press()
+	if _want(only, "behind"):
+		await _test_behind()
+	if _want(only, "doorway"):
+		await _test_doorway()
+	if _want(only, "cover"):
+		await _test_cover_numbers()
 	if _want(only, "screen"):
 		await _test_screen()
 	if _want(only, "prompt"):
@@ -205,7 +213,7 @@ func _test_rules_table() -> void:
 	var a := Stealth.focus_for_gap(200.0)
 	var b := Stealth.focus_for_gap(300.0)
 	check(a > b and a < 1.0 and b > 0.0, "…and eases off between (200 px %.2f > 300 px %.2f)" % [a, b])
-	check(Stealth.HIDE_PIECES.has("wardrobe_wood") and not Stealth.HIDE_PIECES.has("sofa"), "wardrobes hide you; a sofa does not (that is cover, phase 2)")
+	check(Stealth.HIDE_PIECES.has("wardrobe_wood") and String(Stealth.HIDE_PIECES.get("sofa", {}).get("how", "")) == "behind", "a wardrobe is hidden IN; a sofa is hidden BEHIND (round 49t)")
 	var data: Dictionary = FurniturePlanner.data().get("items", {})
 	var all_real := true
 	for id in Stealth.HIDE_PIECES:
@@ -656,6 +664,71 @@ class InteractStub extends Node2D:
 
 # --- the screen ----------------------------------------------------------------------------------------------------------------------------
 
+## ONE PRESS, ONE THING — in the frame order a real 60 fps game has (found in round 49t). The player polls [interact] in the physics step, a hiding place and a door poll it
+## in the idle step of the SAME frame. The press that brings the player out used to be seen again by the hiding place a moment later (they were no longer hidden, so it hid
+## them again) and by the door beside it (nothing was hidden any more, so it opened). Headless runs mostly put the two steps in different frames, which is why the older
+## tests never met it; here the two steps are run back to back inside one frame, the way the engine does at 60 fps.
+func _test_same_press() -> void:
+	print("[the press that brings you out does nothing else (physics step, then idle step, one frame)]")
+	var bf: Node = await _corridor()
+	var p = bf.get_node("Player")
+	var spot := _spot(bf)
+	p.global_position = Vector2(SPOT_X, 386.0)
+	await _pframes(4)
+	check(p.enter_hide(spot) and p.hide_spot == spot, "(hidden)")
+	await _seconds(0.4)                                  # past the grace of the press that hid them
+	var door := _PressStub.new()
+	bf.add_child(door)
+	door.global_position = Vector2(SPOT_X + 6.0, 419.0)
+	# (the press is made between steps, as the engine's own input flush is: from here every poll in this frame sees it as "just pressed" — the player's and the members')
+	await get_tree().process_frame
+	Input.action_press("interact")
+	check(Input.is_action_just_pressed("interact"), "(the press is 'just pressed' for this frame)")
+	p._physics_process(1.0 / 60.0)                       # the player's step: the press brings them out
+	check(p.hide_spot == null, "(the press brings them out)")
+	spot._process(1.0 / 60.0)                            # the same frame's idle step
+	door._process(1.0 / 60.0)
+	Input.action_release("interact")
+	check(p.hide_spot == null and Stealth.conceal_of(p) == Stealth.NONE, "the same press does not hide them again")
+	check(not door.fired, "…and does not open the door beside the wardrobe")
+	await _frames(40)
+	check(p.hide_spot == null, "they stay out")
+	# the door alone (it is the nearer answerer now): the press that brings them out must not open it
+	check(p.enter_hide(spot), "(hidden again)")
+	await _seconds(0.4)
+	door.global_position = Vector2(p.global_position.x, 419.0)
+	door.fired = false
+	await get_tree().process_frame
+	Input.action_press("interact")
+	p._physics_process(1.0 / 60.0)
+	door._process(1.0 / 60.0)
+	Input.action_release("interact")
+	check(p.hide_spot == null and not door.fired, "with the door the nearer answerer: out they come, and the door stays shut")
+	await _frames(40)
+	# and a fresh press, later, is answered again as it should be
+	await _tap("interact")
+	check(p.hide_spot == spot or door.fired, "a NEW press is answered again (by the nearer of the two)")
+	if p.hide_spot != null:
+		p.leave_hide()
+	await _frames(30)
+	await _finish(bf)
+
+
+class _PressStub extends Node2D:
+	var fired := false
+	func _ready() -> void:
+		add_to_group(InteractArbiter.GROUP)
+	func interact_ready() -> bool:
+		return true
+	func interact_x() -> float:
+		return global_position.x
+	func interact_rank() -> int:
+		return InteractArbiter.RANK_THING
+	func _process(_d: float) -> void:
+		if Input.is_action_just_pressed("interact") and InteractArbiter.take(self):
+			fired = true
+
+
 func _lum(c: Color) -> float:
 	return c.r * 0.299 + c.g * 0.587 + c.b * 0.114
 
@@ -841,22 +914,35 @@ func _test_hide_context() -> void:
 	check(problems.is_empty(), "every hiding place in the table makes sense against the furniture library (%s)" % str(problems))
 	var lib: Dictionary = FurniturePlanner.data().get("items", {})
 	# the check CAN fail: a toilet, a sink, a sofa, a trunk, a wardrobe in a bathroom, a bath in a bedroom, a shower behind glass
+	# (each bad place carries real cover numbers, so it is refused for what is WRONG with it and not for a missing field)
 	for bad in [
-		["toilet", {"how": "in", "noun": "toilet", "verb": "Get in", "noise": 40.0}],
-		["basin", {"how": "inside", "noun": "basin", "verb": "Hide", "noise": 40.0}],
-		["sofa", {"how": "inside", "noun": "sofa", "verb": "Hide", "noise": 40.0}],
-		["trunk", {"how": "inside", "noun": "trunk", "verb": "Hide", "noise": 40.0}],
-		["linen_cupboard", {"how": "inside", "noun": "cupboard", "verb": "Hide", "noise": 40.0}],
-		["wardrobe_wood", {"how": "in", "noun": "wardrobe", "verb": "Get in", "noise": 40.0}],
-		["bath", {"how": "inside", "noun": "bath", "verb": "Hide", "noise": 55.0}],
-		["bath", {"how": "nonsense", "noun": "bath", "verb": "Hide", "noise": 55.0}],
-		["not_a_piece", {"how": "inside", "noun": "x", "verb": "Hide", "noise": 40.0}],
+		["toilet", {"how": "in", "noun": "toilet", "verb": "Get in", "noise": 40.0, "shield": 0.5, "fire": true}],
+		["basin", {"how": "inside", "noun": "basin", "verb": "Hide", "noise": 40.0, "shield": 0.5, "fire": true}],
+		["sofa", {"how": "inside", "noun": "sofa", "verb": "Hide", "noise": 40.0, "shield": 0.5, "fire": true}],
+		["trunk", {"how": "inside", "noun": "trunk", "verb": "Hide", "noise": 40.0, "shield": 0.5, "fire": true}],
+		["linen_cupboard", {"how": "inside", "noun": "cupboard", "verb": "Hide", "noise": 40.0, "shield": 0.5, "fire": true}],
+		["wardrobe_wood", {"how": "in", "noun": "wardrobe", "verb": "Get in", "noise": 40.0, "shield": 0.5, "fire": true}],
+		["bath", {"how": "inside", "noun": "bath", "verb": "Hide", "noise": 55.0, "shield": 0.5, "fire": true}],
+		["bath", {"how": "nonsense", "noun": "bath", "verb": "Hide", "noise": 55.0, "shield": 0.5, "fire": true}],
+		["not_a_piece", {"how": "inside", "noun": "x", "verb": "Hide", "noise": 40.0, "shield": 0.5, "fire": true}],
+		# hiding BEHIND: the piece must stand out from the wall (a bookcase is against it), be big enough (a pouf is not), and be in a room people hide behind things in
+		["bookcase_tall", {"how": "behind", "noun": "bookcase", "verb": "Hide behind it", "noise": 30.0, "shield": 0.5, "fire": true}],
+		["pouf", {"how": "behind", "noun": "pouf", "verb": "Hide behind it", "noise": 30.0, "shield": 0.5, "fire": true}],
+		["toilet", {"how": "behind", "noun": "toilet", "verb": "Hide behind it", "noise": 30.0, "shield": 0.5, "fire": true}],
+		# and a place with no cover numbers is not finished
+		["sofa", {"how": "behind", "noun": "sofa", "verb": "Hide behind it", "noise": 30.0}],
+		["sofa", {"how": "behind", "noun": "sofa", "verb": "Hide behind it", "noise": 30.0, "shield": 1.5, "fire": true}],
 	]:
 		var one: Array = Stealth.hide_rule_problems({bad[0]: bad[1]}, lib)
 		check(not one.is_empty(), "a bad hiding place is refused: %s as '%s' (%s)" % [bad[0], bad[1]["how"], str(one.slice(0, 1))])
+	# the bookcase is refused for the RIGHT reason: it stands against the wall (a bookcase may fail on its rooms too, so "refused" alone does not prove the plane rule)
+	var against: Array = Stealth.hide_rule_problems({"bookcase_tall": {"how": "behind", "noun": "bookcase", "verb": "Hide behind it", "noise": 30.0, "shield": 0.5, "fire": true}}, lib)
+	check(str(against).contains("plane"), "…a bookcase because it stands against the wall — nothing is behind it (%s)" % str(against))
+	for good in ["sofa", "loveseat", "armchair"]:
+		check(Stealth.hide_rule_problems({good: Stealth.HIDE_PIECES[good]}, lib).is_empty(), "…and a %s to hide behind is accepted" % good)
 	# what is in the table is what a person would use
 	check(Stealth.HIDE_PIECES.has("bath") and Stealth.HIDE_PIECES.has("wardrobe_wood"), "a bath and a wardrobe are places to hide")
-	for never in ["toilet", "basin", "sofa", "linen_cupboard", "larder_tall", "shower_walkin", "trunk", "fridge_tall"]:
+	for never in ["toilet", "basin", "linen_cupboard", "larder_tall", "shower_walkin", "trunk", "fridge_tall", "bookcase", "table_dining", "bed_wood"]:
 		check(not Stealth.HIDE_PIECES.has(never), "…and a %s is not" % never)
 
 
@@ -868,6 +954,8 @@ func _test_real_flat() -> void:
 	var bad := 0
 	var did_bath := false
 	var any_other := 0
+	var behinds := 0
+	var doorways := 0
 	for f in [25, 20, 14, 9, 22, 17, 11, 27, 19, 6, 24, 18, 13, 8, 5]:
 		for col in range(1, 6):
 			if wardrobes >= 2 and baths >= 2 and flats >= 6 and did_bath:
@@ -892,13 +980,25 @@ func _test_real_flat() -> void:
 					spots.append(s)
 			var bath_spot = null
 			for s in spots:
-				var def: Dictionary = Stealth.HIDE_PIECES.get(s.piece_id, {})
 				var lo: float = room.LEFT_WALL_X
 				var hi: float = room.LEFT_WALL_X + room.MODULE_WIDTH * room._span
+				if s.piece_id == "doorway":
+					doorways += 1
+					var why := _doorway_fault(room, s, apt)
+					if why != "":
+						bad += 1
+						print("    bad doorway at x %.0f (flat %s): %s" % [s.global_position.x, apt, why])
+					continue
+				var def: Dictionary = Stealth.HIDE_PIECES.get(s.piece_id, {})
 				if def.is_empty() or not (s.global_position.x > lo and s.global_position.x < hi) or s.half_w < 15.0 or s.how != String(def["how"]):
 					bad += 1
 					print("    bad spot %s at x %.0f (flat %s)" % [s.name, s.global_position.x, apt])
 				match s.piece_id:
+					"sofa", "loveseat", "armchair":
+						behinds += 1
+						if s.piece_sprite == null or s.cover_from_row != 0 or s.feet_y == INF:
+							bad += 1
+							print("    nothing to draw over a player behind the %s (flat %s)" % [s.piece_id, apt])
 					"bath":
 						baths += 1
 						bath_spot = s
@@ -946,6 +1046,8 @@ func _test_real_flat() -> void:
 	check(wardrobes >= 1, "a wardrobe in a real bedroom is a place to hide (%d)" % wardrobes)
 	check(baths >= 1 and did_bath, "…and so is a bath in a real bathroom (%d)" % baths)
 	check(any_other == 0, "…and nothing else is (%d other hiding places)" % any_other)
+	check(behinds >= 1, "a sofa or an armchair in a real room is a place to hide behind (%d)" % behinds)
+	check(doorways >= 1, "doorways with a bare corner beside them are places to hide (%d)" % doorways)
 	check(bad == 0, "…each inside its flat, on the right kind of piece, with a real width (%d bad)" % bad)
 	# the spots are only on live flats: a passive room (the balcony pan's backdrop) lays none
 	var passive_room = load("res://scenes/room.tscn").instantiate()
@@ -972,11 +1074,30 @@ func _test_real_flat() -> void:
 	var room2 = load("res://scenes/room.tscn").instantiate()
 	add_child(room2)
 	await _pframes(8)
-	var by_wall := 0
+	# (round 49t: the wall beside a DOORWAY is one — standing, quiet, and only where its corner is bare. Anything else that is not a piece is still a fault, and
+	#  arriving at the front door with nobody about and nothing on their mind shows the player no prompt at all.)
+	var stray := 0
+	var doorway_faults := 0
 	for sp in get_tree().get_nodes_in_group("stealth_spot"):
-		if room2.is_ancestor_of(sp) and not Stealth.HIDE_PIECES.has(sp.piece_id):
-			by_wall += 1
-	check(by_wall == 0, "arriving at a flat's front door offers no 'hide against the wall' (%d spots that are not a piece)" % by_wall)
+		if not room2.is_ancestor_of(sp) or Stealth.HIDE_PIECES.has(sp.piece_id):
+			continue
+		if sp.piece_id != "doorway":
+			stray += 1
+		elif _doorway_fault(room2, sp, "2001") != "":
+			doorway_faults += 1
+			print("    doorway at x %.0f: %s" % [sp.global_position.x, _doorway_fault(room2, sp, "2001")])
+	check(stray == 0 and doorway_faults == 0, "a flat has no hiding place that is not a piece or a doorway with a bare corner (%d stray, %d bad doorways)" % [stray, doorway_faults])
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if room2.is_ancestor_of(z):
+			z.free()
+	var p2 = room2.get_node("Player")
+	p2.is_crouching = false
+	await _pframes(8)
+	var nagging := 0
+	for sp in get_tree().get_nodes_in_group("stealth_spot"):
+		if room2.is_ancestor_of(sp) and sp.piece_id == "doorway" and sp.prompt_text() != "":
+			nagging += 1
+	check(nagging == 0, "arriving at a flat's front door, standing, with nobody about: no doorway prompt (%d showing)" % nagging)
 	room2.free()
 	await get_tree().process_frame
 
@@ -1048,6 +1169,290 @@ func _test_shower_curtain() -> void:
 
 
 ## A real flat with a bath (not the curtain one), its dead cleared. Returns [room, spot] or [null, null].
+## What is wrong with a real flat's doorway hiding place ("" = nothing): it stands on a wall that has a doorway (between two rooms, or the front door — never the solid
+## end wall), it has a bare side, and on every side it calls bare NOTHING of that room's furniture stands in the corner (re-derived from the room's own sprites).
+func _doorway_fault(room: Node, s: StealthSpot, apt: String) -> String:
+	var w: float = float(room.MODULE_WIDTH)
+	var rel: float = s.position.x - float(room.LEFT_WALL_X)          # (the room's own space: what the walls are drawn in)
+	var b: int = int(round(rel / w))
+	if absf(rel - float(b) * w) > 0.6:
+		return "not on a wall between rooms"
+	var n: int = room._span
+	var entrance: String = WorldState.get_entrance_side(apt)
+	var partition: bool = b > 0 and b < n
+	if not partition and not ((b == 0 and entrance == "left") or (b == n and entrance == "right")):
+		return "on the solid end wall (nothing passes it)"
+	if (s.jamb_x != INF) != partition:
+		return "the frame's post is drawn only at a doorway between rooms"
+	if not (s.bare_l or s.bare_r) or s.how != "against" or not s.stands or not s.quiet:
+		return "no bare side / not a standing, quiet place"
+	if (b == 0 and s.bare_l) or (b == n and s.bare_r):
+		return "a side outside the flat"
+	var mods: Array = []
+	for c in room.get_children():
+		if c.is_in_group("room_module"):
+			mods.append(c)
+	var c_to: float = float(Stealth.WALL_HIDE["clear_to"])
+	for side in ["l", "r"]:
+		if not (s.bare_l if side == "l" else s.bare_r):
+			continue
+		var m: Node2D = mods[b - 1] if side == "l" else mods[b]
+		var x0: float = (w - c_to) if side == "l" else 1.0
+		var x1: float = (w - 1.0) if side == "l" else c_to
+		for c in m.get_children():
+			if c is Sprite2D and c.has_meta("furniture") and String(c.get_meta("plane", "")) in ["wall", "front", "floor"] and c.texture != null:
+				if c.position.x + float(c.texture.get_width()) > x0 + 1.0 and c.position.x < x1 - 1.0:
+					return "a %s stands in the corner it calls bare" % String(c.get_meta("furniture"))
+	return ""
+
+
+## A real flat (dead removed) holding a hiding place `want` accepts: [room, spot], or [null, null].
+func _flat_with(want: Callable) -> Array:
+	for f in [22, 17, 14, 25, 20, 9, 11, 27, 19, 6, 24, 18, 13, 8, 5, 26, 21, 16, 12, 10, 7]:
+		for col in range(1, 6):
+			WorldState.dev_seed = 20261020
+			WorldState.new_game()
+			WorldState.dev_seed = 0
+			WorldState.is_first_run = false
+			WorldState.is_scavenge_mode = false
+			WorldState.current_apartment_id = "%d0%d" % [f, col]
+			WorldState.current_floor = f
+			WorldState.spawn_source = ""
+			var room = load("res://scenes/room.tscn").instantiate()
+			add_child(room)
+			for i in range(4):
+				await get_tree().physics_frame
+			for sp in get_tree().get_nodes_in_group("stealth_spot"):
+				if room.is_ancestor_of(sp) and want.call(sp):
+					for z in get_tree().get_nodes_in_group("zombie"):
+						if room.is_ancestor_of(z):
+							z.free()
+					for sv in get_tree().get_nodes_in_group("survivor"):
+						if room.is_ancestor_of(sv):
+							sv.free()
+					return [room, sp]
+			room.free()
+			await get_tree().process_frame
+	return [null, null]
+
+
+## BEHIND A SOFA (owner round 49t: "jumping behind a sofa, hiding behind or beside a chair… when the furniture has physical real shape, we can specifically identify a place
+## where a player can actively hide within or beside or behind"): in a real planned living room.
+func _test_behind() -> void:
+	print("[Behind a sofa: the piece, and what stands in front of it, drawn over the player]")
+	var got: Array = await _flat_with(func(sp): return sp.piece_id in ["sofa", "loveseat"])
+	var room = got[0]
+	var spot: StealthSpot = got[1]
+	check(room != null and spot != null, "(setup) a real living room with a sofa")
+	if room == null:
+		return
+	var pl = room.get_node("Player")
+	check(spot.how == "behind" and spot.piece_sprite != null and spot.cover_from_row == 0 and spot.feet_y != INF, "the sofa is a place to hide BEHIND: the whole piece is the cover")
+	check(spot.shield > 0.0 and spot.shield < 1.0 and spot.fire_from, "…and it is cover of a kind (it stops %.0f%% of a shot, and you could fire over its back)" % (spot.shield * 100.0))
+	pl.global_position.x = spot.global_position.x
+	await _pframes(5)
+	var y0: float = pl.global_position.y
+	check(spot.offered_to(pl) and "Sofa" in spot.prompt_text() and "behind" in spot.prompt_text(), "the prompt says what it is ('%s')" % spot.prompt_text())
+	# what stands in front of the sofa (drawn after it, across it): the room's own sprites
+	var mod: Node = spot.piece_sprite.get_parent()
+	var area := Rect2(spot.piece_sprite.position, spot.piece_sprite.texture.get_size())
+	var in_front := 0
+	var seen := false
+	for c in mod.get_children():
+		if c == spot.piece_sprite:
+			seen = true
+		elif seen and c is Sprite2D and c.has_meta("furniture") and c.texture != null and c.visible and area.intersects(Rect2(c.position, c.texture.get_size())):
+			in_front += 1
+	check(pl.enter_hide(spot), "one press: behind it")
+	await _seconds(0.5)
+	check(pl.conceal == Stealth.HIDDEN and pl.is_crouching and pl.global_position.y < y0 - 8.0, "hidden, down, and stepped back off the walking line (y %.1f -> %.1f)" % [y0, pl.global_position.y])
+	check(spot.has_cover() and spot._cover.z_index == 1 and spot._cover.region_rect.position.y == 0.0 and absf(spot._cover.modulate.a - spot.piece_sprite.modulate.a) < 0.02, "the whole sofa is drawn over them, solid")
+	if spot.has_cover():
+		var top: float = spot._cover.global_position.y
+		var bottom: float = top + float(spot.piece_sprite.texture.get_height())
+		var feet: float = pl.global_position.y + Stealth.PLAYER_FEET_DROP - 1.0
+		var head: float = pl.global_position.y - 10.0
+		check(feet <= bottom and feet >= top + 20.0, "their feet are behind it (feet %.0f, the sofa %.0f..%.0f)" % [feet, top, bottom])
+		check(head < top + 6.0 and head > top - 16.0, "…and the top of their head shows over its back, no more (head %.0f, the sofa's top %.0f)" % [head, top])
+	check(spot._cover_extras.size() == in_front, "what stands in front of the sofa is drawn over it again, piece for piece (%d of %d)" % [spot._cover_extras.size(), in_front])
+	var order_ok := true
+	for e in spot._cover_extras:
+		if not is_instance_valid(e) or e.z_index != 1 or e.get_index() < spot._cover.get_index():
+			order_ok = false
+	check(order_ok, "…each over the sofa's copy, on the actors' layer")
+	var cover = spot._cover
+	var extras: Array = spot._cover_extras.duplicate()
+	await _tap("interact")
+	check(pl.hide_spot == null, "one more press: out")
+	await _seconds(0.7)
+	var gone := not spot.has_cover() and spot._cover_extras.is_empty() and not is_instance_valid(cover)
+	for e in extras:
+		gone = gone and not is_instance_valid(e)
+	check(gone, "the covers are gone with them")
+	check(absf(pl.global_position.y - y0) < 0.6, "…and they are back on the walking line (y %.1f)" % pl.global_position.y)
+	room.free()
+	await get_tree().process_frame
+
+
+## THE WALL BESIDE A DOORWAY (owner round 49t: "standing flat and straight up against the wall on either side, up from the main y plane… the contextual left or right side
+## based on where enemies might be coming from. This needs to not be an overwhelming prompt").
+func _test_doorway() -> void:
+	print("[The wall beside a doorway: standing, the side the dead are not on, a quiet prompt]")
+	# the rule for a bare corner
+	var cto: int = int(Stealth.WALL_HIDE["clear_to"])
+	var W: int = preload("res://scripts/module_geo.gd").WIDTH
+	check(StealthSpot.wall_is_bare("l", [], []) and StealthSpot.wall_is_bare("r", [], []), "an empty room has bare corners")
+	check(not StealthSpot.wall_is_bare("l", [[10.0, 40.0]], []) and StealthSpot.wall_is_bare("r", [[10.0, 40.0]], []), "a piece standing 10..40 px from the left wall takes the left corner, not the right")
+	check(StealthSpot.wall_is_bare("l", [[float(cto) + 1.0, 90.0]], []) and not StealthSpot.wall_is_bare("l", [[float(cto) - 2.0, 90.0]], []), "a piece clear of the first %d px leaves the corner; one reaching into it does not" % cto)
+	check(not StealthSpot.wall_is_bare("r", [[float(W - 20), float(W - 5)]], []), "…and the same at the right wall")
+	var sky: Array = []
+	for x in W:
+		sky.append(100)
+	check(StealthSpot.wall_is_bare("l", [], sky), "a baked room with a clear floor skyline there has a bare corner")
+	sky[12] = 20
+	check(not StealthSpot.wall_is_bare("l", [], sky) and StealthSpot.wall_is_bare("r", [], sky), "…and one with something standing in it has not")
+	check(StealthSpot.standing_spans({"items": [{"plane": "wall", "x": 30, "rx": 2, "w": 40}, {"plane": "decor", "x": 5, "rx": 0, "w": 20}, {"plane": "rug", "x": 0, "rx": 0, "w": 100}, {"plane": "top", "x": 3, "rx": 0, "w": 8}]}).size() == 1,
+		"what STANDS in a room is its wall / front / floor pieces — not pictures, rugs or things on top")
+
+	var got: Array = await _flat_with(func(_sp): return true)
+	var room = got[0]
+	check(room != null, "(setup) a real flat")
+	if room == null:
+		return
+	for sp in get_tree().get_nodes_in_group("stealth_spot"):          # this test's own doorway only
+		if room.is_ancestor_of(sp):
+			sp.free()
+	await get_tree().process_frame
+	check(StealthSpot.add_doorway(room, 400.0, true, {"l": false, "r": false}) == null, "a doorway with no bare side has no hiding place")
+	var spot := StealthSpot.add_doorway(room, float(room.LEFT_WALL_X + room.MODULE_WIDTH), true, {"l": true, "r": true})
+	var xb: float = spot.global_position.x            # (the room's own origin is a pixel off the world's: the wall is where the spot stands)
+	var off: float = float(Stealth.WALL_HIDE["offset"])
+	var pl = room.get_node("Player")
+	var lane_y: float = pl.global_position.y
+	check(spot != null and spot.how == "against" and spot.stands and spot.quiet and spot.shield == 1.0 and spot.fire_from, "one place per doorway: standing, quiet, and a wall stops a shot")
+	# QUIET: not while standing about with nobody near, not while walking through
+	pl.global_position.x = xb - 20.0
+	pl.is_crouching = false
+	pl.velocity = Vector2.ZERO
+	await _pframes(6)
+	check(not spot.interact_ready() and spot.prompt_text() == "", "standing by a doorway with nobody about: no prompt")
+	pl.is_crouching = true
+	await _pframes(6)
+	check(spot.interact_ready() and spot.prompt_text() != "", "crouched beside it: offered")
+	check("Hide" in spot.prompt_text() and spot.prompt_text().length() <= 10, "the prompt is two words ('%s')" % spot.prompt_text())
+	pl.velocity = Vector2(120.0, 0.0)
+	check(not spot.offered_to(pl), "…but not while walking through it")
+	pl.velocity = Vector2.ZERO
+	pl.is_crouching = false
+	# THE SIDE: with nobody about, the side they are on
+	check(spot.side_for(pl) == "l", "nobody about, standing left of the wall: the left side")
+	pl.global_position.x = xb + 20.0
+	check(spot.side_for(pl) == "r", "…standing right of it: the right side")
+	# one of the dead in the right-hand room: the left of the wall, wherever they stand — and the prompt shows without a crouch
+	var z = _zombie(room, xb + 190.0)
+	z.global_position.y = 304.0
+	z.set_physics_process(false)
+	await _pframes(6)
+	check(spot.side_for(pl) == "l", "one of the dead in the right-hand room: the LEFT of the wall hides them (they are standing on the right)")
+	check(spot.interact_ready() and spot.prompt_text() != "", "…and the prompt shows without a crouch: the dead are near")
+	z.global_position.x = xb - 190.0
+	check(spot.side_for(pl) == "r", "one of the dead in the left-hand room: the RIGHT of the wall")
+	spot.bare_r = false
+	check(spot.side_for(pl) == "" and not spot.offered_to(pl), "…and if that side's corner is not bare the doorway offers nothing (the other side is in plain view)")
+	z.free()
+	await _pframes(3)
+	check(spot.side_for(pl) == "l", "with nobody about and the right corner taken, the left will do")
+	spot.bare_r = true
+	# hide: from the right-hand room, one of the dead coming from the right -> through the doorway to the left of the wall, standing
+	var z2 = _zombie(room, xb + 200.0)
+	z2.global_position.y = 304.0
+	z2.set_physics_process(false)
+	pl.global_position.x = xb + 14.0
+	pl.is_crouching = false
+	pl.animated_sprite.flip_h = false
+	await _pframes(6)
+	check(Stealth.too_close(pl).is_empty(), "(the dead thing is well outside its reach and one more)")
+	await _tap("interact")
+	check(pl.hide_spot == spot, "one press")
+	await _seconds(0.5)
+	check(absf(pl.global_position.x - (xb - off)) < 1.0, "they are flat against the LEFT of the wall (x %.1f, the wall %.0f)" % [pl.global_position.x, xb])
+	check(not pl.is_crouching, "STANDING, straight up")
+	check(absf((pl.global_position.y + Stealth.PLAYER_FEET_DROP) - spot.feet_y) < 1.0 and pl.global_position.y < lane_y - 8.0, "stepped back off the walking line, their feet where the doorway's opening begins (%.0f px up)" % (lane_y - pl.global_position.y))
+	check(pl.animated_sprite.flip_h, "their back to the wall, facing the room")
+	check(spot._jamb != null and is_instance_valid(spot._jamb) and spot._jamb.z_index == 1, "the door frame is drawn over them: they are behind it")
+	check(absf(pl.head_top_position().y - (pl.global_position.y + Stealth.PLAYER_FEET_DROP - pl.HEAD_HEIGHT_STAND)) < 0.6, "(the prompt hangs over a standing head)")
+	check(float(Stealth.cover_info(pl)["shield"]) == 1.0, "(as cover: the wall stops everything)")
+	# the dead thing walks through the doorway and past
+	z2.set_physics_process(true)
+	z2.alert_to_noise(8.0, Vector2(xb - 200.0, 321.0))
+	var passed: bool = await _until(func(): return is_instance_valid(z2) and z2.global_position.x < xb - off - 50.0, 720)
+	check(passed and pl.hide_spot == spot and str(z2.state) != "attack", "the dead thing comes through the doorway and walks straight past them")
+	z2.free()
+	await _frames(2)
+	await _seconds(0.3)
+	await _tap("interact")
+	check(pl.hide_spot == null and not pl.is_crouching, "one more press: out, standing as they went in")
+	await _seconds(0.6)
+	check(absf(pl.global_position.y - lane_y) < 0.6 and (spot._jamb == null or not is_instance_valid(spot._jamb)), "back on the walking line, the frame's copy gone")
+	# crouched going in -> crouched coming out
+	pl.is_crouching = true
+	await _pframes(6)
+	check(pl.enter_hide(spot) and not pl.is_crouching, "(crouched, they still STAND against the wall)")
+	await _seconds(0.5)
+	pl.leave_hide()
+	check(pl.is_crouching, "…and come away crouched, as they went in")
+	await _seconds(0.6)
+	spot.free()
+	# the FRONT DOOR: no post, only the inside; nothing hides you from what is already in the flat
+	var fd := StealthSpot.add_doorway(room, float(room.LEFT_WALL_X), false, {"l": false, "r": true})
+	var door_x: float = fd.global_position.x
+	pl.is_crouching = true
+	pl.global_position.x = door_x + 22.0
+	await _pframes(6)
+	check(fd != null and fd.jamb_x == INF and fd.side_for(pl) == "r" and fd.interact_ready(), "the front door's corner: the inside of the wall, no post")
+	var z3 = _zombie(room, door_x + 220.0)
+	z3.global_position.y = 304.0
+	z3.set_physics_process(false)
+	await _pframes(4)
+	check(fd.side_for(pl) == "" and not fd.interact_ready(), "…and with one of the dead already INSIDE the flat it offers nothing (the wall is between them and nothing)")
+	z3.free()
+	room.free()
+	await get_tree().process_frame
+
+
+## COVER, for a fight that is not built (owner round 49t: "if we have the tools ready and in place it means implementation could be viable down the road").
+func _test_cover_numbers() -> void:
+	print("[Cover: what each hiding place would stop of a shot, and whether you could fire from it]")
+	var all_have := true
+	for id in Stealth.HIDE_PIECES:
+		var d: Dictionary = Stealth.HIDE_PIECES[id]
+		if not d.has("shield") or not d.has("fire") or float(d["shield"]) < 0.0 or float(d["shield"]) > 1.0:
+			all_have = false
+	check(all_have and Stealth.WALL_HIDE.has("shield") and Stealth.WALL_HIDE.has("fire"), "every hiding place states its shield (0..1) and whether you can fire from it")
+	var hp: Dictionary = Stealth.HIDE_PIECES
+	check(float(Stealth.WALL_HIDE["shield"]) > float(hp["bath"]["shield"]) and float(hp["bath"]["shield"]) > float(hp["sofa"]["shield"]) and float(hp["sofa"]["shield"]) > float(hp["wardrobe_wood"]["shield"]),
+		"a wall stops more than a cast-iron bath, a bath more than a sofa, a sofa more than a wardrobe door")
+	check(float(hp["bath"]["curtain"]["bath_curtain"]["shield"]) == 0.0 and not bool(hp["bath"]["curtain"]["bath_curtain"]["fire"]), "a shower curtain stops nothing")
+	check(bool(hp["sofa"]["fire"]) and bool(hp["armchair"]["fire"]) and not bool(hp["wardrobe_wood"]["fire"]), "you could fire over a sofa or round a chair; not from inside a wardrobe")
+	var bf: Node = await _corridor()
+	var p = bf.get_node("Player")
+	var open: Dictionary = Stealth.cover_info(p)
+	check(float(open["shield"]) == 0.0 and bool(open["fire"]) and String(open["piece"]) == "", "in the open: no shield, free to fire")
+	check(not Stealth.shot_stopped(p, 0.0), "…and nothing stops a shot at them")
+	var spot := _spot(bf)
+	spot.shield = 0.6
+	spot.fire_from = true
+	spot.piece_id = "sofa"
+	p.global_position = Vector2(SPOT_X, 386.0)
+	check(p.enter_hide(spot), "(behind something)")
+	var cov: Dictionary = Stealth.cover_info(p)
+	check(absf(float(cov["shield"]) - 0.6) < 0.001 and bool(cov["fire"]) and String(cov["piece"]) == "sofa", "behind it: its shield, its rule, its name")
+	check(Stealth.shot_stopped(p, 0.59) and not Stealth.shot_stopped(p, 0.61), "a shot is stopped when the caller's roll is under the shield")
+	p.leave_hide()
+	await _frames(30)
+	await _finish(bf)
+
+
 func _bath_flat() -> Array:
 	for f in [17, 14, 25, 20, 9, 22, 11, 27, 19, 6, 24, 18, 13, 8, 5, 26, 21, 16, 12, 10, 7]:
 		for col in range(1, 6):

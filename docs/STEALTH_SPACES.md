@@ -1,6 +1,7 @@
 # DF30 — Stealth spaces: cover, hiding, and what each Y plane means
 
-> **Status: owner round 49o, 2026-11-07. Phase 1 (hiding + the noise it is tied to) is BUILT; cover (creeping behind furniture) is phase 2, designed, not built.**
+> **Status: owner round 49o, 2026-11-07. Phase 1 (hiding + the noise it is tied to) is BUILT; round 49t (2026-11-11) added hiding BEHIND a sofa / an armchair, the wall beside a
+> DOORWAY, and darkness as a hiding place with a working torch (§10, and `TORCH_AND_DARK.md`). Creeping behind furniture as a walking plane (the "cover" row) is still designed, not built.**
 > Owner's words: *"wire in more stealth interactions… additional Y planes for moving into environments… moving in crouch behind furniture like moving behind a sofa in order for enemies to not see the player and move past, giving the player more room. Same with hiding. When a player hides in a stealth spot, the screen should go very washed out and dark, with only the player really being visible, then the enemy passing the player which we can see, but once it moves past the enemy is washed out faded just like everything else. We can even zoom in on the player during this effect so it looks claustrophobic."* Then: *"because of this, we may need more contextual elements to the various Y planes"* and *"a prompt appear for those areas where the player can hide."*
 
 Then: *"stealth, hiding and noise are intricately linked, so this is the point where all of that needs to work well together. For example, if a player enters a module and immediately has a hide prompt to hide against the module wall, enemies can move past; when the player leaves the hiding spot they may need to crouch and move quietly, otherwise their noise of regular movement will alert those same enemies, who will then turn around."*
@@ -25,7 +26,7 @@ The owner's point: a plane is not just a Y value. Each one needs the same set of
 | **Back plane** | set-back furniture with a live node | 339 | `[W]` in scavenge mode | yes | yes (a step back, not a hiding place) | scavenge | normal | tutorial arrow only |
 | **Balcony** | study / dining balcony | 319 | `[W]` | only the dead on the balcony | only the dead on it | — | normal | standing pill (round 49c) |
 | **Cover** *(phase 2)* | behind a low piece ≥ 30 px tall (sofa, bed, table, sideboard, chest, desk) | ~335 (lane − 18, behind the piece's base) | crouch + `[W]` at the piece | **no** — the piece blocks sight; revealed only inside `COVER_REVEAL` (24 px) of the dead, or if you stand / sprint / strike | they walk past on the lane; if one finds you it is on top of you | crouch (45 px) | slight desaturation, nothing else | **"Duck behind the sofa  [W]"** |
-| **Hidden** *(phase 1)* | inside a piece a person would really hide in: a wardrobe (bedroom), a bath or a shower behind its curtain (bathroom); later under a bed | on / in the piece | ONE `[interact]` press at the piece, any stance | **no**, at all — but see §4 *too close* and *finding* | no, until found | none (still) | **real lighting brought right down: a very dull cool ambient, the player's own small pool, colours kept, no outline — and a slow 1.1× push-in** (§5) | **"Wardrobe  [E] Hide" / "Bath  [E] Get in" / "Shower  [E] Hide behind the curtain"**, then "[E] Come out" — all hung right over the head |
+| **Hidden** *(phase 1; 49t)* | in or behind a piece a person would really use: a wardrobe (bedroom), a bath or a shower behind its curtain (bathroom), **behind a sofa / loveseat / armchair**, **standing flat against the wall beside a doorway**, **in the dark** (night, lights out, torch off); later under a bed | on / in / behind the piece | ONE `[interact]` press at the piece, any stance | **no**, at all — but see §4 *too close* and *finding* | no, until found | none (still) | **real lighting brought right down: a very dull cool ambient, the player's own small pool, colours kept, no outline — and a slow 1.1× push-in** (§5) | **"Wardrobe  [E] Hide" / "Bath  [E] Get in" / "Shower  [E] Hide behind the curtain"**, then "[E] Come out" — all hung right over the head |
 
 Contextual elements every plane must state (the checklist for the next plane someone adds): *entry verb · exit verb · what blocks sight · what the dead can still do · noise · camera · prompt text · draw order against the furniture · what ends it (a hit, a noise, a scene change, death) · how a save treats it (always on the lane — `lane_position()`).*
 
@@ -108,3 +109,63 @@ So: one shove buys one body out of the way and leaves you winded for a long beat
 - **What the lighting is today** (CLAUDE.md "REAL 2D lighting", measured in this round): a per-scene ambient `WorldGrade` — morning 0.95 (near-fully lit, "lighting barely intrudes"), afternoon 0.42, night 0.07, each dimmed a little by depth — plus real PointLight2Ds: wall sconces (corridors), apartment lamps by seed, window lights + beams, fire, the player's aura (0.10 / 0.40 / 0.62 by run). A probe of a run-3 flat found the wall at 0.20 brightness with the ambient at 0.03 and **0.18 of it from lights** — the lights, not the ambient, decide how a room looks even at night; the morning room is bright almost regardless of any light.
 - **The owner's observation:** many rooms read as one image — uniform walls / floors / furniture colour, too evenly lit. Per-piece depth and weight (the furniture redraws) is half the answer; the other half is **light and shadow carrying the colours**: pools and falloff, dark corners, a lit window's shaft, shadows cast by furniture (no light casts shadows today — `PointLight2D.shadow_enabled` is off everywhere, no occluders exist).
 - **Stealth wants it:** a hiding place in darkness should be deeper than one in a lamp's pool (the `sight x 0.5` outside a pool idea in §6); the dead should be lit by what lights them, in their own colours (the hide screen already relies on that); a sconce cutting out is a stealth event as much as an atmosphere one. The dials to turn first: a darker day (the morning ambient and the beam / window energies), shadows from a few key lights, an occluder on furniture and doors, `Stealth` reading the light at the player's spot. **Do not change the global lighting without the owner's eye** — this round only moved the lights while the player hides, and gave everything back exactly.
+
+## 10. Round 49t — hiding behind furniture, beside a doorway, and in the dark
+
+The owner: *"we need to ensure stealth hiding spots are clear and present whenever they contextually should be there. So jumping behind a sofa, hiding behind or beside a
+chair, hiding up against a module wall for enemies to pass by, hiding behind a shower curtain or in a bathtub or in a wardrobe. When the furniture has physical real shape, it
+means that we can specifically identify a place where a player can actively hide within or beside or behind."*
+
+**Behind a piece** (`Stealth.HOW["behind"]`, pieces `sofa`, `loveseat`, `armchair`; planned rooms): `Sofa   [E] Hide behind it`. The player crouches on the wall side of the
+piece and **the piece is drawn over them, with everything that stands in front of it** — the coffee table across a sofa's front, what is on that table — copied over it in the
+room's own order (`StealthSpot._cover_extras`), so the picture is exactly the room's with the player slipped in behind and the top of their head over the back. This is only
+possible because planned furniture is separate sprites: no slice shader. The rule table checks a "behind" piece stands out from the wall (the `front` plane — a bookcase against
+the wall has no behind), is at least 30 x 36, and is in a living room / bedroom / study / dining room; `stealth_test` shows it refuse a bookcase, a pouf and a toilet.
+An armchair is smaller than a crouched person: part of them shows beside it — that is "beside a chair", and in the dark of the hide screen it reads.
+
+**The wall beside a doorway** (`Stealth.WALL_HIDE`, `StealthSpot.add_doorway`, `room._add_doorway_hides`). The owner, on the first capture (a crouched figure straddling the
+frame, a prompt on each side): *"it should be more like a standing flat and straight up against the wall on either side, up from the main y plane so as to indicate the player
+has moved to a spot out of sight of enemies. Then the contextual left or right side based on where enemies might be coming from. This needs to not be an overwhelming prompt."*
+So:
+
+- **One place per doorway** — each doorway between two rooms, and the flat's front door. Not the solid end wall (nothing passes it).
+- **Standing**, straight, back to the wall, facing the room, stepped back to where the doorway's opening begins (floor depth 338: 15 px up from the walking line); the
+  **door frame's jamb is drawn over them** (`ModuleWalls.draw_door_frame`, the same drawing the walls make). They come away in the stance they went in with.
+- **The side is the game's choice** (`StealthSpot.side_for`): the side of the wall **away from the nearest of the dead that are up** — one coming from the right-hand room
+  finds nobody, they are flat against the left of the wall, and the press takes them through the doorway to get there. With nobody about, the side they are on.
+- **A side is only used if its corner is bare**: 29 px from the wall with nothing standing in it, read off the room's own furniture (a planned room's wall / front / floor
+  pieces; a baked room's clear-floor skyline plus what its story laid there). If the side that would hide them is not bare the doorway offers **nothing** — the other side is
+  in plain view of what is coming. At the front door there is only the inside: with one of the dead already in the flat it offers nothing.
+- **A quiet prompt**: `[E] Hide`, two words, and only when they have all but stopped beside the doorway **and** hiding is on their mind — crouched, or one of the dead up and
+  within 420 px (`Stealth.wants_hiding`). Walking through a doorway shows nothing.
+
+**How often** (`tools/hide_census.tscn`, 50 planned rooms a type): a piece to hide in or behind — living room 100 %, bathroom 60 %, bedroom 40 %, study 10 %, **dining room
+0 %, kitchen 0 %**; a doorway corner is bare 11-33 % of the time (bedroom 16, living 17, study 28, dining 33, kitchen 21, bathroom 11), so roughly one doorway in three has a
+usable side. **That is the honest gap in "clear and present":** kitchens and dining rooms have nothing but a lucky doorway and, at night, the dark. The fix that would make
+doorways reliable is a furniture-planner rule — keep one corner beside each doorway free — which re-lays every planned room, so it is a proposal, not something done here.
+
+**Darkness** and the **torch**: `TORCH_AND_DARK.md`.
+
+**Cover, for a fight that does not exist** (owner: *"hide beside a chair, it can be cover to avoid bullets from a neighbour who is shooting at the player, and then the player
+if they have a gun can shoot from cover. I'm not saying we need it now, but if we have the tools ready and in place"*): every hiding place states `shield` (the share of a shot
+it would stop: a wall 1.0, a cast-iron bath 0.9, a sofa 0.6, an armchair 0.5, a wardrobe door 0.25, a shower curtain 0, the dark 0) and `fire` (could you shoot back from
+there: over a sofa, round a door frame, over a bath's rim — yes; from inside a wardrobe or behind a curtain — no). `Stealth.cover_info(player)` and
+`Stealth.shot_stopped(player, roll)` read them. **Nothing consumes them**: no neighbour shoots at the player today, and a hidden player cannot attack.
+
+**A bug this found (fixed):** one `[interact]` press could bring you out of a hiding place and put you straight back in — and open the door beside it. The player polls the
+press in the physics step, the hiding place and the door poll it in the idle step of the same frame; by then the player was no longer hidden. Headless tests mostly put the two
+steps in different frames, which is why round 49q's tests never met it; at 60 fps they share a frame every time. `InteractArbiter.claim()` now spends the press when the player
+uses it to come out. `stealth_test` `same_press` runs the two steps back to back in one frame; it fails without the fix.
+
+**Not built / not known:**
+
+- **Baked rooms** (breach rooms, rooms holding one of the dead, burnt rooms, the tutorial's flats, the gun-cabinet lodge) have **no furniture to hide in or behind** — their
+  furniture is one picture. They do get doorway places (from their clear-floor skyline) and the dark. This is the gap the owner's own point names: *"when they are flat images
+  painted over the backgrounds, that's what results in needing the slice animations."* The real fix is laying story rooms from planned pieces (`FURNITURE.md` "What is NOT
+  planned yet").
+- **Corridors** have no hiding place but the dark.
+- Hiding behind a **bed**, under a **desk** or a **table**: not built (a crouched figure shows over a mattress; a table hides nobody).
+- While you hide behind a sofa, a live detail on what stands in front of it (a record turning on the coffee table) is covered by its still copy.
+- The **bot** does not hide.
+- The LOOK of all of it was judged from xvfb captures; the player rig is the placeholder, so "standing flat against the wall" is the idle pose.
+
