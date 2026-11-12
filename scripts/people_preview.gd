@@ -30,10 +30,10 @@ static func meta() -> Dictionary:
 
 
 ## Stand the whole cast in `host`, spread between x0 and x1 on the feet line `feet_y`. Returns the nodes.
-static func spawn_all(host: Node, feet_y: float, x0: float, x1: float, k: float = 1.0) -> Array:
+static func spawn_all(host: Node, feet_y: float, x0: float, x1: float, k: float = 1.0, group: String = "neighbours") -> Array:
 	var out: Array = []
 	var m := meta()
-	var names: Array = m.get("people", [])
+	var names: Array = m.get("groups", {}).get(group, m.get("people", []))
 	for i in names.size():
 		var n := PeoplePreview.new()
 		n.who = String(names[i])
@@ -45,7 +45,7 @@ static func spawn_all(host: Node, feet_y: float, x0: float, x1: float, k: float 
 		n._x = cx + (float(i % 3) - 1.0) * 14.0
 		n._dir = 1.0 if i % 2 == 0 else -1.0
 		n._t = float(i) * 0.37
-		n.carry = i % 3 == 0
+		n.carry = i % 3 == 0 and group == "neighbours"
 		n.speed = 22.0 + float(i % 4) * 3.0
 		n.z_index = 1                                   # the actors' layer
 		host.add_child(n)

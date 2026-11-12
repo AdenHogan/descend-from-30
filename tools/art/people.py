@@ -36,14 +36,14 @@ import sys
 
 from PIL import Image
 
-W, H = 36, 48                      # the DESIGN grid every shape below is written in
+W, H = 46, 58                      # the DESIGN grid every shape below is written in (36 x 48 until the players and the dead joined: a big one needs headroom, a crawler length)
 K = 1.5                            # ...and the size it is DRAWN at (owner, after the in-game test: "they need to be bigger, around the same size as
                                    # player and enemies"). Not a stretch of the small drawing: round shapes and limbs are rasterised at this size, and a
                                    # placed mark (an eye, a button, a shoe) becomes a block of whole pixels, so every edge stays clean.
-CW, CH = int(W * K), int(H * K)    # the cell that is written out: 54 x 72
+CW, CH = int(W * K), int(H * K)    # the cell that is written out: 69 x 87
 GROUND = H - 1
 ANKLE_Y = GROUND - 3
-CX = 17
+CX = 21
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.abspath(os.path.join(HERE, '..', '..', 'docs', 'art_reference', 'people'))
 GAME = os.path.abspath(os.path.join(HERE, '..', '..', 'assets', 'people'))
@@ -105,6 +105,12 @@ class Cel:
         for xx in range(int(math.floor(int(x0) * K)), int(math.floor((int(x1) + 1) * K))):
             self.raw(xx, yy, c)
 
+    def vwire(self, x, y0, y1, c, dx=0):
+        """A line ONE drawn pixel wide down design column x."""
+        xx = int(math.floor(int(x) * K)) + dx
+        for yy in range(int(math.floor(int(y0) * K)), int(math.floor((int(y1) + 1) * K))):
+            self.raw(xx, yy, c)
+
     def rect(self, x0, y0, x1, y1, c):
         for y in range(int(y0), int(y1) + 1):
             for x in range(int(x0), int(x1) + 1):
@@ -122,15 +128,7 @@ class Cel:
                 lit = 0.66 * u - 0.46 * v                                    # (v weighed 0.66: the whole lower third went to shade in one straight-edged block)
                 if n - 1 - i < 2 and n > 8:
                     lit -= 0.5                                               # the underside still turns away from the light
-                k = 'm'
-                if lit < -0.42:
-                    k = 'd'
-                if lit < -1.02:
-                    k = 'dd'
-                if not flat and lit > 0.58:
-                    k = 'l'
-                if not flat and lit > 1.04:
-                    k = 'll'
+                k = 'd' if lit < -0.40 else 'm'                              # CEL: flat colour and ONE hard-edged shadow shape, nothing graded
                 (self.raw if native else self.put)(x, y, t[k])
 
     def ell(self, cx, cy, rx, ry, t, keep=None, **kw):
@@ -176,9 +174,7 @@ def limb(c, a, b, w, t, near=True):
             if math.hypot(px_ - qx, py_ - qy) > r:
                 continue
             s = ((px_ - qx) * nx + (py_ - qy) * ny) / r
-            k = 'l' if s > 0.4 else ('d' if s < -0.4 else 'm')
-            if not near:
-                k = {'l': 'd', 'm': 'd', 'd': 'dd'}[k]
+            k = 'd' if (s < -0.3 or not near) else 'm'                # CEL: a limb is flat with a shadow down its back; a far limb is all shadow
             c.raw(x, y, t[k])
 
 
@@ -195,30 +191,36 @@ def _fk(o, l1, a1, l2, a2):
     return m, (m[0] + l2 * math.sin(r2), m[1] + l2 * math.cos(r2))
 
 
-def skeleton(pose):
-    """Every joint of a pose, in cell pixels. pose = dict(n_arm=(shoulder, elbow), f_arm, n_leg=(hip, knee bend — a knee bends BACK, so it is
-    subtracted), f_leg, lean (px the shoulders sit ahead of the hips), breath (px the chest sinks)). The body is dropped so the lower ankle is on
-    the ground."""
+def skeleton(pose, p=None):
+    """Every joint of a pose, in design pixels. pose = dict(n_arm=(shoulder, elbow), f_arm, n_leg=(hip, knee bend — a knee bends BACK, so it is
+    subtracted), f_leg, lean (px the shoulders sit ahead of the hips), spine (degrees the back is bent forward: 0 upright, ~80 on all fours),
+    breath (px the chest sinks), nod). The person `p` sets the BUILD of the skeleton: `tall` (legs and spine), `arm` (arm length), `hip_dx`
+    (where in the cell the hips are). The body is dropped so the lower ankle is on the ground."""
+    p = p or {}
     g = dict(REST)
     g.update(pose)
-    hip = (CX - 0.5, 0.0)
+    tall, arml = p.get('tall', 1.0), p.get('arm', 1.0)
+    hip = (CX - 0.5 + p.get('hip_dx', 0), 0.0)
     j = {}
     for side, ox in (('n', -2.0), ('f', 1.6)):
         t1, kb = g[side + '_leg']
         j['hip_' + side] = (hip[0] + ox, hip[1])
-        j['knee_' + side], j['ankle_' + side] = _fk(j['hip_' + side], BONES['thigh'], t1, BONES['shin'], -kb)
+        j['knee_' + side], j['ankle_' + side] = _fk(j['hip_' + side], BONES['thigh'] * tall, t1, BONES['shin'] * tall, -kb)
     drop = ANKLE_Y - max(j['ankle_n'][1], j['ankle_f'][1])
     j = {k: (v[0], v[1] + drop) for k, v in j.items()}
     hipy = drop
     lean = g.get('lean', 0.0)
-    sh_y = hipy - BONES['spine'] + g.get('breath', 0)
+    bend = math.radians(g.get('spine', 0.0))
+    back = BONES['spine'] * (0.6 + 0.4 * tall)
+    sx = hip[0] + lean + back * math.sin(bend)
+    sh_y = hipy - back * math.cos(bend) + g.get('breath', 0)
     j['hip'] = (hip[0], hipy)
-    j['neck'] = (hip[0] + lean + 0.5, sh_y - 1.0)
-    j['head'] = (hip[0] + lean + 1.5, sh_y - 8.0 + g.get('nod', 0))
+    j['neck'] = (sx + 0.5, sh_y - 1.0)
+    j['head'] = (sx + 1.5 + 6.0 * math.sin(bend), sh_y - 8.0 * math.cos(bend * 0.75) + g.get('nod', 0))
     for side, ox in (('n', -3.0), ('f', 3.4)):
         a1, a2 = g[side + '_arm']
-        j['shoulder_' + side] = (hip[0] + lean + ox, sh_y + 1.5)
-        j['elbow_' + side], j['hand_' + side] = _fk(j['shoulder_' + side], BONES['upper'], a1, BONES['fore'], a2)
+        j['shoulder_' + side] = (sx + ox * math.cos(bend), sh_y + 1.5 + abs(ox) * 0.4 * math.sin(bend))
+        j['elbow_' + side], j['hand_' + side] = _fk(j['shoulder_' + side], BONES['upper'] * arml, a1, BONES['fore'] * arml, a2)
     j['grip'] = g['n_arm'][0] + g['n_arm'][1]                 # the forearm's angle: what a held thing lines up with
     return j
 
@@ -254,10 +256,22 @@ ITEMS = {'hammer': _hammer, 'torch': _torch, 'bag': _bag}
 CARRY = {'hammer': (6, 84), 'torch': (4, 82), 'bag': (4, 6)}       # (the upper arm hangs; only the forearm comes forward — a raised upper arm hid the chest)        # the near arm's (shoulder, elbow) angles while it holds each
 
 
+def _outline(c):
+    """The cartoon's line (owner: \"a sort of cross between pixel and cell shading cartoonish… stylised with clear identifiable detail\"): every pixel on
+    the figure's edge is darkened toward the shared ink, so each shape is held by a line of its OWN colour gone dark — not a black wire, and the
+    silhouette does not grow."""
+    src = c.im.copy().load()
+    for y in range(CH):
+        for x in range(CW):
+            if src[x, y][3] and any(not (0 <= x + dx < CW and 0 <= y + dy < CH) or not src[x + dx, y + dy][3] for (dx, dy) in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                c.px[x, y] = _mix(src[x, y][:3], INK, 0.62) + (255,)
+
+
 # ---- one frame ---------------------------------------------------------------------------------------------------------------------------------
 def draw(p, pose, item=None):
     c = Cel()
-    j = skeleton(pose)
+    j = skeleton(pose, p)
+    th = p.get('thick', 1.0)                                  # how heavy the limbs are
     R = lambda q: (int(round(q[0])), int(round(q[1])))
     g = tones(p['coat'])
     skin = tones(p['skin'], 0.84, 1.07, mute=0.0)
@@ -271,6 +285,7 @@ def draw(p, pose, item=None):
     hipx, hipy = R(j['hip'])
     shy = int(round(j['shoulder_n'][1] - 1.5))
     lean = int(round(j['neck'][0] - j['hip'][0] - 0.5))
+    crawl = pose.get('spine', 0.0) > 55.0                     # on all fours: the body is a barrel between hips and shoulders, not a hanging coat
     hem = hipy + p.get('drop', 1)
 
     def shoe(ank, near, roll=None):
@@ -300,17 +315,25 @@ def draw(p, pose, item=None):
             c.put(x + dx, y + dy + oy, col)
 
     # ---- behind the body: the far arm, the far leg
-    limb(c, j['shoulder_f'], j['elbow_f'], 3.6, sleeve, near=False)
-    limb(c, j['elbow_f'], j['hand_f'], 3.4, sleeve, near=False)
+    limb(c, j['shoulder_f'], j['elbow_f'], 3.6 * th, sleeve, near=False)
+    limb(c, j['elbow_f'], j['hand_f'], 3.4 * th, sleeve, near=False)
     fx, fy = R(j['hand_f'])
     far_skin = {k: _mix(skin['m'][:3], skin['d'][:3], 0.7) + (255,) for k in skin}
     c.ell(fx + 0.5, fy + (1.0 if palms else 1.5), 1.8, 2.6 if palms else 1.9, far_skin)
-    limb(c, j['hip_f'], j['knee_f'], 4.6, legc, near=False)
-    limb(c, j['knee_f'], j['ankle_f'], 4.4, legc, near=False)
+    limb(c, j['hip_f'], j['knee_f'], 4.6 * th, legc, near=False)
+    limb(c, j['knee_f'], j['ankle_f'], 4.4 * th, legc, near=False)
     shoe(j['ankle_f'], False, pose.get('f_roll'))
     # ---- the near leg
-    limb(c, j['hip_n'], j['knee_n'], 4.8, legc)
-    limb(c, j['knee_n'], j['ankle_n'], 4.6, legc)
+    limb(c, j['hip_n'], j['knee_n'], 4.8 * th, legc)
+    limb(c, j['knee_n'], j['ankle_n'], 4.6 * th, legc)
+    if p.get('leg_stripe'):                                                         # a stripe down the outside of the leg
+        ls_ = {k_: rgb(p['leg_stripe']) for k_ in ('m', 'd', 'dd', 'l', 'll')}
+        limb(c, j['hip_n'], j['knee_n'], 1.3, ls_)
+        limb(c, j['knee_n'], j['ankle_n'], 1.3, ls_)
+    if p.get('turnup'):                                                             # trousers turned up at the ankle
+        tu_ = rgb(p['turnup'])
+        for an_ in (j['ankle_n'], j['ankle_f']):
+            c.rect(int(round(an_[0])) - 2, int(round(an_[1])) - 1, int(round(an_[0])) + 1, int(round(an_[1])), tu_)
     kx, ky = R(j['knee_n'])
     shoe(j['ankle_n'], True, pose.get('n_roll'))
     # ---- long hair down the back, behind the shoulders
@@ -352,7 +375,14 @@ def draw(p, pose, item=None):
             hw -= (3.0 - math.sqrt(max(0.0, 9.0 - (3 - under - 0.5) ** 2))) * 0.9
         mx = hipx + 0.5 + lean * (1.0 - v) + pose.get('hem_swing', 0.0) * 0.9 * v * v
         big.append((int(math.floor(shy * K)) + ii, int(round((mx - hw) * K)), int(round((mx + hw) * K)) + 1))
-    c.rows(big, g, native=True)
+    if crawl:
+        big = []
+        limb(c, (j['hip'][0], j['hip'][1] - 1.0), (j['neck'][0] - 1.0, j['neck'][1] + 3.0), 2.0 * wide - 4.0, g)
+        for i_ in range(1, 6):                                                      # the spine standing out along its back
+            t_ = i_ / 6.0
+            c.put(int(j['hip'][0] + (j['neck'][0] - j['hip'][0]) * t_), int(j['hip'][1] - 5.0 + (j['neck'][1] - j['hip'][1]) * t_), g['l'])
+    else:
+        c.rows(big, g, native=True)
     c.clip = set((x, y) for (y, xa, xb) in big for x in range(xa, xb + 1))          # the marks on the garment stay inside it
     fxe = spans[len(spans) // 2][2]                                                 # the garment's front edge at mid-height
     if p.get('open'):
@@ -384,7 +414,57 @@ def draw(p, pose, item=None):
     if p.get('pocket'):
         c.rect(fxe - 5, hem - 6, fxe - 2, hem - 6, g['l'])
         c.rect(fxe - 5, hem - 5, fxe - 2, hem - 5, g['dd'])
+    for mk_ in p.get('marks', ()):                                                  # what makes the clothes THEIRS: flat, graphic, readable at a glance
+        kind_, col_ = mk_[0], (rgb(mk_[1]) if len(mk_) > 1 and isinstance(mk_[1], str) else None)
+        if kind_ == 'check':                                                        # a checked shirt: thin lines both ways
+            for y in range(shy + 1, hem + 1, mk_[2]):
+                c.wire(hipx - 12, y, hipx + 12, col_)
+            for x in range(hipx - 12, hipx + 13, mk_[2]):
+                c.vwire(x, shy, hem, col_)
+        elif kind_ == 'hstripes':                                                   # a striped top: bands right round
+            for y in range(shy + 3, hem, mk_[2]):
+                c.rect(hipx - 12, y, hipx + 12, y, col_)
+        elif kind_ == 'zip':
+            c.vwire(fxe - 3, shy + 1, hem, col_, dx=1)
+            c.put(fxe - 3, shy + 3, col_)
+        elif kind_ == 'collar':
+            c.rect(fxe - 6, shy, fxe - 2, shy + 1, col_)
+            c.put(fxe - 4, shy + 2, col_)
+        elif kind_ == 'belt':                                                       # a belt with a buckle, and a pouch hanging off it at the hip
+            c.rect(hipx - 12, hem - 4, hipx + 12, hem - 3, col_)
+            c.rect(fxe - 4, hem - 4, fxe - 3, hem - 3, rgb(mk_[2]))
+            c.rect(hipx - 5, hem - 3, hipx - 2, hem, rgb(mk_[3]))
+            c.wire(hipx - 5, hem - 3, hipx - 2, _mix(rgb(mk_[3])[:3], INK, 0.5) + (255,))
+        elif kind_ == 'patch':                                                      # a name patch / a badge on the chest
+            c.rect(fxe - 6, shy + 5, fxe - 3, shy + 6, col_)
+        elif kind_ == 'strap':                                                      # a bag's strap across the body
+            for i_ in range(0, hem - shy):
+                c.put(hipx - 5 + int(i_ * 0.75), shy + 1 + i_, col_)
+        elif kind_ == 'hem':                                                        # a band of another colour round the bottom
+            c.rect(hipx - 12, hem - 1, hipx + 12, hem, col_)
+        elif kind_ == 'yoke':                                                       # a block of another colour across the shoulders
+            c.rect(hipx - 12, shy, hipx + 12, shy + mk_[2], col_)
+    if p.get('dead') and not crawl:                                                # the hem is torn: bites out of the bottom edge
+        for (y_, xa_, xb_) in big[-int(3 * K):]:
+            for x_ in range(xa_, xb_ + 1):
+                if ((x_ - big[-1][1]) // 3) % 3 == (1 if y_ > big[-2][0] - 2 else 4):
+                    c.px[x_, y_] = (0, 0, 0, 0)
+        for (y_, xa_, xb_) in big[-2:]:
+            for x_ in range(xa_, xb_ + 1):
+                if ((x_ - big[-1][1]) // 3) % 2 == 0 and 0 <= x_ < CW:
+                    c.px[x_, y_] = (0, 0, 0, 0)
+    for (dx_, dy_, w_, h_) in p.get('stains', ()):                                 # what has soaked into the cloth, dark, and darker at its heart
+        bl = tones(p.get('stain', '5a1a1c'), 0.7, 1.1, mute=0.0)
+        c.ell(hipx + dx_, shy + dy_, w_, h_, bl, flat=True)
+        c.ell(hipx + dx_, shy + dy_, w_ * 0.5, h_ * 0.5, {k: bl['dd'] for k in bl}, flat=True)
     c.clip = None
+    for ex_ in p.get('extras', ()):
+        if ex_ == 'hump':                                                           # the big one: a mass of shoulder behind the head
+            c.ell(j['neck'][0] - 4.0, j['neck'][1] + 1.0, 6.5, 5.0, g)
+        if ex_ == 'sack':                                                           # the spitter: a throat swollen like a toad's, tight and pale
+            sk_ = tones(p.get('sack', 'a8b070'), 0.8, 1.16, mute=0.0)
+            c.ell(j['neck'][0] + 4.4, j['neck'][1] + 0.4, 4.2 + (0.7 if pose.get('breath') else 0.0), 3.6 + (0.7 if pose.get('breath') else 0.0), sk_)
+            c.ell(j['neck'][0] + 5.6, j['neck'][1] - 0.8, 1.4, 1.0, {k_: sk_['l'] for k_ in sk_})
     if p.get('scarf'):
         sc = tones(p['scarf'])
         c.box(spans[0][1], shy - 2, spans[0][2] + 1, shy + 1, sc, top=(1,), bot=(1,), under=1)
@@ -408,8 +488,17 @@ def draw(p, pose, item=None):
             c.ell(hx, hy, 6.9, 7.3, hair, keep=lambda x, y: not face(x, y) or y < hy - 3.6)
             if st == 'bob':
                 c.ell(hx - 3.2, hy + 4.0, 4.4, 5.6, hair, keep=lambda x, y: not face(x, y))
-        elif st in ('short', 'bun', 'beanie'):
-            c.ell(hx, hy, 6.9, 7.3, hair, keep=lambda x, y: (y < hy - 2.6 or (x < hx - 2.6 and y < hy + 3.5)) and not (face(x, y) and y >= hy - 3.6))
+        elif st in ('short', 'bun', 'beanie', 'ponytail', 'braid', 'crop'):
+            c.ell(hx, hy, 6.9, 7.3, hair, keep=lambda x, y: (y < hy - (3.6 if st == 'crop' else 2.6) or (x < hx - 2.6 and y < hy + (0.5 if st == 'crop' else 3.5))) and not (face(x, y) and y >= hy - 3.6))
+            if st == 'ponytail':                                                    # tied back: a band, and the tail swinging behind
+                c.ell(hx - 7.6, hy + 2.6 + 0.5 * sway, 2.3, 4.8, hair)
+                c.rect(int(hx - 7), int(hy - 2), int(hx - 6), int(hy - 1), rgb(p.get('band', 'e86a6a')))
+            if st == 'braid':                                                       # one long plait, over the near shoulder and down the front
+                for i_ in range(6):                                                 # bead by bead, each with its own light, getting smaller
+                    r_ = 1.7 - 0.12 * i_
+                    c.ell(hx - 5.0 + 0.2 * i_, hy + 6.4 + i_ * 2.9, r_, 1.5, hair, flat=True)
+                    c.raw(int((hx - 5.0 + 0.2 * i_) * K), int((hy + 6.0 + i_ * 2.9) * K), hair['ll'])
+                c.rect(int(hx - 4), int(hy + 23), int(hx - 3), int(hy + 23), rgb(p.get('band', 'e8c860')))
             if st == 'bun':
                 c.ell(hx - 6.6, hy - 3.6, 2.7, 2.7, hair)
             if st == 'beanie':
@@ -429,6 +518,8 @@ def draw(p, pose, item=None):
     ew, eh = f['eye']
     eh = max(1, eh + f.get('eye_grow', 0))
     shut = pose.get('blink') or f.get('squint')
+    if st not in ('bald', 'hood', 'beanie') and not p.get('dead'):                  # the hair's shine: one hard-edged shape, as a cartoon has it
+        c.ell(hx + 1.6, hy - 4.6, 2.6, 0.9, {k_: hair['l'] for k_ in hair}, keep=lambda x, y: not face(x, y) and skull(x, y))
     ex0, ey = int(round(hx - 1.0)) + f.get('dx', 0), int(round(hy + 1.0)) + f.get('dy', 0)
     ex1 = ex0 + ew + f['gap']
     brow = hair['dd'] if st != 'bald' else tones(p['hair'])['d']
@@ -453,6 +544,9 @@ def draw(p, pose, item=None):
             c.rect(ex, ey + eh - 1, ex + ew - 1, ey + eh - 1, EYE)
         else:
             c.rect(ex, ey, ex + ew - 1, ey + eh - 1, EYE)
+            if f.get('dead'):                                                       # nobody home: a pale dot adrift in a dark socket
+                c.raw(int((ex + ew - 1) * K) + (0 if ex == ex0 else -1), int(ey * K) + 1, (226, 222, 196, 255))
+                c.raw(int((ex + ew - 1) * K) + (0 if ex == ex0 else -1), int(ey * K) + 2, (226, 222, 196, 255))
             if f.get('glint') and eh >= 2:
                 c.put(ex + ew - 1, ey, (236, 232, 226, 255))
             if f.get('lids'):                                                       # heavy lids: the top row of the eye is skin shade
@@ -496,6 +590,12 @@ def draw(p, pose, item=None):
         c.put(mx + 2, my_ + 1, mouth)
     elif m == 'o':                                                                  # a mouth open a little: a breath, a fright
         c.rect(mx, my_, mx + 1, my_ + 1, (70, 34, 40, 255))
+    elif m == 'maw':                                                                # a mouth that hangs open: dark, a few teeth, and it is wet
+        c.rect(mx - 2, my_ - 1, mx + 2, my_ + 1, (48, 16, 22, 255))
+        for tx_ in range(mx - 2, mx + 3, 2):                                        # teeth, top and bottom, gappy
+            c.raw(int(tx_ * K), int((my_ - 1) * K), (232, 226, 200, 255))
+            c.raw(int(tx_ * K) + 1, int((my_ + 2) * K) - 1, (232, 226, 200, 255))
+        c.rect(mx, my_ + 2, mx, my_ + 2 + f.get('drool', 0), rgb(f.get('drool_col', '7a1a1c')))
     elif m == 'lips':
         c.rect(mx - 1, my_, mx + 1, my_, rgb(f.get('lip', 'a8463e')))
     if f.get('nose'):
@@ -531,9 +631,11 @@ def draw(p, pose, item=None):
     # ---- the near arm, over everything: its shadow on the body first, then the sleeve along its two bones, the cuff, the fist — and what it holds
     sn, en, hn = j['shoulder_n'], j['elbow_n'], j['hand_n']
     for (a, b) in ((sn, en), (en, hn)):
-        limb(c, (a[0] - 0.9, a[1] + 0.7), (b[0] - 0.9, b[1] + 0.7), 5.0, {'l': g['dd'], 'm': g['dd'], 'd': g['dd'], 'dd': g['dd'], 'll': g['dd']})
-    limb(c, sn, en, 4.6, sleeve)
-    limb(c, en, hn, 4.2, sleeve)
+        limb(c, (a[0] - 0.7, a[1] + 0.4), (b[0] - 0.7, b[1] + 0.4), 4.6 * th + 0.5, {k_: _mix(g['d'][:3], g['dd'][:3], 0.45) + (255,) for k_ in ('l', 'm', 'd', 'dd', 'll')})
+    limb(c, sn, en, 4.6 * th, sleeve)
+    limb(c, en, hn, 4.2 * th, sleeve)
+    if not p.get('sleeves', True):                                                  # a short sleeve: the garment's own colour capping a bare arm
+        limb(c, sn, ((sn[0] + en[0]) * 0.5, (sn[1] + en[1]) * 0.5), 5.0 * th, g)
     sx, sy = R(sn)
     c.rect(sx - 1, sy - 2, sx + 1, sy - 2, sleeve['ll'])                            # the light on the shoulder
     ex_, ey_ = R(en)
@@ -549,6 +651,7 @@ def draw(p, pose, item=None):
     else:
         c.ell(hx + 0.5, hy + 1.5, 2.2, 2.2, skin)                                   # a round fist
         c.put(hx + 2, hy + 1, skin['l'])                                            # and its thumb
+    _outline(c)
     return c.im, j
 
 
@@ -556,7 +659,7 @@ def draw(p, pose, item=None):
 WALK_N = 12                        # frames in a stride (two steps). It was 8: the passing pose and the push-off each fell between frames
 
 
-def walk_pose(i, n=WALK_N, carry=None):
+def walk_pose(i, n=WALK_N, carry=None, stride=1.0, drag=0.0):
     """One frame of the walk. What makes it a WALK and not two legs scissoring: the knee gives a little as the weight lands and folds early in the
     swing; the foot ROLLS (heel down first with the toe up, heel up before the toe leaves); the head follows the body a frame late; the hem
     swings behind the leading leg; the arm bends more coming forward than going back."""
@@ -564,12 +667,12 @@ def walk_pose(i, n=WALK_N, carry=None):
 
     def leg_(q):
         q %= 1.0
-        swing = 25.0 * math.cos(2.0 * math.pi * q) - 1.0                             # the thigh: forward at contact, back at push-off
+        swing = (25.0 * math.cos(2.0 * math.pi * q) - 1.0) * stride                             # the thigh: forward at contact, back at push-off
         if q < 0.5:
             bend = 11.0 * math.sin(math.pi * q / 0.5) ** 2 + 2.0                     # taking the weight
         else:
             u = (q - 0.5) / 0.5
-            bend = 64.0 * math.sin(math.pi * u ** 0.75)                             # folding early, opening as it reaches
+            bend = 64.0 * (1.0 - drag) * math.sin(math.pi * u ** 0.75)                             # folding early, opening as it reaches
         return (swing, bend)
 
     def roll_(q):
@@ -633,19 +736,91 @@ PEOPLE = [
 ]
 
 
+# ---- THE PLAYERS (owner: "Now redesign the player characters and enemies in this style"). The four of docs/CHARACTERS.md, each dressed as who they
+# are: Joe the tenant, Vivianne the neighbour who runs, Alex the building's super, Amina the nurse. Same rig, same palette rule, their own faces.
+PLAYERS = [
+    # Joe, the tenant — a white man, blond: a red checked shirt worn open over a white tee, jeans turned up, brown boots
+    dict(name='joe', coat='b8453a', skin='f0d0b4', hair='e2bc5c', hairstyle='short', legs='3f5a82', shoes='6a4428', garment='jacket', open='ece8de',
+         marks=(('check', '5a1e1e', 4), ('collar', '8a2c28')), turnup='7c98bc', carry='hammer',
+         face=dict(eye=(2, 2), gap=2, brow='flat', mouth='small', nose=True, stubble=True)),
+    # Vivianne, the neighbour who runs — a white woman, blonde hair tied back: a coral zip-up with a white yoke, black leggings with a stripe, white trainers
+    dict(name='vivianne', coat='e8705e', skin='f4dcc8', hair='f0d27a', hairstyle='ponytail', band='4a6ac8', legs='2a2a34', shoes='f0ece4', garment='jumper',
+         marks=(('yoke', 'f4f0e8', 2), ('zip', 'f4f0e8'), ('hem', '2a2a34')), leg_stripe='e8705e', carry='torch',
+         face=dict(eye=(2, 3), gap=2, glint=True, brow='raised', mouth='lips', lip='c85a56', cheek='f0a8a0')),
+    # Alex, the super — a black man in his thirties: cropped hair and a short beard, navy work overalls with the sleeves off, a name patch, a tool belt
+    dict(name='alex', coat='2f4a7a', skin='6a4430', hair='1a1418', hairstyle='crop', legs='2f4a7a', shoes='b8863c', sleeves=False, build=1,
+         marks=(('patch', 'f0ece0'), ('zip', 'c8a85a'), ('belt', '6a4428', 'e8c860', 'c89a3c')), carry='hammer',
+         face=dict(eye=(2, 2), gap=2, glint=True, brow='flat', mouth='line', beard=True)),
+    # Amina, the nurse, off duty — an Indian woman: one long plait over her shoulder, a mustard cardigan open over a magenta top, dark trousers, a bag across her
+    dict(name='amina', coat='d8a43a', skin='b9825a', hair='1c1418', hairstyle='braid', band='c83a6a', legs='3a3448', shoes='7a4a3a', garment='jumper',
+         open='c83a6a', marks=(('strap', '6a4a3a'), ('hem', 'b8862e')), carry='bag',
+         face=dict(eye=(2, 2), gap=2, glint=True, brow='raised', mouth='lips', lip='a84a44', earring='f0d060')),
+]
+
+# ---- THE DEAD. The same people, the same day, in the same clothes: skin gone grey-green, a pale dot adrift in each socket, a mouth that hangs open,
+# what has soaked into the cloth. Each KIND is a different BODY on the same rig, so it reads by its outline alone:
+#   walker   a neighbour, bent a little, both arms out in front, one foot dragging
+#   big      half as tall again and twice as heavy: a hump of shoulder, a small head sunk into it, arms like legs
+#   crawler  down on all fours, low and long, the head up and forward
+#   longarm  thin and stooped, with arms that reach the floor
+#   spitter  upright, a swollen throat that fills as it breathes, a wide wet mouth
+DEAD_FACE = dict(eye=(3, 3), gap=1, dx=-1, dy=-1, dead=True, mouth='maw', brow=None, glint=False)
+ENEMIES = [
+    dict(name='walker', coat='8a8f7a', skin='8fa08a', hair='4a4038', hairstyle='short', legs='4a4a56', shoes='2e2a2a', garment='jumper', dead=True, sleeves=False,
+         marks=(('hstripes', '6e7462', 4),), stains=((3, 6, 3.2, 2.6), (-2, 13, 2.4, 3.4)), pose=dict(n_arm=(62, 18), f_arm=(74, 12), spine=13, lean=1.0), stride=0.62, drag=0.7,
+         face=dict(DEAD_FACE, drool=1)),
+    dict(name='big', coat='6e5a52', skin='7f927e', hair='3a332e', hairstyle='bald', legs='3e3a44', shoes='262224', dead=True, build=6, tall=1.6, arm=1.55,
+         thick=2.0, drop=3, extras=('hump',), stains=((4, 9, 4.6, 3.6), (-4, 18, 3.0, 4.0)), pose=dict(n_arm=(16, 22), f_arm=(24, 20), spine=10),
+         stride=0.5, drag=0.5, face=dict(DEAD_FACE, eye=(2, 2), gap=1, dy=1)),
+    dict(name='crawler', coat='7a6a70', skin='93a48e', hair='2e2826', hairstyle='bald', legs='46424e', shoes='2a2628', dead=True, sleeves=False, hip_dx=-9, arm=1.15,
+         thick=0.9, stains=((4, 2, 3.0, 2.0),), pose=dict(spine=78, n_arm=(-14, 30), f_arm=(6, 26), n_leg=(64, 118), f_leg=(40, 96), lean=0.0),
+         stride=0.0, face=dict(DEAD_FACE, drool=2)),
+    dict(name='longarm', coat='5d6a72', skin='8a9c8e', hair='3a3430', hairstyle='bald', legs='3c3c48', shoes='242226', dead=True, sleeves=False, arm=2.05, thick=0.82,
+         tall=1.12, stains=((2, 7, 2.6, 3.0),), pose=dict(n_arm=(10, 8), f_arm=(18, 6), spine=26), stride=0.7, drag=0.4,
+         face=dict(DEAD_FACE)),
+    dict(name='spitter', coat='7c7350', skin='9aa878', hair='40382c', hairstyle='bob', legs='4c4a40', shoes='2c2826', dead=True, build=1, extras=('sack',),
+         stains=((4, 8, 3.4, 4.2),), stain='5c6a28', pose=dict(n_arm=(4, 14), f_arm=(-2, 12), spine=-4), stride=0.55, drag=0.3,
+         face=dict(DEAD_FACE, drool=3, drool_col='8a9a3a')),
+]
+CAST = PLAYERS + ENEMIES
+
+
 def frames(p, kind):
-    """-> [(image, joints)]"""
+    """-> [(image, joints)]. A person's own `pose` (the dead's reaching arms and bent back) lies over every frame; `stride` / `drag` change the walk."""
+    own = p.get('pose', {})
+
+    def mk(pose, item=None):
+        hold = {k: v for k, v in own.items() if not (item and k == 'n_arm')}
+        if own.get('spine', 0.0) > 55.0:                      # on all fours the walk's own leg angles would stand it up: it keeps its own
+            pose = {k: v for k, v in pose.items() if k not in ('n_leg', 'f_leg', 'n_arm', 'f_arm', 'lean')}
+        return draw(p, dict(pose, **hold), item=item)
+    if own.get('spine', 0.0) > 55.0 and kind == 'walk':                              # the crawl: opposite hand and knee go forward together
+        out = []
+        for i in range(WALK_N):
+            q = math.cos(2.0 * math.pi * i / float(WALK_N))
+            na, fa, nl, fl = own['n_arm'], own['f_arm'], own['n_leg'], own['f_leg']
+            out.append(draw(p, dict(own, n_arm=(na[0] + 22 * q, na[1] - 8 * q), f_arm=(fa[0] - 22 * q, fa[1] + 8 * q),
+                                    n_leg=(nl[0] - 14 * q, nl[1] - 10 * q), f_leg=(fl[0] + 14 * q, fl[1] + 10 * q), nod=1 if i % 6 == 1 else 0)))
+        return out
     if kind == 'walk':
-        return [draw(p, walk_pose(i)) for i in range(WALK_N)]
+        return [mk(walk_pose(i, stride=p.get('stride', 1.0), drag=p.get('drag', 0.0))) for i in range(WALK_N)]
     if kind == 'carry':
-        return [draw(p, walk_pose(i, carry=p['carry']), item=p['carry']) for i in range(WALK_N)]
-    return [draw(p, idle_pose(i)) for i in range(6)]
+        return [mk(walk_pose(i, carry=p['carry']), item=p['carry']) for i in range(WALK_N)]
+    return [mk(idle_pose(i)) for i in range(6)]
 
 
 def self_check():
     """Every figure stands on the ground row, nothing is cut off by its cell, a leg is never thinner than 3 px, and the garment is never wider
     than the head by more than 4 px (the 'fat' the second pass had)."""
     errs = []
+    for p in CAST:                                                              # the players and the dead: on the ground, inside the cell
+        for kind in ('idle', 'walk'):
+            for i, (im, j) in enumerate(frames(p, kind)):
+                px = im.load()
+                if not any(px[x, (CH - 1)][3] for x in range(CW)):
+                    errs.append('%s %s %d: nothing on the ground row' % (p['name'], kind, i))
+                if any(px[x, 0][3] for x in range(CW)) or any(px[0, y][3] or px[CW - 1, y][3] for y in range(CH)):
+                    errs.append('%s %s %d: touches the edge of its cell' % (p['name'], kind, i))
     for p in PEOPLE:
         for kind in ('idle', 'walk', 'carry'):
             for i, (im, j) in enumerate(frames(p, kind)):
@@ -784,7 +959,29 @@ def main():
         strip.save(os.path.join(GAME, p['name'] + '.png'))
     with open(os.path.join(GAME, 'people.json'), 'w') as fh:
         json.dump({'cell': [CW, CH], 'feet_row': (CH - 1), 'anims': anims, 'people': [p['name'] for p in PEOPLE],
+                   'groups': {'neighbours': [p['name'] for p in PEOPLE], 'players': [p['name'] for p in PLAYERS], 'dead': [p['name'] for p in ENEMIES]},
                    'ms': {'idle': 260, 'walk': 80, 'carry': 80}}, fh, indent=1, sort_keys=True)
+    # ---- the players and the dead: their own sheet and loop, and strips for the game's dev preview
+    csets = {k: [frames(p, k) for p in CAST] for k in ('idle', 'walk')}
+    sheet2 = Image.new('RGBA', (CW * (6 + WALK_N) + 4, CH * len(CAST)), BG)
+    for k in range(len(CAST)):
+        x = 0
+        for kind in ('idle', 'walk'):
+            for (im, _) in csets[kind][k]:
+                sheet2.alpha_composite(im, (x, k * CH))
+                x += CW
+            x += 4
+    sheet2.resize((sheet2.width * 2, sheet2.height * 2), Image.NEAREST).save(os.path.join(OUT, 'cast_sheet.png'))
+    _gif(os.path.join(OUT, 'cast_walk.gif'), _row(csets['walk']), 80, scale=3)
+    _gif(os.path.join(OUT, 'cast_idle.gif'), _row(csets['idle']), 260, scale=3)
+    for k, p in enumerate(CAST):
+        strip = Image.new('RGBA', (CW * at, CH), (0, 0, 0, 0))
+        x = 0
+        for kind in order:
+            for (im, _) in (csets[kind][k] if kind in csets else csets['walk'][k]):   # no carry cycle yet: the walk stands in
+                strip.alpha_composite(im, (x, 0))
+                x += CW
+        strip.save(os.path.join(GAME, p['name'] + '.png'))
     for stale in os.listdir(OUT):                                                   # the per-person GIFs of the first two passes
         if stale.endswith('.gif') and not stale.startswith('people_'):
             os.remove(os.path.join(OUT, stale))

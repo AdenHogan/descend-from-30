@@ -47,7 +47,7 @@ extends Node
 #   search:<apt>:<anchor>  mark a node searched → its drawer / door opens (open_furniture.gd)
 #   breach:<apt>     make that flat's door BREACHED (before its room loads)
 #   anchor:<apt>:<anchor>:<item>  put an item in a node BEFORE its room loads (so the node is live and drawn)
-#   people[:<x0>:<x1>[:<size>]]  spawn the look-test neighbours (assets/people) walking about on the player's feet line
+#   people[:<x0>:<x1>[:<size>[:<neighbours|players|dead>]]]  spawn the look-test neighbours (assets/people) walking about on the player's feet line
 #   anchors          print the scavenge nodes of the current scene (name + screen position)
 #   flats:<room>     print the current floor's flats that hold that room type;  spots  print the scene's hiding places;  hidein:<piece|way>  hide the player in the first one of that kind
 #   lightsout        put out every light of the scene but the player's own;  face:<left|right>  turn the player;  use:<slot>  use an inventory slot (the torch: on / off)
@@ -367,7 +367,7 @@ func _do(step: String) -> void:
 			if host_p != null and pl_p != null:
 				var x0p: float = float(p[1]) if p.size() > 1 else pl_p.global_position.x - 260.0
 				var x1p: float = float(p[2]) if p.size() > 2 else pl_p.global_position.x + 260.0
-				var made: Array = PeoplePreview.spawn_all(host_p, pl_p.global_position.y + 33.0, x0p, x1p, float(p[3]) if p.size() > 3 else 1.0)
+				var made: Array = PeoplePreview.spawn_all(host_p, pl_p.global_position.y + 33.0, x0p, x1p, float(p[3]) if p.size() > 3 else 1.0, p[4] if p.size() > 4 else "neighbours")
 				print("people: %d on feet line %.0f (player at %s)" % [made.size(), pl_p.global_position.y + 33.0, pl_p.global_position])
 			await _frames(1)
 		"zombie":

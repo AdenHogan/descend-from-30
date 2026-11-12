@@ -14,10 +14,33 @@
   ]
  },
  "cell": [
-  54,
-  72
+  69,
+  87
  ],
- "feet_row": 71,
+ "feet_row": 86,
+ "groups": {
+  "dead": [
+   "walker",
+   "big",
+   "crawler",
+   "longarm",
+   "spitter"
+  ],
+  "neighbours": [
+   "nell",
+   "mrs_okafor",
+   "dale",
+   "mr_hale",
+   "priya",
+   "tomasz"
+  ],
+  "players": [
+   "joe",
+   "vivianne",
+   "alex",
+   "amina"
+  ]
+ },
  "ms": {
   "carry": 80,
   "idle": 260,
