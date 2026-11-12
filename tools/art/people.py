@@ -216,7 +216,7 @@ def skeleton(pose, p=None):
     sh_y = hipy - back * math.cos(bend) + g.get('breath', 0)
     j['hip'] = (hip[0], hipy)
     j['neck'] = (sx + 0.5, sh_y - 1.0)
-    j['head'] = (sx + 1.5 + 6.0 * math.sin(bend), sh_y - 8.0 * math.cos(bend * 0.75) + g.get('nod', 0))
+    j['head'] = (sx + 1.5 + 6.0 * math.sin(bend), sh_y - 9.6 * math.cos(bend * 0.75) + g.get('nod', 0))   # (8.0: the head sat ON the shoulders — no neck)
     for side, ox in (('n', -3.0), ('f', 3.4)):
         a1, a2 = g[side + '_arm']
         j['shoulder_' + side] = (sx + ox * math.cos(bend), sh_y + 1.5 + abs(ox) * 0.4 * math.sin(bend))
@@ -315,8 +315,8 @@ def draw(p, pose, item=None):
             c.put(x + dx, y + dy + oy, col)
 
     # ---- behind the body: the far arm, the far leg
-    limb(c, j['shoulder_f'], j['elbow_f'], 3.6 * th, sleeve, near=False)
-    limb(c, j['elbow_f'], j['hand_f'], 3.4 * th, sleeve, near=False)
+    limb(c, j['shoulder_f'], j['elbow_f'], 4.2 * th, sleeve if p.get('sleeves', True) else skin, near=False)
+    limb(c, j['elbow_f'], j['hand_f'], 3.4 * th, skin if (p.get('rolled') or not p.get('sleeves', True)) else sleeve, near=False)
     fx, fy = R(j['hand_f'])
     far_skin = {k: _mix(skin['m'][:3], skin['d'][:3], 0.7) + (255,) for k in skin}
     c.ell(fx + 0.5, fy + (1.0 if palms else 1.5), 1.8, 2.6 if palms else 1.9, far_skin)
@@ -358,7 +358,7 @@ def draw(p, pose, item=None):
     for i in range(n):
         v = i / float(max(1, n - 1))
         t_ = min(1.0, v / 0.7)
-        hw = 4.9 + build * 0.3 + (wide - 4.9 - build * 0.3) * math.sin(t_ * math.pi / 2.0) ** 0.8                # round shoulders sloping out of the neck
+        hw = 4.9 + build * 0.3 + p.get('shoulders', 0.0) + (wide - 4.9 - build * 0.3 - p.get('shoulders', 0.0)) * math.sin(t_ * math.pi / 2.0) ** 0.8
         under = n - 1 - i
         if under < 3:                                                               # and the hem turns under on a curve
             hw -= (3.0 - math.sqrt(9.0 - (3 - under - 0.5) ** 2)) * 0.9
@@ -369,7 +369,7 @@ def draw(p, pose, item=None):
     for ii in range(nn):
         v = ii / float(max(1, nn - 1))
         t_ = min(1.0, v / 0.7)
-        hw = 4.9 + build * 0.3 + (wide - 4.9 - build * 0.3) * math.sin(t_ * math.pi / 2.0) ** 0.8
+        hw = 4.9 + build * 0.3 + p.get('shoulders', 0.0) + (wide - 4.9 - build * 0.3 - p.get('shoulders', 0.0)) * math.sin(t_ * math.pi / 2.0) ** 0.8
         under = (nn - 1 - ii) / K
         if under < 3:
             hw -= (3.0 - math.sqrt(max(0.0, 9.0 - (3 - under - 0.5) ** 2))) * 0.9
@@ -472,6 +472,14 @@ def draw(p, pose, item=None):
         c.rect(fxe - 4, shy + 1, fxe - 4, shy + 8, sc['d'])
         c.rect(fxe - 2, shy + 2, fxe - 2, shy + 7, sc['l'])
         c.rect(fxe - 5, shy + 2, fxe - 5, shy + 8, g['dd'])
+    # ---- the NECK (owner: "none of them have necks which is odd"): a short column of skin, shaded down its back, the collar's shadow across its foot
+    if not crawl and st != 'hood':
+        nx_, ny_ = int(round(j['neck'][0])), int(round(j['neck'][1]))
+        c.rect(nx_ - 2, ny_ - 4, nx_ + 2, ny_ + 1, skin['m'])
+        c.rect(nx_ - 2, ny_ - 4, nx_ - 1, ny_ + 1, skin['d'])
+        c.rect(nx_ - 1, ny_ - 4, nx_ + 2, ny_ - 3, skin['d'])                       # the chin's shadow
+    body_ = c                                                                       # the head is its own layer, so its own line holds it against the collar
+    c = Cel()
     # ---- the head: ROUND, bigger than the shoulders are wide. Hair is one dome that wraps the top and the back; the face is a soft oval set into
     # its front; two dark eyes high on it. No corners anywhere.
     hx, hy = hcx - 0.5, hcy - 0.5
@@ -484,15 +492,21 @@ def draw(p, pose, item=None):
         c.ell(hx + 1.9, hy + 1.5, 4.5, 5.1, skin, flat=True)
     else:
         c.ell(hx, hy, 6.6, 7.0, skin, flat=True)
-        if st in ('long', 'bob'):
+        if st in ('long', 'bob', 'ponytail'):
             c.ell(hx, hy, 6.9, 7.3, hair, keep=lambda x, y: not face(x, y) or y < hy - 3.6)
             if st == 'bob':
                 c.ell(hx - 3.2, hy + 4.0, 4.4, 5.6, hair, keep=lambda x, y: not face(x, y))
-        elif st in ('short', 'bun', 'beanie', 'ponytail', 'braid', 'crop'):
+            if st == 'ponytail':                                                    # a full head of hair swept across the brow and tied high: the tail has weight and swings
+                h2 = {k_: rgb(p.get('hair2', 'f8e6a0')) for k_ in hair}
+                c.ell(hx - 7.4, hy - 2.2, 3.0, 3.2, hair)
+                c.ell(hx - 8.8 - 0.5 * sway, hy + 3.4, 2.8, 5.4, hair)
+                c.ell(hx - 9.0 - 0.5 * sway, hy + 2.4, 0.9, 3.4, h2)
+                c.ell(hx + 2.6, hy - 3.9, 4.2, 1.9, hair, keep=lambda x, y: skull(x, y))    # the fringe, swept to the side
+                c.ell(hx + 1.0, hy - 5.4, 3.4, 0.9, h2, keep=lambda x, y: skull(x, y))
+                c.ell(hx - 3.4, hy - 2.0, 0.9, 3.0, h2)
+                c.rect(int(hx - 6), int(hy - 3), int(hx - 5), int(hy - 1), rgb(p.get('band', 'e86a6a')))
+        elif st in ('short', 'bun', 'beanie', 'braid', 'crop'):
             c.ell(hx, hy, 6.9, 7.3, hair, keep=lambda x, y: (y < hy - (3.6 if st == 'crop' else 2.6) or (x < hx - 2.6 and y < hy + (0.5 if st == 'crop' else 3.5))) and not (face(x, y) and y >= hy - 3.6))
-            if st == 'ponytail':                                                    # tied back: a band, and the tail swinging behind
-                c.ell(hx - 7.6, hy + 2.6 + 0.5 * sway, 2.3, 4.8, hair)
-                c.rect(int(hx - 7), int(hy - 2), int(hx - 6), int(hy - 1), rgb(p.get('band', 'e86a6a')))
             if st == 'braid':                                                       # one long plait, over the near shoulder and down the front
                 for i_ in range(6):                                                 # bead by bead, each with its own light, getting smaller
                     r_ = 1.7 - 0.12 * i_
@@ -547,6 +561,10 @@ def draw(p, pose, item=None):
             if f.get('dead'):                                                       # nobody home: a pale dot adrift in a dark socket
                 c.raw(int((ex + ew - 1) * K) + (0 if ex == ex0 else -1), int(ey * K) + 1, (226, 222, 196, 255))
                 c.raw(int((ex + ew - 1) * K) + (0 if ex == ex0 else -1), int(ey * K) + 2, (226, 222, 196, 255))
+            if f.get('iris'):                                                       # the colour of their eyes: a fleck in each, not a block
+                c.raw(int(ex * K) + 1, int((ey + eh - 1) * K), rgb(f['iris']))
+                c.raw(int(ex * K) + 2, int((ey + eh - 1) * K), rgb(f['iris']))
+                c.raw(int(ex * K) + 1, int((ey + eh - 1) * K) + 1, rgb(f['iris']))
             if f.get('glint') and eh >= 2:
                 c.put(ex + ew - 1, ey, (236, 232, 226, 255))
             if f.get('lids'):                                                       # heavy lids: the top row of the eye is skin shade
@@ -628,16 +646,20 @@ def draw(p, pose, item=None):
     c.put = _put
     if f.get('earring'):
         c.put(int(hx - 3), int(hy + 4), rgb(f['earring']))
+    _outline(c)
+    body_.im.alpha_composite(c.im)
+    c = Cel()                                                                       # ...and so is the near arm: a limb with a line round it, not a stripe on the coat
     # ---- the near arm, over everything: its shadow on the body first, then the sleeve along its two bones, the cuff, the fist — and what it holds
     sn, en, hn = j['shoulder_n'], j['elbow_n'], j['hand_n']
-    for (a, b) in ((sn, en), (en, hn)):
-        limb(c, (a[0] - 0.7, a[1] + 0.4), (b[0] - 0.7, b[1] + 0.4), 4.6 * th + 0.5, {k_: _mix(g['d'][:3], g['dd'][:3], 0.45) + (255,) for k_ in ('l', 'm', 'd', 'dd', 'll')})
-    limb(c, sn, en, 4.6 * th, sleeve)
-    limb(c, en, hn, 4.2 * th, sleeve)
+    fore = skin if (p.get('rolled') or not p.get('sleeves', True)) else sleeve       # sleeves rolled to the elbow, or none
+    limb(c, sn, en, 5.0 * th, sleeve if p.get('sleeves', True) else skin)           # the upper arm is the heavier bone
+    limb(c, en, hn, 4.0 * th, fore)
+    if p.get('rolled'):                                                             # the roll: a band of the shirt's lining at the elbow
+        c.ell(en[0], en[1], 2.9 * th, 1.6, {k_: rgb(p['rolled']) for k_ in sleeve})
     if not p.get('sleeves', True):                                                  # a short sleeve: the garment's own colour capping a bare arm
-        limb(c, sn, ((sn[0] + en[0]) * 0.5, (sn[1] + en[1]) * 0.5), 5.0 * th, g)
+        limb(c, sn, ((sn[0] + en[0]) * 0.55, (sn[1] + en[1]) * 0.55 + sn[1] * 0.0), 5.4 * th, g) if False else limb(c, sn, (sn[0] + (en[0] - sn[0]) * 0.5, sn[1] + (en[1] - sn[1]) * 0.5), 5.4 * th, g)
+    c.ell(sn[0], sn[1] - 0.4, 2.9 * th, 2.4, sleeve if p.get('sleeves', True) else g)                # the round of the shoulder
     sx, sy = R(sn)
-    c.rect(sx - 1, sy - 2, sx + 1, sy - 2, sleeve['ll'])                            # the light on the shoulder
     ex_, ey_ = R(en)
     hx, hy = R(hn)
     if item:
@@ -645,12 +667,16 @@ def draw(p, pose, item=None):
     ux, uy = (hn[0] - en[0]), (hn[1] - en[1])                                       # the cuff: a dark line across the wrist, square to the forearm
     ul = math.hypot(ux, uy) or 1.0
     for k in (-2, -1, 0, 1):
-        c.put(int(round(hn[0] - ux / ul * 1.2 - uy / ul * (k + 0.5))), int(round(hn[1] - uy / ul * 1.2 + ux / ul * (k + 0.5))), g['dd'])
+        if p.get('sleeves', True) and not p.get('rolled'):
+            c.put(int(round(hn[0] - ux / ul * 1.2 - uy / ul * (k + 0.5))), int(round(hn[1] - uy / ul * 1.2 + ux / ul * (k + 0.5))), rgb(p['cuff']) if p.get('cuff') else g['dd'])
     if palms:                                                                       # an open hand held up: taller than a fist, the fingers lit
         c.ell(hx + 0.5, hy + 0.6, 2.0, 2.9, skin)
     else:
         c.ell(hx + 0.5, hy + 1.5, 2.2, 2.2, skin)                                   # a round fist
         c.put(hx + 2, hy + 1, skin['l'])                                            # and its thumb
+    _outline(c)
+    body_.im.alpha_composite(c.im)
+    c = body_
     _outline(c)
     return c.im, j
 
@@ -739,54 +765,38 @@ PEOPLE = [
 # ---- THE PLAYERS (owner: "Now redesign the player characters and enemies in this style"). The four of docs/CHARACTERS.md, each dressed as who they
 # are: Joe the tenant, Vivianne the neighbour who runs, Alex the building's super, Amina the nurse. Same rig, same palette rule, their own faces.
 PLAYERS = [
-    # Joe, the tenant — a white man, blond: a red checked shirt worn open over a white tee, jeans turned up, brown boots
+    # Joe, the tenant — a white man, blond: a red checked shirt, sleeves rolled, open over a white tee; jeans turned up; brown boots
     dict(name='joe', coat='b8453a', skin='f0d0b4', hair='e2bc5c', hairstyle='short', legs='3f5a82', shoes='6a4428', garment='jacket', open='ece8de',
-         marks=(('check', '5a1e1e', 4), ('collar', '8a2c28')), turnup='7c98bc', carry='hammer',
-         face=dict(eye=(2, 2), gap=2, brow='flat', mouth='small', nose=True, stubble=True)),
-    # Vivianne, the neighbour who runs — a white woman, blonde hair tied back: a coral zip-up with a white yoke, black leggings with a stripe, white trainers
-    dict(name='vivianne', coat='e8705e', skin='f4dcc8', hair='f0d27a', hairstyle='ponytail', band='4a6ac8', legs='2a2a34', shoes='f0ece4', garment='jumper',
-         marks=(('yoke', 'f4f0e8', 2), ('zip', 'f4f0e8'), ('hem', '2a2a34')), leg_stripe='e8705e', carry='torch',
-         face=dict(eye=(2, 3), gap=2, glint=True, brow='raised', mouth='lips', lip='c85a56', cheek='f0a8a0')),
-    # Alex, the super — a black man in his thirties: cropped hair and a short beard, navy work overalls with the sleeves off, a name patch, a tool belt
-    dict(name='alex', coat='2f4a7a', skin='6a4430', hair='1a1418', hairstyle='crop', legs='2f4a7a', shoes='b8863c', sleeves=False, build=1,
+         shoulders=0.8, rolled='8a2c28', marks=(('check', '5a1e1e', 4), ('collar', '8a2c28')), turnup='7c98bc', carry='hammer',
+         face=dict(eye=(2, 2), gap=2, iris='5a8ac8', brow='flat', mouth='small', nose=True, stubble=True)),
+    # Vivianne, the neighbour who runs — a white woman: golden hair swept across the brow and tied high with a pink band, blue eyes; a coral zip-up
+    # with a white yoke and cuffs, black leggings with a stripe, white trainers
+    dict(name='vivianne', coat='e8705e', skin='f4dcc8', hair='eec25a', hair2='fbe9a4', hairstyle='ponytail', band='e85a9a', legs='2a2a34', shoes='f0ece4',
+         garment='jumper', cuff='f4f0e8', marks=(('yoke', 'f4f0e8', 2), ('zip', 'f4f0e8'), ('hem', '2a2a34')), leg_stripe='e8705e', carry='torch',
+         face=dict(eye=(2, 3), gap=2, iris='4a9ad8', glint=True, brow='raised', mouth='lips', lip='d85a6a', cheek='f4a0a8')),
+    # Alex, the super — a black man in his thirties, clean-shaven, cropped hair: navy work overalls with the sleeves off, a name patch, a tool belt
+    dict(name='alex', coat='2f4a7a', skin='6e4630', hair='1a1418', hairstyle='crop', legs='2f4a7a', shoes='b8863c', sleeves=False, build=1, shoulders=1.0,
          marks=(('patch', 'f0ece0'), ('zip', 'c8a85a'), ('belt', '6a4428', 'e8c860', 'c89a3c')), carry='hammer',
-         face=dict(eye=(2, 2), gap=2, glint=True, brow='flat', mouth='line', beard=True)),
-    # Amina, the nurse, off duty — an Indian woman: one long plait over her shoulder, a mustard cardigan open over a magenta top, dark trousers, a bag across her
-    dict(name='amina', coat='d8a43a', skin='b9825a', hair='1c1418', hairstyle='braid', band='c83a6a', legs='3a3448', shoes='7a4a3a', garment='jumper',
-         open='c83a6a', marks=(('strap', '6a4a3a'), ('hem', 'b8862e')), carry='bag',
-         face=dict(eye=(2, 2), gap=2, glint=True, brow='raised', mouth='lips', lip='a84a44', earring='f0d060')),
+         face=dict(eye=(2, 2), gap=2, iris='4a2c1c', glint=True, brow='flat', mouth='smile', nose=True)),
+    # Amina, the nurse, off duty — an Indian woman: one long plait down her back, a mustard cardigan open over a magenta top, dark trousers, gold earrings
+    dict(name='amina', coat='d8a43a', skin='b9825a', hair='1c1418', hairstyle='long', legs='3a3448', shoes='7a4a3a', garment='jumper',
+         open='c83a6a', cuff='b8862e', marks=(('hem', 'b8862e'),), carry='bag',
+         face=dict(eye=(2, 2), gap=2, iris='5a3a22', glint=True, brow='raised', mouth='lips', lip='a84a44', earring='f0d060')),
 ]
 
-# ---- THE DEAD. The same people, the same day, in the same clothes: skin gone grey-green, a pale dot adrift in each socket, a mouth that hangs open,
-# what has soaked into the cloth. Each KIND is a different BODY on the same rig, so it reads by its outline alone:
-#   walker   a neighbour, bent a little, both arms out in front, one foot dragging
-#   big      half as tall again and twice as heavy: a hump of shoulder, a small head sunk into it, arms like legs
-#   crawler  down on all fours, low and long, the head up and forward
-#   longarm  thin and stooped, with arms that reach the floor
-#   spitter  upright, a swollen throat that fills as it breathes, a wide wet mouth
-DEAD_FACE = dict(eye=(3, 3), gap=1, dx=-1, dy=-1, dead=True, mouth='maw', brow=None, glint=False)
-ENEMIES = [
-    dict(name='walker', coat='8a8f7a', skin='8fa08a', hair='4a4038', hairstyle='short', legs='4a4a56', shoes='2e2a2a', garment='jumper', dead=True, sleeves=False,
-         marks=(('hstripes', '6e7462', 4),), stains=((3, 6, 3.2, 2.6), (-2, 13, 2.4, 3.4)), pose=dict(n_arm=(62, 18), f_arm=(74, 12), spine=13, lean=1.0), stride=0.62, drag=0.7,
-         face=dict(DEAD_FACE, drool=1)),
-    dict(name='big', coat='6e5a52', skin='7f927e', hair='3a332e', hairstyle='bald', legs='3e3a44', shoes='262224', dead=True, build=6, tall=1.6, arm=1.55,
-         thick=2.0, drop=3, extras=('hump',), stains=((4, 9, 4.6, 3.6), (-4, 18, 3.0, 4.0)), pose=dict(n_arm=(16, 22), f_arm=(24, 20), spine=10),
-         stride=0.5, drag=0.5, face=dict(DEAD_FACE, eye=(2, 2), gap=1, dy=1)),
-    dict(name='crawler', coat='7a6a70', skin='93a48e', hair='2e2826', hairstyle='bald', legs='46424e', shoes='2a2628', dead=True, sleeves=False, hip_dx=-9, arm=1.15,
-         thick=0.9, stains=((4, 2, 3.0, 2.0),), pose=dict(spine=78, n_arm=(-14, 30), f_arm=(6, 26), n_leg=(64, 118), f_leg=(40, 96), lean=0.0),
-         stride=0.0, face=dict(DEAD_FACE, drool=2)),
-    dict(name='longarm', coat='5d6a72', skin='8a9c8e', hair='3a3430', hairstyle='bald', legs='3c3c48', shoes='242226', dead=True, sleeves=False, arm=2.05, thick=0.82,
-         tall=1.12, stains=((2, 7, 2.6, 3.0),), pose=dict(n_arm=(10, 8), f_arm=(18, 6), spine=26), stride=0.7, drag=0.4,
-         face=dict(DEAD_FACE)),
-    dict(name='spitter', coat='7c7350', skin='9aa878', hair='40382c', hairstyle='bob', legs='4c4a40', shoes='2c2826', dead=True, build=1, extras=('sack',),
-         stains=((4, 8, 3.4, 4.2),), stain='5c6a28', pose=dict(n_arm=(4, 14), f_arm=(-2, 12), spine=-4), stride=0.55, drag=0.3,
-         face=dict(DEAD_FACE, drool=3, drool_col='8a9a3a')),
-]
+# ---- THE THINGS (owner 2026-11-12: "our original enemies were also placeholder, so we don't need to stick to zombies… grotesque monsters that fit the
+# standard, crawler, big, long arm, spitter names… horror, pulsating, gross, some can have multiple arms, some might have no discernable heads. Some
+# could look more fly or creature like… We want not just another zombie game"). They are not people on this rig: each is its own body, drawn in
+# tools/art/creatures.py with the same pixels, shading and line. `creature` names the drawing.
+ENEMIES = [dict(name=n, creature=n) for n in ('standard', 'crawler', 'big', 'longarm', 'spitter')]
 CAST = PLAYERS + ENEMIES
 
 
 def frames(p, kind):
     """-> [(image, joints)]. A person's own `pose` (the dead's reaching arms and bent back) lies over every frame; `stride` / `drag` change the walk."""
+    if p.get('creature'):
+        import creatures
+        return creatures.frames(p['creature'], kind)
     own = p.get('pose', {})
 
     def mk(pose, item=None):

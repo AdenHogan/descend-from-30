@@ -20,9 +20,9 @@
  "feet_row": 86,
  "groups": {
   "dead": [
-   "walker",
-   "big",
+   "standard",
    "crawler",
+   "big",
    "longarm",
    "spitter"
   ],
