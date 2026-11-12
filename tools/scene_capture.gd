@@ -47,6 +47,7 @@ extends Node
 #   search:<apt>:<anchor>  mark a node searched → its drawer / door opens (open_furniture.gd)
 #   breach:<apt>     make that flat's door BREACHED (before its room loads)
 #   anchor:<apt>:<anchor>:<item>  put an item in a node BEFORE its room loads (so the node is live and drawn)
+#   people[:<x0>:<x1>[:<size>]]  spawn the look-test neighbours (assets/people) walking about on the player's feet line
 #   anchors          print the scavenge nodes of the current scene (name + screen position)
 #   flats:<room>     print the current floor's flats that hold that room type;  spots  print the scene's hiding places;  hidein:<piece|way>  hide the player in the first one of that kind
 #   lightsout        put out every light of the scene but the player's own;  face:<left|right>  turn the player;  use:<slot>  use an inventory slot (the torch: on / off)
@@ -358,6 +359,16 @@ func _do(step: String) -> void:
 			# search:<apartment>:<anchor> — mark a node searched and open its furniture (the loot panel's own call)
 			WorldState.mark_anchor_searched(p[1], p[2])
 			get_tree().call_group("open_furniture", "on_searched", p[1], p[2])
+			await _frames(1)
+		"people":
+			# people[:<x0>:<x1>[:<size>]] — the look-test neighbours (assets/people, scripts/people_preview.gd) walking about on the player's feet line in the current scene
+			var host_p = get_tree().current_scene
+			var pl_p = _player()
+			if host_p != null and pl_p != null:
+				var x0p: float = float(p[1]) if p.size() > 1 else pl_p.global_position.x - 260.0
+				var x1p: float = float(p[2]) if p.size() > 2 else pl_p.global_position.x + 260.0
+				var made: Array = PeoplePreview.spawn_all(host_p, pl_p.global_position.y + 33.0, x0p, x1p, float(p[3]) if p.size() > 3 else 1.0)
+				print("people: %d on feet line %.0f (player at %s)" % [made.size(), pl_p.global_position.y + 33.0, pl_p.global_position])
 			await _frames(1)
 		"zombie":
 			# zombie:<x> — a standard zombie standing at world x on the player's walking line in the current scene (to see it pass a hiding player)

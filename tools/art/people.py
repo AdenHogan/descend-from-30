@@ -42,6 +42,7 @@ ANKLE_Y = GROUND - 3
 CX = 17
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.abspath(os.path.join(HERE, '..', '..', 'docs', 'art_reference', 'people'))
+GAME = os.path.abspath(os.path.join(HERE, '..', '..', 'assets', 'people'))
 EYE = (34, 24, 40, 255)
 BG = (126, 124, 128, 255)
 
@@ -732,6 +733,24 @@ def main():
                                            for (_, j) in sets[kind][k]] for kind in sets}
     with open(os.path.join(OUT, 'people_rig.json'), 'w') as fh:
         json.dump(rig, fh, indent=1, sort_keys=True)
+    # ---- for the GAME (a dev preview only: scripts/people_preview.gd, tools/scene_capture `people`): one strip a person, idle then walk then carry
+    os.makedirs(GAME, exist_ok=True)
+    order = ('idle', 'walk', 'carry')
+    anims, at = {}, 0
+    for kind in order:
+        anims[kind] = [at, len(sets[kind][0])]
+        at += len(sets[kind][0])
+    for k, p in enumerate(PEOPLE):
+        strip = Image.new('RGBA', (W * at, H), (0, 0, 0, 0))
+        x = 0
+        for kind in order:
+            for (im, _) in sets[kind][k]:
+                strip.alpha_composite(im, (x, 0))
+                x += W
+        strip.save(os.path.join(GAME, p['name'] + '.png'))
+    with open(os.path.join(GAME, 'people.json'), 'w') as fh:
+        json.dump({'cell': [W, H], 'feet_row': GROUND, 'anims': anims, 'people': [p['name'] for p in PEOPLE],
+                   'ms': {'idle': 260, 'walk': 80, 'carry': 80}}, fh, indent=1, sort_keys=True)
     for stale in os.listdir(OUT):                                                   # the per-person GIFs of the first two passes
         if stale.endswith('.gif') and not stale.startswith('people_'):
             os.remove(os.path.join(OUT, stale))
