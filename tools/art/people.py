@@ -15,6 +15,10 @@ THE RIG. Every figure is posed from a SKELETON (`skeleton(pose)`): a hip, a spin
 the ground, which gives the walk its rise and fall for free. `people_rig.json` lists every joint of every frame — what the game would read to
 put a weapon in a hand.
 
+ROUND, CLEAN, STYLISED (owner, of the third pass: "I don't like how sort of blocky they are when the original I sent looks more rounded and clean"):
+every mass is an ellipse or a curve — a round head, a dome of hair wrapping it, a soft oval face, shoulders that slope out of the neck, a hem that turns
+under — toned in a few clean curved bands (`Cel.rows`), with the fiddly marks of the second pass (ribs, strands, tufts, creases) taken out.
+
 THE BUILD (what the second pass got wrong: a box wider than the head with a belly on the front read as fat, not as a big jumper). A large head, a
 SMALL frame: shoulders narrower than the head, the garment hanging off them and widest low down, then gathered in at a rib; arms that are limbs
 beside the body, not stripes on it; short solid legs. The size is in the CLOTHES. Facing right; the game would mirror. A 36 x 48 cell, feet on
@@ -66,28 +70,37 @@ class Cel:
             for x in range(int(x0), int(x1) + 1):
                 self.put(x, y, c)
 
-    def rows(self, spans, t, back=0.24, front=0.68, under=2, flat=False, top_light=True):
-        """A soft VOLUME from its row spans [(y, xa, xb)], lit from the upper front (the right): deep shade down the back edge, shade behind it and
-        along the last `under` rows, a lit panel on the upper front, a catch-light on the first full row."""
+    def rows(self, spans, t, flat=False, **_):
+        """A ROUNDED volume from its row spans [(y, xa, xb)], lit from the upper front (the right). Each pixel is toned by where it sits on the
+        form (u across, v down, as if it were the surface of something round), in a FEW CLEAN BANDS — a lit crescent toward the light, the body
+        tone, a shade crescent round the back and underneath, a thin deep edge — never per-pixel noise (owner: "more rounded and clean and stylised")."""
         n = len(spans)
         for i, (y, xa, xb) in enumerate(spans):
-            v = i / float(max(1, n - 1))
+            v = 2.0 * i / float(max(1, n - 1)) - 1.0
             for x in range(xa, xb + 1):
-                u = (x - xa) / float(max(1, xb - xa))
+                u = 2.0 * (x - xa) / float(max(1, xb - xa)) - 1.0
+                lit = 0.62 * u - 0.66 * v
                 k = 'm'
-                if u < back:
+                if lit < -0.42:
                     k = 'd'
-                if u < back * 0.34:
+                if lit < -1.02:
                     k = 'dd'
-                if not flat and u > front and v < 0.6:
+                if not flat and lit > 0.58:
                     k = 'l'
-                if n - 1 - i < under:
-                    k = 'd' if k in ('m', 'l') else 'dd'
-                if i == n - 1 and under:
-                    k = 'dd'
-                if top_light and not flat and i == 1 and u > 0.4:
+                if not flat and lit > 1.04:
                     k = 'll'
                 self.put(x, y, t[k])
+
+    def ell(self, cx, cy, rx, ry, t, keep=None, **kw):
+        """An ellipse as a rounded volume; `keep(x, y)` clips it. Returns its spans."""
+        spans = []
+        for y in range(int(cy - ry - 1), int(cy + ry + 2)):
+            xs = [x for x in range(int(cx - rx - 1), int(cx + rx + 2))
+                  if ((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2 <= 1.0 and (keep is None or keep(x, y))]
+            if xs:
+                spans.append((y, min(xs), max(xs)))
+        self.rows(spans, t, **kw)
+        return spans
 
     def box(self, x0, y0, x1, y1, t, top=(2, 1), bot=(1,), **kw):
         n = int(y1) - int(y0) + 1
@@ -233,7 +246,7 @@ def draw(p, pose, item=None):
     limb(c, j['shoulder_f'], j['elbow_f'], 3.6, sleeve, near=False)
     limb(c, j['elbow_f'], j['hand_f'], 3.4, sleeve, near=False)
     fx, fy = R(j['hand_f'])
-    c.rect(fx - 1, fy, fx + 1, fy + 2, skin['d'])
+    c.ell(fx + 0.5, fy + 1.5, 1.7, 1.7, {k: skin['d'] for k in skin})
     limb(c, j['hip_f'], j['knee_f'], 4.0, legc, near=False)
     limb(c, j['knee_f'], j['ankle_f'], 3.8, legc, near=False)
     shoe(j['ankle_f'], False)
@@ -241,18 +254,13 @@ def draw(p, pose, item=None):
     limb(c, j['hip_n'], j['knee_n'], 4.2, legc)
     limb(c, j['knee_n'], j['ankle_n'], 4.0, legc)
     kx, ky = R(j['knee_n'])
-    c.put(kx + 1, ky, legc['ll'])
     shoe(j['ankle_n'], True)
     # ---- long hair down the back, behind the shoulders
     hcx, hcy = R(j['head'])
     st = p['hairstyle']
     sway = pose.get('sway', 0)
-    if st == 'long':
-        for i, x in enumerate(range(hcx - 8, hcx - 1)):
-            end = hcy + 14 - (0, 2, 0, 1, 3, 1, 3)[i]
-            for y in range(hcy - 3, end + 1):
-                tone = 'dd' if i == 0 else ('d' if i in (1, 4) or y > end - 2 else ('l' if i == 5 and y < hcy + 6 else 'm'))
-                c.put(x - (sway if y > hcy + 8 and i < 4 else 0), y, hair[tone])
+    if st == 'long':                                                                # one smooth drape down the back, its end rounded
+        c.ell(hcx - 4.0 - 0.4 * sway, hcy + 6.0, 4.4, 10.5, hair)
     # ---- a skirt under the garment
     if p.get('skirt'):
         sk = tones(p['skirt'])
@@ -265,27 +273,18 @@ def draw(p, pose, item=None):
     # ---- the garment: it hangs off NARROW shoulders, is widest low down, and is gathered in at the rib. No belly: the size is the cloth's.
     n = hem - shy + 1
     spans = []
+    wide = 7.0 + build * 0.6
     for i in range(n):
         v = i / float(max(1, n - 1))
-        hw = 4.6 + build * 0.5 + (2.6 + build * 0.5) * min(1.0, v / 0.55)
-        if i == 0:
-            hw -= 1.6
-        if n - 1 - i < (2 if kind != 'coat' else 0):
-            hw -= 1.0
+        t_ = min(1.0, v / 0.7)
+        hw = 3.6 + (wide - 3.6) * math.sin(t_ * math.pi / 2.0) ** 0.8                # round shoulders sloping out of the neck
+        under = n - 1 - i
+        if under < 3:                                                               # and the hem turns under on a curve
+            hw -= (3.0 - math.sqrt(9.0 - (3 - under - 0.5) ** 2)) * 0.9
         mx = hipx + 0.5 + lean * (1.0 - v)
         spans.append((shy + i, int(round(mx - hw)), int(round(mx + hw))))
-    c.rows(spans, g, under=2)
-    if kind in ('jumper', 'parka', 'jacket'):                                       # the rib
-        for (y, xa, xb) in spans[-2:]:
-            for x in range(xa, xb + 1):
-                c.put(x, y, g['dd'] if (x % 2 == 0 or y == spans[-1][0]) else g['d'])
+    c.rows(spans, g)
     fxe = spans[len(spans) // 2][2]                                                 # the garment's front edge at mid-height
-    for (y, xa, xb) in spans[:2]:                                                   # the head's shadow on the shoulders
-        for x in range(xa + 2, xb):
-            c.put(x, y, g['d'])
-    my = shy + int(n * 0.62)                                                        # the cloth folds where it hangs away from the body
-    for k in range(3):
-        c.put(fxe - 1 - k, my + k // 2, g['d'])
     if p.get('open'):
         inner = tones(p['open'])
         for (y, xa, xb) in spans[2:-1]:
@@ -322,72 +321,47 @@ def draw(p, pose, item=None):
         c.rect(fxe - 4, shy + 1, fxe - 4, shy + 8, sc['d'])
         c.rect(fxe - 2, shy + 2, fxe - 2, shy + 7, sc['l'])
         c.rect(fxe - 5, shy + 2, fxe - 5, shy + 8, g['dd'])
-    # ---- the head: bigger than the shoulders are wide. A block of skin, the face toward the front, the hair a mass over and behind it
-    hx0, hx1, top = hcx - 7, hcx + 5, hcy - 7
-    cx = hcx - 1
+    # ---- the head: ROUND, bigger than the shoulders are wide. Hair is one dome that wraps the top and the back; the face is a soft oval set into
+    # its front; two dark eyes high on it. No corners anywhere.
+    hx, hy = hcx - 0.5, hcy - 0.5
+    face = lambda x, y: ((x + 0.5 - hx - 1.9) / 4.7) ** 2 + ((y + 0.5 - hy - 1.5) / 5.3) ** 2 <= 1.0
+    skull = lambda x, y: ((x + 0.5 - hx) / 6.6) ** 2 + ((y + 0.5 - hy) / 7.0) ** 2 <= 1.0
     if st == 'hood':
-        c.box(hx0 - 1, top - 1, hx1 + 1, top + 14, g, top=(4, 2, 1), bot=(2, 1), back=0.3, front=0.66, under=1)
         fur = tones(p.get('fur', 'd8ccb8'), 0.8, 1.1)
-        fr = c.box(cx - 1, top + 2, hx1 + 1, top + 13, fur, top=(2, 1), bot=(2, 1), back=0.2, flat=True, under=0)
-        for (y, xa, xb) in fr:
-            c.put(xa, y, fur['l'] if y % 2 else fur['d'])
-            c.put(xb, y, fur['ll'] if y % 2 else fur['m'])
-        c.box(cx + 1, top + 4, hx1 - 1, top + 12, skin, top=(1,), bot=(1,), back=0.25, flat=True, under=1)
-        c.rect(cx + 2, top + 4, hx1 - 2, top + 4, skin['d'])
+        c.ell(hx, hy, 7.4, 7.8, g)
+        c.ell(hx + 1.6, hy + 1.2, 5.6, 6.2, fur, flat=True)                          # a clean ring of trim round the face
+        c.ell(hx + 1.9, hy + 1.5, 4.5, 5.1, skin, flat=True)
     else:
-        c.box(hx0, top + 1, hx1, top + 13, skin, top=(3, 2, 1), bot=(3, 1), back=0.2, front=0.86, under=1, flat=True)
-        if st in ('long', 'bob', 'short', 'bun', 'beanie'):
-            back_to = top + (13 if st in ('long', 'bob') else 9)
-            c.box(hx0 - 1, top, hx1, top + 5, hair, top=(4, 2, 1), bot=(), back=0.26, front=0.6, under=0)
-            c.rect(hx0 - 1, top + 5, cx - 2, back_to, hair['m'])
-            c.rect(hx0 - 1, top + 5, hx0, back_to, hair['dd'])
-            c.rect(hx0 + 1, top + 5, hx0 + 1, back_to, hair['d'])
-            c.rect(cx - 2, top + 6, cx - 2, back_to, hair['d'])
-            c.rect(cx - 1, top + 4, hx1 - 1, top + 5, hair['m'])                                               # a fringe, cut ragged
-            c.rect(cx - 1, top + 5, hx1 - 2, top + 5, hair['d'])
-            c.put(cx + 1, top + 6, hair['m'])
-            c.put(cx + 4, top + 6, hair['d'])
-            c.rect(cx, top + 2, cx + 4, top + 2, hair['ll'])                                                   # a sheen across the crown
-            c.rect(cx - 3, top + 3, cx + 2, top + 3, hair['l'])
-            c.rect(cx - 4, top + 5, cx - 4, back_to - 1, hair['l'])
+        c.ell(hx, hy, 6.6, 7.0, skin, flat=True)
+        if st in ('long', 'bob'):
+            c.ell(hx, hy, 6.9, 7.3, hair, keep=lambda x, y: not face(x, y) or y < hy - 3.6)
             if st == 'bob':
-                c.rect(hx0 - 2, top + 9, cx - 2, top + 15, hair['m'])
-                c.rect(hx0 - 2, top + 9, hx0 - 1, top + 15, hair['dd'])
-                c.rect(hx0 - 2, top + 14, cx - 2, top + 15, hair['d'])
-                c.rect(cx - 4, top + 8, cx - 4, top + 13, hair['l'])
-                c.put(cx - 2, top + 15, (0, 0, 0, 0))
+                c.ell(hx - 3.2, hy + 4.0, 4.4, 5.6, hair, keep=lambda x, y: not face(x, y))
+        elif st in ('short', 'bun', 'beanie'):
+            c.ell(hx, hy, 6.9, 7.3, hair, keep=lambda x, y: (y < hy - 2.6 or (x < hx - 2.6 and y < hy + 3.5)) and not (face(x, y) and y >= hy - 3.6))
             if st == 'bun':
-                c.box(hx0 - 4, top + 1, hx0, top + 6, hair, top=(1,), bot=(1,), back=0.3, front=0.5, under=1)
+                c.ell(hx - 6.6, hy - 3.6, 2.7, 2.7, hair)
             if st == 'beanie':
                 hat = tones(p['hat'])
-                c.box(hx0 - 1, top - 1, hx1, top + 3, hat, top=(4, 2, 1), bot=(), back=0.26, front=0.6, under=0)
-                for x in range(hx0 - 1, hx1 + 1):
-                    c.put(x, top + 4, hat['d'] if x % 2 else hat['m'])
-                    c.put(x, top + 5, hat['dd'] if x % 2 else hat['d'])
+                c.ell(hx, hy - 0.6, 7.2, 7.6, hat, keep=lambda x, y: y < hy - 2.6)
+                c.ell(hx, hy - 0.6, 7.2, 7.6, {k: hat['d'] for k in hat}, keep=lambda x, y: hy - 4.6 <= y < hy - 2.6)
         elif st == 'bald':
-            c.rect(hx0, top + 6, hx0 + 2, top + 10, hair['m'])
-            c.rect(hx0, top + 6, hx0, top + 10, hair['dd'])
-            c.rect(cx - 1, top + 2, cx + 3, top + 2, skin['ll'])
-            c.rect(cx + 1, top + 3, cx + 4, top + 3, skin['l'])
-        if st != 'bald':
-            c.rect(cx - 1, top + 6, hx1 - 1, top + 6, skin['d'])                    # shade under the fringe
-        c.rect(cx - 1, top + 7, cx - 1, top + 11, skin['d'])                        # and down the cheek by the hair
-        c.put(hx1, top + 9, skin['l'])
-    ey = top + 8
-    for ex in (cx + 1, cx + 5):
+            c.ell(hx - 4.6, hy + 1.6, 2.0, 2.8, hair, keep=skull)
+            c.ell(hx + 0.5, hy - 3.6, 2.6, 1.4, {k: skin['l'] for k in skin})        # the light on the dome
+    ex0, ey = int(round(hx + 0.0)), int(round(hy + 1.0))
+    for ex in (ex0, ex0 + 4):
         if pose.get('blink'):
             c.rect(ex, ey + 1, ex + 1, ey + 1, EYE)
         else:
             c.rect(ex, ey, ex + 1, ey + 1, EYE)
-            c.put(ex + 1, ey, (58, 50, 62, 255))
     if p.get('glasses'):
         gl = rgb(p['glasses'])
-        for ex in (cx + 1, cx + 5):                                                 # two round rims, not a bar
+        for ex in (ex0, ex0 + 4):                                                   # two rims
             c.rect(ex - 1, ey - 1, ex + 2, ey - 1, gl)
             c.rect(ex - 1, ey + 2, ex + 2, ey + 2, gl)
-        c.put(cx + 4, ey, gl)
+        c.put(ex0 + 3, ey, gl)
     if p.get('tache'):
-        c.rect(cx + 2, ey + 3, cx + 6, ey + 3, hair['d'])
+        c.rect(ex0 + 1, ey + 4, ex0 + 5, ey + 4, hair['d'])
     # ---- the near arm, over everything: its shadow on the body first, then the sleeve along its two bones, the cuff, the fist — and what it holds
     sn, en, hn = j['shoulder_n'], j['elbow_n'], j['hand_n']
     for (a, b) in ((sn, en), (en, hn)):
@@ -397,14 +371,10 @@ def draw(p, pose, item=None):
     sx, sy = R(sn)
     c.rect(sx - 1, sy - 2, sx + 1, sy - 2, sleeve['ll'])                            # the light on the shoulder
     ex_, ey_ = R(en)
-    c.put(ex_ - 1, ey_, sleeve['d'])                                                # the crease at the elbow
     hx, hy = R(hn)
     if item:
         ITEMS[item](c, hx, hy)
-    c.rect(hx - 1, hy, hx + 1, hy + 2, skin['m'])
-    c.put(hx - 1, hy, skin['d'])
-    c.put(hx - 1, hy + 2, skin['d'])
-    c.put(hx + 1, hy, skin['l'])
+    c.ell(hx + 0.5, hy + 1.5, 1.9, 1.9, skin)                                       # a round fist
     return c.im, j
 
 
@@ -437,7 +407,7 @@ PEOPLE = [
     dict(name='nell', coat='b5533c', skin='e8d6c8', hair='3a2a34', hairstyle='long', legs='3a3444', shoes='1e1a22', toggles='e8d6c8', drop=3,
          carry='torch'),                                                                                     # a girl in a red duffel coat, black tights
     dict(name='mrs_okafor', coat='8a6f9a', skin='8a5a44', hair='b8b4b8', hairstyle='bun', legs='7a5240', shoes='5a3a4a', skirt='4a4458',
-         skirt_len=5, open='e0d8c4', glasses='2a2630', garment='jumper', build=1, carry='bag'),               # an older woman: a long cardigan over a skirt
+         skirt_len=5, open='e0d8c4', garment='jumper', build=1, carry='bag'),               # an older woman: a long cardigan over a skirt
     dict(name='dale', coat='5d7a4a', skin='e2c4a8', hair='6a4a2a', hairstyle='hood', legs='3a4254', shoes='e4e0d8', fur='d8c8a8', pocket=True,
          garment='parka', drop=2, carry='hammer'),                                                           # a lad in a parka, hood up, white trainers
     dict(name='mr_hale', coat='c8b48a', skin='e6c8b0', hair='5a5450', hairstyle='bald', legs='55525c', shoes='4a3324', scarf='7a2e2e', tache=True,
