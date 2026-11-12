@@ -99,7 +99,9 @@ class Cel:
             v = 2.0 * i / float(max(1, n - 1)) - 1.0
             for x in range(xa, xb + 1):
                 u = 2.0 * (x - xa) / float(max(1, xb - xa)) - 1.0
-                lit = 0.62 * u - 0.66 * v
+                lit = 0.66 * u - 0.46 * v                                    # (v weighed 0.66: the whole lower third went to shade in one straight-edged block)
+                if n - 1 - i < 2 and n > 8:
+                    lit -= 0.5                                               # the underside still turns away from the light
                 k = 'm'
                 if lit < -0.42:
                     k = 'd'
@@ -226,7 +228,7 @@ def _bag(c, hx, hy):
 
 
 ITEMS = {'hammer': _hammer, 'torch': _torch, 'bag': _bag}
-CARRY = {'hammer': (28, 62), 'torch': (22, 68), 'bag': (4, 6)}        # the near arm's (shoulder, elbow) angles while it holds each
+CARRY = {'hammer': (6, 84), 'torch': (4, 82), 'bag': (4, 6)}       # (the upper arm hangs; only the forearm comes forward — a raised upper arm hid the chest)        # the near arm's (shoulder, elbow) angles while it holds each
 
 
 # ---- one frame ---------------------------------------------------------------------------------------------------------------------------------
@@ -239,7 +241,7 @@ def draw(p, pose, item=None):
     legc = tones(p['legs'], 0.78, 1.2)
     sho = tones(p['shoes'], 0.66, 1.5, mute=0.0)
     hair = tones(p['hair'], 0.74, 1.24)
-    sleeve = dict(g, m=_mix(g['m'][:3], g['l'][:3], 0.55) + (255,), d=_mix(g['d'][:3], g['m'][:3], 0.45) + (255,)) if p.get('sleeves', True) else skin
+    sleeve = dict(g, m=_mix(g['m'][:3], g['l'][:3], 0.35) + (255,), d=_mix(g['d'][:3], g['m'][:3], 0.3) + (255,)) if p.get('sleeves', True) else skin
     palms = pose.get('palms', False)
     kind = p.get('garment', 'coat')
     build = p.get('build', 0)
@@ -295,11 +297,11 @@ def draw(p, pose, item=None):
     # ---- the garment: it hangs off NARROW shoulders, is widest low down, and is gathered in at the rib. No belly: the size is the cloth's.
     n = hem - shy + 1
     spans = []
-    wide = 7.0 + build * 0.6
+    wide = 6.5 + build * 0.6                                                        # (it was 7.0 over 3.6 shoulders: with an arm lifted off it the body was a pear in a skirt)
     for i in range(n):
         v = i / float(max(1, n - 1))
         t_ = min(1.0, v / 0.7)
-        hw = 3.6 + (wide - 3.6) * math.sin(t_ * math.pi / 2.0) ** 0.8                # round shoulders sloping out of the neck
+        hw = 4.9 + build * 0.3 + (wide - 4.9 - build * 0.3) * math.sin(t_ * math.pi / 2.0) ** 0.8                # round shoulders sloping out of the neck
         under = n - 1 - i
         if under < 3:                                                               # and the hem turns under on a curve
             hw -= (3.0 - math.sqrt(9.0 - (3 - under - 0.5) ** 2)) * 0.9
@@ -606,8 +608,8 @@ def self_check():
                             x += 1
                     if runs and min(runs) < 3:
                         errs.append('%s idle %d: a leg is %d px wide at the knee' % (p['name'], i, min(runs)))
-        if (2 * (4.6 + p.get('build', 0) * 0.5 + 2.6 + p.get('build', 0) * 0.5) + 1) - 13 > 4.5:
-            errs.append('%s: the garment is more than 4 px wider than the head' % p['name'])
+        if (2 * (6.5 + p.get('build', 0) * 0.6) + 1) - 13 > 3.01:
+            errs.append('%s: the garment is more than 3 px wider than the head' % p['name'])
     return errs
 
 
