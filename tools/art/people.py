@@ -348,20 +348,108 @@ def draw(p, pose, item=None):
         elif st == 'bald':
             c.ell(hx - 4.6, hy + 1.6, 2.0, 2.8, hair, keep=skull)
             c.ell(hx + 0.5, hy - 3.6, 2.6, 1.4, {k: skin['l'] for k in skin})        # the light on the dome
-    ex0, ey = int(round(hx + 0.0)), int(round(hy + 1.0))
-    for ex in (ex0, ex0 + 4):
+    # ---- the FACE (owner, of the fourth pass: "is there anything you can do to give them more facial personality"). Still a few clean marks, but each
+    # person's OWN: the eyes' size and set, brows that say a mood, a mouth, and one or two things only they have (see `FACES`).
+    f = dict(FACE_DEFAULT)
+    f.update(p.get('face', {}))
+    _put = c.put
+    c.put = lambda x, y, col: _put(x, y, col) if face(x, y) else None             # nothing of the face is ever drawn off the face
+    ew, eh = f['eye']
+    ex0, ey = int(round(hx - 1.0)) + f.get('dx', 0), int(round(hy + 1.0)) + f.get('dy', 0)
+    ex1 = ex0 + ew + f['gap']
+    brow = hair['dd'] if st != 'bald' else tones(p['hair'])['d']
+    lid = skin['d']
+    if f.get('bags'):                                                               # tired: a shadow under each eye
+        for ex in (ex0, ex1):
+            c.rect(ex, ey + eh, ex + ew - 1, ey + eh, lid)
+    if f.get('cheek'):                                                              # colour in the cheek
+        ck = rgb(f['cheek'])
+        c.rect(ex1 + 0, ey + eh + 1, ex1 + 1, ey + eh + 1, ck)
+        c.put(ex0 - 1, ey + eh + 1, ck)
+    if f.get('glasses'):                                                            # spectacles: a pale lens behind each eye, a dark rim over it, a bridge
+        gl = rgb(f['glasses'])
+        for ex in (ex0, ex1):
+            c.rect(ex - 1, ey - 1, ex + ew, ey + eh, (206, 214, 220, 255))
+            c.rect(ex - 1, ey - 2, ex + ew, ey - 2, gl)
+        c.rect(ex0 + ew + 1, ey - 1, ex1 - 2, ey - 1, gl)
+    for ex in (ex0, ex1):
         if pose.get('blink'):
-            c.rect(ex, ey + 1, ex + 1, ey + 1, EYE)
+            c.rect(ex, ey + eh - 1, ex + ew - 1, ey + eh - 1, EYE)
         else:
-            c.rect(ex, ey, ex + 1, ey + 1, EYE)
-    if p.get('glasses'):
-        gl = rgb(p['glasses'])
-        for ex in (ex0, ex0 + 4):                                                   # two rims
-            c.rect(ex - 1, ey - 1, ex + 2, ey - 1, gl)
-            c.rect(ex - 1, ey + 2, ex + 2, ey + 2, gl)
-        c.put(ex0 + 3, ey, gl)
-    if p.get('tache'):
-        c.rect(ex0 + 1, ey + 4, ex0 + 5, ey + 4, hair['d'])
+            c.rect(ex, ey, ex + ew - 1, ey + eh - 1, EYE)
+            if f.get('glint') and eh >= 2:
+                c.put(ex + ew - 1, ey, (236, 232, 226, 255))
+            if f.get('lids'):                                                       # heavy lids: the top row of the eye is skin shade
+                c.rect(ex, ey, ex + ew - 1, ey, lid)
+    b = f.get('brow')
+    if b:
+        by = ey - 2
+        for k, ex in enumerate((ex0, ex1)):
+            inner = ex + ew - 1 if k == 0 else ex                                   # the end of each brow nearest the other eye
+            outer = ex if k == 0 else ex + ew - 1
+            if b == 'flat':
+                c.rect(ex, by, ex + ew - 1, by, brow)
+            elif b == 'worried':                                                    # inner ends UP
+                c.put(inner, by - 1, brow)
+                c.put(outer, by, brow)
+                if ew > 2:
+                    c.put((inner + outer) // 2, by, brow)
+            elif b == 'stern':                                                      # inner ends DOWN, hard on the eye
+                c.put(outer, by - 1 + 1, brow)
+                c.put(inner, by + 1, brow)
+                c.put(outer, by, brow)
+            elif b == 'raised':
+                c.rect(ex, by - 1, ex + ew - 1, by - 1, brow)
+            elif b == 'heavy':
+                c.rect(ex - (1 if k == 0 else 0), by, ex + ew - (0 if k == 0 else 0), by, brow)
+                c.rect(ex, by + 1, ex + ew - 1, by + 1, brow) if eh < 2 else None
+    mx, my_ = (ex0 + ex1 + ew) // 2, ey + eh + 2
+    m = f.get('mouth')
+    mouth = tones(p['skin'], 0.62, 1.0)['d']
+    if m == 'line':
+        c.rect(mx - 1, my_, mx + 1, my_, mouth)
+    elif m == 'small':
+        c.rect(mx, my_, mx + 1, my_, mouth)
+    elif m == 'smile':
+        c.rect(mx - 1, my_, mx + 1, my_, mouth)
+        c.put(mx - 2, my_ - 1, mouth)
+        c.put(mx + 2, my_ - 1, mouth)
+    elif m == 'frown':
+        c.rect(mx - 1, my_, mx + 1, my_, mouth)
+        c.put(mx - 2, my_ + 1, mouth)
+        c.put(mx + 2, my_ + 1, mouth)
+    elif m == 'o':                                                                  # a mouth open a little: a breath, a fright
+        c.rect(mx, my_, mx + 1, my_ + 1, (70, 34, 40, 255))
+    elif m == 'lips':
+        c.rect(mx - 1, my_, mx + 1, my_, rgb(f.get('lip', 'a8463e')))
+    if f.get('nose'):
+        c.put(ex1 + ew - 1 + (1 if ew < 3 else 0), ey + eh, skin['d'])
+    for (dx_, dy_) in f.get('freckles', ()):
+        c.put(ex0 + dx_, ey + eh + dy_, tones(p['skin'], 0.8, 1.0)['d'])
+    if f.get('wrinkle'):                                                            # lines of age: beside the eye, by the mouth
+        c.put(ex0 - 1, ey + 1, lid)
+        c.put(mx - 3, my_ - 1, lid)
+        c.put(mx + 3, my_ - 1, lid)
+    if f.get('mole'):
+        c.put(mx + 2, my_ - 1, EYE)
+    if f.get('stubble'):
+        stb = tones(p['skin'], 0.74, 1.0)['d']
+        for x in range(mx - 3, mx + 4):
+            for y in range(my_ + 1, my_ + 3):
+                if (x + y) % 2 == 0 and face(x, y):
+                    c.put(x, y, stb)
+    if f.get('tache') or p.get('tache'):
+        c.rect(mx - 2, my_ - 1, mx + 2, my_ - 1, hair['d'])
+        c.put(mx - 3, my_, hair['d'])
+        c.put(mx + 3, my_, hair['d'])
+    if f.get('beard'):
+        for y in range(my_ - 1, int(hy + 8)):
+            for x in range(int(hx - 4), int(hx + 8)):
+                if face(x, y) and not (my_ <= y <= my_ and mx - 1 <= x <= mx + 1):
+                    c.put(x, y, hair['m'] if x > mx - 2 else hair['d'])
+    c.put = _put
+    if f.get('earring'):
+        c.put(int(hx - 3), int(hy + 4), rgb(f['earring']))
     # ---- the near arm, over everything: its shadow on the body first, then the sleeve along its two bones, the cuff, the fist — and what it holds
     sn, en, hn = j['shoulder_n'], j['elbow_n'], j['hand_n']
     for (a, b) in ((sn, en), (en, hn)):
@@ -402,19 +490,22 @@ def idle_pose(i, carry=None):
     return pose
 
 
+FACE_DEFAULT = dict(eye=(2, 2), gap=2)
+
+
 # ---- the neighbours (ours, not the reference's) --------------------------------------------------------------------------------------------
 PEOPLE = [
-    dict(name='nell', coat='b5533c', skin='e8d6c8', hair='3a2a34', hairstyle='long', legs='3a3444', shoes='1e1a22', toggles='e8d6c8', drop=3,
+    dict(name='nell', face=dict(eye=(2, 3), gap=2, glint=True, brow='worried', mouth='small', cheek='e8a8a0', freckles=((0, 1), (3, 1))), coat='b5533c', skin='e8d6c8', hair='3a2a34', hairstyle='long', legs='3a3444', shoes='1e1a22', toggles='e8d6c8', drop=3,
          carry='torch'),                                                                                     # a girl in a red duffel coat, black tights
-    dict(name='mrs_okafor', coat='8a6f9a', skin='8a5a44', hair='b8b4b8', hairstyle='bun', legs='7a5240', shoes='5a3a4a', skirt='4a4458',
+    dict(name='mrs_okafor', face=dict(eye=(2, 2), gap=3, dx=-1, mouth='smile', wrinkle=True, glasses='3a2a2a', earring='e8c860'), coat='8a6f9a', skin='8a5a44', hair='b8b4b8', hairstyle='bun', legs='7a5240', shoes='5a3a4a', skirt='4a4458',
          skirt_len=5, open='e0d8c4', garment='jumper', build=1, carry='bag'),               # an older woman: a long cardigan over a skirt
-    dict(name='dale', coat='5d7a4a', skin='e2c4a8', hair='6a4a2a', hairstyle='hood', legs='3a4254', shoes='e4e0d8', fur='d8c8a8', pocket=True,
+    dict(name='dale', face=dict(eye=(2, 2), gap=2, lids=True, bags=True, brow='flat', mouth='line', stubble=True), coat='5d7a4a', skin='e2c4a8', hair='6a4a2a', hairstyle='hood', legs='3a4254', shoes='e4e0d8', fur='d8c8a8', pocket=True,
          garment='parka', drop=2, carry='hammer'),                                                           # a lad in a parka, hood up, white trainers
-    dict(name='mr_hale', coat='c8b48a', skin='e6c8b0', hair='5a5450', hairstyle='bald', legs='55525c', shoes='4a3324', scarf='7a2e2e', tache=True,
+    dict(name='mr_hale', face=dict(eye=(1, 2), gap=3, brow='heavy', mouth='frown', nose=True, cheek='d89a88', tache=True), coat='c8b48a', skin='e6c8b0', hair='5a5450', hairstyle='bald', legs='55525c', shoes='4a3324', scarf='7a2e2e', tache=True,
          buttons='5a4a30', build=1, drop=4, carry='bag'),                                                    # a big man in a camel overcoat and a scarf
-    dict(name='priya', coat='e0b23c', skin='b07a56', hair='241c22', hairstyle='bob', legs='34506e', shoes='2a2630', stripe='f0e6d0',
+    dict(name='priya', face=dict(eye=(2, 2), gap=2, glint=True, brow='stern', mouth='lips', lip='8a3a34', mole=True, earring='f0e6d0'), coat='e0b23c', skin='b07a56', hair='241c22', hairstyle='bob', legs='34506e', shoes='2a2630', stripe='f0e6d0',
          garment='jumper', carry='hammer'),                                                                  # a yellow jumper with a band, jeans
-    dict(name='tomasz', coat='3f5f8a', skin='e4ccb4', hair='c8a468', hairstyle='beanie', hat='b84a36', legs='6a5a48', shoes='2a2420',
+    dict(name='tomasz', face=dict(eye=(2, 2), gap=2, brow='flat', mouth='o', beard=True), coat='3f5f8a', skin='e4ccb4', hair='c8a468', hairstyle='beanie', hat='b84a36', legs='6a5a48', shoes='2a2420',
          open='d8d4cc', garment='jacket', pocket=True, carry='torch'),                              # a work jacket worn open, a red beanie
 ]
 
