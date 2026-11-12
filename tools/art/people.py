@@ -16,6 +16,10 @@ THE RIG. Every figure is posed from a SKELETON (`skeleton(pose)`): a hip, a spin
 the ground, which gives the walk its rise and fall for free. `people_rig.json` lists every joint of every frame — what the game would read to
 put a weapon in a hand.
 
+REFINEMENT (owner: "Refinement, let's work with all the requests" — colour, proportion, arms and hands): ONE palette rule for the whole cast (`tones`:
+muted bases, shades drifting to a shared plum, lights to a warm cream); longer arms and shorter, sturdier legs; a sleeve a step lighter than the body
+it hangs against, edged in shade, with a cuff, a fist with a thumb, and open palms when the hands go up.
+
 ROUND, CLEAN, STYLISED (owner, of the third pass: "I don't like how sort of blocky they are when the original I sent looks more rounded and clean"):
 every mass is an ellipse or a curve — a round head, a dome of hair wrapping it, a soft oval face, shoulders that slope out of the neck, a hem that turns
 under — toned in a few clean curved bands (`Cel.rows`), with the fiddly marks of the second pass (ribs, strands, tufts, creases) taken out.
@@ -38,7 +42,7 @@ ANKLE_Y = GROUND - 3
 CX = 17
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.abspath(os.path.join(HERE, '..', '..', 'docs', 'art_reference', 'people'))
-EYE = (22, 18, 24, 255)
+EYE = (34, 24, 40, 255)
 BG = (126, 124, 128, 255)
 
 
@@ -46,14 +50,29 @@ def rgb(h):
     return (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16), 255)
 
 
-def tones(h, dk=0.80, lt=1.13):
-    """Five tones of one colour: dd (deep shade) / d (shade) / m / l (lit) / ll (the catch-light). The shade leans cool and the light warm, the
-    way the reference's do — a darker copy of the same hue reads flat."""
-    r, g, b, _ = rgb(h)
+INK = (44, 32, 52)                 # the plum every shade drifts toward: it ties the cast together and keeps darks from going grey or black
+GLOW = (255, 236, 196)             # the warm cream every light drifts toward
+MUTE = 0.10                        # how far every base colour is pulled toward its own grey (the building is a muted place)
 
-    def f(k, warm):
-        return (max(0, min(255, int(r * k + warm * 10))), max(0, min(255, int(g * k + warm * 3))), max(0, min(255, int(b * k - warm * 12))), 255)
-    return {'dd': f(dk * dk * 0.92, -1.2), 'd': f(dk, -0.6), 'm': rgb(h), 'l': f(lt, 0.6), 'll': f(lt * lt, 1.0)}
+
+def _mix(a, b, t):
+    return tuple(int(round(a[i] + (b[i] - a[i]) * t)) for i in range(3))
+
+
+def tones(h, dk=0.80, lt=1.13, mute=MUTE):
+    """Five tones of one colour — dd (deep shade) / d (shade) / m / l (lit) / ll (the catch-light) — under ONE palette rule for the whole cast
+    (owner: "refine and improve style, colourings"): the base is muted a little, each shade is darker AND nearer the shared plum `INK`, each
+    light is brighter AND nearer the warm `GLOW`. A darker copy of the same hue reads flat; this reads as light falling on cloth."""
+    r, g, b, _ = rgb(h)
+    grey = int(0.3 * r + 0.59 * g + 0.11 * b)
+    base = _mix((r, g, b), (grey, grey, grey), mute)
+
+    def sh(k, t):
+        return _mix(tuple(min(255, int(v * k)) for v in base), INK, t) + (255,)
+
+    def li(k, t):
+        return _mix(tuple(min(255, int(v * k)) for v in base), GLOW, t) + (255,)
+    return {'dd': sh(dk * dk * 0.96, 0.34), 'd': sh(dk, 0.16), 'm': base + (255,), 'l': li(lt, 0.10), 'll': li(lt * lt, 0.26)}
 
 
 class Cel:
@@ -139,7 +158,7 @@ def limb(c, a, b, w, t, near=True):
 
 
 # ---- the skeleton ----------------------------------------------------------------------------------------------------------------------------
-BONES = dict(thigh=5.2, shin=5.2, upper=5.6, fore=5.6, spine=15.0)
+BONES = dict(thigh=4.8, shin=4.8, upper=6.2, fore=6.0, spine=15.0)
 REST = dict(n_arm=(3, 8), f_arm=(-2, 8), n_leg=(0, 0), f_leg=(0, 0))
 
 
@@ -216,11 +235,12 @@ def draw(p, pose, item=None):
     j = skeleton(pose)
     R = lambda q: (int(round(q[0])), int(round(q[1])))
     g = tones(p['coat'])
-    skin = tones(p['skin'], 0.83, 1.07)
+    skin = tones(p['skin'], 0.84, 1.07, mute=0.0)
     legc = tones(p['legs'], 0.78, 1.2)
-    sho = tones(p['shoes'], 0.66, 1.5)
+    sho = tones(p['shoes'], 0.66, 1.5, mute=0.0)
     hair = tones(p['hair'], 0.74, 1.24)
-    sleeve = g if p.get('sleeves', True) else skin
+    sleeve = dict(g, m=_mix(g['m'][:3], g['l'][:3], 0.55) + (255,), d=_mix(g['d'][:3], g['m'][:3], 0.45) + (255,)) if p.get('sleeves', True) else skin
+    palms = pose.get('palms', False)
     kind = p.get('garment', 'coat')
     build = p.get('build', 0)
     hipx, hipy = R(j['hip'])
@@ -247,13 +267,14 @@ def draw(p, pose, item=None):
     limb(c, j['shoulder_f'], j['elbow_f'], 3.6, sleeve, near=False)
     limb(c, j['elbow_f'], j['hand_f'], 3.4, sleeve, near=False)
     fx, fy = R(j['hand_f'])
-    c.ell(fx + 0.5, fy + 1.5, 1.7, 1.7, {k: skin['d'] for k in skin})
-    limb(c, j['hip_f'], j['knee_f'], 4.0, legc, near=False)
-    limb(c, j['knee_f'], j['ankle_f'], 3.8, legc, near=False)
+    far_skin = {k: _mix(skin['m'][:3], skin['d'][:3], 0.7) + (255,) for k in skin}
+    c.ell(fx + 0.5, fy + (1.0 if palms else 1.5), 1.8, 2.6 if palms else 1.9, far_skin)
+    limb(c, j['hip_f'], j['knee_f'], 4.6, legc, near=False)
+    limb(c, j['knee_f'], j['ankle_f'], 4.4, legc, near=False)
     shoe(j['ankle_f'], False)
     # ---- the near leg
-    limb(c, j['hip_n'], j['knee_n'], 4.2, legc)
-    limb(c, j['knee_n'], j['ankle_n'], 4.0, legc)
+    limb(c, j['hip_n'], j['knee_n'], 4.8, legc)
+    limb(c, j['knee_n'], j['ankle_n'], 4.6, legc)
     kx, ky = R(j['knee_n'])
     shoe(j['ankle_n'], True)
     # ---- long hair down the back, behind the shoulders
@@ -357,7 +378,7 @@ def draw(p, pose, item=None):
     _put = c.put
     c.put = lambda x, y, col: _put(x, y, col) if face(x, y) else None             # nothing of the face is ever drawn off the face
     ew, eh = f['eye']
-    eh += f.get('eye_grow', 0)
+    eh = max(1, eh + f.get('eye_grow', 0))
     shut = pose.get('blink') or f.get('squint')
     ex0, ey = int(round(hx - 1.0)) + f.get('dx', 0), int(round(hy + 1.0)) + f.get('dy', 0)
     ex1 = ex0 + ew + f['gap']
@@ -387,7 +408,7 @@ def draw(p, pose, item=None):
                 c.rect(ex, ey, ex + ew - 1, ey, lid)
     b = f.get('brow')
     if b:
-        by = ey - 2
+        by = ey - (1 if f.get('brow_low') else 2)
         for k, ex in enumerate((ex0, ex1)):
             inner = ex + ew - 1 if k == 0 else ex                                   # the end of each brow nearest the other eye
             outer = ex if k == 0 else ex + ew - 1
@@ -428,8 +449,10 @@ def draw(p, pose, item=None):
         c.rect(mx - 1, my_, mx + 1, my_, rgb(f.get('lip', 'a8463e')))
     if f.get('nose'):
         c.put(ex1 + ew - 1 + (1 if ew < 3 else 0), ey + eh, skin['d'])
-    for (dx_, dy_) in f.get('freckles', ()):
-        c.put(ex0 + dx_, ey + eh + dy_, tones(p['skin'], 0.8, 1.0)['d'])
+    if f.get('freckles'):                                                           # a scatter across each cheek, dark enough to read
+        fk = _mix(skin['m'][:3], (150, 84, 60), 0.6) + (255,)
+        for (dx_, dy_) in ((-1, 0), (1, 1), (ew + f['gap'], 0), (ew + f['gap'] + 2, 1), (ew + f['gap'] - 1, 1)):
+            c.put(ex0 + dx_, ey + eh + dy_, fk)
     if f.get('wrinkle'):                                                            # lines of age: beside the eye, by the mouth
         c.put(ex0 - 1, ey + 1, lid)
         c.put(mx - 3, my_ - 1, lid)
@@ -457,16 +480,24 @@ def draw(p, pose, item=None):
     # ---- the near arm, over everything: its shadow on the body first, then the sleeve along its two bones, the cuff, the fist — and what it holds
     sn, en, hn = j['shoulder_n'], j['elbow_n'], j['hand_n']
     for (a, b) in ((sn, en), (en, hn)):
-        limb(c, (a[0] - 1.0, a[1] + 0.6), (b[0] - 1.0, b[1] + 0.6), 4.2, {'l': g['dd'], 'm': g['dd'], 'd': g['dd'], 'dd': g['dd'], 'll': g['dd']})
-    limb(c, sn, en, 4.4, sleeve)
-    limb(c, en, hn, 4.0, sleeve)
+        limb(c, (a[0] - 0.9, a[1] + 0.7), (b[0] - 0.9, b[1] + 0.7), 5.0, {'l': g['dd'], 'm': g['dd'], 'd': g['dd'], 'dd': g['dd'], 'll': g['dd']})
+    limb(c, sn, en, 4.6, sleeve)
+    limb(c, en, hn, 4.2, sleeve)
     sx, sy = R(sn)
     c.rect(sx - 1, sy - 2, sx + 1, sy - 2, sleeve['ll'])                            # the light on the shoulder
     ex_, ey_ = R(en)
     hx, hy = R(hn)
     if item:
         ITEMS[item](c, hx, hy)
-    c.ell(hx + 0.5, hy + 1.5, 1.9, 1.9, skin)                                       # a round fist
+    ux, uy = (hn[0] - en[0]), (hn[1] - en[1])                                       # the cuff: a dark line across the wrist, square to the forearm
+    ul = math.hypot(ux, uy) or 1.0
+    for k in (-2, -1, 0, 1):
+        c.put(int(round(hn[0] - ux / ul * 1.2 - uy / ul * (k + 0.5))), int(round(hn[1] - uy / ul * 1.2 + ux / ul * (k + 0.5))), g['dd'])
+    if palms:                                                                       # an open hand held up: taller than a fist, the fingers lit
+        c.ell(hx + 0.5, hy + 0.6, 2.0, 2.9, skin)
+    else:
+        c.ell(hx + 0.5, hy + 1.5, 2.2, 2.2, skin)                                   # a round fist
+        c.put(hx + 2, hy + 1, skin['l'])                                            # and its thumb
     return c.im, j
 
 
@@ -507,9 +538,9 @@ FACE_DEFAULT = dict(eye=(2, 2), gap=2)
 # `pose['mood']` from what has just happened to them; nothing here decides WHEN.
 MOODS = {
     'calm': dict(face={}, pose={}),                                                                       # their own face
-    'wary': dict(face=dict(brow='flat', mouth='line', lids=True, glint=False), pose=dict(lean=-0.6)),                    # watching you, not sure yet
+    'wary': dict(face=dict(brow='flat', brow_low=True, eye_grow=-1, mouth='line', lids=False, glint=False, bags=False), pose=dict(lean=-0.8, n_arm=(8, 34))),                    # watching you, not sure yet
     'scared': dict(face=dict(brow='worried', mouth='o', eye_grow=1, glint=True, lids=False, bags=False),
-                   pose=dict(n_arm=(38, 96), f_arm=(30, 100), lean=-1.2)),                                # hands up in front, leaning away
+                   pose=dict(n_arm=(40, 100), f_arm=(30, 104), lean=-1.2, palms=True)),                                # hands up in front, leaning away
     'hurt': dict(face=dict(brow='stern', mouth='frown', squint=True), pose=dict(n_arm=(18, 110), lean=1.6, breath=1)),   # eyes screwed shut, a hand to the body
     'angry': dict(face=dict(brow='stern', mouth='frown', lids=False, glint=False, cheek='c8685a'), pose=dict(n_arm=(-8, 30), f_arm=(-10, 34), lean=1.0)),
     'sad': dict(face=dict(brow='worried', mouth='frown', lids=True, glint=False), pose=dict(lean=0.8, breath=1, n_arm=(1, 3), f_arm=(-1, 3))),
@@ -520,11 +551,11 @@ MOODS = {
 
 # ---- the neighbours (ours, not the reference's) --------------------------------------------------------------------------------------------
 PEOPLE = [
-    dict(name='nell', face=dict(eye=(2, 3), gap=2, glint=True, brow='worried', mouth='small', cheek='e8a8a0', freckles=((0, 1), (3, 1))), coat='b5533c', skin='e8d6c8', hair='3a2a34', hairstyle='long', legs='3a3444', shoes='1e1a22', toggles='e8d6c8', drop=3,
+    dict(name='nell', face=dict(eye=(2, 3), gap=2, glint=True, brow='worried', mouth='small', cheek='e8a8a0', freckles=True), coat='b5533c', skin='e8d6c8', hair='3a2a34', hairstyle='long', legs='3a3444', shoes='1e1a22', toggles='e8d6c8', drop=3,
          carry='torch'),                                                                                     # a girl in a red duffel coat, black tights
     dict(name='mrs_okafor', face=dict(eye=(2, 2), gap=3, dx=-1, mouth='smile', wrinkle=True, glasses='3a2a2a', earring='e8c860'), coat='8a6f9a', skin='8a5a44', hair='b8b4b8', hairstyle='bun', legs='7a5240', shoes='5a3a4a', skirt='4a4458',
          skirt_len=5, open='e0d8c4', garment='jumper', build=1, carry='bag'),               # an older woman: a long cardigan over a skirt
-    dict(name='dale', face=dict(eye=(2, 2), gap=2, lids=True, bags=True, brow='flat', mouth='line', stubble=True), coat='5d7a4a', skin='e2c4a8', hair='6a4a2a', hairstyle='hood', legs='3a4254', shoes='e4e0d8', fur='d8c8a8', pocket=True,
+    dict(name='dale', face=dict(eye=(2, 3), gap=2, dy=-1, lids=True, bags=True, brow='flat', mouth='line', stubble=True), coat='5d7a4a', skin='e2c4a8', hair='6a4a2a', hairstyle='hood', legs='3a4254', shoes='e4e0d8', fur='d8c8a8', pocket=True,
          garment='parka', drop=2, carry='hammer'),                                                           # a lad in a parka, hood up, white trainers
     dict(name='mr_hale', face=dict(eye=(1, 2), gap=3, brow='heavy', mouth='frown', nose=True, cheek='d89a88', tache=True), coat='c8b48a', skin='e6c8b0', hair='5a5450', hairstyle='bald', legs='55525c', shoes='4a3324', scarf='7a2e2e', tache=True,
          buttons='5a4a30', build=1, drop=4, carry='bag'),                                                    # a big man in a camel overcoat and a scarf
