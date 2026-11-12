@@ -216,7 +216,7 @@ def skeleton(pose, p=None):
     sh_y = hipy - back * math.cos(bend) + g.get('breath', 0)
     j['hip'] = (hip[0], hipy)
     j['neck'] = (sx + 0.5, sh_y - 1.0)
-    j['head'] = (sx + 1.5 + 6.0 * math.sin(bend), sh_y - 9.6 * math.cos(bend * 0.75) + g.get('nod', 0))   # (8.0: the head sat ON the shoulders — no neck)
+    j['head'] = (sx + 1.5 + 6.0 * math.sin(bend), sh_y - 8.7 * math.cos(bend * 0.75) + g.get('nod', 0))   # (8.0: the head sat ON the shoulders — no neck)
     for side, ox in (('n', -3.0), ('f', 3.4)):
         a1, a2 = g[side + '_arm']
         j['shoulder_' + side] = (sx + ox * math.cos(bend), sh_y + 1.5 + abs(ox) * 0.4 * math.sin(bend))
@@ -475,9 +475,9 @@ def draw(p, pose, item=None):
     # ---- the NECK (owner: "none of them have necks which is odd"): a short column of skin, shaded down its back, the collar's shadow across its foot
     if not crawl and st != 'hood':
         nx_, ny_ = int(round(j['neck'][0])), int(round(j['neck'][1]))
-        c.rect(nx_ - 2, ny_ - 4, nx_ + 2, ny_ + 1, skin['m'])
-        c.rect(nx_ - 2, ny_ - 4, nx_ - 1, ny_ + 1, skin['d'])
-        c.rect(nx_ - 1, ny_ - 4, nx_ + 2, ny_ - 3, skin['d'])                       # the chin's shadow
+        c.rect(nx_ - 3, ny_ - 3, nx_ + 2, ny_ + 1, skin['m'])                       # short and as thick as a neck is: it only has to show under the chin
+        c.rect(nx_ - 3, ny_ - 3, nx_ - 2, ny_ + 1, skin['d'])
+        c.rect(nx_ - 3, ny_ - 3, nx_ + 2, ny_ - 1, skin['d'])                       # the chin's shadow
     body_ = c                                                                       # the head is its own layer, so its own line holds it against the collar
     c = Cel()
     # ---- the head: ROUND, bigger than the shoulders are wide. Hair is one dome that wraps the top and the back; the face is a soft oval set into
