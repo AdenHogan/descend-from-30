@@ -7,7 +7,8 @@ being designed needs to be rigged to have a skeleton for limb movement / holding
 NOT wired into the game. It draws a few neighbours and writes, for the owner to judge:
 
     python3 tools/art/people.py   ->  docs/art_reference/people/  people_sheet.png (idle · walk · walk carrying something), people_walk.gif,
-                                      people_idle.gif, people_carry.gif, people_rig.png (the bones drawn over one figure), people_rig.json
+                                      people_idle.gif, people_carry.gif, people_moods.png / .gif (every mood), people_faces.png,
+                                      people_rig.png (the bones drawn over one figure), people_rig.json
 
 THE RIG. Every figure is posed from a SKELETON (`skeleton(pose)`): a hip, a spine up to the shoulders and the head, and four two-bone limbs
 (shoulder → elbow → hand, hip → knee → ankle) set by ANGLES in degrees from straight down, positive = forward. Limbs are drawn along their bones
@@ -352,9 +353,12 @@ def draw(p, pose, item=None):
     # person's OWN: the eyes' size and set, brows that say a mood, a mouth, and one or two things only they have (see `FACES`).
     f = dict(FACE_DEFAULT)
     f.update(p.get('face', {}))
+    f.update(MOODS.get(pose.get('mood') or 'calm', {}).get('face', {}))             # the mood changes brows, eyes and mouth; what is the person's own stays
     _put = c.put
     c.put = lambda x, y, col: _put(x, y, col) if face(x, y) else None             # nothing of the face is ever drawn off the face
     ew, eh = f['eye']
+    eh += f.get('eye_grow', 0)
+    shut = pose.get('blink') or f.get('squint')
     ex0, ey = int(round(hx - 1.0)) + f.get('dx', 0), int(round(hy + 1.0)) + f.get('dy', 0)
     ex1 = ex0 + ew + f['gap']
     brow = hair['dd'] if st != 'bald' else tones(p['hair'])['d']
@@ -373,7 +377,7 @@ def draw(p, pose, item=None):
             c.rect(ex - 1, ey - 2, ex + ew, ey - 2, gl)
         c.rect(ex0 + ew + 1, ey - 1, ex1 - 2, ey - 1, gl)
     for ex in (ex0, ex1):
-        if pose.get('blink'):
+        if shut:
             c.rect(ex, ey + eh - 1, ex + ew - 1, ey + eh - 1, EYE)
         else:
             c.rect(ex, ey, ex + ew - 1, ey + eh - 1, EYE)
@@ -483,14 +487,35 @@ def walk_pose(i, n=8, carry=None):
     return pose
 
 
-def idle_pose(i, carry=None):
+def idle_pose(i, carry=None, mood=None):
     pose = dict(breath=(0, 0, 0, 1, 1, 1)[i % 6], blink=(i % 6 == 4))
+    if mood:
+        extra = dict(MOODS[mood]['pose'])
+        extra['breath'] = extra.get('breath', 0) + pose['breath']
+        pose.update(extra)
+        pose['mood'] = mood
     if carry:
         pose['n_arm'] = CARRY[carry]
     return pose
 
 
 FACE_DEFAULT = dict(eye=(2, 2), gap=2)
+
+# ---- MOODS (owner: "dynamic emotions… when they are attacked or saved their visual attitude can change based on context"). A mood is DATA laid over
+# the person's own face — brows, the eyes' openness, the mouth, colour in the cheek — plus a change to the skeleton's pose (hands up, a flinch, a
+# slump). What is theirs (freckles, a beard, spectacles, the set of their eyes) stays, so a frightened Mr Hale is still Mr Hale. The game would set
+# `pose['mood']` from what has just happened to them; nothing here decides WHEN.
+MOODS = {
+    'calm': dict(face={}, pose={}),                                                                       # their own face
+    'wary': dict(face=dict(brow='flat', mouth='line', lids=True, glint=False), pose=dict(lean=-0.6)),                    # watching you, not sure yet
+    'scared': dict(face=dict(brow='worried', mouth='o', eye_grow=1, glint=True, lids=False, bags=False),
+                   pose=dict(n_arm=(38, 96), f_arm=(30, 100), lean=-1.2)),                                # hands up in front, leaning away
+    'hurt': dict(face=dict(brow='stern', mouth='frown', squint=True), pose=dict(n_arm=(18, 110), lean=1.6, breath=1)),   # eyes screwed shut, a hand to the body
+    'angry': dict(face=dict(brow='stern', mouth='frown', lids=False, glint=False, cheek='c8685a'), pose=dict(n_arm=(-8, 30), f_arm=(-10, 34), lean=1.0)),
+    'sad': dict(face=dict(brow='worried', mouth='frown', lids=True, glint=False), pose=dict(lean=0.8, breath=1, n_arm=(1, 3), f_arm=(-1, 3))),
+    'relieved': dict(face=dict(brow='raised', mouth='smile', lids=False, bags=False, cheek='e8a8a0'), pose=dict()),      # saved: the face opens
+    'grateful': dict(face=dict(brow='raised', mouth='smile', squint=True, cheek='e8a8a0'), pose=dict(n_arm=(24, 118))),   # eyes creased in a smile, a hand to the chest
+}
 
 
 # ---- the neighbours (ours, not the reference's) --------------------------------------------------------------------------------------------
@@ -532,6 +557,11 @@ def self_check():
                 if any(px[x, 0][3] for x in range(W)) or any(px[0, y][3] or px[W - 1, y][3] for y in range(H)):
                     errs.append('%s %s %d: touches the edge of its cell' % (p['name'], kind, i))
                 if kind == 'idle':
+                    for mood in MOODS:                                               # every mood draws, inside the cell
+                        mi, _ = draw(p, idle_pose(i, mood=mood))
+                        mp = mi.load()
+                        if any(mp[x, 0][3] for x in range(W)) or any(mp[0, y][3] or mp[W - 1, y][3] for y in range(H)):
+                            errs.append('%s %s: touches the edge of its cell' % (p['name'], mood))
                     y = int(j['knee_n'][1])
                     runs, x = [], 0
                     while x < W:
@@ -613,7 +643,27 @@ def main():
     _gif(os.path.join(OUT, 'people_carry.gif'), _row(sets['carry']), 110)
     _gif(os.path.join(OUT, 'people_idle.gif'), _row(sets['idle']), 260)
     _rig_sheet(PEOPLE[2]).save(os.path.join(OUT, 'people_rig.png'))
-    rig = {'cell': [W, H], 'ground_row': GROUND, 'bones': BONES, 'people': {}}
+    # the moods: every person in every mood, labelled, and a loop that goes through them
+    from PIL import ImageDraw
+    names = list(MOODS)
+    S = 5
+    ms = Image.new('RGBA', (W * S * len(names), (H * len(PEOPLE)) * S + 16), BG)
+    d = ImageDraw.Draw(ms)
+    for k, mood in enumerate(names):
+        d.text((k * W * S + 8, 2), mood, fill=(240, 236, 228, 255))
+        for r, p in enumerate(PEOPLE):
+            im, _ = draw(p, idle_pose(0, mood=mood))
+            ms.alpha_composite(im.resize((W * S, H * S), Image.NEAREST), (k * W * S, 16 + r * H * S))
+    ms.save(os.path.join(OUT, 'people_moods.png'))
+    loop = []
+    for mood in names:
+        for i in (0, 1, 2, 3, 4, 5):
+            fr = Image.new('RGBA', (W * len(PEOPLE), H), (0, 0, 0, 0))
+            for r, p in enumerate(PEOPLE):
+                fr.alpha_composite(draw(p, idle_pose(i, mood=mood))[0], (r * W, 0))
+            loop.append(fr)
+    _gif(os.path.join(OUT, 'people_moods.gif'), loop, 220)
+    rig = {'cell': [W, H], 'ground_row': GROUND, 'bones': BONES, 'moods': list(MOODS), 'people': {}}
     for k, p in enumerate(PEOPLE):
         rig['people'][p['name']] = {kind: [{n: ([round(v[0], 2), round(v[1], 2)] if n != 'grip' else round(v, 1)) for n, v in j.items()}
                                            for (_, j) in sets[kind][k]] for kind in sets}

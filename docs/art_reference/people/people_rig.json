@@ -11,6 +11,16 @@
   48
  ],
  "ground_row": 47,
+ "moods": [
+  "calm",
+  "wary",
+  "scared",
+  "hurt",
+  "angry",
+  "sad",
+  "relieved",
+  "grateful"
+ ],
  "people": {
   "dale": {
    "carry": [
