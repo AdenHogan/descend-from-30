@@ -708,7 +708,7 @@ var anchor_items: Dictionary = {}
 var anchor_amounts: Dictionary = {}
 var searched_anchors: Dictionary = {}
 var opened_anchors: Dictionary = {}     # 'apt:anchor' → true once the player PRESSED interact on a node (its furniture opens / its things move then, not when the
-                                       # search ends; a search walked away from leaves the drawer open). Persists like searched_anchors; a save keeps it.
+									   # search ends; a search walked away from leaves the drawer open). Persists like searched_anchors; a save keeps it.
 # True while the loot panel is open — the panel then owns input (take with E /
 # click), so the room's anchor handling and the player's move/attack stand down.
 var loot_open: bool = false

@@ -469,7 +469,7 @@ func _draw() -> void:
 
 const EXTINGUISHER_ART := "res://assets/corridor/fixtures/extinguisher_wall.png"   # tools/art/fixtures.py
 var _ext_tex: Texture2D = null     # loaded in _ready — a texture first load()ed INSIDE _draw came out a white
-                                   # block, and this node only redraws now and then, so it stuck
+								   # block, and this node only redraws now and then, so it stuck
 
 
 func _draw_extinguisher() -> void:
