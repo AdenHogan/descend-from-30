@@ -26,8 +26,8 @@ under — toned in a few clean curved bands (`Cel.rows`), with the fiddly marks 
 
 THE BUILD (what the second pass got wrong: a box wider than the head with a belly on the front read as fat, not as a big jumper). A large head, a
 SMALL frame: shoulders narrower than the head, the garment hanging off them and widest low down, then gathered in at a rib; arms that are limbs
-beside the body, not stripes on it; short solid legs. The size is in the CLOTHES. Facing right; the game would mirror. A 36 x 48 cell, feet on
-its bottom row.
+beside the body, not stripes on it; short solid legs. The size is in the CLOTHES. Facing right; the game would mirror. Designed on a 36 x 48 grid and DRAWN at 1.5x: a 54 x 72
+cell, feet on its bottom row, a figure about 66 px tall — level with the player's rig.
 """
 import json
 import math
@@ -36,7 +36,11 @@ import sys
 
 from PIL import Image
 
-W, H = 36, 48
+W, H = 36, 48                      # the DESIGN grid every shape below is written in
+K = 1.5                            # ...and the size it is DRAWN at (owner, after the in-game test: "they need to be bigger, around the same size as
+                                   # player and enemies"). Not a stretch of the small drawing: round shapes and limbs are rasterised at this size, and a
+                                   # placed mark (an eye, a button, a shoe) becomes a block of whole pixels, so every edge stays clean.
+CW, CH = int(W * K), int(H * K)    # the cell that is written out: 54 x 72
 GROUND = H - 1
 ANKLE_Y = GROUND - 3
 CX = 17
@@ -78,20 +82,35 @@ def tones(h, dk=0.80, lt=1.13, mute=MUTE):
 
 class Cel:
     def __init__(self):
-        self.im = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+        self.im = Image.new('RGBA', (CW, CH), (0, 0, 0, 0))
         self.px = self.im.load()
+        self.clip = None                                  # a set of drawn pixels a placed mark must stay inside (the garment's own shape)
+
+    def raw(self, x, y, c):
+        """One pixel of the drawn image."""
+        if 0 <= x < CW and 0 <= y < CH and (self.clip is None or (x, y) in self.clip):
+            self.px[x, y] = c
 
     def put(self, x, y, c):
-        x, y = int(x), int(y)
-        if 0 <= x < W and 0 <= y < H:
-            self.px[x, y] = c
+        """One DESIGN pixel: a block of whole pixels at the drawn size (2 x 2 at K = 1.5; neighbours overlap, so a run of them is solid)."""
+        x0, y0 = int(math.floor(int(x) * K)), int(math.floor(int(y) * K))
+        n = int(math.ceil(K))
+        for yy in range(y0, y0 + n):
+            for xx in range(x0, x0 + n):
+                self.raw(xx, yy, c)
+
+    def wire(self, x0, y, x1, c, dy=0):
+        """A line ONE drawn pixel thick from design x0 to x1 on design row y (spectacle wire: a block-thick line hid the eyes)."""
+        yy = int(math.floor(int(y) * K)) + dy
+        for xx in range(int(math.floor(int(x0) * K)), int(math.floor((int(x1) + 1) * K))):
+            self.raw(xx, yy, c)
 
     def rect(self, x0, y0, x1, y1, c):
         for y in range(int(y0), int(y1) + 1):
             for x in range(int(x0), int(x1) + 1):
                 self.put(x, y, c)
 
-    def rows(self, spans, t, flat=False, **_):
+    def rows(self, spans, t, flat=False, native=False, **_):
         """A ROUNDED volume from its row spans [(y, xa, xb)], lit from the upper front (the right). Each pixel is toned by where it sits on the
         form (u across, v down, as if it were the surface of something round), in a FEW CLEAN BANDS — a lit crescent toward the light, the body
         tone, a shade crescent round the back and underneath, a thin deep edge — never per-pixel noise (owner: "more rounded and clean and stylised")."""
@@ -112,17 +131,19 @@ class Cel:
                     k = 'l'
                 if not flat and lit > 1.04:
                     k = 'll'
-                self.put(x, y, t[k])
+                (self.raw if native else self.put)(x, y, t[k])
 
     def ell(self, cx, cy, rx, ry, t, keep=None, **kw):
-        """An ellipse as a rounded volume; `keep(x, y)` clips it. Returns its spans."""
+        """An ellipse (given in design pixels) as a rounded volume, rasterised at the drawn size; `keep(x, y)` clips it, in design pixels."""
+        cx, cy, rx, ry = cx * K, cy * K, rx * K, ry * K
         spans = []
         for y in range(int(cy - ry - 1), int(cy + ry + 2)):
             xs = [x for x in range(int(cx - rx - 1), int(cx + rx + 2))
-                  if ((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2 <= 1.0 and (keep is None or keep(x, y))]
+                  if ((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2 <= 1.0
+                  and (keep is None or keep((x + 0.5) / K - 0.5, (y + 0.5) / K - 0.5))]
             if xs:
                 spans.append((y, min(xs), max(xs)))
-        self.rows(spans, t, **kw)
+        self.rows(spans, t, native=True, **kw)
         return spans
 
     def box(self, x0, y0, x1, y1, t, top=(2, 1), bot=(1,), **kw):
@@ -138,8 +159,9 @@ class Cel:
 def limb(c, a, b, w, t, near=True):
     """One bone drawn as flesh or sleeve: every pixel within w/2 of the segment a-b, shaded across its width — the side toward the light (front / up)
     lit, the other in shade; a far limb is a tone down throughout."""
-    ax, ay = a
-    bx, by = b
+    ax, ay = a[0] * K, a[1] * K                          # given in design pixels, drawn at size
+    bx, by = b[0] * K, b[1] * K
+    w = w * K
     dx, dy = bx - ax, by - ay
     ln = math.hypot(dx, dy) or 1.0
     nx, ny = dy / ln, -dx / ln
@@ -157,7 +179,7 @@ def limb(c, a, b, w, t, near=True):
             k = 'l' if s > 0.4 else ('d' if s < -0.4 else 'm')
             if not near:
                 k = {'l': 'd', 'm': 'd', 'd': 'dd'}[k]
-            c.put(x, y, t[k])
+            c.raw(x, y, t[k])
 
 
 # ---- the skeleton ----------------------------------------------------------------------------------------------------------------------------
@@ -319,7 +341,19 @@ def draw(p, pose, item=None):
             hw -= (3.0 - math.sqrt(9.0 - (3 - under - 0.5) ** 2)) * 0.9
         mx = hipx + 0.5 + lean * (1.0 - v) + pose.get('hem_swing', 0.0) * 0.9 * v * v   # the hem swings; the shoulders do not
         spans.append((shy + i, int(round(mx - hw)), int(round(mx + hw))))
-    c.rows(spans, g)
+    nn = int(round(n * K))                                                          # the same curve again at the drawn size: this is what is painted
+    big = []
+    for ii in range(nn):
+        v = ii / float(max(1, nn - 1))
+        t_ = min(1.0, v / 0.7)
+        hw = 4.9 + build * 0.3 + (wide - 4.9 - build * 0.3) * math.sin(t_ * math.pi / 2.0) ** 0.8
+        under = (nn - 1 - ii) / K
+        if under < 3:
+            hw -= (3.0 - math.sqrt(max(0.0, 9.0 - (3 - under - 0.5) ** 2))) * 0.9
+        mx = hipx + 0.5 + lean * (1.0 - v) + pose.get('hem_swing', 0.0) * 0.9 * v * v
+        big.append((int(math.floor(shy * K)) + ii, int(round((mx - hw) * K)), int(round((mx + hw) * K)) + 1))
+    c.rows(big, g, native=True)
+    c.clip = set((x, y) for (y, xa, xb) in big for x in range(xa, xb + 1))          # the marks on the garment stay inside it
     fxe = spans[len(spans) // 2][2]                                                 # the garment's front edge at mid-height
     if p.get('open'):
         inner = tones(p['open'])
@@ -350,6 +384,7 @@ def draw(p, pose, item=None):
     if p.get('pocket'):
         c.rect(fxe - 5, hem - 6, fxe - 2, hem - 6, g['l'])
         c.rect(fxe - 5, hem - 5, fxe - 2, hem - 5, g['dd'])
+    c.clip = None
     if p.get('scarf'):
         sc = tones(p['scarf'])
         c.box(spans[0][1], shy - 2, spans[0][2] + 1, shy + 1, sc, top=(1,), bot=(1,), under=1)
@@ -410,10 +445,9 @@ def draw(p, pose, item=None):
         lens = _mix(skin['l'][:3], (226, 230, 232), 0.35) + (255,)
         for ex in (ex0, ex1):
             c.rect(ex - 1, ey, ex + ew, ey + eh - 1, lens)
-            c.rect(ex - 1, ey - 1, ex + ew, ey - 1, gl)
-            c.put(ex + ew, ey + eh, gl)
-            c.put(ex - 1, ey + eh, gl)
-        c.rect(ex0 + ew + 1, ey, ex1 - 2, ey, gl)
+            c.wire(ex - 1, ey, ex + ew, gl, dy=-1)
+            c.wire(ex - 1, ey + eh, ex + ew, gl)
+        c.wire(ex0 + ew + 1, ey, ex1 - 2, gl)
     for ex in (ex0, ex1):
         if shut:
             c.rect(ex, ey + eh - 1, ex + ew - 1, ey + eh - 1, EYE)
@@ -616,28 +650,28 @@ def self_check():
         for kind in ('idle', 'walk', 'carry'):
             for i, (im, j) in enumerate(frames(p, kind)):
                 px = im.load()
-                if not any(px[x, GROUND][3] for x in range(W)):
+                if not any(px[x, (CH - 1)][3] for x in range(CW)):
                     errs.append('%s %s %d: nothing on the ground row' % (p['name'], kind, i))
-                if any(px[x, 0][3] for x in range(W)) or any(px[0, y][3] or px[W - 1, y][3] for y in range(H)):
+                if any(px[x, 0][3] for x in range(CW)) or any(px[0, y][3] or px[CW - 1, y][3] for y in range(CH)):
                     errs.append('%s %s %d: touches the edge of its cell' % (p['name'], kind, i))
                 if kind == 'idle':
                     for mood in MOODS:                                               # every mood draws, inside the cell
                         mi, _ = draw(p, idle_pose(i, mood=mood))
                         mp = mi.load()
-                        if any(mp[x, 0][3] for x in range(W)) or any(mp[0, y][3] or mp[W - 1, y][3] for y in range(H)):
+                        if any(mp[x, 0][3] for x in range(CW)) or any(mp[0, y][3] or mp[CW - 1, y][3] for y in range(CH)):
                             errs.append('%s %s: touches the edge of its cell' % (p['name'], mood))
-                    y = int(j['knee_n'][1])
+                    y = int(j['knee_n'][1] * K)
                     runs, x = [], 0
-                    while x < W:
+                    while x < CW:
                         if px[x, y][3]:
                             x1 = x
-                            while x1 + 1 < W and px[x1 + 1, y][3]:
+                            while x1 + 1 < CW and px[x1 + 1, y][3]:
                                 x1 += 1
                             runs.append(x1 - x + 1)
                             x = x1 + 1
                         else:
                             x += 1
-                    if runs and min(runs) < 3:
+                    if runs and min(runs) < 4:
                         errs.append('%s idle %d: a leg is %d px wide at the knee' % (p['name'], i, min(runs)))
         if (2 * (6.5 + p.get('build', 0) * 0.6) + 1) - 13 > 3.01:
             errs.append('%s: the garment is more than 3 px wider than the head' % p['name'])
@@ -650,7 +684,7 @@ def _on_bg(im, scale):
     return bg.resize((im.width * scale, im.height * scale), Image.NEAREST)
 
 
-def _gif(path, cels, ms, scale=6):
+def _gif(path, cels, ms, scale=4):
     big = [_on_bg(im, scale).convert('P', palette=Image.ADAPTIVE, colors=96) for im in cels]
     big[0].save(path, save_all=True, append_images=big[1:], duration=ms, loop=0, disposal=2)
 
@@ -658,9 +692,9 @@ def _gif(path, cels, ms, scale=6):
 def _row(sets):
     out = []
     for i in range(len(sets[0])):
-        im = Image.new('RGBA', (W * len(sets), H), (0, 0, 0, 0))
+        im = Image.new('RGBA', (CW * len(sets), CH), (0, 0, 0, 0))
         for k, cels in enumerate(sets):
-            im.alpha_composite(cels[i][0], (k * W, 0))
+            im.alpha_composite(cels[i][0], (k * CW, 0))
         out.append(im)
     return out
 
@@ -668,15 +702,15 @@ def _row(sets):
 def _rig_sheet(p):
     """The bones over one figure's walk: what the skeleton is, drawn."""
     from PIL import ImageDraw
-    S = 8
+    S = 5
     fr = frames(p, 'carry')
-    sheet = Image.new('RGBA', (W * S * len(fr), H * S), BG)
+    sheet = Image.new('RGBA', (CW * S * len(fr), CH * S), BG)
     d = ImageDraw.Draw(sheet)
     for i, (im, j) in enumerate(fr):
         ghost = im.copy()
         ghost.putalpha(ghost.getchannel('A').point(lambda a: a * 0.45))
-        sheet.alpha_composite(ghost.resize((W * S, H * S), Image.NEAREST), (i * W * S, 0))
-        P = lambda k: (i * W * S + j[k][0] * S, j[k][1] * S)
+        sheet.alpha_composite(ghost.resize((CW * S, CH * S), Image.NEAREST), (i * CW * S, 0))
+        P = lambda k: (i * CW * S + j[k][0] * K * S, j[k][1] * K * S)
         for (a, b, col) in (('hip', 'neck', (255, 255, 255)), ('neck', 'head', (255, 255, 255)),
                             ('shoulder_f', 'elbow_f', (120, 170, 255)), ('elbow_f', 'hand_f', (120, 170, 255)),
                             ('hip_f', 'knee_f', (120, 170, 255)), ('knee_f', 'ankle_f', (120, 170, 255)),
@@ -694,15 +728,15 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     errs = self_check()
     sets = {k: [frames(p, k) for p in PEOPLE] for k in ('idle', 'walk', 'carry')}
-    sheet = Image.new('RGBA', (W * (6 + 2 * WALK_N) + 8, H * len(PEOPLE)), BG)
+    sheet = Image.new('RGBA', (CW * (6 + 2 * WALK_N) + 8, CH * len(PEOPLE)), BG)
     for k in range(len(PEOPLE)):
         x = 0
         for kind in ('idle', 'walk', 'carry'):
             for (im, _) in sets[kind][k]:
-                sheet.alpha_composite(im, (x, k * H))
-                x += W
+                sheet.alpha_composite(im, (x, k * CH))
+                x += CW
             x += 4
-    sheet.resize((sheet.width * 3, sheet.height * 3), Image.NEAREST).save(os.path.join(OUT, 'people_sheet.png'))
+    sheet.resize((sheet.width * 2, sheet.height * 2), Image.NEAREST).save(os.path.join(OUT, 'people_sheet.png'))
     _gif(os.path.join(OUT, 'people_walk.gif'), _row(sets['walk']), 80)
     _gif(os.path.join(OUT, 'people_carry.gif'), _row(sets['carry']), 80)
     _gif(os.path.join(OUT, 'people_idle.gif'), _row(sets['idle']), 260)
@@ -710,26 +744,26 @@ def main():
     # the moods: every person in every mood, labelled, and a loop that goes through them
     from PIL import ImageDraw
     names = list(MOODS)
-    S = 5
-    ms = Image.new('RGBA', (W * S * len(names), (H * len(PEOPLE)) * S + 16), BG)
+    S = 3
+    ms = Image.new('RGBA', (CW * S * len(names), (CH * len(PEOPLE)) * S + 16), BG)
     d = ImageDraw.Draw(ms)
     for k, mood in enumerate(names):
-        d.text((k * W * S + 8, 2), mood, fill=(240, 236, 228, 255))
+        d.text((k * CW * S + 8, 2), mood, fill=(240, 236, 228, 255))
         for r, p in enumerate(PEOPLE):
             im, _ = draw(p, idle_pose(0, mood=mood))
-            ms.alpha_composite(im.resize((W * S, H * S), Image.NEAREST), (k * W * S, 16 + r * H * S))
+            ms.alpha_composite(im.resize((CW * S, CH * S), Image.NEAREST), (k * CW * S, 16 + r * CH * S))
     ms.save(os.path.join(OUT, 'people_moods.png'))
     loop = []
     for mood in names:
         for i in (0, 1, 2, 3, 4, 5):
-            fr = Image.new('RGBA', (W * len(PEOPLE), H), (0, 0, 0, 0))
+            fr = Image.new('RGBA', (CW * len(PEOPLE), CH), (0, 0, 0, 0))
             for r, p in enumerate(PEOPLE):
-                fr.alpha_composite(draw(p, idle_pose(i, mood=mood))[0], (r * W, 0))
+                fr.alpha_composite(draw(p, idle_pose(i, mood=mood))[0], (r * CW, 0))
             loop.append(fr)
     _gif(os.path.join(OUT, 'people_moods.gif'), loop, 220)
-    rig = {'cell': [W, H], 'ground_row': GROUND, 'bones': BONES, 'moods': list(MOODS), 'people': {}}
+    rig = {'cell': [CW, CH], 'ground_row': (CH - 1), 'bones': BONES, 'moods': list(MOODS), 'people': {}}
     for k, p in enumerate(PEOPLE):
-        rig['people'][p['name']] = {kind: [{n: ([round(v[0], 2), round(v[1], 2)] if n != 'grip' else round(v, 1)) for n, v in j.items()}
+        rig['people'][p['name']] = {kind: [{n: ([round(v[0] * K, 2), round(v[1] * K, 2)] if n != 'grip' else round(v, 1)) for n, v in j.items()}
                                            for (_, j) in sets[kind][k]] for kind in sets}
     with open(os.path.join(OUT, 'people_rig.json'), 'w') as fh:
         json.dump(rig, fh, indent=1, sort_keys=True)
@@ -741,15 +775,15 @@ def main():
         anims[kind] = [at, len(sets[kind][0])]
         at += len(sets[kind][0])
     for k, p in enumerate(PEOPLE):
-        strip = Image.new('RGBA', (W * at, H), (0, 0, 0, 0))
+        strip = Image.new('RGBA', (CW * at, CH), (0, 0, 0, 0))
         x = 0
         for kind in order:
             for (im, _) in sets[kind][k]:
                 strip.alpha_composite(im, (x, 0))
-                x += W
+                x += CW
         strip.save(os.path.join(GAME, p['name'] + '.png'))
     with open(os.path.join(GAME, 'people.json'), 'w') as fh:
-        json.dump({'cell': [W, H], 'feet_row': GROUND, 'anims': anims, 'people': [p['name'] for p in PEOPLE],
+        json.dump({'cell': [CW, CH], 'feet_row': (CH - 1), 'anims': anims, 'people': [p['name'] for p in PEOPLE],
                    'ms': {'idle': 260, 'walk': 80, 'carry': 80}}, fh, indent=1, sort_keys=True)
     for stale in os.listdir(OUT):                                                   # the per-person GIFs of the first two passes
         if stale.endswith('.gif') and not stale.startswith('people_'):

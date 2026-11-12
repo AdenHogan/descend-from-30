@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://1xelsdgk8so4"
-path="res://.godot/imported/ingame_one_and_a_half.png-bdfba2d0695badc6a72ba003398cc167.ctex"
+uid="uid://bduwiu0pqinob"
+path="res://.godot/imported/ingame_corridor.png-020aa8e4fa701e469ae75c86aeb1a4e5.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://docs/art_reference/people/ingame_one_and_a_half.png"
-dest_files=["res://.godot/imported/ingame_one_and_a_half.png-bdfba2d0695badc6a72ba003398cc167.ctex"]
+source_file="res://docs/art_reference/people/ingame_corridor.png"
+dest_files=["res://.godot/imported/ingame_corridor.png-020aa8e4fa701e469ae75c86aeb1a4e5.ctex"]
 
 [params]
 
