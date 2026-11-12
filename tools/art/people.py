@@ -393,12 +393,15 @@ def draw(p, pose, item=None):
         ck = rgb(f['cheek'])
         c.rect(ex1 + 0, ey + eh + 1, ex1 + 1, ey + eh + 1, ck)
         c.put(ex0 - 1, ey + eh + 1, ck)
-    if f.get('glasses'):                                                            # spectacles: a pale lens behind each eye, a dark rim over it, a bridge
+    if f.get('glasses'):                                                            # spectacles: thin WIRE over each eye, the lens only a lift of the skin behind it
         gl = rgb(f['glasses'])
+        lens = _mix(skin['l'][:3], (226, 230, 232), 0.35) + (255,)
         for ex in (ex0, ex1):
-            c.rect(ex - 1, ey - 1, ex + ew, ey + eh, (206, 214, 220, 255))
-            c.rect(ex - 1, ey - 2, ex + ew, ey - 2, gl)
-        c.rect(ex0 + ew + 1, ey - 1, ex1 - 2, ey - 1, gl)
+            c.rect(ex - 1, ey, ex + ew, ey + eh - 1, lens)
+            c.rect(ex - 1, ey - 1, ex + ew, ey - 1, gl)
+            c.put(ex + ew, ey + eh, gl)
+            c.put(ex - 1, ey + eh, gl)
+        c.rect(ex0 + ew + 1, ey, ex1 - 2, ey, gl)
     for ex in (ex0, ex1):
         if shut:
             c.rect(ex, ey + eh - 1, ex + ew - 1, ey + eh - 1, EYE)
@@ -555,7 +558,7 @@ MOODS = {
 PEOPLE = [
     dict(name='nell', face=dict(eye=(2, 3), gap=2, glint=True, brow='worried', mouth='small', cheek='e8a8a0', freckles=True), coat='b5533c', skin='e8d6c8', hair='3a2a34', hairstyle='long', legs='3a3444', shoes='1e1a22', toggles='e8d6c8', drop=3,
          carry='torch'),                                                                                     # a girl in a red duffel coat, black tights
-    dict(name='mrs_okafor', face=dict(eye=(2, 2), gap=3, dx=-1, mouth='smile', wrinkle=True, glasses='3a2a2a', earring='e8c860'), coat='8a6f9a', skin='8a5a44', hair='b8b4b8', hairstyle='bun', legs='7a5240', shoes='5a3a4a', skirt='4a4458',
+    dict(name='mrs_okafor', face=dict(eye=(2, 2), gap=3, dx=-1, mouth='smile', wrinkle=True, glasses='c8a85a', earring='e8c860'), coat='8a6f9a', skin='8a5a44', hair='b8b4b8', hairstyle='bun', legs='7a5240', shoes='5a3a4a', skirt='4a4458',
          skirt_len=5, open='e0d8c4', garment='jumper', build=1, carry='bag'),               # an older woman: a long cardigan over a skirt
     dict(name='dale', face=dict(eye=(2, 3), gap=2, dy=-1, lids=True, bags=True, brow='flat', mouth='line', stubble=True), coat='5d7a4a', skin='e2c4a8', hair='6a4a2a', hairstyle='hood', legs='3a4254', shoes='e4e0d8', fur='d8c8a8', pocket=True,
          garment='parka', drop=2, carry='hammer'),                                                           # a lad in a parka, hood up, white trainers
