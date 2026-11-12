@@ -109,104 +109,56 @@ def scaled(pose, k, ox=0.0):
     return {n: (p[0] * k + ox, p[1] * k) for n, p in pose.items()}
 
 
+# ---- the person: HAND-PLACED pixels in the look the owner asked for (2026-11-11: "I want our people, NPCs, and player characters to be more like this" — a
+# reference of chunky figures: a big mass of hair, a big soft coat, a pale face that is two dark eyes, thin legs, small dark shoes — and, of the
+# old line-skeleton runner: "that pixel man… is really not what we want for this project"). Our own figure in that manner, not the reference's:
+# dark hair to the shoulder, a teal coat, bare legs. Three sizes by the ground row, each placed by hand (never one drawing rescaled); the run is
+# contact / passing / contact / passing; the figure at the door is seen from behind, a fist up on the boards, then the other.
+P_TONES = {'H': (52, 36, 46, 255), 'h': (86, 62, 78, 255), 'F': (232, 216, 204, 255), 'E': (24, 18, 24, 255), 'C': (74, 128, 136, 255),
+           'c': (56, 100, 110, 255), 'd': (40, 72, 82, 255), 'L': (190, 150, 140, 255), 'l': (150, 116, 112, 255), 'S': (20, 18, 24, 255),
+           'A': (232, 216, 204, 255)}
+_P_TOP = {
+    'L': ['...HHHH....', '..HHHHHH...', '..HHhFFF...', '..HHFEFE...', '..HHFFFF...', '..HHhFF....', '.HHCCCCc...', '{a}CCCCCCCc{b}.', '.cCCCCCCc..',
+          '..cCCCCcc..', '..dccccd...'],
+    'M': ['...HHHH...', '..HHHHHH..', '..HHFEFE..', '..HHFFFF..', '..HHhFF...', '.HCCCCCc..', '{a}CCCCCCc{b}.', '.cCCCCCc..', '..dcccd...'],
+    'S': ['..HHHH..', '..HFEFE.', '..HFFFF.', '..HCCCc.', '{a}CCCCCc{b}', '.cCCCCc.', '..dccd..'],
+}
+_P_LEGS = {
+    'L': {'a': ['...Ll.L....', '..L...lL...', '.L......L..', 'SS......L..', '........SS.'],
+          'p1': ['...LL......', '...Ll......', '...L.l.....', '...L.SS....', '...SS......'],
+          'b': ['...lL.l....', '..l...Ll...', '.l......l..', 'SS......l..', '........SS.'],
+          'p2': ['...lL......', '...lL......', '...l.L.....', '...l.SS....', '...SS......']},
+    'M': {'a': ['...Ll.L...', '..L...lL..', '.L.....L..', 'SS.....SS.'], 'p1': ['...LL.....', '...Ll.....', '...L.l....', '...SSSS...'],
+          'b': ['...lL.l...', '..l...Ll..', '.l.....l..', 'SS.....SS.'], 'p2': ['...lL.....', '...lL.....', '...l.L....', '...SSSS...']},
+    'S': {'a': ['..L..L..', '.L....L.', 'SS....SS'], 'p1': ['...LL...', '...Ll...', '...SSS..'],
+          'b': ['..l..l..', '.l....l.', 'SS....SS'], 'p2': ['...lL...', '...lL...', '...SSS..']},
+}
+_P_POUND = {
+    'a': ['....A...', '....c...', '..HHHc..', '..HHHH..', '..HHHH..', '.cCHHCc.', '.cCCCCc.', '.cCCCCc.', '..dccd..', '..L..L..', '..L..L..', '..SS.SS.'],
+    'b': ['...A....', '...c....', '..cHHH..', '..HHHH..', '..HHHH..', '.cCHHCc.', '.cCCCCc.', '.cCCCCc.', '..dccd..', '..L..L..', '..L..L..', '..SS.SS.'],
+}
+
+
+def _from_rows(rows, tones, what):
+    w = len(rows[0])
+    assert all(len(r) == w for r in rows), '%s: a ragged grid' % what
+    im = Image.new('RGBA', (w, len(rows)), (0, 0, 0, 0))
+    px = im.load()
+    for y, row in enumerate(rows):
+        for x, ch in enumerate(row):
+            if ch != '.':
+                px[x, y] = tones[ch]
+    return im
+
+
 def person(tier, frame):
-    """One frame of the runner at a tier."""
-    H = PERSON_H[tier]
-    k = H / 13.0
-    W = int(math.ceil(9 * k)) + 1
-    j = scaled(RUN[frame], k, 0.5)
-    hr0 = {'L': 1.5, 'M': 1.5, 'S': 1.0}[tier]
-    odd = int(round(2 * hr0)) % 2 == 1                           # a 3 px head is centred on a pixel's middle, a 2 px head on a corner: so it is whole pixels, not a stalk of one
-    hx = math.floor(j['head'][0]) + (0.5 if odd else 0.0)
-    j['head'] = (hx, hr0)                                          # …and its top is the figure's top row
-    wt = {'L': 3.0, 'M': 2.5, 'S': 2.1}[tier]                  # the torso's thickness
-    wl = {'L': 2.0, 'M': 1.7, 'S': 1.4}[tier]                  # a leg's
-    wa = {'L': 1.3, 'M': 1.1, 'S': 1.0}[tier]                  # an arm's
-    hr = {'L': 1.5, 'M': 1.5, 'S': 1.0}[tier]                  # the head's radius: 3, 3 and 2 whole pixels across
-    layers = []
-
-    def part(col, fn):
-        m = _canvas(W, H)
-        fn(ImageDraw.Draw(m))
-        layers.append((m, col))
-
-    def shoe(knee, foot):
-        """The foot: a short block at the end of the shin, pointing the way the runner faces."""
-        back = _toward(foot, knee, 0.6 * k)
-        return [(back[0], back[1]), (foot[0] + 0.9 * k, foot[1] - 0.1)]
-
-    part(PAL['shirt_d'], lambda d: _line(d, [j['neck'], j['f_elbow'], j['f_hand']], wa))               # the far arm: a long sleeve in shade…
-    part(PAL['skin_d'], lambda d: _ellipse(d, j['f_hand'][0], j['f_hand'][1], 0.6, 0.6))                 # …and its hand
-    part(PAL['pants_d'], lambda d: _line(d, [j['hip'], j['f_knee'], j['f_foot']], wl))                # the far leg
-    part(PAL['shoe'], lambda d: _line(d, shoe(j['f_knee'], j['f_foot']), wl * 0.95))
-    part(PAL['shirt'], lambda d: _line(d, [j['neck'], j['hip']], wt))                                  # the torso
-    part(PAL['shirt_d'], lambda d: _line(d, [(j['neck'][0] - 0.7 * k, j['neck'][1] + 0.6 * k), (j['hip'][0] - 0.7 * k, j['hip'][1] - 0.4 * k)], 0.8))   # its shaded back
-    part(PAL['pants'], lambda d: _line(d, [j['hip'], j['n_knee'], j['n_foot']], wl))                  # the near leg
-    part(PAL['shoe'], lambda d: _line(d, shoe(j['n_knee'], j['n_foot']), wl * 0.95))
-    part(PAL['hair'], lambda d: _ellipse(d, j['head'][0], j['head'][1], hr, hr * 1.05))               # the head: hair all round…
-    part(PAL['skin'], lambda d: _face(d, j['head'], hr, W, H))                                         # …and the face on the lower right of it
-    part(PAL['shirt'], lambda d: _line(d, [j['neck'], j['n_elbow'], j['n_hand']], wa))                # the near arm: a long sleeve…
-    part(PAL['skin'], lambda d: _ellipse(d, j['n_hand'][0], j['n_hand'][1], 0.6, 0.6))                  # …and its hand
-    img = _sample(layers, W, H)
-    return _trim(img, H)
+    hands = ('A', 'A') if frame in ('a', 'b') else ('.', '.')                    # the arms swing out at each contact, tuck in as the legs pass
+    top = [r.replace('{a}', hands[0]).replace('{b}', hands[1]) for r in _P_TOP[tier]]
+    return _from_rows(top + _P_LEGS[tier][frame], P_TONES, 'person %s %s' % (tier, frame))
 
 
-def _toward(a, b, dist):
-    """The point `dist` from `a` toward `b`."""
-    dx, dy = b[0] - a[0], b[1] - a[1]
-    n = math.hypot(dx, dy) or 1.0
-    return (a[0] + dx / n * dist, a[1] + dy / n * dist)
-
-
-def _face(d, head, r, W, H):
-    """The face: the part of the head's circle right of the ear and below the brow (the figure looks right); the rest of the circle stays hair."""
-    cx, cy = head
-    _ellipse(d, cx, cy, r, r * 1.05)
-    ear_x, brow_y = cx - 0.15 * r, cy - 0.3 * r
-    d.rectangle([0, 0, (ear_x) * SS, H * SS], fill=0)                  # left of the ear: the back of the head
-    d.rectangle([0, 0, W * SS, (brow_y) * SS], fill=0)                  # above the brow: the crown
-
-
-def _trim(img, h):
-    """Keep the figure's own height: the bottom row is its feet."""
-    bbox = img.getbbox()
-    if bbox is None:
-        return img
-    x0, _, x1, _ = bbox
-    return img.crop((x0, 0, x1, h))
-
-
-# ---- the person at the door, from behind ---------------------------------------------------------------------------------------------
 def pound(frame):
-    """Seen from behind at the smallest tier (10 px of body, a fist a pixel above the head): hair, shoulders, one arm up on the boards and the other
-    hanging at the side — then the other way round."""
-    H, W = 11, 8
-    layers = []
-
-    def part(col, fn):
-        m = _canvas(W, H)
-        fn(ImageDraw.Draw(m))
-        layers.append((m, col))
-
-    up_left = frame == 'a'
-    part(PAL['pants_d'], lambda d: _line(d, [(3.1, 7.0), (3.1, 10.6)], 1.5))                  # legs
-    part(PAL['pants'], lambda d: _line(d, [(4.9, 7.0), (4.9, 10.6)], 1.5))
-    part(PAL['shoe'], lambda d: _line(d, [(2.6, 10.6), (3.7, 10.6)], 0.9))
-    part(PAL['shoe'], lambda d: _line(d, [(4.3, 10.6), (5.4, 10.6)], 0.9))
-    part(PAL['shirt'], lambda d: _poly(d, [(2.4, 4.4), (5.6, 4.4), (5.4, 7.6), (2.6, 7.6)]))   # the back
-    part(PAL['shirt_d'], lambda d: _line(d, [(2.6, 7.2), (5.4, 7.2)], 0.7))                   # the hem, in shade
-    left_up = [(2.4, 5.0), (1.5, 3.4), (1.5, 1.4)]
-    left_dn = [(2.4, 5.0), (1.8, 6.4), (2.0, 7.6)]
-    right_up = [(5.6, 5.0), (6.5, 3.4), (6.5, 1.4)]
-    right_dn = [(5.6, 5.0), (6.2, 6.4), (6.0, 7.6)]
-    la, ra = (left_up, right_dn) if up_left else (left_dn, right_up)
-    part(PAL['shirt'], lambda d: _line(d, la, 1.0))
-    part(PAL['shirt'], lambda d: _line(d, ra, 1.0))
-    part(PAL['skin'], lambda d: _ellipse(d, la[-1][0], la[-1][1], 0.55, 0.55))                  # the hands
-    part(PAL['skin'], lambda d: _ellipse(d, ra[-1][0], ra[-1][1], 0.55, 0.55))
-    part(PAL['hair'], lambda d: _ellipse(d, 4.0, 2.9, 1.3, 1.35))                              # the head from behind: hair
-    part(PAL['skin_d'], lambda d: _line(d, [(3.5, 4.1), (4.5, 4.1)], 0.6))                     # the nape
-    return _sample(layers, W, H)
+    return _from_rows(_P_POUND[frame], P_TONES, 'pound %s' % frame)
 
 
 # ---- the cat ----------------------------------------------------------------------------------------------------------------

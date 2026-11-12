@@ -719,6 +719,9 @@ static func _attempt(st: Dictionary, rcp: Dictionary) -> bool:
 			return _fail("wall lacks %s" % String(tag))
 	_fill_gaps(st, rcp)
 	_fill_tops(st, float(rcp.get("tops", 0.7)))
+	for must_id in rcp.get("decor_must", []):                     # what this room's wall ALWAYS carries (the mirror over a bathroom's basin), hung before the pictures take the wall
+		if piece(String(must_id)).size() > 0:
+			_hang(st, String(must_id))
 	_fill_decor(st, rcp.get("decor", [0, 0]))
 	_fill_clutter(st, rcp.get("clutter", [0, 0]))
 	if rng.randf() < float(rcp.get("rug", 0.0)):
@@ -1166,29 +1169,36 @@ static func _fill_decor(st: Dictionary, cnt: Array) -> void:
 		var id := _wpick(rng, _open_pool(st, _pool(st["room"], st["style"], ["decor"])))
 		if id == "":
 			return
-		var rec := piece(id)
-		var wy: Array = rec.get("wall_y", [24, 44]) if rec.get("wall_y", null) != null else [24, 44]
-		var vid := _vid(rng, rec, String(st["style"]))
-		var w := int(rec["w"])
-		var hosts: Array = []                                      # a hung unit prefers the run it belongs over (wall cupboards above the worktop)
-		for tg in rec.get("above", []):
-			for o in st["items"]:
-				if _is_body(String(o["plane"])) and String(tg) in o["tags"]:
-					hosts.append(o)
-		var must_over := bool(rec.get("must_above", false))
-		if must_over and hosts.is_empty():
-			continue                                              # a bathroom mirror with no basin to hang over is not hung at all
-		for t in range(SPOTS_PER_PIECE * 2):
-			var x := rng.randi_range(EDGE_L + 2, EDGE_R - w - 1)
-			if not hosts.is_empty() and (t < SPOTS_PER_PIECE or must_over):
-				var h: Dictionary = hosts[rng.randi() % hosts.size()]
-				x = clampi(int(h["x"]) + rng.randi_range(-w / 3, int(h["w"]) - w * 2 / 3), EDGE_L + 2, EDGE_R - w - 1)
-				if bool(rec.get("snap", false)):                       # an extractor hood hangs dead-centre over its cooker (the roll above is kept so no other piece's draw moves)
-					x = clampi(int(h["x"]) + (int(h["w"]) - w) / 2, EDGE_L + 2, EDGE_R - w - 1)
-			var it := _make(id, vid, x, rng.randi_range(int(wy[0]), int(wy[1])))
-			if _fits(st, it):
-				_add(st, it)
-				break
+		_hang(st, id)
+
+
+## Hang ONE decor piece `id`: over the body it belongs above if it has one (dead-centre if it snaps), else anywhere clear on the wall. False = it did not go up.
+static func _hang(st: Dictionary, id: String) -> bool:
+	var rng: RandomNumberGenerator = st["rng"]
+	var rec := piece(id)
+	var wy: Array = rec.get("wall_y", [24, 44]) if rec.get("wall_y", null) != null else [24, 44]
+	var vid := _vid(rng, rec, String(st["style"]))
+	var w := int(rec["w"])
+	var hosts: Array = []                                      # a hung unit prefers the run it belongs over (wall cupboards above the worktop)
+	for tg in rec.get("above", []):
+		for o in st["items"]:
+			if _is_body(String(o["plane"])) and String(tg) in o["tags"]:
+				hosts.append(o)
+	var must_over := bool(rec.get("must_above", false))
+	if must_over and hosts.is_empty():
+		return false                                              # a bathroom mirror with no basin to hang over is not hung at all
+	for t in range(SPOTS_PER_PIECE * 2):
+		var x := rng.randi_range(EDGE_L + 2, EDGE_R - w - 1)
+		if not hosts.is_empty() and (t < SPOTS_PER_PIECE or must_over):
+			var h: Dictionary = hosts[rng.randi() % hosts.size()]
+			x = clampi(int(h["x"]) + rng.randi_range(-w / 3, int(h["w"]) - w * 2 / 3), EDGE_L + 2, EDGE_R - w - 1)
+			if bool(rec.get("snap", false)):                       # an extractor hood hangs dead-centre over its cooker (the roll above is kept so no other piece's draw moves)
+				x = clampi(int(h["x"]) + (int(h["w"]) - w) / 2, EDGE_L + 2, EDGE_R - w - 1)
+		var it := _make(id, vid, x, rng.randi_range(int(wy[0]), int(wy[1])))
+		if _fits(st, it):
+			_add(st, it)
+			return true
+	return false
 
 
 ## Things lying about: near what they belong to (clothes by the bed or the wardrobe), never in a stand zone, never past the lane.

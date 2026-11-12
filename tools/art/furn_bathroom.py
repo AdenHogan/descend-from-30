@@ -368,7 +368,7 @@ class _Off:
 
 
 # ================================================================================================================================ mirrors
-@piece('mirror_bath', 36, 36, 'decor', rooms={'bathroom': 9}, styles={'tub': 9, 'avocado': 9, 'gilded': 9, 'wetroom': 9, 'pink': 9}, tags=('picture', 'mirror'), above=('basin',), must_above=True, wall_y=(18, 32), limit=1,
+@piece('mirror_bath', 36, 36, 'decor', rooms={'bathroom': 9}, styles={'tub': 9, 'avocado': 9, 'gilded': 9, 'wetroom': 9, 'pink': 9}, tags=('picture', 'mirror'), above=('basin',), must_above=True, snap=True, wall_y=(18, 32), limit=1,
        variants={'cabinet': {'k': 'cabinet', 'for': ['tub']}, 'round_crack': {'k': 'round', 'for': ['avocado']}, 'gilt': {'k': 'gilt', 'for': ['gilded']},
                  'tile': {'k': 'tile', 'for': ['wetroom']}, 'pink_round': {'k': 'pink', 'for': ['pink']}},
        note='the mirror over the basin: a mirrored medicine cabinet with its door swung open on bottles (classic), a cracked round one (avocado), a gilt-framed one with ornate corners (gilded), a cracked mirror tile (wetroom), a round one in a pink frame')
@@ -463,7 +463,10 @@ def chandelier(c, ox, oy, p):
 
 
 # ================================================================================================================================ mats
-@piece('bath_mat', 94, 14, 'rug', rooms={'bathroom': 8}, styles={'avocado': 8, 'pink': 8, 'gilded': 8, 'tub': 4}, tags=('rug',), feet=(129, 134),
+# A bath mat lies where you step OUT: in front of the bath or the shower (`under`), nowhere else. It was 94 px wide in a 240 px room and the rug rule keeps a rug
+# clear of every other fixture, so it never once fitted (owner 2026-11-11: the pink bathroom "looks lifeless"): it is a mat now, not a carpet.
+MAT_W = 50
+@piece('bath_mat', MAT_W, 14, 'rug', rooms={'bathroom': 8}, styles={'avocado': 8, 'pink': 8, 'gilded': 8, 'tub': 8}, tags=('rug',), feet=(129, 134), under=('bath', 'shower'),
        variants={'shag_gold': {'col': 'd9a24a', 'dk': 'b8863a', 'for': ['avocado', 'tub']}, 'fluffy_pink': {'col': 'efc4cc', 'dk': 'e0a8b4', 'for': ['pink']},
                  'leopard': {'col': 'c89a4a', 'dk': '4a3220', 'leopard': True, 'for': ['gilded']}},
        note='a bath mat flat on the floor: a shaggy gold one, a fluffy pink one, or a leopard-skin rug under the gold tub')
@@ -473,13 +476,13 @@ def bath_mat(c, ox, oy, p):
     for y in range(top, bot + 1):
         f = (y - top) / float(bot - top)
         inset = int(round(3.5 * (1.0 - f)))
-        for x in range(ox + 3 + inset, ox + 90 - inset):
+        for x in range(ox + 3 + inset, ox + MAT_W - 4 - inset):
             c.put(x, y, shade(col, 0.9 + 0.2 * ((x * 7 + y * 13) % 5) / 4.0))
     if p.get('leopard'):
         rng = random.Random(7)
-        for _ in range(24):
-            x, y = rng.randint(ox + 8, ox + 84), rng.randint(top + 2, bot - 1)
+        for _ in range(13):
+            x, y = rng.randint(ox + 8, ox + MAT_W - 10), rng.randint(top + 2, bot - 1)
             c.rect(x, y, x + 2, y + 1, hexc(p['dk']))
     else:
-        c.hline(ox + 4, ox + 88, top, shade(col, 1.15))
-        c.hline(ox + 3, ox + 90, bot, shade(col, 0.72))
+        c.hline(ox + 4, ox + MAT_W - 6, top, shade(col, 1.15))
+        c.hline(ox + 3, ox + MAT_W - 4, bot, shade(col, 0.72))

@@ -1703,11 +1703,55 @@ E_TUB_GROUT = hexc('b88a94')                 # the lines between the tub front's
 E_TRIM = hexc('26262a')
 
 
+E_PAPER = hexc('e9dfca')
+E_PAPER_DK = hexc('dccfb4')
+E_PAPER_STEAM = hexc('d8c9a2')
+E_TILE_NEW = hexc('cbe6d2')                  # a tile put in later: the mint never quite matches
+
+
 def e_wall(c):
-    c.rect(0, 0, W - 1, 93, hexc('d8d0c0'))
+    """The fifties bathroom's wall (owner 2026-11-11: "take the pink bathroom… it just looks lifeless and underwhelming as a design"). It was bare plaster over plain tile. Somebody CHOSE this
+    room once and has lived in it since: a printed paper over the tile (pink starbursts and mint dots on cream, its lengths' seams showing, yellowed by steam under the ceiling, one seam lifting),
+    a pink-and-mint chequer border under the black capping tile, a few tiles replaced over the years in a mint that does not quite match, a cracked one, run marks under the pencil line and
+    the grout gone dark along the skirting. All of it is SURFACE: nothing here stands where a piece might."""
+    c.rect(0, 0, W - 1, 93, E_PAPER)
+    for row, y in enumerate(range(11, 42, 8)):                                   # the print, staggered row to row
+        off = 6 if row % 2 else 0
+        for x in range(off + 3, W, 12):
+            c.put(x, y, PINK_DK)
+            for (dx, dy) in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+                c.put(x + dx, y + dy, PINK)
+            c.put(x + 6, y + 4, E_TILE_DK)
+            c.put(x + 6, y + 3, E_TILE)
+    for x in range(40, W, 54):                                                    # where the paper's lengths meet
+        c.vline(x, 6, 43, E_PAPER_DK)
+    c.dither(0, 6, W - 1, 9, E_PAPER_STEAM, 0.55)                                 # years of steam under the ceiling
+    c.dither(0, 10, W - 1, 13, E_PAPER_STEAM, 0.22)
+    c.poly([(94, 6), (99, 6), (97, 13), (94, 16)], hexc('cfc6b4'))                # a seam that has lifted: the plaster behind it, and the curl's shadow
+    c.line(99, 6, 97, 13, hexc('a89a88'))
+    c.line(97, 13, 94, 16, hexc('a89a88'))
+    c.put(98, 12, hexc('f4ecd8'))
     crown(c, hexc('a89a88'), hexc('c0b4a0'))
     tiled_wall(c, 44, E_TILE, E_TILE_DK, E_GROUT, E_TRIM, size=8)
+    for i, x in enumerate(range(0, W, 8)):                                        # the border: every other tile of the top course is pink
+        if i % 2 == 0:
+            c.rect(x + 1, 48, x + 7, 54, PINK_LT)
+            c.hline(x + 1, x + 7, 54, PINK)
+            c.put(x + 1, 48, hexc('f8dce2'))
     c.rect(0, 58, W - 1, 59, E_TRIM)                                            # a black pencil-tile line
+    c.hline(0, W - 1, 60, shade(E_TILE, 0.86))                                    # and its shadow on the tile under it
+    for (tx, ty) in ((5, 3), (6, 3), (17, 4), (23, 2), (12, 5)):                  # tiles replaced over the years
+        x, y = tx * 8, 47 + ty * 8
+        c.rect(x + 1, y + 1, x + 7, y + 7, E_TILE_NEW)
+        c.hline(x + 1, x + 7, y + 1, hexc('dcf0e0'))
+    x, y = 20 * 8, 47 + 3 * 8                                                     # one cracked corner to corner
+    c.line(x + 1, y + 2, x + 4, y + 4, E_GROUT)
+    c.line(x + 4, y + 4, x + 7, y + 7, E_GROUT)
+    c.put(x + 5, y + 4, shade(E_GROUT, 0.8))
+    for (x, n) in ((29, 9), (30, 5), (117, 12), (118, 6), (203, 8)):              # run marks: where the condensation comes down off the capping
+        c.vline(x, 61, 61 + n, shade(E_TILE, 0.88))
+    c.dither(0, 87, W - 1, 93, hexc('8a9c8c'), 0.22)                              # the bottom course has gone dull
+    c.hline(0, W - 1, 87, shade(E_GROUT, 0.82))
     mould_bloom(c, 3, 7, 30, 12, seed=21)                                        # creeping from the corners
     mould_bloom(c, W - 4, 7, 26, 14, seed=22)
 

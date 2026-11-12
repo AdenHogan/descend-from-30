@@ -3916,12 +3916,15 @@
     "avocado": 8,
     "gilded": 8,
     "pink": 8,
-    "tub": 4
+    "tub": 8
    },
    "tags": [
     "rug"
    ],
-   "under": [],
+   "under": [
+    "bath",
+    "shower"
+   ],
    "under_window": false,
    "variants": {
     "fluffy_pink": {
@@ -3943,12 +3946,12 @@
        "file": "bath_mat_fluffy_pink",
        "h": 13,
        "l": 2,
-       "r": 91,
+       "r": 47,
        "rx": -2,
        "ry": 12,
        "sb": -1,
        "t": -12,
-       "w": 90
+       "w": 46
       }
      ]
     },
@@ -3972,12 +3975,12 @@
        "file": "bath_mat_leopard",
        "h": 13,
        "l": 2,
-       "r": 90,
+       "r": 46,
        "rx": -2,
        "ry": 12,
        "sb": -1,
        "t": -12,
-       "w": 89
+       "w": 45
       }
      ]
     },
@@ -4001,17 +4004,17 @@
        "file": "bath_mat_shag_gold",
        "h": 13,
        "l": 2,
-       "r": 91,
+       "r": 47,
        "rx": -2,
        "ry": 12,
        "sb": -1,
        "t": -12,
-       "w": 90
+       "w": 46
       }
      ]
     }
    },
-   "w": 94,
+   "w": 50,
    "wall_y": null
   },
   "bed_iron": {
@@ -23449,7 +23452,7 @@
     "bathroom": 9
    },
    "sill": false,
-   "snap": false,
+   "snap": true,
    "sound": null,
    "styles": {
     "avocado": 9,
@@ -45807,6 +45810,9 @@
     3,
     4
    ],
+   "decor_must": [
+    "mirror_bath"
+   ],
    "fallback": [
     {
      "id": "toilet",
@@ -45887,7 +45893,7 @@
    ],
    "legacy": 1,
    "min_front": 2,
-   "rug": 0.7,
+   "rug": 1.0,
    "shell": "bath_shell_b",
    "tops": 0.9,
    "wall": {
@@ -45925,6 +45931,9 @@
    "decor": [
     3,
     4
+   ],
+   "decor_must": [
+    "mirror_bath"
    ],
    "fallback": [
     {
@@ -46006,7 +46015,7 @@
    ],
    "legacy": 2,
    "min_front": 2,
-   "rug": 0.8,
+   "rug": 1.0,
    "shell": "bath_shell_c",
    "tops": 0.9,
    "wall": {
@@ -46042,6 +46051,9 @@
    "decor": [
     3,
     4
+   ],
+   "decor_must": [
+    "mirror_bath"
    ],
    "fallback": [
     {
@@ -46123,7 +46135,7 @@
    ],
    "legacy": 4,
    "min_front": 2,
-   "rug": 0.7,
+   "rug": 1.0,
    "shell": "bath_shell_e",
    "tops": 0.9,
    "wall": {
@@ -46162,6 +46174,9 @@
    "decor": [
     3,
     4
+   ],
+   "decor_must": [
+    "mirror_bath"
    ],
    "fallback": [
     {
@@ -46261,7 +46276,7 @@
    ],
    "legacy": 0,
    "min_front": 2,
-   "rug": 0.6,
+   "rug": 1.0,
    "shell": "bath_shell_a",
    "tops": 0.9,
    "wall": {
@@ -46300,6 +46315,9 @@
    "decor": [
     2,
     4
+   ],
+   "decor_must": [
+    "mirror_bath"
    ],
    "fallback": [
     {
