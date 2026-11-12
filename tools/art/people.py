@@ -982,9 +982,6 @@ def main():
                 strip.alpha_composite(im, (x, 0))
                 x += CW
         strip.save(os.path.join(GAME, p['name'] + '.png'))
-    for stale in os.listdir(OUT):                                                   # the per-person GIFs of the first two passes
-        if stale.endswith('.gif') and not stale.startswith('people_'):
-            os.remove(os.path.join(OUT, stale))
     print('wrote %d people to %s' % (len(PEOPLE), OUT))
     if errs:
         print('\n'.join(errs[:20]))
