@@ -191,7 +191,7 @@ def skeleton(pose):
     sh_y = hipy - BONES['spine'] + g.get('breath', 0)
     j['hip'] = (hip[0], hipy)
     j['neck'] = (hip[0] + lean + 0.5, sh_y - 1.0)
-    j['head'] = (hip[0] + lean + 1.5, sh_y - 8.0)
+    j['head'] = (hip[0] + lean + 1.5, sh_y - 8.0 + g.get('nod', 0))
     for side, ox in (('n', -3.0), ('f', 3.4)):
         a1, a2 = g[side + '_arm']
         j['shoulder_' + side] = (hip[0] + lean + ox, sh_y + 1.5)
@@ -250,20 +250,31 @@ def draw(p, pose, item=None):
     lean = int(round(j['neck'][0] - j['hip'][0] - 0.5))
     hem = hipy + p.get('drop', 1)
 
-    def shoe(ank, near):
+    def shoe(ank, near, roll=None):
+        """A shoe under an ankle. `roll`: 'heel' = just landed, the toe still up; 'toe' = pushing off, the heel already up."""
         x, y = int(round(ank[0])) - 2, int(round(ank[1]))
-        lift = y < ANKLE_Y
         up, dk = (sho['m'], sho['dd']) if near else (sho['d'], sho['dd'])
-        c.rect(x, y + 1, x + 4, y + 2, up)
-        c.rect(x, y + 3, x + 5, y + 3, dk)
-        c.put(x, y + 1, sho['d'])
-        c.put(x, y + 2, sho['d'])
-        c.put(x + 5, y + 2, up)
+        lifted = y < ANKLE_Y
+        cells = {}                                                                   # (dx, dy) -> colour, then tipped as one piece
+        for dx in range(0, 5):
+            cells[(dx, 1)] = up
+            cells[(dx, 2)] = up
+        cells[(5, 2)] = up
+        for dx in range(0, 6):
+            cells[(dx, 3)] = dk
+        cells[(0, 1)] = cells[(0, 2)] = sho['d']
         if near:
-            c.put(x + 4, y + 1, sho['l'])
-            c.put(x + 4, y + 2, sho['ll'])
-        if lift:
-            c.put(x, y + 3, (0, 0, 0, 0))
+            cells[(4, 1)] = sho['l']
+            cells[(4, 2)] = sho['ll']
+        for (dx, dy), col in cells.items():
+            oy = 0
+            if roll == 'heel' and dx >= 3:
+                oy = -1                                                              # the toe is still in the air
+            if (roll == 'toe' or lifted) and dx <= 1:
+                oy = -1                                                              # the heel has come up
+            if roll == 'toe' and not lifted and dx <= 0:
+                oy = -2
+            c.put(x + dx, y + dy + oy, col)
 
     # ---- behind the body: the far arm, the far leg
     limb(c, j['shoulder_f'], j['elbow_f'], 3.6, sleeve, near=False)
@@ -273,12 +284,12 @@ def draw(p, pose, item=None):
     c.ell(fx + 0.5, fy + (1.0 if palms else 1.5), 1.8, 2.6 if palms else 1.9, far_skin)
     limb(c, j['hip_f'], j['knee_f'], 4.6, legc, near=False)
     limb(c, j['knee_f'], j['ankle_f'], 4.4, legc, near=False)
-    shoe(j['ankle_f'], False)
+    shoe(j['ankle_f'], False, pose.get('f_roll'))
     # ---- the near leg
     limb(c, j['hip_n'], j['knee_n'], 4.8, legc)
     limb(c, j['knee_n'], j['ankle_n'], 4.6, legc)
     kx, ky = R(j['knee_n'])
-    shoe(j['ankle_n'], True)
+    shoe(j['ankle_n'], True, pose.get('n_roll'))
     # ---- long hair down the back, behind the shoulders
     hcx, hcy = R(j['head'])
     st = p['hairstyle']
@@ -305,7 +316,7 @@ def draw(p, pose, item=None):
         under = n - 1 - i
         if under < 3:                                                               # and the hem turns under on a curve
             hw -= (3.0 - math.sqrt(9.0 - (3 - under - 0.5) ** 2)) * 0.9
-        mx = hipx + 0.5 + lean * (1.0 - v)
+        mx = hipx + 0.5 + lean * (1.0 - v) + pose.get('hem_swing', 0.0) * 0.9 * v * v   # the hem swings; the shoulders do not
         spans.append((shy + i, int(round(mx - hw)), int(round(mx + hw))))
     c.rows(spans, g)
     fxe = spans[len(spans) // 2][2]                                                 # the garment's front edge at mid-height
@@ -507,17 +518,33 @@ def draw(p, pose, item=None):
 
 
 # ---- the cycles: ANGLES for the skeleton ---------------------------------------------------------------------------------------------------------
-def walk_pose(i, n=8, carry=None):
+WALK_N = 12                        # frames in a stride (two steps). It was 8: the passing pose and the push-off each fell between frames
+
+
+def walk_pose(i, n=WALK_N, carry=None):
+    """One frame of the walk. What makes it a WALK and not two legs scissoring: the knee gives a little as the weight lands and folds early in the
+    swing; the foot ROLLS (heel down first with the toe up, heel up before the toe leaves); the head follows the body a frame late; the hem
+    swings behind the leading leg; the arm bends more coming forward than going back."""
     ph = i / float(n)
 
     def leg_(q):
         q %= 1.0
-        swing = 26.0 * math.cos(2.0 * math.pi * q)                                  # the thigh: forward at contact, back at push-off
-        bend = 52.0 * math.sin(math.pi * (q - 0.5) / 0.5) if q >= 0.5 else 6.0 * math.sin(math.pi * q / 0.5)
+        swing = 25.0 * math.cos(2.0 * math.pi * q) - 1.0                             # the thigh: forward at contact, back at push-off
+        if q < 0.5:
+            bend = 11.0 * math.sin(math.pi * q / 0.5) ** 2 + 2.0                     # taking the weight
+        else:
+            u = (q - 0.5) / 0.5
+            bend = 64.0 * math.sin(math.pi * u ** 0.75)                             # folding early, opening as it reaches
         return (swing, bend)
-    arm = 20.0 * math.cos(2.0 * math.pi * ph)
-    pose = dict(n_leg=leg_(ph), f_leg=leg_(ph + 0.5), n_arm=(-arm, 10 + max(0.0, -arm) * 0.5), f_arm=(arm, 10 + max(0.0, arm) * 0.5), lean=1.0,
-                sway=1 if (i % (n // 2)) in (1, 2) else 0)
+
+    def roll_(q):
+        q %= 1.0
+        return 'heel' if q < 0.09 or q > 0.94 else ('toe' if 0.38 <= q < 0.6 else None)
+    arm = 22.0 * math.cos(2.0 * math.pi * ph)
+    half = n // 2
+    pose = dict(n_leg=leg_(ph), f_leg=leg_(ph + 0.5), n_arm=(-arm, 8 + max(0.0, -arm) * 0.9), f_arm=(arm, 8 + max(0.0, arm) * 0.9), lean=1.0,
+                n_roll=roll_(ph), f_roll=roll_(ph + 0.5), nod=1 if i % half == 1 else 0, hem_swing=-math.cos(2.0 * math.pi * ph),
+                sway=1 if (i % half) in (1, 2, 3) else 0)
     if carry:
         pose['n_arm'] = CARRY[carry]
     return pose
@@ -574,9 +601,9 @@ PEOPLE = [
 def frames(p, kind):
     """-> [(image, joints)]"""
     if kind == 'walk':
-        return [draw(p, walk_pose(i)) for i in range(8)]
+        return [draw(p, walk_pose(i)) for i in range(WALK_N)]
     if kind == 'carry':
-        return [draw(p, walk_pose(i, carry=p['carry']), item=p['carry']) for i in range(8)]
+        return [draw(p, walk_pose(i, carry=p['carry']), item=p['carry']) for i in range(WALK_N)]
     return [draw(p, idle_pose(i)) for i in range(6)]
 
 
@@ -666,7 +693,7 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     errs = self_check()
     sets = {k: [frames(p, k) for p in PEOPLE] for k in ('idle', 'walk', 'carry')}
-    sheet = Image.new('RGBA', (W * 22 + 8, H * len(PEOPLE)), BG)
+    sheet = Image.new('RGBA', (W * (6 + 2 * WALK_N) + 8, H * len(PEOPLE)), BG)
     for k in range(len(PEOPLE)):
         x = 0
         for kind in ('idle', 'walk', 'carry'):
@@ -675,8 +702,8 @@ def main():
                 x += W
             x += 4
     sheet.resize((sheet.width * 3, sheet.height * 3), Image.NEAREST).save(os.path.join(OUT, 'people_sheet.png'))
-    _gif(os.path.join(OUT, 'people_walk.gif'), _row(sets['walk']), 110)
-    _gif(os.path.join(OUT, 'people_carry.gif'), _row(sets['carry']), 110)
+    _gif(os.path.join(OUT, 'people_walk.gif'), _row(sets['walk']), 80)
+    _gif(os.path.join(OUT, 'people_carry.gif'), _row(sets['carry']), 80)
     _gif(os.path.join(OUT, 'people_idle.gif'), _row(sets['idle']), 260)
     _rig_sheet(PEOPLE[2]).save(os.path.join(OUT, 'people_rig.png'))
     # the moods: every person in every mood, labelled, and a loop that goes through them
