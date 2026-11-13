@@ -57,7 +57,7 @@ def rgb(h):
 
 INK = (44, 32, 52)                 # the plum every shade drifts toward: it ties the cast together and keeps darks from going grey or black
 GLOW = (255, 236, 196)             # the warm cream every light drifts toward
-MUTE = 0.10                        # how far every base colour is pulled toward its own grey (the building is a muted place)
+MUTE = 0.0                         # how far every base colour is pulled toward its own grey (the building is a muted place)
 
 
 def _mix(a, b, t):
@@ -264,7 +264,7 @@ def _outline(c):
     for y in range(CH):
         for x in range(CW):
             if src[x, y][3] and any(not (0 <= x + dx < CW and 0 <= y + dy < CH) or not src[x + dx, y + dy][3] for (dx, dy) in ((1, 0), (-1, 0), (0, 1), (0, -1))):
-                c.px[x, y] = _mix(src[x, y][:3], INK, 0.62) + (255,)
+                c.px[x, y] = _mix(src[x, y][:3], (26, 14, 34), 0.8) + (255,)        # (0.62 toward a soft plum: the line was too faint to hold anything)
 
 
 # ---- the BODY under the clothes (owner, watching them move: "the body proportions are poor too. Characters look blocky like lego people. The torso
