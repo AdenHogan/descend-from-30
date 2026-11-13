@@ -36,6 +36,8 @@ import sys
 
 from PIL import Image
 
+import people_px as PX
+
 W, H = 46, 58                      # the DESIGN grid every shape below is written in (36 x 48 until the players and the dead joined: a big one needs headroom, a crawler length)
 K = 1.5                            # ...and the size it is DRAWN at (owner, after the in-game test: "they need to be bigger, around the same size as
                                    # player and enemies"). Not a stretch of the small drawing: round shapes and limbs are rasterised at this size, and a
@@ -394,7 +396,11 @@ def draw(p, pose, item=None):
         bk, fr = torso_edges(v, p)
         mx = hipx + 0.5 + lean * (1.0 - v) + pose.get('hem_swing', 0.0) * 0.9 * v * v
         big.append((int(math.floor(shy * K)) + ii, int(round((mx - bk) * K)), int(round((mx + fr) * K))))
-    if crawl:
+    hand = PX.TORSOS.get(p['name']) if p.get('px') else None
+    if hand:                                                                        # a torso placed by hand (people_px): it hangs from the shoulder line
+        big = []
+        PX.paste(c, hand, PX.PALETTES[p['name']], int(round((j['neck'][0] - 0.5) * K)) - len(hand[0]) // 2, int(math.floor(shy * K)) - 1)
+    elif crawl:
         big = []
         limb(c, (j['hip'][0], j['hip'][1] - 1.0), (j['neck'][0] - 1.0, j['neck'][1] + 3.0), 2.0 * wide - 4.0, g)
         for i_ in range(1, 6):                                                      # the spine standing out along its back
@@ -494,9 +500,10 @@ def draw(p, pose, item=None):
     # ---- the NECK (owner: "none of them have necks which is odd"): a short column of skin, shaded down its back, the collar's shadow across its foot
     if not crawl and st != 'hood':
         nx_, ny_ = int(round(j['neck'][0])), int(round(j['neck'][1]))
-        c.rect(nx_ - 3, ny_ - 3, nx_ + 2, ny_ + 1, skin['m'])                       # short and as thick as a neck is: it only has to show under the chin
-        c.rect(nx_ - 3, ny_ - 3, nx_ - 2, ny_ + 1, skin['d'])
-        c.rect(nx_ - 3, ny_ - 3, nx_ + 2, ny_ - 1, skin['d'])                       # the chin's shadow
+        nb_ = ny_ - 1 if p.get('px') else ny_ + 1                                     # a hand-drawn torso has its own collar: the neck stops above it
+        c.rect(nx_ - 3, ny_ - 3, nx_ + 2, nb_, skin['m'])
+        c.rect(nx_ - 3, ny_ - 3, nx_ - 2, nb_, skin['d'])
+        c.rect(nx_ - 3, ny_ - 3, nx_ + 2, ny_ - 2, skin['d'])
     body_ = c                                                                       # the head is its own layer, so its own line holds it against the collar
     c = Cel()
     # ---- the head: ROUND, bigger than the shoulders are wide. Hair is one dome that wraps the top and the back; the face is a soft oval set into
@@ -665,7 +672,12 @@ def draw(p, pose, item=None):
     c.put = _put
     if f.get('earring'):
         c.put(int(hx - 3), int(hy + 4), rgb(f['earring']))
-    _outline(c)
+    hd = PX.HEADS.get(p['name']) if p.get('px') else None
+    if hd:                                                                          # a head placed by hand: face, hair and all, riding the head joint
+        c = Cel()
+        PX.paste(c, hd['rows'], PX.PALETTES[p['name']], int(round(j['head'][0] * K)) - hd['anchor'][0], int(round(j['head'][1] * K)) - hd['anchor'][1], blink=bool(pose.get('blink')))
+    else:
+        _outline(c)
     body_.im.alpha_composite(c.im)
     c = Cel()                                                                       # ...and so is the near arm: a limb with a line round it, not a stripe on the coat
     # ---- the near arm, over everything: its shadow on the body first, then the sleeve along its two bones, the cuff, the fist — and what it holds
@@ -784,23 +796,20 @@ PEOPLE = [
 # ---- THE PLAYERS (owner: "Now redesign the player characters and enemies in this style"). The four of docs/CHARACTERS.md, each dressed as who they
 # are: Joe the tenant, Vivianne the neighbour who runs, Alex the building's super, Amina the nurse. Same rig, same palette rule, their own faces.
 PLAYERS = [
-    # Joe, the tenant — a white man, blond: a red checked shirt, sleeves rolled, open over a white tee; jeans turned up; brown boots
-    dict(name='joe', shape='m', coat='b8453a', skin='f0d0b4', hair='e2bc5c', hairstyle='short', legs='3f5a82', shoes='6a4428', garment='jacket', open='ece8de',
-         shoulders=0.8, rolled='8a2c28', marks=(('check', '5a1e1e', 4), ('collar', '8a2c28')), turnup='7c98bc', carry='hammer',
-         face=dict(eye=(2, 2), gap=2, iris='5a8ac8', brow='flat', mouth='small', nose=True, stubble=True)),
-    # Vivianne, the neighbour who runs — a white woman: golden hair swept across the brow and tied high with a pink band, blue eyes; a coral zip-up
-    # with a white yoke and cuffs, black leggings with a stripe, white trainers
-    dict(name='vivianne', shape='f', coat='e8705e', skin='f4dcc8', hair='eec25a', hair2='fbe9a4', hairstyle='ponytail', band='e85a9a', legs='2a2a34', shoes='f0ece4',
-         garment='jumper', cuff='f4f0e8', marks=(('yoke', 'f4f0e8', 2), ('zip', 'f4f0e8'), ('hem', '2a2a34')), leg_stripe='e8705e', carry='torch',
-         face=dict(eye=(2, 3), gap=2, iris='4a9ad8', glint=True, brow='raised', mouth='lips', lip='d85a6a', cheek='f4a0a8')),
-    # Alex, the super — a black man in his thirties, clean-shaven, cropped hair: navy work overalls with the sleeves off, a name patch, a tool belt
-    dict(name='alex', shape='m', coat='2f4a7a', skin='6e4630', hair='1a1418', hairstyle='crop', legs='2f4a7a', shoes='b8863c', sleeves=False, build=1, shoulders=1.0,
-         marks=(('patch', 'f0ece0'), ('zip', 'c8a85a'), ('belt', '6a4428', 'e8c860', 'c89a3c')), carry='hammer',
-         face=dict(eye=(2, 2), gap=2, iris='4a2c1c', glint=True, brow='flat', mouth='smile', nose=True)),
-    # Amina, the nurse, off duty — an Indian woman: one long plait down her back, a mustard cardigan open over a magenta top, dark trousers, gold earrings
-    dict(name='amina', shape='f', coat='d8a43a', skin='b9825a', hair='1c1418', hairstyle='long', legs='3a3448', shoes='7a4a3a', garment='jumper',
-         open='c83a6a', cuff='b8862e', marks=(('hem', 'b8862e'),), carry='bag',
-         face=dict(eye=(2, 2), gap=2, iris='5a3a22', glint=True, brow='raised', mouth='lips', lip='a84a44', earring='f0d060')),
+    # The four are drawn in two ways at once: HEAD and TORSO placed by hand (tools/art/people_px.py: the face, the hair's style, the clothes' cut and
+    # detail), ARMS and LEGS on the rig. `px=True` turns that on; the colours here are the limbs' and must match the hand-drawn palette.
+    # Joe, the tenant — a white man, a blond quiff: a red checked shirt, sleeves rolled, open over a white tee; jeans turned up; brown boots
+    dict(name='joe', px=True, shape='m', coat='c8443a', skin='f0d0b4', hair='e8c050', hairstyle='short', legs='3f5a82', shoes='6a4428',
+         rolled='8a2c28', turnup='7c98bc', carry='hammer'),
+    # Vivianne, the neighbour who runs — a white woman, golden hair tied high: a coral track top, white cuffs; black leggings with a stripe; white trainers
+    dict(name='vivianne', px=True, shape='f', coat='f0685a', skin='f6dcc8', hair='f2c64e', hairstyle='short', legs='2a2a36', shoes='f0ece4',
+         cuff='f6f2ea', leg_stripe='f0685a', carry='torch'),
+    # Alex, the super — a black man in his thirties, clean-shaven, hair cropped: navy dungarees over a pale tee, a tool belt; tan boots
+    dict(name='alex', px=True, shape='m', coat='cfd4dc', skin='7a4e34', hair='1c1418', hairstyle='short', legs='2c4c86', shoes='b8863c', sleeves=False,
+         carry='hammer'),
+    # Amina, the nurse, off duty — an Indian woman, long black hair: a mustard cardigan over a magenta top; dark trousers; brown shoes
+    dict(name='amina', px=True, shape='f', coat='e0a82e', skin='c08a5e', hair='1e141a', hairstyle='short', legs='3a3448', shoes='7a4a3a',
+         cuff='b8862e', carry='bag'),
 ]
 
 # ---- THE THINGS (owner 2026-11-12: "our original enemies were also placeholder, so we don't need to stick to zombies… grotesque monsters that fit the
