@@ -267,6 +267,34 @@ def _outline(c):
                 c.px[x, y] = _mix(src[x, y][:3], INK, 0.62) + (255,)
 
 
+# ---- the BODY under the clothes (owner, watching them move: "the body proportions are poor too. Characters look blocky like lego people. The torso
+# bodies are like refrigerators"). The torso was one curve mirrored about the spine: a box with rounded corners. A body seen three-quarters on is
+# NOT symmetric: the chest stands forward and the belly falls back under it, the back runs out over the shoulder blades and in at the small of the
+# back, and it narrows at the waist. Each SHAPE is a few stations down the body — (how far down, how far the BACK edge is from the spine, how far
+# the FRONT edge) — joined by smooth curves.
+SHAPES = {
+    # a man: wide at the shoulder and chest, tapering to the waist, level hips
+    'm': ((0.00, 2.6, 2.4), (0.10, 4.6, 4.2), (0.28, 5.0, 5.6), (0.62, 3.8, 4.4), (0.86, 4.0, 4.4), (1.00, 3.6, 4.0)),
+    # a woman: narrower shoulders, a bust, a waist that comes in, hips that go out again
+    'f': ((0.00, 2.2, 2.0), (0.10, 3.9, 3.6), (0.30, 4.0, 5.2), (0.58, 3.0, 3.4), (0.88, 4.4, 4.6), (1.00, 4.0, 4.2)),
+    # a body under something loose (a big coat, a cardigan): the same idea, softened
+    'n': ((0.00, 2.6, 2.4), (0.10, 4.4, 4.0), (0.30, 4.8, 5.4), (0.60, 4.3, 4.7), (0.88, 4.8, 5.0), (1.00, 4.2, 4.4)),
+}
+
+
+def torso_edges(v, p):
+    """(back, front): how far the garment's two edges stand from the spine at `v` of the way down (0 the shoulder line, 1 the hem)."""
+    st = SHAPES[p.get('shape', 'n')]
+    for k in range(len(st) - 1):
+        (v0, b0, f0), (v1, b1, f1) = st[k], st[k + 1]
+        if v <= v1 or k == len(st) - 2:
+            t = max(0.0, min(1.0, (v - v0) / float(v1 - v0)))
+            t = 0.5 - 0.5 * math.cos(math.pi * t)                                    # eased: curves, not corners
+            grow = 1.0 + 0.09 * p.get('build', 0)
+            return ((b0 + (b1 - b0) * t) * grow + 0.3 * p.get('shoulders', 0.0) * (1.0 - v), (f0 + (f1 - f0) * t) * grow + 0.3 * p.get('shoulders', 0.0) * (1.0 - v))
+    return (st[-1][1], st[-1][2])
+
+
 # ---- one frame ---------------------------------------------------------------------------------------------------------------------------------
 def draw(p, pose, item=None):
     c = Cel()
@@ -354,27 +382,18 @@ def draw(p, pose, item=None):
     # ---- the garment: it hangs off NARROW shoulders, is widest low down, and is gathered in at the rib. No belly: the size is the cloth's.
     n = hem - shy + 1
     spans = []
-    wide = 6.5 + build * 0.6                                                        # (it was 7.0 over 3.6 shoulders: with an arm lifted off it the body was a pear in a skirt)
     for i in range(n):
         v = i / float(max(1, n - 1))
-        t_ = min(1.0, v / 0.7)
-        hw = 4.9 + build * 0.3 + p.get('shoulders', 0.0) + (wide - 4.9 - build * 0.3 - p.get('shoulders', 0.0)) * math.sin(t_ * math.pi / 2.0) ** 0.8
-        under = n - 1 - i
-        if under < 3:                                                               # and the hem turns under on a curve
-            hw -= (3.0 - math.sqrt(9.0 - (3 - under - 0.5) ** 2)) * 0.9
+        bk, fr = torso_edges(v, p)
         mx = hipx + 0.5 + lean * (1.0 - v) + pose.get('hem_swing', 0.0) * 0.9 * v * v   # the hem swings; the shoulders do not
-        spans.append((shy + i, int(round(mx - hw)), int(round(mx + hw))))
+        spans.append((shy + i, int(round(mx - bk)), int(round(mx + fr))))
     nn = int(round(n * K))                                                          # the same curve again at the drawn size: this is what is painted
     big = []
     for ii in range(nn):
         v = ii / float(max(1, nn - 1))
-        t_ = min(1.0, v / 0.7)
-        hw = 4.9 + build * 0.3 + p.get('shoulders', 0.0) + (wide - 4.9 - build * 0.3 - p.get('shoulders', 0.0)) * math.sin(t_ * math.pi / 2.0) ** 0.8
-        under = (nn - 1 - ii) / K
-        if under < 3:
-            hw -= (3.0 - math.sqrt(max(0.0, 9.0 - (3 - under - 0.5) ** 2))) * 0.9
+        bk, fr = torso_edges(v, p)
         mx = hipx + 0.5 + lean * (1.0 - v) + pose.get('hem_swing', 0.0) * 0.9 * v * v
-        big.append((int(math.floor(shy * K)) + ii, int(round((mx - hw) * K)), int(round((mx + hw) * K)) + 1))
+        big.append((int(math.floor(shy * K)) + ii, int(round((mx - bk) * K)), int(round((mx + fr) * K))))
     if crawl:
         big = []
         limb(c, (j['hip'][0], j['hip'][1] - 1.0), (j['neck'][0] - 1.0, j['neck'][1] + 3.0), 2.0 * wide - 4.0, g)
@@ -747,17 +766,17 @@ MOODS = {
 
 # ---- the neighbours (ours, not the reference's) --------------------------------------------------------------------------------------------
 PEOPLE = [
-    dict(name='nell', face=dict(eye=(2, 3), gap=2, glint=True, brow='worried', mouth='small', cheek='e8a8a0', freckles=True), coat='b5533c', skin='e8d6c8', hair='3a2a34', hairstyle='long', legs='3a3444', shoes='1e1a22', toggles='e8d6c8', drop=3,
+    dict(name='nell', shape='f', face=dict(eye=(2, 3), gap=2, glint=True, brow='worried', mouth='small', cheek='e8a8a0', freckles=True), coat='b5533c', skin='e8d6c8', hair='3a2a34', hairstyle='long', legs='3a3444', shoes='1e1a22', toggles='e8d6c8', drop=3,
          carry='torch'),                                                                                     # a girl in a red duffel coat, black tights
     dict(name='mrs_okafor', face=dict(eye=(2, 2), gap=3, dx=-1, mouth='smile', wrinkle=True, glasses='c8a85a', earring='e8c860'), coat='8a6f9a', skin='8a5a44', hair='b8b4b8', hairstyle='bun', legs='7a5240', shoes='5a3a4a', skirt='4a4458',
          skirt_len=5, open='e0d8c4', garment='jumper', build=1, carry='bag'),               # an older woman: a long cardigan over a skirt
-    dict(name='dale', face=dict(eye=(2, 3), gap=2, dy=-1, lids=True, bags=True, brow='flat', mouth='line', stubble=True), coat='5d7a4a', skin='e2c4a8', hair='6a4a2a', hairstyle='hood', legs='3a4254', shoes='e4e0d8', fur='d8c8a8', pocket=True,
+    dict(name='dale', shape='m', face=dict(eye=(2, 3), gap=2, dy=-1, lids=True, bags=True, brow='flat', mouth='line', stubble=True), coat='5d7a4a', skin='e2c4a8', hair='6a4a2a', hairstyle='hood', legs='3a4254', shoes='e4e0d8', fur='d8c8a8', pocket=True,
          garment='parka', drop=2, carry='hammer'),                                                           # a lad in a parka, hood up, white trainers
-    dict(name='mr_hale', face=dict(eye=(1, 2), gap=3, brow='heavy', mouth='frown', nose=True, cheek='d89a88', tache=True), coat='c8b48a', skin='e6c8b0', hair='5a5450', hairstyle='bald', legs='55525c', shoes='4a3324', scarf='7a2e2e', tache=True,
+    dict(name='mr_hale', shape='m', face=dict(eye=(1, 2), gap=3, brow='heavy', mouth='frown', nose=True, cheek='d89a88', tache=True), coat='c8b48a', skin='e6c8b0', hair='5a5450', hairstyle='bald', legs='55525c', shoes='4a3324', scarf='7a2e2e', tache=True,
          buttons='5a4a30', build=1, drop=4, carry='bag'),                                                    # a big man in a camel overcoat and a scarf
-    dict(name='priya', face=dict(eye=(2, 2), gap=2, glint=True, brow='stern', mouth='lips', lip='8a3a34', mole=True, earring='f0e6d0'), coat='e0b23c', skin='b07a56', hair='241c22', hairstyle='bob', legs='34506e', shoes='2a2630', stripe='f0e6d0',
+    dict(name='priya', shape='f', face=dict(eye=(2, 2), gap=2, glint=True, brow='stern', mouth='lips', lip='8a3a34', mole=True, earring='f0e6d0'), coat='e0b23c', skin='b07a56', hair='241c22', hairstyle='bob', legs='34506e', shoes='2a2630', stripe='f0e6d0',
          garment='jumper', carry='hammer'),                                                                  # a yellow jumper with a band, jeans
-    dict(name='tomasz', face=dict(eye=(2, 2), gap=2, brow='flat', mouth='o', beard=True), coat='3f5f8a', skin='e4ccb4', hair='c8a468', hairstyle='beanie', hat='b84a36', legs='6a5a48', shoes='2a2420',
+    dict(name='tomasz', shape='m', face=dict(eye=(2, 2), gap=2, brow='flat', mouth='o', beard=True), coat='3f5f8a', skin='e4ccb4', hair='c8a468', hairstyle='beanie', hat='b84a36', legs='6a5a48', shoes='2a2420',
          open='d8d4cc', garment='jacket', pocket=True, carry='torch'),                              # a work jacket worn open, a red beanie
 ]
 
@@ -766,20 +785,20 @@ PEOPLE = [
 # are: Joe the tenant, Vivianne the neighbour who runs, Alex the building's super, Amina the nurse. Same rig, same palette rule, their own faces.
 PLAYERS = [
     # Joe, the tenant — a white man, blond: a red checked shirt, sleeves rolled, open over a white tee; jeans turned up; brown boots
-    dict(name='joe', coat='b8453a', skin='f0d0b4', hair='e2bc5c', hairstyle='short', legs='3f5a82', shoes='6a4428', garment='jacket', open='ece8de',
+    dict(name='joe', shape='m', coat='b8453a', skin='f0d0b4', hair='e2bc5c', hairstyle='short', legs='3f5a82', shoes='6a4428', garment='jacket', open='ece8de',
          shoulders=0.8, rolled='8a2c28', marks=(('check', '5a1e1e', 4), ('collar', '8a2c28')), turnup='7c98bc', carry='hammer',
          face=dict(eye=(2, 2), gap=2, iris='5a8ac8', brow='flat', mouth='small', nose=True, stubble=True)),
     # Vivianne, the neighbour who runs — a white woman: golden hair swept across the brow and tied high with a pink band, blue eyes; a coral zip-up
     # with a white yoke and cuffs, black leggings with a stripe, white trainers
-    dict(name='vivianne', coat='e8705e', skin='f4dcc8', hair='eec25a', hair2='fbe9a4', hairstyle='ponytail', band='e85a9a', legs='2a2a34', shoes='f0ece4',
+    dict(name='vivianne', shape='f', coat='e8705e', skin='f4dcc8', hair='eec25a', hair2='fbe9a4', hairstyle='ponytail', band='e85a9a', legs='2a2a34', shoes='f0ece4',
          garment='jumper', cuff='f4f0e8', marks=(('yoke', 'f4f0e8', 2), ('zip', 'f4f0e8'), ('hem', '2a2a34')), leg_stripe='e8705e', carry='torch',
          face=dict(eye=(2, 3), gap=2, iris='4a9ad8', glint=True, brow='raised', mouth='lips', lip='d85a6a', cheek='f4a0a8')),
     # Alex, the super — a black man in his thirties, clean-shaven, cropped hair: navy work overalls with the sleeves off, a name patch, a tool belt
-    dict(name='alex', coat='2f4a7a', skin='6e4630', hair='1a1418', hairstyle='crop', legs='2f4a7a', shoes='b8863c', sleeves=False, build=1, shoulders=1.0,
+    dict(name='alex', shape='m', coat='2f4a7a', skin='6e4630', hair='1a1418', hairstyle='crop', legs='2f4a7a', shoes='b8863c', sleeves=False, build=1, shoulders=1.0,
          marks=(('patch', 'f0ece0'), ('zip', 'c8a85a'), ('belt', '6a4428', 'e8c860', 'c89a3c')), carry='hammer',
          face=dict(eye=(2, 2), gap=2, iris='4a2c1c', glint=True, brow='flat', mouth='smile', nose=True)),
     # Amina, the nurse, off duty — an Indian woman: one long plait down her back, a mustard cardigan open over a magenta top, dark trousers, gold earrings
-    dict(name='amina', coat='d8a43a', skin='b9825a', hair='1c1418', hairstyle='long', legs='3a3448', shoes='7a4a3a', garment='jumper',
+    dict(name='amina', shape='f', coat='d8a43a', skin='b9825a', hair='1c1418', hairstyle='long', legs='3a3448', shoes='7a4a3a', garment='jumper',
          open='c83a6a', cuff='b8862e', marks=(('hem', 'b8862e'),), carry='bag',
          face=dict(eye=(2, 2), gap=2, iris='5a3a22', glint=True, brow='raised', mouth='lips', lip='a84a44', earring='f0d060')),
 ]
@@ -858,8 +877,6 @@ def self_check():
                             x += 1
                     if runs and min(runs) < 4:
                         errs.append('%s idle %d: a leg is %d px wide at the knee' % (p['name'], i, min(runs)))
-        if (2 * (6.5 + p.get('build', 0) * 0.6) + 1) - 13 > 3.01:
-            errs.append('%s: the garment is more than 3 px wider than the head' % p['name'])
     return errs
 
 
