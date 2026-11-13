@@ -370,6 +370,6 @@ def frames(name, kind):
             KINDS[name](c, i / float(n), math.sin(2 * math.pi * i / float(n) * 2.0), True, i)
         else:
             KINDS[name](c, 0.0, math.sin(2 * math.pi * i / 6.0), False, i)
-        P._outline(c)
+        P._outline(c, (26, 14, 34), 0.8)                     # the things keep their hard line: it is the people who are soft
         out.append((c.im, {}))
     return out

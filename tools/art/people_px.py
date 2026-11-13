@@ -237,7 +237,7 @@ PALETTES['amina']['m'] = (168, 60, 70, 255)
 PALETTES['vivianne']['m'] = (224, 84, 110, 255)
 
 
-def paste(cel, rows, palette, x0, y0, blink=False):
+def paste(cel, rows, palette, x0, y0, blink=False, gape=False):
     """Lay a grid onto the drawn image with its top-left at (x0, y0). `blink` shuts the eyes: the upper eye rows go to skin, the lowest to a lash line."""
     w = max(len(r) for r in rows)
     eye_rows = [i for i, r in enumerate(rows) if any(ch in r for ch in 'wb')]
@@ -249,3 +249,299 @@ def paste(cel, rows, palette, x0, y0, blink=False):
             if blink and y in eye_rows and ch in 'wbe':
                 ch = 'e' if y == eye_rows[-1] else 's'
             cel.raw(x0 + x, y0 + y, palette[ch])
+    if gape:                                                 # a mouth fallen open: dark under the lip line
+        ms = [(x, y) for y, row in enumerate(rows) for x, ch in enumerate(row) if ch == 'm']
+        if ms:
+            my = max(y for (_, y) in ms)
+            xs = [x for (x, y) in ms if y == my]
+            for x in range(min(xs) + 1, max(xs)):
+                cel.raw(x0 + x, y0 + my, (60, 20, 30, 255))
+                cel.raw(x0 + x, y0 + my + 1, (60, 20, 30, 255))
+
+
+# ---- THE NEIGHBOURS, by hand too (owner: the generated ones now "look plainer than the four"). They share ONE face drawn once — Alex's head with
+# the hair taken off — and each wears their own hair, hat or hood over it as an overlay, so six heads cost six hairstyles and stay one family.
+_BASE = [r.replace('h', 's').replace('i', 't').replace('j', 'u') for r in HEADS['alex']['rows']]
+_BASE[14] = '...otsssssssssso.....'
+_BASE[15] = '...ottssmmmmsssso....'
+_SMILE = (HEADS['alex']['rows'][14], HEADS['alex']['rows'][15])
+
+
+def _head(overlay, smile=False, tache=False):
+    rows = [('....' + r).ljust(25, '.') for r in _BASE]
+    if smile:
+        rows[14], rows[15] = [('....' + r).ljust(25, '.') for r in _SMILE]
+    out = []
+    for y, r in enumerate(rows):
+        o = overlay[y].ljust(25, '.') if y < len(overlay) else '.' * 25
+        out.append(''.join(o[x] if o[x] != '.' else r[x] for x in range(25)))
+    return dict(anchor=(14, 10), rows=out)
+
+
+HEADS.update({
+    # a girl: long dark hair to the shoulder and a straight fringe
+    'nell': _head([
+        '...........ooooooo.......',
+        '.........oohhhhhhhoo.....',
+        '........ohhhjjjhhhhho....',
+        '.......ohhhjhhhhhhhhho...',
+        '......oihhhhhhhhhhhhhho..',
+        '......oihhhhhhhhhhhhhho..',
+        '......oiihhhhhhhhhhhhho..',
+        '.....oiihhh..............',
+        '.....oiih................',
+        '.....oiih................',
+        '.....oiih................',
+        '.....oiih................',
+        '.....oiih................',
+        '.....oiih................',
+        '.....oiiho...............',
+        '.....oiiho...............',
+        '.....oiiho...............',
+        '......oiho...............',
+        '......ooo................',
+    ]),
+    # an older woman: grey hair drawn back into a bun, a ready smile
+    'mrs_okafor': _head([
+        '...........ooooooo.......',
+        '..ooo....oohhhhhhhoo.....',
+        '.ojjho..ohhhjjhhhhhho....',
+        '.ojhhhoohhhhhhhhhhhhho...',
+        '.oihhhoihhhhhhhhhhhhhho..',
+        '..oiiooihhhhh.....hhhho..',
+        '...oo.oiih...............',
+        '.....oiih................',
+        '.....oii.................',
+    ], smile=True),
+    # a lad with his hood up: the parka's own cloth round his face, a line of pale trim
+    'dale': _head([
+        '..........ooooooooo......',
+        '........ooAAAAAAAAAoo....',
+        '.......oAAAACCCAAAAAAo...',
+        '......oBAAAAAAAAAAAAAAo..',
+        '.....oBAAAFFFFFFFFFAAAo..',
+        '.....oBAAFF.......FFAAo..',
+        '.....oBAAF.........FFAo..',
+        '....oBBAF...........FAo..',
+        '....oBBAF............Fo..',
+        '....oBBAF................',
+        '....oBBAF................',
+        '....oBBAF................',
+        '....oBBAF................',
+        '....oBBAF................',
+        '.....oBAAF...............',
+        '.....oBAAFF..............',
+        '......oBAAFFF............',
+        '.......oBAAAFFFo.........',
+        '........oooooooo.........',
+    ]),
+    # a big man gone bald: what hair is left round the back, a grey moustache
+    'mr_hale': _head([
+        '', '', '', '', '', '', '', '',
+        '.....oii.................',
+        '.....oiih................',
+        '.....oiih................',
+        '.....oiih................',
+        '......oii................',
+        '...........hhhhhhh.......',
+    ]),
+    # a woman with a black bob cut to the jaw
+    'priya': _head([
+        '...........ooooooo.......',
+        '.........oohhhhhhhoo.....',
+        '........ohhhjjhhhhhho....',
+        '.......ohhhjhhhhhhhhho...',
+        '......oihhhhhhhhhhhhhho..',
+        '......oihhhhhhhhhhhhhho..',
+        '.....oiihhhhhhh....hhho..',
+        '.....oiihhh..............',
+        '....oiihhh...............',
+        '....oiihhh...............',
+        '....oiihh................',
+        '....oiihh................',
+        '....oiihh................',
+        '....oiihho...............',
+        '.....oiiho...............',
+        '......ooo................',
+    ]),
+    # a man in a red knitted hat pulled down, fair hair under it, a full beard
+    'tomasz': _head([
+        '...........ooooooo.......',
+        '.........ooRRSSRRRoo.....',
+        '........oRRRSSRRRRRRo....',
+        '.......oQRRRRRRRRRRRRo...',
+        '......oQRRRRRRRRRRRRRRo..',
+        '......oQQQQQQQQQQQQQQQo..',
+        '.....oihh................',
+        '.....oih.................',
+        '.....oih.................',
+        '', '', '', '',
+        '......ihh.........hh.....',
+        '.......ihhh.....hhhh.....',
+        '.......ihhhhmmmmhhh......',
+        '........ihhhhhhhhh.......',
+        '.........oihhhhho........',
+        '...........ooooo.........',
+    ]),
+})
+
+TORSOS.update({
+    # a red duffel coat: a deep collar, three pale toggles on their loops, patch pockets
+    'nell': [
+        '....oooooooo....',
+        '..ooBCCAACCAoo..',
+        '.oBAACCAACCAAAo.',
+        '.oBAAAAAAAAAAAAo',
+        '.oBAAAAAkkGGAAAo',
+        '.oBAAAAAAAGGAAAo',
+        '.oBAAAAAAAAAAAAo',
+        '.oBAAAAAAAAAAAo.',
+        '..oBAAAAkkGGAAo.',
+        '..oBAAAAAAGGAAo.',
+        '..oBAAAAAAAAAAo.',
+        '..oBAAAAAAAAAAo.',
+        '..oBAAAAkkGGAAo.',
+        '..oBAAAAAAGGAAo.',
+        '..oBAAAAAAAAAAo.',
+        '.oBAAkkkkAAAAAAo',
+        '.oBAAkAAkAAAAAAo',
+        '.oBAAkAAkAAAAAAo',
+        '.oBAAkkkkAAAAAAo',
+        '.oBAAAAAAAAAAAAo',
+        '.oBBAAAAAAAAAACo',
+        '.oBBBBBBBBBBBBBo',
+        '..ooooooooooooo.',
+    ],
+    # a lilac cardigan, buttoned low, over a cream blouse with a bow at the neck
+    'mrs_okafor': [
+        '.....oooooooo.....',
+        '...ooACDDDDCAAoo..',
+        '..oBAACDGGDCAAAAo.',
+        '.oBAAACDDDDCAAAAAo',
+        '.oBAAACEDDDCAAAAAo',
+        '.oBAAAACEDCAAAAAAo',
+        '.oBAAAAACCAAAkAAAo',
+        '.oBAAAAAAAAAAAAAAo',
+        '.oBAAAAAAAAAAkAAAo',
+        '.oBAAAAAAAAAAAAAo.',
+        '.oBAAAAAAAAAAkAAo.',
+        '.oBAAAAAAAAAAAAAo.',
+        '.oBAAAAAAAAAAkAAo.',
+        '.oBAAAAAAAAAAAAAo.',
+        '.oBAAkkkAAAAAkAAo.',
+        '.oBAAkAkAAAAAAAAo.',
+        '.oBAAkkkAAAAAAAAo.',
+        '.oBBAAAAAAAAAAACo.',
+        '.oBBBBBBBBBBBBBBo.',
+        '..oooooooooooooo..',
+    ],
+    # a green parka: a zip with a storm flap, two drawstrings, a big pocket with a flap
+    'dale': [
+        '.....oooooooo.....',
+        '...ooAAAAAAAAAoo..',
+        '..oBAAAAAkAAAAAAo.',
+        '.oBAAAAAFkFAAAAAAo',
+        '.oBAAAAAFkFAAAAAAo',
+        '.oBAAAAAFkAAAAAAAo',
+        '.oBAAAAAAkAAAAAAAo',
+        '.oBAAAAAAkAAAAAAAo',
+        '.oBAAAAAAkAAAAAAo.',
+        '.oBAAAAAAkAAAAAAo.',
+        '.oBAAAAAAkAAAAAAo.',
+        '.oBAACCCCkCCCCAAo.',
+        '.oBAAkkkkkkkkkAAo.',
+        '.oBAAkAAAkAAAkAAo.',
+        '.oBAAkAAAkAAAkAAo.',
+        '.oBAAkkkkkkkkkAAo.',
+        '.oBAAAAAAkAAAAAAo.',
+        '.oBAAAAAAkAAAAAAo.',
+        '.oBBBBBBBBBBBBBBo.',
+        '.oBkBkBkBkBkBkBko.',
+        '..oooooooooooooo..',
+    ],
+    # a camel overcoat: wide lapels, dark buttons, a red scarf knotted at the throat with its ends hanging
+    'mr_hale': [
+        '......oooooooo......',
+        '....ooDDDDDDDDoo....',
+        '...oBADDEDDDDDAAo...',
+        '..oBAAADDEDDDAAAAo..',
+        '.oBAACCADDEDACCAAAo.',
+        '.oBAAACCADEDCCAAAAo.',
+        '.oBAAAACCDEDCAAAAAo.',
+        '.oBAAAAACDEDAAAkAAo.',
+        '.oBAAAAAADEDAAAAAAo.',
+        '.oBAAAAAADEDAAAkAAo.',
+        '.oBAAAAAADEEAAAAAAo.',
+        '.oBAAAAAAkAAAAAkAAo.',
+        '.oBAAAAAAkAAAAAAAAo.',
+        '.oBAAAAAAkAAAAAkAAo.',
+        '.oBAAAAAAkAAAAAAAAo.',
+        '.oBAACCCCkAACCCCAAo.',
+        '.oBAAkkkkkAAkkkkAAo.',
+        '.oBAAAAAAkAAAAAAAAo.',
+        '.oBAAAAAAkAAAAAAAAo.',
+        '.oBAAAAAAkAAAAAAAAo.',
+        '.oBAAAAAAkAAAAAAAAo.',
+        '.oBBAAAAAkAAAAAAACo.',
+        '.oBBBBBBBkBBBBBBBBo.',
+        '..oooooooooooooooo..',
+    ],
+    # a yellow jumper with a cream band across the chest and ribbing at the neck and hem
+    'priya': [
+        '....oooooooo....',
+        '..ooBkAkAkAkoo..',
+        '.oBAAAAAAAAAAAo.',
+        '.oBAAAAAAAAAAAAo',
+        '.oBAAAAAAAAAACCo',
+        '.oEDDDDDDDDDDDDo',
+        '.oEDDDDDDDDDDDDo',
+        '.oEDDDDDDDDDDDo.',
+        '..oBAAAAAAAACCo.',
+        '..oBAAAAAAAACo..',
+        '..oBAAAAAAAACo..',
+        '...oBAAAAAAAo...',
+        '...oBAAAAAAAo...',
+        '...oBAAAAAAACo..',
+        '..oBAAAAAAAACo..',
+        '..oBAAAAAAAAACo.',
+        '..oBAAAAAAAAACo.',
+        '..oBAAAAAAAAACo.',
+        '..oBBAAAAAAAACo.',
+        '..oBkBkBkBkBkBo.',
+        '...ooooooooooo..',
+    ],
+    # a blue work jacket worn open over a grey jumper: a collar, a chest pocket with a pen, a zip hanging loose
+    'tomasz': [
+        '.....oooooooo.....',
+        '...ooBCCDDDDCCoo..',
+        '..oBAACCDDDDCCAAo.',
+        '.oBAAAACDDDDCAAAAo',
+        '.oBAAAACEDDDCAAAAo',
+        '.oBAAAACEDDDCkkkAo',
+        '.oBAAAACEDDDCkGkAo',
+        '.oBAAAACEDDDCkAkAo',
+        '.oBAAAACEDDDCkkkAo',
+        '.oBAAAACEDDDCAAAo.',
+        '.oBAAAACEDDDCAAAo.',
+        '..oBAAACEDDDCAAAo.',
+        '..oBAAACEDDDCAAAo.',
+        '..oBAAACEDDDCAAAo.',
+        '..oBAAACEDDDCAAAo.',
+        '..oBAAACEDDDCAAAo.',
+        '..oBAAACEDDDCAAAo.',
+        '..oBAAACEEEECAAAo.',
+        '..oBBBBCoooooCBBo.',
+        '..oBkBkBo...oBkBo.',
+        '...ooooo.....ooo..',
+    ],
+})
+
+PALETTES.update({
+    'nell': _pal('ecd8c8', '3a2a34', '4a3a5a', ('c0443a',), {'k': '7a2420', 'G': 'f0e4d0'}),
+    'mrs_okafor': _pal('8a5a44', 'c4c0c4', '3a2416', ('9a78b0', 'f0e8d4'), {'k': '5a3a70', 'G': 'd85a7a'}),
+    'dale': _pal('e6c8ac', '6a4a2a', '4a6a8a', ('5f8a4a',), {'k': '2e4a26', 'F': 'ecdcb8'}),
+    'mr_hale': _pal('ecccb4', 'a8a4a0', '4a5a6a', ('d0b47e', 'a82e2e'), {'k': '5a4628'}),
+    'priya': _pal('b47c56', '241c22', '3a2416', ('f0bc30', 'f4ecd8'), {'k': 'b8862a'}),
+    'tomasz': _pal('e8ccb4', 'd0a860', '4a7a9a', ('3f68a0', 'b4b8c0'), {'k': '22406a', 'G': 'f0d050', 'R': 'c8402e', 'Q': '8a2420', 'S': 'f07a5a'}),
+})
+PALETTES['dale']['C'] = (132, 184, 104, 255)
