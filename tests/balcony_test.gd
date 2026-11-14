@@ -452,7 +452,11 @@ func _drawn_feet(player, base_scale_y: float) -> float:
 	# Where the sprite's feet are DRAWN: the origin, the sprite's own offset, and the feet (33 below the
 	# origin at full size) shrunk with the sprite.
 	var f: float = player.animated_sprite.scale.y / base_scale_y
-	return player.global_position.y + player.animated_sprite.position.y + BalconyGeo.PLAYER_FEET_OFF * f
+	var half: float = BalconyGeo.PLAYER_FEET_OFF
+	if PlayerRig.key_for(WorldState.current_character()) != "" and player.animated_sprite.sprite_frames.has_animation("idle"):
+		# the new character sprites (scripts/player_rig.gd): the cell's bottom edge is the feet, 1 px over the collision line — the drawn feet in the collision convention
+		half = float(player.animated_sprite.sprite_frames.get_frame_texture("idle", 0).get_height()) * 0.5 + 1.0
+	return player.global_position.y + player.animated_sprite.position.y + half * f
 
 
 func _luma(c: Color) -> float:
@@ -504,6 +508,7 @@ func _test_balcony_geometry() -> void:
 	await get_tree().process_frame
 	player.global_position = Vector2(500.0, BalconyGeo.LANE_FEET - BalconyGeo.PLAYER_FEET_OFF)
 	var base_y: float = player.animated_sprite.scale.y
+	var base_pos_y: float = player.animated_sprite.position.y                     # (0 for the old template sprite; the new characters' sprites stand on the cell's bottom edge)
 	await player.enter_balcony_plane(500.0)
 	check(player.on_balcony_plane and absf(player.global_position.y + BalconyGeo.PLAYER_FEET_OFF - BalconyGeo.FEET) < 0.5,
 		"W steps the player up onto the balcony line (feet %.1f)" % (player.global_position.y + BalconyGeo.PLAYER_FEET_OFF))
@@ -511,7 +516,7 @@ func _test_balcony_geometry() -> void:
 	player.exit_balcony_plane()
 	for i in range(40):
 		await get_tree().physics_frame
-	check(not player.on_balcony_plane and absf(player.animated_sprite.position.y) < 0.01
+	check(not player.on_balcony_plane and absf(player.animated_sprite.position.y - base_pos_y) < 0.01
 		and is_equal_approx(player.animated_sprite.scale.y, base_y), "S steps back: full size, sprite back in place")
 	player.queue_free()
 	await get_tree().process_frame

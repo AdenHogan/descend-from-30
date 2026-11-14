@@ -1,0 +1,346 @@
+{
+ "alias": {
+  "air_spin": "air_spin",
+  "crouch_idle": "crouch_idle",
+  "crouch_walk": "crouch_walk",
+  "death": "death",
+  "grab": "idle",
+  "gun_idle": "gun_idle",
+  "gun_run": "gun_run",
+  "gun_shoot": "gun_shoot",
+  "gun_walk": "gun_walk",
+  "hurt": "hurt",
+  "idle": "idle",
+  "katana_attack_continuous": "swing_bat",
+  "katana_idle": "idle",
+  "katana_run": "run",
+  "katana_walk": "walk",
+  "punch": "shove",
+  "punch_cross": "shove",
+  "punch_jab": "shove",
+  "push": "shove",
+  "roll": "roll",
+  "run": "run",
+  "run_aim": "gun_walk",
+  "run_shooting": "gun_run",
+  "swing_bat": "swing_bat",
+  "swing_knife": "swing_knife",
+  "swing_sword": "swing_sword",
+  "sword_attack": "swing_sword",
+  "sword_idle": "idle",
+  "sword_run": "run",
+  "sword_stab": "swing_knife",
+  "walk": "walk"
+ },
+ "cell": [
+  108,
+  108
+ ],
+ "feet_row": 107,
+ "players": {
+  "alex": {
+   "cell": [
+    108,
+    108
+   ],
+   "rows": {
+    "air_spin": [
+     12,
+     6
+    ],
+    "crouch_idle": [
+     3,
+     6
+    ],
+    "crouch_walk": [
+     4,
+     8
+    ],
+    "death": [
+     10,
+     10
+    ],
+    "gun_idle": [
+     13,
+     2
+    ],
+    "gun_run": [
+     15,
+     8
+    ],
+    "gun_shoot": [
+     16,
+     10
+    ],
+    "gun_walk": [
+     14,
+     8
+    ],
+    "hurt": [
+     9,
+     4
+    ],
+    "idle": [
+     0,
+     6
+    ],
+    "roll": [
+     11,
+     7
+    ],
+    "run": [
+     2,
+     8
+    ],
+    "shove": [
+     5,
+     10
+    ],
+    "swing_bat": [
+     6,
+     9
+    ],
+    "swing_knife": [
+     8,
+     9
+    ],
+    "swing_sword": [
+     7,
+     9
+    ],
+    "walk": [
+     1,
+     12
+    ]
+   }
+  },
+  "amina": {
+   "cell": [
+    108,
+    108
+   ],
+   "rows": {
+    "air_spin": [
+     12,
+     6
+    ],
+    "crouch_idle": [
+     3,
+     6
+    ],
+    "crouch_walk": [
+     4,
+     8
+    ],
+    "death": [
+     10,
+     10
+    ],
+    "gun_idle": [
+     13,
+     2
+    ],
+    "gun_run": [
+     15,
+     8
+    ],
+    "gun_shoot": [
+     16,
+     10
+    ],
+    "gun_walk": [
+     14,
+     8
+    ],
+    "hurt": [
+     9,
+     4
+    ],
+    "idle": [
+     0,
+     6
+    ],
+    "roll": [
+     11,
+     7
+    ],
+    "run": [
+     2,
+     8
+    ],
+    "shove": [
+     5,
+     10
+    ],
+    "swing_bat": [
+     6,
+     9
+    ],
+    "swing_knife": [
+     8,
+     9
+    ],
+    "swing_sword": [
+     7,
+     9
+    ],
+    "walk": [
+     1,
+     12
+    ]
+   }
+  },
+  "joe": {
+   "cell": [
+    108,
+    108
+   ],
+   "rows": {
+    "air_spin": [
+     12,
+     6
+    ],
+    "crouch_idle": [
+     3,
+     6
+    ],
+    "crouch_walk": [
+     4,
+     8
+    ],
+    "death": [
+     10,
+     10
+    ],
+    "gun_idle": [
+     13,
+     2
+    ],
+    "gun_run": [
+     15,
+     8
+    ],
+    "gun_shoot": [
+     16,
+     10
+    ],
+    "gun_walk": [
+     14,
+     8
+    ],
+    "hurt": [
+     9,
+     4
+    ],
+    "idle": [
+     0,
+     6
+    ],
+    "roll": [
+     11,
+     7
+    ],
+    "run": [
+     2,
+     8
+    ],
+    "shove": [
+     5,
+     10
+    ],
+    "swing_bat": [
+     6,
+     9
+    ],
+    "swing_knife": [
+     8,
+     9
+    ],
+    "swing_sword": [
+     7,
+     9
+    ],
+    "walk": [
+     1,
+     12
+    ]
+   }
+  },
+  "vivianne": {
+   "cell": [
+    108,
+    108
+   ],
+   "rows": {
+    "air_spin": [
+     12,
+     6
+    ],
+    "crouch_idle": [
+     3,
+     6
+    ],
+    "crouch_walk": [
+     4,
+     8
+    ],
+    "death": [
+     10,
+     10
+    ],
+    "gun_idle": [
+     13,
+     2
+    ],
+    "gun_run": [
+     15,
+     8
+    ],
+    "gun_shoot": [
+     16,
+     10
+    ],
+    "gun_walk": [
+     14,
+     8
+    ],
+    "hurt": [
+     9,
+     4
+    ],
+    "idle": [
+     0,
+     6
+    ],
+    "roll": [
+     11,
+     7
+    ],
+    "run": [
+     2,
+     8
+    ],
+    "shove": [
+     5,
+     10
+    ],
+    "swing_bat": [
+     6,
+     9
+    ],
+    "swing_knife": [
+     8,
+     9
+    ],
+    "swing_sword": [
+     7,
+     9
+    ],
+    "walk": [
+     1,
+     12
+    ]
+   }
+  }
+ }
+}

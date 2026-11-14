@@ -210,7 +210,7 @@ def skeleton(pose, p=None):
     g = dict(REST)
     g.update(pose)
     tall, arml = p.get('tall', 1.0), p.get('arm', 1.0)
-    hip = (CX - 0.5 + p.get('hip_dx', 0), 0.0)
+    hip = (CX - 0.5 + p.get('hip_dx', 0) + g.get('dx', 0.0), 0.0)
     j = {}
     for side, ox in (('n', -2.0), ('f', 1.6)):
         t1, kb = g[side + '_leg']
@@ -263,8 +263,51 @@ def _bag(c, hx, hy):
     c.rect(hx - 1, hy + 6, hx + 2, hy + 6, cloth['d'])
 
 
-ITEMS = {'hammer': _hammer, 'torch': _torch, 'bag': _bag}
+def _knife(c, hx, hy):
+    steel, grip = tones('c8ccd4'), tones('3a3028')
+    c.rect(hx, hy - 1, hx + 1, hy + 2, grip['m'])                              # the handle
+    c.rect(hx - 1, hy - 2, hx + 2, hy - 2, grip['dd'])                         # the guard
+    c.rect(hx, hy - 8, hx + 1, hy - 3, steel['m'])                             # the blade
+    c.rect(hx + 1, hy - 8, hx + 1, hy - 3, steel['ll'])
+    c.rect(hx, hy - 9, hx, hy - 9, steel['l'])
+
+
+def _sword(c, hx, hy):
+    steel, grip, brass = tones('d0d4dc'), tones('3a2a22'), tones('c8a040')
+    c.rect(hx, hy - 1, hx + 1, hy + 3, grip['m'])
+    c.rect(hx - 2, hy - 2, hx + 3, hy - 2, brass['m'])                         # the guard
+    c.rect(hx, hy - 16, hx + 1, hy - 3, steel['m'])                            # a long blade
+    c.rect(hx + 1, hy - 16, hx + 1, hy - 3, steel['ll'])
+    c.rect(hx, hy - 17, hx, hy - 17, steel['l'])
+
+
+def _gun(c, hx, hy):
+    """A pistol held out in front, barrel to the RIGHT (rotate for any other aim)."""
+    metal, grip = tones('4a4e58'), tones('2a2622')
+    c.rect(hx, hy - 3, hx + 8, hy - 1, metal['m'])                             # the slide
+    c.rect(hx, hy - 3, hx + 8, hy - 3, metal['l'])
+    c.rect(hx + 8, hy - 3, hx + 9, hy - 2, metal['dd'])                        # the muzzle
+    c.rect(hx, hy - 1, hx + 4, hy, metal['d'])
+    c.rect(hx, hy, hx + 1, hy + 3, grip['m'])                                  # the grip
+
+
+ITEMS = {'hammer': _hammer, 'torch': _torch, 'bag': _bag, 'knife': _knife, 'sword': _sword, 'gun': _gun}
 CARRY = {'hammer': (6, 84), 'torch': (4, 82), 'bag': (4, 6)}       # (the upper arm hangs; only the forearm comes forward — a raised upper arm hid the chest)        # the near arm's (shoulder, elbow) angles while it holds each
+
+
+def _rot_about(im, pivot, deg):
+    """Rotate `im` by `deg` degrees (+ clockwise on screen) about `pivot` (pixels), nearest-neighbour."""
+    a = math.radians(deg)
+    ca, sa = math.cos(a), math.sin(a)
+    px, py = pivot
+
+    def inv(x, y):
+        dx, dy = x - px, y - py
+        return px + ca * dx + sa * dy, py - sa * dx + ca * dy
+    x0, y0 = inv(0, 0)
+    x1, y1 = inv(1, 0)
+    x2, y2 = inv(0, 1)
+    return im.transform(im.size, Image.AFFINE, (x1 - x0, x2 - x0, x0, y1 - y0, y2 - y0, y0), Image.NEAREST)
 
 
 def _outline(c, ink=(52, 38, 60), k=0.26):
@@ -710,7 +753,13 @@ def draw(p, pose, item=None):
     ex_, ey_ = R(en)
     hx, hy = R(hn)
     if item:
-        ITEMS[item](c, hx, hy)
+        rot = pose.get('item_rot')
+        if rot is None:
+            ITEMS[item](c, hx, hy)
+        else:                                                                       # a held thing turned about the fist (the swing, the aim): drawn on its own layer, rotated, laid on
+            tl = Cel()
+            ITEMS[item](tl, hx, hy)
+            c.im.alpha_composite(_rot_about(tl.im, (hx * K + K * 0.5, hy * K + K * 0.5), rot))
     ux, uy = (hn[0] - en[0]), (hn[1] - en[1])                                       # the cuff: a dark line across the wrist, square to the forearm
     ul = math.hypot(ux, uy) or 1.0
     for k in (-2, -1, 0, 1):

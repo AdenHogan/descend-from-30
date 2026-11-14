@@ -272,6 +272,7 @@ func _ready() -> void:
 	# z 0 and they'll sit behind bodies automatically.
 	z_index = 1
 	_setup_player_light()
+	PlayerRig.apply(self, animated_sprite, WorldState.current_character())       # the new characters' sprites (scripts/player_rig.gd); a no-op if a character has no art
 	GroundShadow.attach(self, animated_sprite)        # the contact shadow under the feet (scripts/ground_shadow.gd)
 	DarkSpot.ensure(self)                             # the dark itself is a place to hide (scripts/dark_spot.gd): one per player, always where they are
 	_setup_gun_animations()
@@ -815,7 +816,7 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 
 	is_attacking = true
 	attack_cooldown_timer = WEAPON_COOLDOWN.get(weapon_type, 0.5) * instance.perk_mult("cooldown")   # tuning: Handling
-	animated_sprite.play("katana_attack_continuous")
+	animated_sprite.play(PlayerRig.swing_anim(animated_sprite, weapon_type))      # the weapon in hand (knife / sword / bat), or the old single swing
 	# Swing sound: slice for blades, thunk for blunt weapons.
 	melee_player.stream = (MELEE_SLICE if weapon_type in ["knife", "sword"] else MELEE_THUNK).pick_random()
 	melee_player.pitch_scale = randf_range(0.9, 1.1)
