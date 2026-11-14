@@ -913,9 +913,9 @@ PLAYERS = [
     # After the hand-drawn heads ("they actually look worse now… scarier than the monsters") the four are in the reference's manner again: a big
     # soft head of hair, a small pale face that is two dark eyes and nothing else, no neck, an oversized garment. WHO they are is carried by the
     # hair's shape and colour, the skin, and what they wear — not by features too small to draw.
-    # Joe, the tenant — a white man: a mop of blond hair; a red checked shirt open over a white tee; jeans; brown boots
-    dict(name='joe', shape='m', coat='b8453a', skin='f0d4bc', hair='e0b858', hairstyle='mop', legs='3f5a82', shoes='6a4428', garment='jacket',
-         open='ece8de', drop=2, marks=(('check', '7a2a26', 4),), carry='hammer', face=dict(eye=(2, 2), gap=2)),
+    # Joe, the tenant — a white man: dark brown mess of hair; a faded teal jumper over a grey tee (nobody's idea of a hero); jeans; brown boots
+    dict(name='joe', shape='m', coat='4f7f7c', skin='f0d4bc', hair='5a3e2c', hairstyle='mop', legs='3f5a82', shoes='6a4428', garment='jumper',
+         open='b8bcc0', drop=2, marks=(('yoke', '6a9a94', 2),), carry='hammer', face=dict(eye=(2, 2), gap=2, under=True)),
     # Vivianne, the neighbour who runs — a white woman: golden hair swept across and tied high; a coral zip-up, white across the shoulders; leggings
     dict(name='vivianne', shape='f', coat='e8705e', skin='f4dcc8', hair='eec25a', hair2='fbe9a4', hairstyle='ponytail', band='e85a9a', legs='2e2c38',
          shoes='ece8e0', garment='jumper', drop=2, marks=(('yoke', 'f4f0e8', 2), ('zip', 'f4f0e8')), leg_stripe='e8705e', carry='torch',
