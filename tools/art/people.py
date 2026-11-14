@@ -188,6 +188,58 @@ def limb(c, a, b, w, t, near=True):
             c.raw(x, y, t[k])
 
 
+def limb2(c, a, m, b, w0, w1, t, near=True, t2=None):
+    """A whole LIMB as ONE smooth tapered curve through its three joints — shoulder / elbow / hand, hip / knee / ankle (owner, of the first rig: "I'm not overly
+    fond of how segmented the rig looks. The arms at the elbow and other parts of the limbs… more like Terrance and Phillip and the Canadians from South
+    Park"). The two straight capsules the limbs were made of met at a hinge; this is a quadratic curve that passes through the middle joint (a bend is a
+    bend, not a seam), thick at the root and thinner at the end, shaded across its width along the curve's own normal. `t2` = another material for the second
+    half (a bare forearm out of a sleeve)."""
+    ctrl = (2.0 * m[0] - 0.5 * (a[0] + b[0]), 2.0 * m[1] - 0.5 * (a[1] + b[1]))
+    n = 32
+    pts = []
+    for i in range(n + 1):
+        u = i / float(n)
+        x = (1 - u) ** 2 * a[0] + 2 * (1 - u) * u * ctrl[0] + u * u * b[0]
+        y = (1 - u) ** 2 * a[1] + 2 * (1 - u) * u * ctrl[1] + u * u * b[1]
+        pts.append((x * K, y * K))
+    rad = [max(lerp_(w0, w1, i / float(n)) * K, 1.15) / 2.0 for i in range(n + 1)]
+    normals = []
+    for i in range(n + 1):
+        (x0, y0), (x1, y1) = pts[max(0, i - 1)], pts[min(n, i + 1)]
+        dx, dy = x1 - x0, y1 - y0
+        ln = math.hypot(dx, dy) or 1.0
+        nx, ny = dy / ln, -dx / ln
+        if nx < -0.25 or (abs(nx) <= 0.25 and ny > 0):
+            nx, ny = -nx, -ny
+        normals.append((nx, ny))
+    rmax = max(rad)
+    xs = [p_[0] for p_ in pts]
+    ys = [p_[1] for p_ in pts]
+    for y in range(int(min(ys) - rmax - 1), int(max(ys) + rmax + 2)):
+        for x in range(int(min(xs) - rmax - 1), int(max(xs) + rmax + 2)):
+            px_, py_ = x + 0.5, y + 0.5
+            best, bi = 1e9, 0
+            for i, (qx, qy) in enumerate(pts):
+                d = (px_ - qx) ** 2 + (py_ - qy) ** 2
+                if d < best:
+                    best, bi = d, i
+            d = math.sqrt(best)
+            if d > rad[bi]:
+                continue
+            nx, ny = normals[bi]
+            qx, qy = pts[bi]
+            sd = ((px_ - qx) * nx + (py_ - qy) * ny) / rad[bi]
+            tone = t2 if (t2 is not None and bi >= n // 2) else t
+            k = 'd' if sd < -0.35 else ('l' if (sd > 0.45 and 'l' in tone) else 'm')
+            if not near:
+                k = {'l': 'd', 'm': 'd', 'd': 'dd'}[k]
+            c.raw(x, y, tone[k])
+
+
+def lerp_(a, b, t):
+    return a + (b - a) * t
+
+
 # ---- the skeleton ----------------------------------------------------------------------------------------------------------------------------
 BONES = dict(thigh=4.8, shin=4.8, upper=6.2, fore=6.0, spine=15.0)
 REST = dict(n_arm=(-3, 7), f_arm=(-2, 8), n_leg=(0, 0), f_leg=(0, 0))
@@ -398,21 +450,18 @@ def draw(p, pose, item=None):
             c.put(x + dx, y + dy + oy, col)
 
     # ---- behind the body: the far arm, the far leg
-    limb(c, j['shoulder_f'], j['elbow_f'], 4.2 * th, sleeve if p.get('sleeves', True) else skin, near=False)
-    limb(c, j['elbow_f'], j['hand_f'], 3.4 * th, skin if (p.get('rolled') or not p.get('sleeves', True)) else sleeve, near=False)
+    limb2(c, j['shoulder_f'], j['elbow_f'], j['hand_f'], 4.4 * th, 3.2 * th, sleeve if p.get('sleeves', True) else skin, near=False,
+          t2=skin if (p.get('rolled') or not p.get('sleeves', True)) else sleeve)
     fx, fy = R(j['hand_f'])
     far_skin = {k: _mix(skin['m'][:3], skin['d'][:3], 0.7) + (255,) for k in skin}
     c.ell(fx + 0.5, fy + (1.0 if palms else 1.5), 1.8, 2.6 if palms else 1.9, far_skin)
-    limb(c, j['hip_f'], j['knee_f'], 4.6 * th, legc, near=False)
-    limb(c, j['knee_f'], j['ankle_f'], 4.4 * th, legc, near=False)
+    limb2(c, j['hip_f'], j['knee_f'], j['ankle_f'], 4.8 * th, 4.2 * th, legc, near=False)
     shoe(j['ankle_f'], False, pose.get('f_roll'))
     # ---- the near leg
-    limb(c, j['hip_n'], j['knee_n'], 4.8 * th, legc)
-    limb(c, j['knee_n'], j['ankle_n'], 4.6 * th, legc)
+    limb2(c, j['hip_n'], j['knee_n'], j['ankle_n'], 5.0 * th, 4.4 * th, legc)
     if p.get('leg_stripe'):                                                         # a stripe down the outside of the leg
         ls_ = {k_: rgb(p['leg_stripe']) for k_ in ('m', 'd', 'dd', 'l', 'll')}
-        limb(c, j['hip_n'], j['knee_n'], 1.3, ls_)
-        limb(c, j['knee_n'], j['ankle_n'], 1.3, ls_)
+        limb2(c, j['hip_n'], j['knee_n'], j['ankle_n'], 1.3, 1.3, ls_)
     if p.get('turnup'):                                                             # trousers turned up at the ankle
         tu_ = rgb(p['turnup'])
         for an_ in (j['ankle_n'], j['ankle_f']):
@@ -742,8 +791,7 @@ def draw(p, pose, item=None):
     # ---- the near arm, over everything: its shadow on the body first, then the sleeve along its two bones, the cuff, the fist — and what it holds
     sn, en, hn = j['shoulder_n'], j['elbow_n'], j['hand_n']
     fore = skin if (p.get('rolled') or not p.get('sleeves', True)) else sleeve       # sleeves rolled to the elbow, or none
-    limb(c, sn, en, 5.0 * th, sleeve if p.get('sleeves', True) else skin)           # the upper arm is the heavier bone
-    limb(c, en, hn, 4.0 * th, fore)
+    limb2(c, sn, en, hn, 5.0 * th, 3.5 * th, sleeve if p.get('sleeves', True) else skin, t2=fore)           # ONE smooth arm, heavier at the shoulder, thinner at the wrist
     if p.get('rolled'):                                                             # the roll: a band of the shirt's lining at the elbow
         c.ell(en[0], en[1], 2.9 * th, 1.6, {k_: rgb(p['rolled']) for k_ in sleeve})
     if not p.get('sleeves', True):                                                  # a short sleeve: the garment's own colour capping a bare arm
