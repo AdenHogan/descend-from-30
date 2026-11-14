@@ -241,7 +241,7 @@ def lerp_(a, b, t):
 
 
 # ---- the skeleton ----------------------------------------------------------------------------------------------------------------------------
-BONES = dict(thigh=4.8, shin=4.8, upper=6.2, fore=6.0, spine=15.0)
+BONES = dict(thigh=5.6, shin=5.6, upper=6.2, fore=6.0, spine=15.0)
 REST = dict(n_arm=(-3, 7), f_arm=(-2, 8), n_leg=(0, 0), f_leg=(0, 0))
 
 
@@ -422,7 +422,7 @@ def draw(p, pose, item=None):
     shy = int(round(j['shoulder_n'][1] - 1.5))
     lean = int(round(j['neck'][0] - j['hip'][0] - 0.5))
     crawl = pose.get('spine', 0.0) > 55.0                     # on all fours: the body is a barrel between hips and shoulders, not a hanging coat
-    hem = hipy + p.get('drop', 1)
+    hem = hipy + p.get('drop', 1) - 1
 
     def shoe(ank, near, roll=None):
         """A shoe under an ankle. `roll`: 'heel' = just landed, the toe still up; 'toe' = pushing off, the heel already up."""
@@ -622,10 +622,17 @@ def draw(p, pose, item=None):
         c.ell(hx + 1.9, hy + 1.5, 4.5, 5.1, skin, flat=True)
     else:
         c.ell(hx, hy, 6.6, 7.0, skin, flat=True)
-        if st in ('long', 'bob', 'ponytail'):
+        if st in ('long', 'bob', 'ponytail', 'lob'):
             c.ell(hx, hy, 6.9, 7.3, hair, keep=lambda x, y: not face(x, y) or y < hy - 3.6)
             if st == 'bob':
                 c.ell(hx - 3.2, hy + 4.0, 4.4, 5.6, hair, keep=lambda x, y: not face(x, y))
+            if st == 'lob':                                                         # long loose hair to just below the shoulder: it frames the face, falls behind and swings a little
+                h2 = {k_: rgb(p.get('hair2', 'f8e6a0')) for k_ in hair}
+                c.ell(hx - 3.6 - 0.5 * sway, hy + 5.2, 4.8, 7.4, hair, keep=lambda x, y: not face(x, y))
+                c.ell(hx - 5.4 - 0.5 * sway, hy + 8.4, 2.6, 3.4, hair)
+                c.ell(hx - 4.4 - 0.5 * sway, hy + 6.0, 0.9, 4.2, h2)
+                c.ell(hx + 2.4, hy - 4.0, 4.2, 1.9, hair, keep=lambda x, y: skull(x, y))      # a fringe swept to one side
+                c.ell(hx + 0.8, hy - 5.4, 3.4, 0.9, h2, keep=lambda x, y: skull(x, y))
             if st == 'ponytail':                                                    # a full head of hair swept across the brow and tied high: the tail has weight and swings
                 h2 = {k_: rgb(p.get('hair2', 'f8e6a0')) for k_ in hair}
                 c.ell(hx - 7.4, hy - 2.2, 3.0, 3.2, hair)
@@ -916,10 +923,10 @@ PLAYERS = [
     # Joe, the tenant — a white man: dark brown mess of hair; a faded teal jumper over a grey tee (nobody's idea of a hero); jeans; brown boots
     dict(name='joe', shape='m', coat='4f7f7c', skin='f0d4bc', hair='5a3e2c', hairstyle='mop', legs='3f5a82', shoes='6a4428', garment='jumper',
          open='b8bcc0', drop=2, marks=(('yoke', '6a9a94', 2),), carry='hammer', face=dict(eye=(2, 2), gap=2, under=True)),
-    # Vivianne, the neighbour who runs — a white woman: golden hair swept across and tied high; a coral zip-up, white across the shoulders; leggings
-    dict(name='vivianne', shape='f', coat='e8705e', skin='f4dcc8', hair='eec25a', hair2='fbe9a4', hairstyle='ponytail', band='e85a9a', legs='2e2c38',
+    # Vivianne, the neighbour who runs — a white woman: golden hair loose to just below the shoulder; a coral zip-up, white across the shoulders; leggings
+    dict(name='vivianne', shape='f', coat='e8705e', skin='f4dcc8', hair='eec25a', hair2='fbe9a4', hairstyle='lob', legs='2e2c38',
          shoes='ece8e0', garment='jumper', drop=2, marks=(('yoke', 'f4f0e8', 2), ('zip', 'f4f0e8')), leg_stripe='e8705e', carry='torch',
-         face=dict(eye=(2, 3), gap=2, cheek='f4a8a8')),
+         face=dict(eye=(2, 2), gap=2, under=True)),
     # Alex, the super — a black man: hair cropped close; navy overalls with the sleeves off, a name patch, a tool belt; tan boots
     dict(name='alex', shape='m', coat='2f4a7a', skin='7a4e36', hair='1c1418', hairstyle='crop', legs='2f4a7a', shoes='b8863c', sleeves=False, drop=2,
          marks=(('patch', 'f0ece0'), ('belt', '6a4428', 'e8c860', 'c89a3c')), carry='hammer', face=dict(eye=(2, 2), gap=2, under=True)),
