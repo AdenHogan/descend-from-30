@@ -228,7 +228,7 @@ def skeleton(pose, p=None):
     j['hip'] = (hip[0], hipy)
     j['neck'] = (sx + 0.5, sh_y - 1.0)
     j['head'] = (sx + 1.5 + 6.0 * math.sin(bend), sh_y - 7.6 * math.cos(bend * 0.75) + g.get('nod', 0))   # (8.0: the head sat ON the shoulders — no neck)
-    for side, ox in (('n', -4.4), ('f', 3.4)):                # (the near shoulder was at -3.0: the arm hung down the MIDDLE of the body and hid the clothes)
+    for side, ox in (('n', -2.6), ('f', 3.4)):                # (the near shoulder was at -3.0: the arm hung down the MIDDLE of the body and hid the clothes)
         a1, a2 = g[side + '_arm']
         j['shoulder_' + side] = (sx + ox * math.cos(bend), sh_y + 1.5 + abs(ox) * 0.4 * math.sin(bend))
         j['elbow_' + side], j['hand_' + side] = _fk(j['shoulder_' + side], BONES['upper'] * arml, a1, BONES['fore'] * arml, a2)
@@ -286,9 +286,11 @@ def _outline(c, ink=(52, 38, 60), k=0.26):
 SHAPES = {
     # (owner, with the reference again: "there is so much natural style and proportion to this"): the garment is BIG and soft on a small body — round
     # shoulders, fullest low down, turning under at the hem — and still not a box: the front stands out further than the back, and it eases in and out.
-    'm': ((0.00, 3.2, 3.0), (0.10, 5.4, 5.0), (0.32, 6.0, 6.4), (0.62, 5.8, 6.4), (0.86, 6.0, 6.2), (1.00, 4.8, 5.0)),
-    'f': ((0.00, 3.0, 2.8), (0.10, 5.0, 4.6), (0.32, 5.6, 6.2), (0.60, 5.6, 6.2), (0.86, 6.2, 6.4), (1.00, 5.0, 5.2)),
-    'n': ((0.00, 3.2, 3.0), (0.10, 5.2, 4.8), (0.32, 5.8, 6.2), (0.62, 5.8, 6.4), (0.86, 6.2, 6.4), (1.00, 5.0, 5.2)),
+    # (the BACK stations were 5.4-6.0 at the top: with the arm's round shoulder on the back edge and a forward lean it read as a hunch — owner:
+    # "they look like they have hunchbacks. I can't unsee it". The back is now nearly straight from the shoulder down; the fullness is in FRONT.)
+    'm': ((0.00, 2.6, 3.0), (0.10, 3.9, 5.0), (0.32, 4.2, 6.4), (0.62, 4.6, 6.4), (0.86, 5.0, 6.2), (1.00, 4.2, 5.0)),
+    'f': ((0.00, 2.4, 2.8), (0.10, 3.6, 4.6), (0.32, 3.9, 6.2), (0.60, 4.3, 6.2), (0.86, 5.0, 6.4), (1.00, 4.2, 5.2)),
+    'n': ((0.00, 2.6, 3.0), (0.10, 3.8, 4.8), (0.32, 4.2, 6.2), (0.62, 4.6, 6.4), (0.86, 5.2, 6.4), (1.00, 4.4, 5.2)),
 }
 
 
@@ -378,7 +380,7 @@ def draw(p, pose, item=None):
     # the head is FIXED to the shoulders, in whole pixels (owner: "the heads bobbing up and down are weird and necks are still too long with the
     # bobbing"). It was placed from its own joint and rounded on its own, with a one-frame lag on top (`nod`): against a torso rounded separately it
     # slid a pixel or two up and down every step and opened a neck. Now it is the shoulder row minus a constant; it rises and falls only WITH the body.
-    hcx, hcy = int(round(j['neck'][0] + 1.0)), shy - 6
+    hcx, hcy = int(round(j['neck'][0] + 0.2)), shy - 6             # over the spine (a head carried forward of it is half of a hunch)
     j['head'] = (float(hcx), float(hcy))
     st = p['hairstyle']
     sway = pose.get('sway', 0)
@@ -703,7 +705,7 @@ def draw(p, pose, item=None):
         c.ell(en[0], en[1], 2.9 * th, 1.6, {k_: rgb(p['rolled']) for k_ in sleeve})
     if not p.get('sleeves', True):                                                  # a short sleeve: the garment's own colour capping a bare arm
         limb(c, sn, ((sn[0] + en[0]) * 0.55, (sn[1] + en[1]) * 0.55 + sn[1] * 0.0), 5.4 * th, g) if False else limb(c, sn, (sn[0] + (en[0] - sn[0]) * 0.5, sn[1] + (en[1] - sn[1]) * 0.5), 5.4 * th, g)
-    c.ell(sn[0], sn[1] - 0.4, 2.9 * th, 2.4, sleeve if p.get('sleeves', True) else g)                # the round of the shoulder
+    c.ell(sn[0], sn[1] + 0.6, 2.5 * th, 2.0, sleeve if p.get('sleeves', True) else g)                # the round of the shoulder: INSIDE the body's outline, below its top (above and behind it, it was a hump)
     sx, sy = R(sn)
     ex_, ey_ = R(en)
     hx, hy = R(hn)
@@ -751,7 +753,7 @@ def walk_pose(i, n=WALK_N, carry=None, stride=1.0, drag=0.0):
         return 'heel' if q < 0.09 or q > 0.94 else ('toe' if 0.38 <= q < 0.6 else None)
     arm = 22.0 * math.cos(2.0 * math.pi * ph)
     half = n // 2
-    pose = dict(n_leg=leg_(ph), f_leg=leg_(ph + 0.5), n_arm=(-arm, 8 + max(0.0, -arm) * 0.9), f_arm=(arm, 8 + max(0.0, arm) * 0.9), lean=1.0,
+    pose = dict(n_leg=leg_(ph), f_leg=leg_(ph + 0.5), n_arm=(-arm, 8 + max(0.0, -arm) * 0.9), f_arm=(arm, 8 + max(0.0, arm) * 0.9), lean=0.3,
                 n_roll=roll_(ph), f_roll=roll_(ph + 0.5), nod=0, hem_swing=-math.cos(2.0 * math.pi * ph),
                 sway=1 if (i % half) in (1, 2, 3) else 0)
     if carry:
