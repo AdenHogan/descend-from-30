@@ -68,6 +68,7 @@ def run(i, n):
     return pose, None
 
 
+CREEP = 8.6                                      # how far the hip stands above the ankle in the creep (leg is 11.2 long: knees bent ~65 degrees)
 THIGH = P.BONES['thigh']
 SHIN = P.BONES['shin']
 
@@ -113,10 +114,10 @@ def crouch(i, n):
     """A stealth CREEP, not a squat: knees bent about 80 degrees, ONE foot ahead of the other and both on the floor, the back pitched forward, the head and the eyes up,
     the near hand reaching out ahead for balance and the far one held back. It breathes."""
     ph = 2.0 * math.pi * i / float(n)
-    reach = 6.7 + 0.12 * math.sin(ph)
-    nl, fl = plant(60, reach), plant(26, reach)
+    reach = CREEP + 0.1 * math.sin(ph)
+    nl, fl = plant(46, reach), plant(14, reach)
     pose = P.idle_pose(0)
-    pose.update(n_leg=nl, f_leg=fl, spine=36, lean=0.0, head_dy=-2.0, head_dx=1.8, n_arm=(46, 78), f_arm=(-12, 60), breath=0, n_roll=None, f_roll='toe')
+    pose.update(n_leg=nl, f_leg=fl, spine=22, lean=0.0, head_dy=0.0, head_dx=0.4, n_arm=(34, 62), f_arm=(-8, 44), breath=0, n_roll=None, f_roll='toe')
     return pose, None
 
 
@@ -125,13 +126,13 @@ def crouch_walk(i, n):
     ph = i / float(n)
     base = crouch(0, n)[0]
 
-    def leg(q, a_mid):
+    def leg(q, a_mid):  # (a_mid: the thigh's average angle)
         q %= 1.0
-        a1 = a_mid + 20.0 * math.cos(2.0 * math.pi * q)
+        a1 = a_mid + 17.0 * math.cos(2.0 * math.pi * q)
         lift = 1.5 * math.sin(math.pi * (q - 0.5) / 0.5) if q >= 0.5 else 0.0
-        return plant(a1, 6.7 - lift)
-    base.update(n_leg=leg(ph, 42), f_leg=leg(ph + 0.5, 42), twist=0.8 * math.cos(2.0 * math.pi * ph), n_roll='heel' if ph % 1.0 < 0.1 else None,
-                n_arm=(46 + 6.0 * math.cos(2.0 * math.pi * ph), 78), f_arm=(-12 - 6.0 * math.cos(2.0 * math.pi * ph), 60))
+        return plant(a1, CREEP - lift)
+    base.update(n_leg=leg(ph, 30), f_leg=leg(ph + 0.5, 30), twist=0.8 * math.cos(2.0 * math.pi * ph), n_roll='heel' if ph % 1.0 < 0.1 else None,
+                n_arm=(34 + 6.0 * math.cos(2.0 * math.pi * ph), 62), f_arm=(-8 - 6.0 * math.cos(2.0 * math.pi * ph), 44))
     return base, None
 
 
