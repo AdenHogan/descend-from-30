@@ -131,8 +131,57 @@ func _strip_interactions() -> void:
 			n.queue_free()
 
 
+## The things in the hall (owner 2026-11-14, of the old zombie sprites on the title: "still seeing classic enemies in opening"): the new monsters'
+## own strips (assets/people, tools/art/creatures.py), one kind each. Null if the art is missing — the old sprite is then used instead.
+const THINGS := ["standard", "spitter", "crawler"]
+const THINGS_DIR := "res://assets/people/"
+const FEET_BELOW := 49.0             # the corridor's feet line (419) under a standard enemy's settled origin (370): docs/Y_PLANES.md
+
+
+static func _thing_sprite(kind: String) -> AnimatedSprite2D:
+	if not ResourceLoader.exists(THINGS_DIR + kind + ".png") or not FileAccess.file_exists(THINGS_DIR + "people.json"):
+		return null
+	var meta = JSON.parse_string(FileAccess.get_file_as_string(THINGS_DIR + "people.json"))
+	if not (meta is Dictionary) or not meta.has("cell") or not meta.has("anims"):
+		return null
+	var tex: Texture2D = load(THINGS_DIR + kind + ".png")
+	var cw := int(meta["cell"][0])
+	var ch := int(meta["cell"][1])
+	var frames := SpriteFrames.new()
+	if frames.has_animation("default"):
+		frames.remove_animation("default")
+	# the shambler's three states: it has an idle and a walk; a lunge is its idle played hard (it swells, its mouth works)
+	for pair in [["Idle", "idle", 4.0], ["Walk", "walk", 12.0], ["Attack", "idle", 11.0]]:
+		var a: Array = meta["anims"].get(pair[1], [0, 1])
+		frames.add_animation(pair[0])
+		frames.set_animation_loop(pair[0], true)
+		frames.set_animation_speed(pair[0], float(pair[2]))
+		for k in int(a[1]):
+			var at := AtlasTexture.new()
+			at.atlas = tex
+			at.region = Rect2(float((int(a[0]) + k) * cw), 0.0, float(cw), float(ch))
+			frames.add_frame(pair[0], at)
+	var spr := AnimatedSprite2D.new()
+	spr.sprite_frames = frames
+	spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	spr.centered = false
+	# its feet (the cell's bottom row) on the corridor's feet line: the shambler's node sits at ZOMBIE_SETTLED_Y, 49 px above it
+	spr.offset = Vector2(-float(cw) * 0.5, FEET_BELOW - float(ch) + 1.0)
+	return spr
+
+
 func _add_dead(i: int) -> void:
 	var spec: Array = DEAD[i]
+	var thing := _thing_sprite(String(THINGS[i % THINGS.size()]))
+	if thing != null:
+		var zt := _Dead.new()
+		zt.name = "Dead%d" % i
+		zt.setup(thing, float(spec[0]), float(spec[1]), float(spec[2]), SEED + 31 * (i + 1))
+		zt.position = Vector2(float(spec[0]), BuildingFloors.ZOMBIE_SETTLED_Y)
+		zt.z_index = 1
+		add_child(zt)
+		dead.append(zt)
+		return
 	var inst: Node = ZOMBIE_SCENE.instantiate()      # NOT added to the tree: its script never runs; we only borrow the sprite + the collision for the feet
 	var spr := inst.get_node("AnimatedSprite2D") as AnimatedSprite2D
 	if spr == null:

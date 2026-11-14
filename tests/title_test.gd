@@ -168,6 +168,16 @@ func _test_hall(s: Node) -> void:
 		kinds[e["mode"]] = true
 	chk(kinds.has("blink") and kinds.has("flicker"), "some of them blink and some flicker (%s)" % str(kinds.keys()))
 	chk(hall.dead.size() == 3, "three of the dead are in it")
+	# owner 2026-11-14 ("still seeing classic enemies in opening"): they are the new monsters' own strips, one kind each, feet on the corridor's feet line
+	var things_ok: bool = hall.dead.size() == 3
+	var kinds_seen := {}
+	for d in hall.dead:
+		var sf: SpriteFrames = d.sprite.sprite_frames
+		things_ok = things_ok and sf != null and sf.has_animation("Walk") and sf.get_frame_count("Walk") == 12 and sf.get_frame_count("Idle") == 6 \
+			and not d.sprite.centered and is_equal_approx(d.position.y + d.sprite.offset.y + float((sf.get_frame_texture("Idle", 0) as AtlasTexture).region.size.y) - 1.0, 419.0)
+		if sf != null and sf.has_animation("Idle"):
+			kinds_seen[(sf.get_frame_texture("Idle", 0) as AtlasTexture).atlas.resource_path] = true
+	chk(things_ok and kinds_seen.size() == 3, "…and they are three DIFFERENT new monsters, standing on the feet line (%d kinds)" % kinds_seen.size())
 	chk(hall.camera is Camera2D and hall.camera.is_current() and is_equal_approx(hall.camera.zoom.x, 648.0 / 192.0), "its camera is the game's own corridor framing")
 	var blood := 0
 	for n in hall.get_node("CorridorDecals").get_children():
