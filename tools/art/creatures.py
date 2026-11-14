@@ -12,7 +12,8 @@ Nothing here names or explains what they are (CLAUDE.md "Context" 4): they are b
                              rise and sink across its back, a fringe of small arms hanging under the mouth.
     longarm    THE REACH     a small body carried high on four arms twice its height, elbows above its back; a round sucking mouth underneath;
                              two withered legs that never touch the ground.
-    spitter    THE GULLET    a grub upright on bird legs with a tube of neck, and behind it a sack of something yellow that fills as it breathes.
+    spitter    THE HEAP      a hunched mass of matted fur with no head: raw bald patches, eyes of different sizes that open where they like, a beard
+                             of pale tentacles, thin black legs under its skirts, and one puckered tube out of its back that fills with green and spits.
 """
 import math
 
@@ -314,46 +315,87 @@ def reach(c, ph, pulse, walking, fr):
 
 # ------------------------------------------------------------------------------------------------------------------------------------- spitter
 def gullet(c, ph, pulse, walking, fr):
-    hide = pal('f08a2a', 'b04a1e', '6a2414', 'ffd070')
-    far = pal('b04a1e', '7a2c18', '4a1810', 'f08a2a')
+    """THE SPITTER (owner: "it looks like a kazoo on legs. I think you can do something grosser, maybe matted with fur, something lovecraftian").
+    A hunched heap of matted, greasy fur with no head anyone could point to: bald raw patches where the fur has come away, eyes of different
+    sizes opening wherever they like, a beard of pale tentacles hanging where a face should be, thin black legs under the skirts of its coat —
+    and, pushing up out of the fur, one puckered tube that swells with something green and spits it."""
+    fur = pal('3c2e3a', '241a2a', '120c18', '6e5c80')
+    raw = pal('e0707e', 'a83a5a', '6a1c40', 'ffb0a8')
+    tent = pal('d8a8b8', '9a6088', '5a3060', 'ffe0e4')
     acid = pal('a4ff2a', '3ab81e', '167a2a', 'f4ffb0')
-    bob = 0.8 * math.sin(4 * math.pi * ph) if walking else 0.0
-    f_far, f_near = step(ph + 0.5, 22.0, 7.0 if walking else 0.0, 2.6), step(ph, 17.0, 7.0 if walking else 0.0, 2.6)
-    leg(c, (21.0, 44.0 + bob), (f_far[0], f_far[1] - 1), -3.0, 2.6, 1.7, far, near=False)
-    fill = 0.5 + 0.5 * pulse                                                           # the sack fills... and fills... and lets go
-    sr = 7.0 + 3.4 * fill
-    blob(c, 12.6, 28.0 + bob - 0.8 * fill, sr, sr + 0.9, acid)
-    inside = lambda x, y: ((x - 12.6) / (sr - 1.0)) ** 2 + ((y - 28.0 - bob + 0.8 * fill) / sr) ** 2 <= 1.0
-    for i in range(5):                                                                 # it is boiling in there: bubbles climbing
-        u = ((fr / 6.0 if not walking else ph * 2.0) + i * 0.23) % 1.0
-        bx_, by_ = 9.0 + 2.0 * i + math.sin(i * 2.1) * 1.2, 34.0 + bob - 12.0 * u
-        if inside(bx_, by_):
-            blob(c, bx_, by_, 1.0 + 0.7 * u, 1.0 + 0.7 * u, one(acid['l']), wet=False)
-            c.raw(int(bx_ * K), int(by_ * K), WHITE)
-    veins(c, [(12.6, 36.0 + bob), (9.0, 31.0 + bob), (7.0, 26.0 + bob)], '167a2a')
-    veins(c, [(13.0, 36.0 + bob), (14.0, 29.0 + bob), (11.0, 22.0 + bob)], '167a2a')
-    blob(c, 19.5, 38.0 + bob, 6.6, 8.8, hide)
-    for y in (33.0, 37.0, 41.0):
-        c.wire(15, y + bob, 25, P.rgb('6a2414'))
-    aim = -1.0 * fill
-    P.limb(c, (22.0, 31.0 + bob), (27.0, 24.0 + bob), 4.8, hide)
-    P.limb(c, (27.0, 24.0 + bob), (33.0, 22.6 + bob + aim), 4.2, hide)
-    blob(c, 24.6, 27.4 + bob, 2.4 + 2.2 * (1.0 - fill), 2.4 + 1.6 * (1.0 - fill), acid)    # a swallow going UP the neck as the sack empties
-    blob(c, 34.6, 22.4 + bob + aim, 3.0, 3.2, one('ffd070'), wet=False)
-    blob(c, 34.8, 22.4 + bob + aim, 2.2, 2.4, one('2a0a14'), wet=False)
-    blob(c, 35.0, 22.4 + bob + aim, 1.2, 1.4, one(acid['m']), wet=False)
-    drip(c, 35.2, 25.2 + bob + aim, fr / 6.0 if not walking else ph * 2, acid['m'], acid['l'], length=7.0)
-    if fill < 0.25:                                                                    # ...and at the bottom of the breath it spits
-        for i in range(4):
-            c.put(37.0 + 2.0 * i, 21.6 + bob + aim + 0.4 * i * i, acid['m' if i % 2 else 'l'])
-    for i, (x, y) in enumerate(((25.0, 27.6), (27.6, 25.4), (30.0, 24.0))):
-        if (fr + i) % 4 != 0:
-            c.put(x, y + bob, (255, 60, 40, 255))
-    P.limb(c, (22.0, 36.0 + bob), (27.0, 39.0 + bob + pulse), 1.9, far)
-    P.limb(c, (27.0, 39.0 + bob + pulse), (29.4, 36.4 + bob + pulse), 1.3, far)
-    leg(c, (17.0, 44.0 + bob), (f_near[0], f_near[1] - 1), -3.4, 3.0, 1.9, hide)
-    for f in (f_far, f_near):
-        c.rect(f[0] - 1, f[1], f[0] + 3, f[1], P.rgb('4a1810'))
+    t = (fr / 6.0) if not walking else ph * 2.0
+    bob = 0.9 * math.sin(4 * math.pi * ph) if walking else 0.5 * pulse
+    sw = 1.6 * math.sin(2 * math.pi * (ph * 2 if walking else fr / 6.0))                # everything that hangs, swings
+    cx, cy = 19.0, 31.0 + bob
+    homes = (11.0, 16.0, 22.0, 27.0)
+    for k in (1, 3):                                                                   # far legs: thin, black, too many joints
+        f = step(ph + (0.5 if k == 1 else 0.0), homes[k], 6.0 if walking else 0.0, 2.4)
+        leg(c, (homes[k], 41.0 + bob), (f[0], f[1]), -2.6, 1.9, 1.3, one('120c18'), near=False)
+    fill = 0.5 + 0.5 * math.sin(2 * math.pi * t - 1.2)                                 # the tube filling
+    # the spitting tube: up out of the back of the heap, bent forward, a wet puckered end
+    tx, ty = 26.0 + 1.2 * fill, 13.0 + bob - 1.0 * fill
+    P.limb(c, (20.0, 22.0 + bob), (23.5, 15.0 + bob), 4.4 + 1.6 * fill, raw)
+    P.limb(c, (23.5, 15.0 + bob), (tx, ty), 3.8 + 1.4 * fill, raw)
+    blob(c, 22.4, 17.6 + bob, 2.2 + 1.8 * fill, 2.4 + 1.6 * fill, acid)                # what is coming up it, seen through the skin
+    blob(c, tx + 1.2, ty - 0.4, 2.8, 3.0, one('ffb0a8'), wet=False)
+    blob(c, tx + 1.6, ty - 0.4, 1.9 + 0.6 * fill, 2.1 + 0.6 * fill, one('24061a'), wet=False)
+    if fill > 0.75:                                                                    # full: it lets go
+        for i in range(5):
+            blob(c, tx + 3.4 + 2.4 * i, ty - 1.6 + 0.35 * i * i, 1.3 - 0.12 * i, 1.3 - 0.12 * i, acid, wet=False)   # (single pixels were all edge: the line ate them)
+        blob(c, tx + 2.4, ty - 0.6, 1.5, 1.5, acid, wet=True)
+    else:
+        blob(c, tx + 1.8, ty - 0.2, 0.9 + 0.8 * fill, 1.0 + 0.8 * fill, one(acid['m']), wet=False)
+    drip(c, tx + 1.6, ty + 2.4, t + 0.4, acid['m'], acid['l'], length=5.0)
+    # the heap: fur over something that breathes
+    blob(c, cx, cy, 11.2 + 0.6 * pulse, 12.4 - 0.4 * pulse, fur, wet=False)
+    blob(c, cx - 3.0, cy - 7.0, 7.6, 6.0, fur, wet=False)                              # a hump
+    glow(c, cx + 2.0, cy - 1.0, 3.4 + 1.6 * fill, (150, 255, 60, 255))                 # it is lit from inside, greener as it fills
+    for i in range(9):                                                                 # the fur lies in greasy ropes down its sides
+        x = cx - 9.0 + i * 2.3
+        y0 = cy - 6.0 + 2.5 * math.sin(i * 1.3)
+        P.limb(c, (x, y0), (x + 0.8, y0 + 5.0), 1.0, one('120c18'))
+    for i, (x, y) in enumerate(((cx - 6.0, cy - 9.0), (cx - 1.0, cy - 10.6), (cx + 3.4, cy - 8.0), (cx - 8.6, cy - 3.0))):   # a sheen where it is slick
+        P.limb(c, (x, y), (x + 2.2, y + 0.8), 1.0, one('6e5c80'))
+    for (x, y, rx, ry) in ((cx - 6.6, cy + 2.4, 2.6, 2.0), (cx + 5.6, cy - 5.2, 2.0, 1.6)):   # mange: raw skin where the fur has come away, wet
+        blob(c, x, y, rx, ry, raw)
+    # the skirts: matted clumps hanging off its lower edge, each swinging a little out of step
+    for i in range(11):
+        x = cx - 10.0 + i * 2.0
+        ln = 4.0 + 2.6 * abs(math.sin(i * 2.1))
+        s_ = sw * (0.5 + 0.5 * math.sin(i * 1.7))
+        y0 = cy + 8.0 + 2.6 * math.sin(math.pi * i / 10.0)
+        P.limb(c, (x, y0), (x + s_ * 0.5, y0 + ln * 0.6), 2.2, fur)
+        P.limb(c, (x + s_ * 0.5, y0 + ln * 0.6), (x + s_, y0 + ln), 1.2, one('120c18'))
+    for i in range(4):                                                                 # ...and off its back
+        y = cy - 4.0 + i * 3.6
+        P.limb(c, (cx - 10.6, y), (cx - 13.0 - 0.4 * sw, y + 3.0), 1.6, fur)
+    # the eyes: different sizes, not in a row, not open together
+    for i, (x, y, r) in enumerate(((cx + 5.0, cy - 2.6, 1.7), (cx + 7.6, cy + 0.6, 1.1), (cx + 2.6, cy - 6.0, 1.0), (cx + 8.2, cy - 4.0, 0.8), (cx - 0.4, cy - 1.6, 0.8), (cx + 4.4, cy + 2.6, 0.9))):
+        if (fr + i * 2) % 5 == 0:
+            P.limb(c, (x - r, y), (x + r, y), 0.8, one('120c18'))                      # shut: a slit in the fur
+        else:
+            blob(c, x, y, r + 0.5, r + 0.5, one('120c18'), wet=False)
+            blob(c, x, y, r, r, pal('ffe04a', 'e0902a', 'a05a1a', 'fff6b0'), wet=False)
+            c.raw(int((x + 0.3) * K), int(y * K), (20, 8, 20, 255))
+            if r > 1.4:
+                c.raw(int((x + 0.3) * K), int(y * K) + 1, (20, 8, 20, 255))
+    # the beard: tentacles where a face would be, curling and uncurling, suckers along them
+    for i in range(6):
+        x = cx + 3.0 + i * 1.5
+        a = math.sin(2 * math.pi * t + i * 1.1)
+        ln = 7.0 + 3.0 * abs(math.sin(i * 1.9))
+        m = (x + 1.6 * a, cy + 7.0 + ln * 0.5)
+        e = (x + 3.4 * a + (1.6 if i % 2 else -1.2), cy + 7.0 + ln)
+        P.limb(c, (x, cy + 6.0), m, 2.0, tent, near=(i % 2 == 0))
+        P.limb(c, m, e, 1.3, tent, near=(i % 2 == 0))
+        c.raw(int(m[0] * K), int(m[1] * K), (255, 240, 244, 255))
+        if i % 2 == 0:
+            P.limb(c, e, (e[0] + 1.2 * a, e[1] - 1.4), 0.9, one('ffe0e4'))             # the tip curls back
+    drip(c, cx + 6.0, cy + 15.0, t, P.rgb('e8c8d8'), WHITE, length=4.0)
+    for k in (0, 2):                                                                   # near legs, mostly under the skirts
+        f = step(ph + (0.0 if k == 0 else 0.5), homes[k], 6.0 if walking else 0.0, 2.6)
+        leg(c, (homes[k], 41.0 + bob), (f[0], f[1]), -3.0, 2.2, 1.4, one('1e1424'))
+        c.rect(f[0] - 1, f[1], f[0] + 2, f[1], P.rgb('0a0610'))
 
 
 KINDS = {'standard': husk, 'crawler': louse, 'big': bulk, 'longarm': reach, 'spitter': gullet}
