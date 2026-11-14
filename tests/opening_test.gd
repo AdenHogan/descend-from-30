@@ -663,6 +663,13 @@ func _test_runner() -> void:
 	var night := _built("", 3)
 	await get_tree().process_frame
 	check(night.runner == null, "night: nothing runs across the garden")
+	# the exteriors (owner 2026-11-14): the night garden has the new monsters standing in it, the calm and the afternoon do not
+	check(night.things != null and night.things.specs.size() == 4 and night.things.tex != null, "night: four of the new monsters stand in the garden (%d)" % (night.things.specs.size() if night.things != null else -1))
+	if night.things != null:
+		var kinds_ok := true
+		for sp in night.things.specs:
+			kinds_ok = kinds_ok and night.things.kinds.has(String(sp["kind"]))
+		check(kinds_ok and night.things.get_parent() == night.layers["garden"]["node"], "…each a kind on the sheet, children of the garden plane")
 	night.queue_free()
 
 

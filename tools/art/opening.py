@@ -1087,6 +1087,7 @@ def garden_runner(meta, run):
     rn['y0'] = GROUND_Y                                           # the row the building stands on: a path point (x, r) is drawn at y = y0 + r
     rn['tiers'] = dict(opening_figures.TIERS)                     # which hand-drawn size a figure on row r uses (assets/opening/figures.png): L from row 28, M from 14, S below
     meta['runner'] = rn
+    meta['things'] = [dict(t) for t in THINGS.get(run, [])]            # the night's monsters in the garden (the game draws them: scripts/opening_exterior.gd `_Things`)
 
 
 # Where the runner goes, in the garden layer's own pixels (y is the row it stands on: GROUND_Y = the foot of the building, +43 = the
@@ -1100,6 +1101,15 @@ RUNNERS = {
     # a person comes up from the front-right and runs for the barricaded door — and stands there, hammering on it (the camera leaves them)
     2: {'kind': 'human', 'speed': 52.0, 'start': 0.3, 'end': 'pound', 'path': [[230, 47], [225, 42], [200, 42], [198, 40], [186, 40], [185, 39], [182, 39], [176, 33], [165, 33], [161, 31], [161, 30], [167, 26], [169, 26], [171, 24], [151, 4], [142, 4]]},
     3: {'kind': ''},
+}
+
+
+# The night's MONSTERS standing in the garden (owner 2026-11-14: the exteriors, after the enemies in play): the new monsters (tools/art/creatures.py
+# `write_opening_things` -> assets/monsters/opening_things.png), placed on free ground (`_runner_blocked` checked), idling and slowly shifting
+# their weight. kind = a row of the sheet; x / row in the garden layer's pixels (row 0 = the building's foot, 43 the viewer's edge); dir faces them.
+THINGS = {
+    3: [{'kind': 'standard', 'x': 150, 'row': 29, 'dir': 1, 'phase': 0.0}, {'kind': 'standard', 'x': 172, 'row': 34, 'dir': -1, 'phase': 2.3},
+        {'kind': 'big', 'x': 236, 'row': 37, 'dir': -1, 'phase': 1.1}, {'kind': 'crawler', 'x': 118, 'row': 40, 'dir': 1, 'phase': 3.4}],
 }
 
 

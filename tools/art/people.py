@@ -167,7 +167,7 @@ def limb(c, a, b, w, t, near=True):
     lit, the other in shade; a far limb is a tone down throughout."""
     ax, ay = a[0] * K, a[1] * K                          # given in design pixels, drawn at size
     bx, by = b[0] * K, b[1] * K
-    w = w * K
+    w = max(w * K, 1.15)                                 # (a line thinner than a pixel and a quarter drops out into dots at small scales — the opening's far monsters)
     dx, dy = bx - ax, by - ay
     ln = math.hypot(dx, dy) or 1.0
     nx, ny = dy / ln, -dx / ln

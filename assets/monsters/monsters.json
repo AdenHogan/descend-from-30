@@ -61,11 +61,11 @@
    ]
   },
   "cell": [
-   162,
-   116
+   120,
+   87
   ],
-  "feet_row": 115,
-  "scale": 2.0
+  "feet_row": 86,
+  "scale": 1.5
  },
  "longarm": {
   "anims": {
@@ -95,11 +95,11 @@
    ]
   },
   "cell": [
-   120,
-   87
+   100,
+   72
   ],
-  "feet_row": 86,
-  "scale": 1.5
+  "feet_row": 71,
+  "scale": 1.25
  },
  "spitter": {
   "anims": {

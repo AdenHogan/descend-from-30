@@ -399,7 +399,7 @@ from contextlib import contextmanager
 
 from PIL import Image, ImageDraw
 
-SCALE = {'standard': 2.0, 'crawler': 2.0, 'big': 2.0, 'longarm': 1.5, 'spitter': 2.0}
+SCALE = {'standard': 2.0, 'crawler': 1.5, 'big': 2.0, 'longarm': 1.25, 'spitter': 2.0}   # (watched in the game: the louse at 2.0 was 130 px long, the reach at 1.5 filled the corridor's height)
 GOO = {'standard': ('ff4a6a', '9a1c40', '4a0c2a'), 'crawler': ('c8f060', '6aa81e', '2c5a10'), 'big': ('e060d0', '7a2a8a', '38104e'),
        'longarm': ('ff9a40', 'b8501e', '5a2410'), 'spitter': ('a4ff2a', '3ab81e', '167a2a')}
 ANIMS = (('Idle', 6, 6.0, True), ('Walk', 12, 9.0, True), ('Attack', 10, 12.0, True), ('Hit', 4, 8.0, True), ('Death', 12, 10.0, False), ('Dead_Dead', 1, 1.0, True))
@@ -496,7 +496,7 @@ def build(name):
             attack.append(_xform(place(c.im), foot, dx=shifts[i] * k, sx=sqs[i][0], sy=sqs[i][1]))
         # the hit: thrown back, squashed, flashing white, then it rights itself
         hit = []
-        for i, (dx, sy, fl) in enumerate(((-3.0, 0.90, 0.85), (-5.0, 0.84, 0.55), (-3.0, 0.92, 0.18), (-1.0, 0.97, 0.0))):
+        for i, (dx, sy, fl) in enumerate(((-3.0, 0.90, 0.55), (-5.0, 0.84, 0.32), (-3.0, 0.92, 0.10), (-1.0, 0.97, 0.0))):
             src = idle[(i + 1) % 6]
             hit.append(_flash(_xform(src, foot, dx=dx * k, sx=1.0 + (1.0 - sy) * 0.6, sy=sy, rot=-4.0 * (1.0 - i / 3.0)), fl) if fl else
                        _xform(src, foot, dx=dx * k, sy=sy, rot=-2.0))
@@ -507,9 +507,22 @@ def build(name):
             e = _ease(t)
             src = idle[(i * 2) % 6]
             pool = _pool((wide, ch), foot, name, (4.0 + 24.0 * max(0.0, t - 0.25) ** 0.7) * k)
-            body = _xform(src, foot, dx=-9.0 * k * e, sx=1.0 + 0.25 * e, sy=1.0 - 0.45 * e * e, rot=-84.0 * e)
+            if name == 'crawler':                                                      # a long low thing does not stand on its tail: it rocks and rolls onto its back, legs up
+                bb = src.getbbox()
+                if t < 0.35:
+                    body = _xform(src, foot, dx=-2.0 * k * e, rot=-22.0 * (e / _ease(0.35)))
+                else:
+                    u = _ease((t - 0.35) / 0.65)
+                    flipped = src.crop(bb).transpose(Image.FLIP_TOP_BOTTOM)
+                    flipped = flipped.resize((flipped.width, max(2, int(flipped.height * (1.0 - 0.35 * u)))), Image.NEAREST)
+                    body = Image.new('RGBA', (wide, ch), (0, 0, 0, 0))
+                    body.alpha_composite(flipped, (bb[0], ch - flipped.height))
+            elif name == 'longarm':                                                    # it has no body to fall: its arms give way and it folds up where it stood
+                body = _xform(src, foot, dx=-3.0 * k * e, sx=1.0 + 0.9 * e, sy=1.0 - 0.8 * e * e, rot=-8.0 * e)
+            else:
+                body = _xform(src, foot, dx=-9.0 * k * e, sx=1.0 + 0.25 * e, sy=1.0 - 0.45 * e * e, rot=-84.0 * e)
             if i == 0:
-                body = _flash(body, 0.6)
+                body = _flash(body, 0.35)
             out = Image.new('RGBA', (wide, ch), (0, 0, 0, 0))
             out.alpha_composite(pool)
             out.alpha_composite(body)
@@ -552,11 +565,6 @@ def write_all():
     return meta
 
 
-if __name__ == '__main__':
-    m = write_all()
-    for k, v in m.items():
-        print(k, v['cell'], v['scale'])
-
 
 def write_spit():
     """The spitter's shot: a fat blob of green with a bright core and drops trailing off it, six frames of 64 x 64 (the old sheet's size), flying right."""
@@ -576,3 +584,37 @@ def write_spit():
             P._outline(c, (10, 40, 12), 0.7)
             sheet.alpha_composite(c.im.crop((14, 26, 78, 90)), (64 * i, 0))
     sheet.save(os.path.join(OUT, 'spit.png'))
+
+
+OPENING_SCALE = {'standard': 0.55, 'big': 0.42, 'crawler': 0.62}
+
+
+def write_opening_things():
+    """The monsters as they are seen from the street (the night opening: far across the garden, 15-30 px tall): the idle cycle drawn at a small scale,
+    cropped to one cell, on one sheet — a row a monster, six frames. `assets/monsters/opening_things.png` + `.json`."""
+    rows = []
+    cell = [0, 0]
+    for name, k in OPENING_SCALE.items():
+        with at_scale(k):
+            frs = [im for im, _ in frames(name, 'idle')]
+            bs = [im.getbbox() for im in frs]
+            x0, x1 = min(b[0] for b in bs), max(b[2] for b in bs)
+            y0, y1 = min(b[1] for b in bs), max(b[3] for b in bs)
+            rows.append((name, [im.crop((x0, y0, x1, y1)) for im in frs]))
+            cell = [max(cell[0], x1 - x0), max(cell[1], y1 - y0)]
+    sheet = Image.new('RGBA', (cell[0] * 6, cell[1] * len(rows)), (0, 0, 0, 0))
+    for r, (name, frs) in enumerate(rows):
+        for c, im in enumerate(frs):
+            sheet.alpha_composite(im, (c * cell[0] + (cell[0] - im.width) // 2, r * cell[1] + cell[1] - im.height))
+    sheet.save(os.path.join(OUT, 'opening_things.png'))
+    with open(os.path.join(OUT, 'opening_things.json'), 'w') as fh:
+        json.dump({'cell': cell, 'frames': 6, 'kinds': [n for n, _ in rows]}, fh, indent=1)
+    return cell
+
+
+if __name__ == '__main__':
+    m = write_all()
+    write_spit()
+    print('opening things cell', write_opening_things())
+    for k, v in m.items():
+        print(k, v['cell'], v['scale'])

@@ -131,6 +131,7 @@ var flames: Array = []                  # [{"glow": Sprite2D, "phase": float}] â
 var burning: Array = []                 # burn_plan() as laid on the building
 var birds: Node2D = null                # the flock wheeling over the roof (day)
 var wire_birds: Node2D = null           # the crows on the telephone wire, which startle and fly off
+var things: Node2D = null              # the night's monsters standing in the garden (run 3)
 var runner: Node2D = null               # the one thing crossing the garden (a black cat in the morning, a person fleeing in the afternoon)
 var growth: Sprite2D = null             # the vines / flesh up the lower floors (its own picture, writhing), above the facade and under everything laid on it
 var survivors: Node2D = null            # the little people at lit windows (meta "survivors"), animated off `t`
@@ -766,6 +767,13 @@ func _decorate_garden() -> void:
 		runner.setup(rn)
 		runner.look_from = BIRDS_TAKE_OFF + 0.25
 		node.add_child(runner)
+	# ...and at night the monsters (assets/monsters/opening_things.png, tools/art/creatures.py): standing in the garden, shifting their weight
+	if not g.get("things", []).is_empty():
+		things = _Things.new()
+		things.name = "Things"
+		things.modulate = Color(0.62, 0.54, 0.6)                    # the night grade is on the layers behind them, not on them: take the edge off
+		things.setup(g["things"], float(g.get("runner", {}).get("y0", 482.0)))
+		node.add_child(things)
 
 
 ## Lay the charred windows / soot / flames for burn_plan() on the building (a child of the scene layer, so it scrolls with it).
@@ -961,6 +969,9 @@ func _apply(dt: float) -> void:
 	if runner != null:
 		runner.clock = t
 		runner.queue_redraw()
+	if things != null:
+		things.clock = t
+		things.queue_redraw()
 	_lightning(dt)
 	# the sounds: a low tonal hum under the whole thing (no noise â€” it read as static; a touch fuller at night), a siren far off, a swell under the title
 	if _hum != null and _hum.stream != null:
@@ -1503,6 +1514,51 @@ class _Runner:
 		for i in range(-int(half) - 1, int(r.size.x - half) + 1):                       # a soft shadow on the grass, as wide as the figure
 			draw_rect(Rect2(float(i), 0.0, 1.0, 1.0), Color(0, 0, 0, 0.26 * alpha))
 		draw_texture_rect_region(art.tex, Rect2(-half, -r.size.y, r.size.x, r.size.y), r, Color(1, 1, 1, alpha))
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+# ---- the night's monsters in the garden ----------------------------------------------------------------------------------------------
+# A few of the new monsters (assets/monsters/opening_things.png: a row a monster, six idle frames) standing on free ground, each breathing at its own
+# pace and shifting a pixel or two. A pure function of the opening's clock; drawn over the garden (they stand where the art tool checked nothing nearer
+# covers them).
+class _Things:
+	extends Node2D
+
+	const SHEET := "res://assets/monsters/opening_things.png"
+	const META := "res://assets/monsters/opening_things.json"
+	var tex: Texture2D = null
+	var cell := Vector2(24, 22)
+	var kinds: Array = []
+	var specs: Array = []
+	var y0 := 482.0
+	var clock := 0.0
+
+	func setup(list: Array, ground_y: float) -> void:
+		specs = list
+		y0 = ground_y
+		if ResourceLoader.exists(SHEET) and FileAccess.file_exists(META):
+			var m = JSON.parse_string(FileAccess.get_file_as_string(META))
+			if m is Dictionary:
+				tex = load(SHEET)
+				cell = Vector2(float(m["cell"][0]), float(m["cell"][1]))
+				kinds = m["kinds"]
+
+	func _draw() -> void:
+		if tex == null:
+			return
+		for sp in specs:
+			var row: int = kinds.find(String(sp.get("kind", "")))
+			if row < 0:
+				continue
+			var ph: float = float(sp.get("phase", 0.0))
+			var fr: int = int(floor(clock * 3.0 + ph)) % 6
+			var sway: float = roundf(sin(clock * 0.5 + ph) * 1.0)
+			var feet := Vector2(roundf(float(sp["x"]) + sway), floorf(y0 + float(sp["row"])))
+			var dir: float = float(sp.get("dir", 1.0))
+			draw_set_transform(feet, 0.0, Vector2(dir, 1.0))
+			for i in range(-int(cell.x * 0.3), int(cell.x * 0.3) + 1):                                  # a contact shadow on the grass
+				draw_rect(Rect2(float(i), 0.0, 1.0, 1.0), Color(0, 0, 0, 0.3))
+			draw_texture_rect_region(tex, Rect2(-floorf(cell.x * 0.5), -cell.y, cell.x, cell.y), Rect2(float(fr) * cell.x, float(row) * cell.y, cell.x, cell.y))
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 

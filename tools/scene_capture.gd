@@ -370,6 +370,21 @@ func _do(step: String) -> void:
 				var made: Array = PeoplePreview.spawn_all(host_p, pl_p.global_position.y + 33.0, x0p, x1p, float(p[3]) if p.size() > 3 else 1.0, p[4] if p.size() > 4 else "neighbours")
 				print("people: %d on feet line %.0f (player at %s)" % [made.size(), pl_p.global_position.y + 33.0, pl_p.global_position])
 			await _frames(1)
+		"thing":
+			# thing:<x>:<kind>:<anim>[:<left>] — an enemy of that kind with its AI switched off, playing ONE animation on the player's feet line (to look at the art in the real scene)
+			var host_t = get_tree().current_scene
+			var pl_t = _player()
+			if host_t != null and pl_t != null:
+				var zt = load("res://scenes/enemy_zombie_%s.tscn" % p[2]).instantiate()
+				host_t.add_child(zt)
+				var lane_t: float = pl_t.lane_position().y if pl_t.has_method("lane_position") else pl_t.global_position.y
+				zt.global_position = Vector2(float(p[1]), lane_t - 17.0)
+				zt.set_physics_process(false)
+				zt.set_process(false)
+				var spr_t: AnimatedSprite2D = zt.get_node("AnimatedSprite2D")
+				spr_t.flip_h = p.size() > 4 and p[4] == "left"
+				spr_t.play(p[3])
+			await _frames(1)
 		"zombie":
 			# zombie:<x> — a standard zombie standing at world x on the player's walking line in the current scene (to see it pass a hiding player)
 			var host = get_tree().current_scene
