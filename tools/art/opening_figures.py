@@ -151,14 +151,89 @@ def _from_rows(rows, tones, what):
     return im
 
 
+# ---- the person: Nell, the girl in the red duffel coat — the game's neighbour (tools/art/people.py) at the opening's three sizes (owner 2026-11-14, "redraw
+# the fleeing person in the new style"). At 10-16 px the rig turns to mud (its details are smaller than a pixel), so each size is built from whole-pixel
+# BLOCKS the way the owner's reference is: a big head of dark hair over a pale face with ONE dark eye, an oversized red coat with a shade side and a lit
+# side, a hem, two SOLID legs two pixels wide, and a shoe. Run = the legs scissor (contact, passing, contact, passing) with the body leaning in and the
+# arms pumping against them. Facing right.
+HAIR, HAIR_L = (52, 36, 46, 255), (86, 62, 78, 255)
+FACE, FACE_D = (240, 218, 200, 255), (206, 176, 160, 255)
+EYE_C = (30, 20, 34, 255)
+COAT, COAT_D, COAT_L, COAT_DD = (200, 72, 60, 255), (150, 48, 48, 255), (232, 112, 92, 255), (112, 34, 40, 255)
+LEG, LEG_D, SHOE = (64, 58, 82, 255), (44, 40, 60, 255), (22, 18, 28, 255)
+# (head height, torso height, leg height, head width, torso width)
+_DIM = {'L': (6, 5, 5, 6, 7), 'M': (5, 4, 4, 5, 6), 'S': (4, 3, 3, 4, 5)}
+
+
+def _rect(px, w, h, x0, y0, x1, y1, c):
+    for y in range(y0, y1 + 1):
+        for x in range(x0, x1 + 1):
+            if 0 <= x < w and 0 <= y < h:
+                px[x, y] = c
+
+
 def person(tier, frame):
-    hands = ('A', 'A') if frame in ('a', 'b') else ('.', '.')                    # the arms swing out at each contact, tuck in as the legs pass
-    top = [r.replace('{a}', hands[0]).replace('{b}', hands[1]) for r in _P_TOP[tier]]
-    return _from_rows(top + _P_LEGS[tier][frame], P_TONES, 'person %s %s' % (tier, frame))
+    hh, th, lh, hw, tw = _DIM[tier]
+    H = hh + th + lh
+    W = tw + 6
+    im = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    px = im.load()
+    cx = 3 + tw // 2                                         # the torso's centre column
+    lean = 1                                                 # the body leans into the run
+    hx0 = cx - hw // 2 + lean
+    # the head: hair over the top and down the back, a face at the front with one eye
+    _rect(px, W, H, hx0, 0, hx0 + hw - 1, hh - 1, HAIR)
+    fx0 = hx0 + hw // 2 - 1
+    _rect(px, W, H, fx0, 1, hx0 + hw - 1, hh - 1, FACE)
+    _rect(px, W, H, fx0, hh - 1, hx0 + hw - 1, hh - 1, FACE_D)
+    px[hx0 + hw - 2, 1 + (1 if hh >= 5 else 0)] = EYE_C
+    px[hx0 + 1, 0 if hh < 5 else 1] = HAIR_L
+    if hh >= 5:
+        _rect(px, W, H, hx0, 1, hx0, hh, HAIR)                # the hair falls past the head at the back
+    # the coat
+    ty0 = hh
+    tx0 = cx - tw // 2
+    _rect(px, W, H, tx0, ty0, tx0 + tw - 1, ty0 + th - 1, COAT)
+    _rect(px, W, H, tx0, ty0, tx0, ty0 + th - 1, COAT_D)                          # the back in shade
+    _rect(px, W, H, tx0 + tw - 2, ty0 + 1, tx0 + tw - 1, ty0 + th - 2, COAT_L)    # the front in light
+    _rect(px, W, H, tx0, ty0 + th - 1, tx0 + tw - 1, ty0 + th - 1, COAT_DD)       # the hem
+    px[tx0 + tw - 2, ty0 + (th // 2)] = (240, 226, 208, 255)                      # a toggle
+    # the legs: two solid 2 px columns, scissoring
+    hip_y = ty0 + th
+    d = {'a': 2, 'p1': 0, 'b': -2, 'p2': 0}[frame]                                # how far the front foot is ahead
+    lift = {'a': 0, 'p1': 1, 'b': 0, 'p2': 1}[frame]
+    for (leg_x, col, shift, up) in ((cx - 1 + lean, LEG_D, -d, 0), (cx + lean, LEG, d, lift)):
+        for i in range(lh - up):
+            sx = leg_x + int(round(shift * (i + 1) / float(lh)))
+            _rect(px, W, H, sx, hip_y + i, sx + 1, hip_y + i, col)
+        fy = hip_y + lh - up - 1
+        fx = leg_x + int(round(shift * (lh - up) / float(lh)))
+        _rect(px, W, H, fx, fy, fx + 2, fy, SHOE)
+    # the arms: a sleeve down the side of the coat and a pale hand, swung against the legs
+    arm = {'a': -2, 'p1': -1, 'b': 2, 'p2': 1}[frame]
+    ax = cx + lean + (arm // 2)
+    _rect(px, W, H, ax, ty0 + 1, ax + 1, ty0 + th - 1, COAT_L)
+    px[ax + (1 if arm > 0 else 0), min(H - 1, ty0 + th)] = FACE
+    return im
 
 
 def pound(frame):
-    return _from_rows(_P_POUND[frame], P_TONES, 'pound %s' % frame)
+    """Hammering on the barricaded door, seen from behind: hair only for a head, both fists up on the boards, one then the other."""
+    im = Image.new('RGBA', (8, 12), (0, 0, 0, 0))
+    px = im.load()
+    _rect(px, 8, 12, 2, 2, 5, 4, HAIR)
+    _rect(px, 8, 12, 1, 5, 6, 8, COAT)
+    _rect(px, 8, 12, 1, 5, 1, 8, COAT_D)
+    _rect(px, 8, 12, 1, 8, 6, 8, COAT_DD)
+    up, dn = (6, 0), (1, 2)
+    for (x, y0, y1) in ((1, 0 if frame == 'a' else 2, 5), (6, 2 if frame == 'a' else 0, 5)):
+        _rect(px, 8, 12, x, y0, x, y1, COAT_L)
+        px[x, y0] = FACE
+    _rect(px, 8, 12, 2, 9, 3, 11, LEG)
+    _rect(px, 8, 12, 4, 9, 5, 11, LEG_D)
+    _rect(px, 8, 12, 2, 11, 3, 11, SHOE)
+    _rect(px, 8, 12, 4, 11, 5, 11, SHOE)
+    return im
 
 
 # ---- the cat ----------------------------------------------------------------------------------------------------------------
