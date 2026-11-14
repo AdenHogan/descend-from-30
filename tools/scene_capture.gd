@@ -370,6 +370,12 @@ func _do(step: String) -> void:
 				var made: Array = PeoplePreview.spawn_all(host_p, pl_p.global_position.y + 33.0, x0p, x1p, float(p[3]) if p.size() > 3 else 1.0, p[4] if p.size() > 4 else "neighbours")
 				print("people: %d on feet line %.0f (player at %s)" % [made.size(), pl_p.global_position.y + 33.0, pl_p.global_position])
 			await _frames(1)
+		"hideplayer":
+			# hideplayer — the player's sprite is not drawn (to lay a mock-up of another figure over the real scene)
+			var pl_h = _player()
+			if pl_h != null:
+				pl_h.visible = false
+			await _frames(1)
 		"thing":
 			# thing:<x>:<kind>:<anim>[:<left>] — an enemy of that kind with its AI switched off, playing ONE animation on the player's feet line (to look at the art in the real scene)
 			var host_t = get_tree().current_scene
