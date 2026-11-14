@@ -94,13 +94,13 @@ static func wear_text(d: Dictionary) -> String:
 	if d.get("is_molotov", false):
 		return "Thrown away when used: it bursts where it lands into a splash of flame that sets everything standing in it alight — you too, if you stand in it. Crafted from an Empty Bottle + Torn Clothes."
 	if d.get("is_bottle", false):
-		return "Thrown away when used: it shatters on the first thing it hits — a loud smash that pulls the dead to the noise."
+		return "Thrown away when used: it shatters on the first thing it hits — a loud smash that pulls the things to the noise."
 	if d.get("is_throwable", false):
-		return "Thrown away when used: the can lands loudly and pulls the dead to the noise."
+		return "Thrown away when used: the can lands loudly and pulls the things to the noise."
 	if d.get("is_fuse", false):
 		return "Fitted into the fuse box; three power the lift for one ride."
 	if d.get("requires_battery", false):
-		return "In hand, the use key switches it on and off. Lit, it runs its battery down and never wears out itself. A lit torch shows you the dark — and shows you to the dead. Switch it off to save it, and to go unseen."
+		return "In hand, the use key switches it on and off. Lit, it runs its battery down and never wears out itself. A lit torch shows you the dark — and shows you to the things. Switch it off to save it, and to go unseen."
 	if d.get("is_battery", false):
 		return "One battery refills a torch: use it, or drag it onto the torch. A dead torch takes one by itself when you switch it on."
 	if d.get("is_ammo", false):

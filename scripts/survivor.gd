@@ -1092,7 +1092,7 @@ func _rescued() -> void:
 	if not bool(rec.get("credited", false)):
 		rec["credited"] = true
 		WorldState.note_npc_aided()                        # +Valour, once
-		WorldState.add_run_trace("Saved a stranger from the dead.")
+		WorldState.add_run_trace("Saved a stranger from the things.")
 	SurvivorPlan.register_haven(rec, "rescue")             # a corridor post / a flat that is quiet from the next run on
 	_wind = -1.0
 	_show_weapon(false, 0.0)

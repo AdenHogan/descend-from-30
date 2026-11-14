@@ -253,7 +253,7 @@ func _draw() -> void:
 	# ---- the key
 	var ky := 4.0
 	_label(f, Vector2(2.0, ky + 12.0), "WHAT YOU HAVE SEEN", 12, ink)
-	var key_items := [["dead", "the dead, last seen"], ["person", "someone living"], ["body", "one of you fell"], ["fire", "fire / char"], ["you", "you are here"]]
+	var key_items := [["dead", "the things, last seen"], ["person", "someone living"], ["body", "one of you fell"], ["fire", "fire / char"], ["you", "you are here"]]
 	var kx := 2.0
 	var kyy := ky + 30.0
 	for it in key_items:

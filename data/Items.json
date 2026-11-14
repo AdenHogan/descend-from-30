@@ -10,7 +10,7 @@
     },
     "002": {
       "ITEM_NAME": "Hammer",
-      "ITEM_DESCRIPTION": "Blunt object goes thwack. Hammers are durable tools that make short work of weak locks and zombie skulls.",
+      "ITEM_DESCRIPTION": "Blunt object goes thwack. Hammers are durable tools that make short work of weak locks and whatever's trying to get through the door.",
       "VALUE_PROPERTY": "is_weapon, is_tool, can_force_lock",
       "PROPERTY_DURABILITY": "10 uses",
       "PROPERTY_SPAWN_RARITY": 2,
@@ -18,7 +18,7 @@
     },
     "003": {
       "ITEM_NAME": "Sword",
-      "ITEM_DESCRIPTION": "Study the blade. Swords are uncommon but make light slicey work of the zombie menace!",
+      "ITEM_DESCRIPTION": "Study the blade. Swords are uncommon but make light slicey work of whatever's come crawling out of the walls!",
       "VALUE_PROPERTY": "is_weapon",
       "PROPERTY_DURABILITY": "15 uses",
       "PROPERTY_SPAWN_RARITY": 1,
@@ -90,7 +90,7 @@
     },
     "012": {
       "ITEM_NAME": "Golf Club",
-      "ITEM_DESCRIPTION": "Get a hole in one… zombie skull! A sturdy club can bash brains and locks, no polo shirt required!",
+      "ITEM_DESCRIPTION": "Get a hole in one… on one of those things! A sturdy club can bash anything and any lock, no polo shirt required!",
       "VALUE_PROPERTY": "is_weapon, can_force_lock",
       "PROPERTY_DURABILITY": "7 uses",
       "PROPERTY_SPAWN_RARITY": 1,
@@ -186,7 +186,7 @@
     },
     "024": {
       "ITEM_NAME": "Empty Bottle",
-      "ITEM_DESCRIPTION": "Not much use as it is, but thrown it smashes on the first thing it hits — loud enough to draw the dead to the noise. There will be glass everywhere.",
+      "ITEM_DESCRIPTION": "Not much use as it is, but thrown it smashes on the first thing it hits — loud enough to draw the things to the noise. There will be glass everywhere.",
       "VALUE_PROPERTY": "is_junk, is_throwable, is_bottle",
       "PROPERTY_DURABILITY": "single use, throwable object",
       "PROPERTY_SPAWN_RARITY": 4,
@@ -274,7 +274,7 @@
     },
     "035": {
       "ITEM_NAME": "Crowbar",
-      "ITEM_DESCRIPTION": "Heavy iron with a claw on the end. Not for fighting — it's the one thing that'll lever a path through a stairwell packed wall-to-wall with the dead, or a locked cabinet open. Bends open once, then it's spent.",
+      "ITEM_DESCRIPTION": "Heavy iron with a claw on the end. Not for fighting — it's the one thing that'll lever a path through a stairwell packed wall-to-wall with the things, or a locked cabinet open. Bends open once, then it's spent.",
       "VALUE_PROPERTY": "is_tool, is_crowbar",
       "PROPERTY_DURABILITY": "single use, pries one blocked stairwell",
       "PROPERTY_SPAWN_RARITY": 2,

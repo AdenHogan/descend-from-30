@@ -1445,7 +1445,7 @@ func item_tip_content(inst) -> Dictionary:
 		else:
 			hint = "Opens the front door of " + WorldState.key_where(tgt)
 	elif d.get("is_torch", false):
-		hint = "Use it to switch it on and off · a lit torch shows you the dark, and shows you to the dead"
+		hint = "Use it to switch it on and off · a lit torch shows you the dark, and shows you to the things"
 	elif d.get("is_battery", false):
 		hint = "Use it, or drag it onto a torch, to refill the torch"
 	elif d.get("is_molotov", false):

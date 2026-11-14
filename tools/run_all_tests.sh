@@ -84,6 +84,13 @@ else
 	echo "FAIL   art context — see tools/art/context_audit.py (the art must match a sudden event happening NOW)"; head -8 "$LOG_DIR/_context.log"
 	bad=$((bad + 1))
 fi
+# WORDING (owner 2026-11-14: the enemies are original monsters, "the things"): no item text, codex line, map key, run trace or event line the player reads calls them zombies / the dead / the undead — tools/wording_audit.py.
+if python3 tools/wording_audit.py --check >"$LOG_DIR/_wording.log" 2>&1; then
+	echo "ok     wording ($(tail -1 "$LOG_DIR/_wording.log" | sed 's/^WORDING: //'))"
+else
+	echo "FAIL   wording — see tools/wording_audit.py (the enemies are 'the things' in anything the player reads)"; head -8 "$LOG_DIR/_wording.log"
+	bad=$((bad + 1))
+fi
 # NO FLAT DRAWINGS (owner round 48h: "We absolutely do not want any flat drawings anywhere. Even for wall art, there needs to be quality"): every corridor prop and every furniture piece is built from
 # many tones (tools/art/volume_audit.py). A NEW flat sprite fails; so does a sprite still listed in data/art_flat_backlog.json after it was fixed — the debt can only shrink.
 if python3 tools/art/volume_audit.py --check >"$LOG_DIR/_volume.log" 2>&1; then

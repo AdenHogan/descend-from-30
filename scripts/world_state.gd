@@ -2835,7 +2835,7 @@ const LISTEN_LINES_BELOW = {
 # The ordinary count is the flat's own dead; the people in it — a rescue under way, a hider holding their breath, a quest's couple — are not in it, so the report
 # said "silent" over a room with a survivor and three of the dead walking at them. (The player's inner voice; placeholders until the owner writes them.)
 const LISTEN_LINES_EVENT = {
-	"rescue": "Someone's screaming in there. Begging. And the dead are on them.",
+	"rescue": "Someone's screaming in there. Begging. And the things are on them.",
 	"rescue_clear": "Someone sobbing in there, quietly. Still alive.",
 	"hider": "Someone in there, holding their breath. Trying not to be heard.",
 }
