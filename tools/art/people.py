@@ -223,7 +223,8 @@ def skeleton(pose, p=None):
     bend = math.radians(g.get('spine', 0.0))
     back = BONES['spine'] * (0.6 + 0.4 * tall)
     sx = hip[0] + lean + back * math.sin(bend)
-    sh_y = hipy - back * math.cos(bend) + g.get('breath', 0)
+    stand = ANKLE_Y - (BONES['thigh'] + BONES['shin']) * tall                     # where the hips are standing straight
+    sh_y = (stand + 0.4 * (hipy - stand)) - back * math.cos(bend) + g.get('breath', 0)   # the shoulders take only 40 % of the hips' rise and fall: the coat absorbs the rest, so the head rides level
     j['hip'] = (hip[0], hipy)
     j['neck'] = (sx + 0.5, sh_y - 1.0)
     j['head'] = (sx + 1.5 + 6.0 * math.sin(bend), sh_y - 7.6 * math.cos(bend * 0.75) + g.get('nod', 0))   # (8.0: the head sat ON the shoulders — no neck)
@@ -374,7 +375,11 @@ def draw(p, pose, item=None):
     kx, ky = R(j['knee_n'])
     shoe(j['ankle_n'], True, pose.get('n_roll'))
     # ---- long hair down the back, behind the shoulders
-    hcx, hcy = R(j['head'])
+    # the head is FIXED to the shoulders, in whole pixels (owner: "the heads bobbing up and down are weird and necks are still too long with the
+    # bobbing"). It was placed from its own joint and rounded on its own, with a one-frame lag on top (`nod`): against a torso rounded separately it
+    # slid a pixel or two up and down every step and opened a neck. Now it is the shoulder row minus a constant; it rises and falls only WITH the body.
+    hcx, hcy = int(round(j['neck'][0] + 1.0)), shy - 6
+    j['head'] = (float(hcx), float(hcy))
     st = p['hairstyle']
     sway = pose.get('sway', 0)
     if st == 'long':                                                                # one smooth drape down the back, its end rounded
@@ -747,7 +752,7 @@ def walk_pose(i, n=WALK_N, carry=None, stride=1.0, drag=0.0):
     arm = 22.0 * math.cos(2.0 * math.pi * ph)
     half = n // 2
     pose = dict(n_leg=leg_(ph), f_leg=leg_(ph + 0.5), n_arm=(-arm, 8 + max(0.0, -arm) * 0.9), f_arm=(arm, 8 + max(0.0, arm) * 0.9), lean=1.0,
-                n_roll=roll_(ph), f_roll=roll_(ph + 0.5), nod=1 if i % half == 1 else 0, hem_swing=-math.cos(2.0 * math.pi * ph),
+                n_roll=roll_(ph), f_roll=roll_(ph + 0.5), nod=0, hem_swing=-math.cos(2.0 * math.pi * ph),
                 sway=1 if (i % half) in (1, 2, 3) else 0)
     if carry:
         pose['n_arm'] = CARRY[carry]
