@@ -1,0 +1,172 @@
+{
+ "big": {
+  "anims": {
+   "Attack": [
+    2,
+    10
+   ],
+   "Dead_Dead": [
+    5,
+    1
+   ],
+   "Death": [
+    4,
+    12
+   ],
+   "Hit": [
+    3,
+    4
+   ],
+   "Idle": [
+    0,
+    6
+   ],
+   "Walk": [
+    1,
+    12
+   ]
+  },
+  "cell": [
+   162,
+   116
+  ],
+  "feet_row": 115,
+  "scale": 2.0
+ },
+ "crawler": {
+  "anims": {
+   "Attack": [
+    2,
+    10
+   ],
+   "Dead_Dead": [
+    5,
+    1
+   ],
+   "Death": [
+    4,
+    12
+   ],
+   "Hit": [
+    3,
+    4
+   ],
+   "Idle": [
+    0,
+    6
+   ],
+   "Walk": [
+    1,
+    12
+   ]
+  },
+  "cell": [
+   162,
+   116
+  ],
+  "feet_row": 115,
+  "scale": 2.0
+ },
+ "longarm": {
+  "anims": {
+   "Attack": [
+    2,
+    10
+   ],
+   "Dead_Dead": [
+    5,
+    1
+   ],
+   "Death": [
+    4,
+    12
+   ],
+   "Hit": [
+    3,
+    4
+   ],
+   "Idle": [
+    0,
+    6
+   ],
+   "Walk": [
+    1,
+    12
+   ]
+  },
+  "cell": [
+   120,
+   87
+  ],
+  "feet_row": 86,
+  "scale": 1.5
+ },
+ "spitter": {
+  "anims": {
+   "Attack": [
+    2,
+    10
+   ],
+   "Dead_Dead": [
+    5,
+    1
+   ],
+   "Death": [
+    4,
+    12
+   ],
+   "Hit": [
+    3,
+    4
+   ],
+   "Idle": [
+    0,
+    6
+   ],
+   "Walk": [
+    1,
+    12
+   ]
+  },
+  "cell": [
+   162,
+   116
+  ],
+  "feet_row": 115,
+  "scale": 2.0
+ },
+ "standard": {
+  "anims": {
+   "Attack": [
+    2,
+    10
+   ],
+   "Dead_Dead": [
+    5,
+    1
+   ],
+   "Death": [
+    4,
+    12
+   ],
+   "Hit": [
+    3,
+    4
+   ],
+   "Idle": [
+    0,
+    6
+   ],
+   "Walk": [
+    1,
+    12
+   ]
+  },
+  "cell": [
+   162,
+   116
+  ],
+  "feet_row": 115,
+  "scale": 2.0
+ }
+}

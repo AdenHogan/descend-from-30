@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" uid="uid://d16l7udfmcs28" path="res://assets/Enemies/Zombie/Zombie/Zombie - Hit.png" id="3_v7rc2"]
 [ext_resource type="Texture2D" uid="uid://c8asld0im2wo4" path="res://assets/Enemies/Zombie/Zombie/Zombie - Idle.png" id="4_7yhgn"]
 [ext_resource type="Texture2D" uid="uid://1m3xmnio3a4t" path="res://assets/Enemies/Zombie/Zombie/Zombie - Walk.png" id="5_n10lq"]
+[ext_resource type="SpriteFrames" path="res://assets/monsters/standard_frames.tres" id="mon_frames_standard"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_70v1p"]
 atlas = ExtResource("1_48583")
@@ -432,9 +433,8 @@ height = 84.0
 script = ExtResource("1_3oj6q")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1303578969]
-offset = Vector2(0, 1)
-scale = Vector2(3, 3)
-sprite_frames = SubResource("SpriteFrames_fsbyd")
+scale = Vector2(1, 1)
+sprite_frames = ExtResource("mon_frames_standard")
 animation = &"Walk"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1042821300]

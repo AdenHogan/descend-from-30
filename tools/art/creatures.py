@@ -380,3 +380,199 @@ def frames(name, kind):
         P._outline(c, (26, 14, 34), 0.8)                     # the things keep their hard line: it is the people who are soft
         out.append((c.im, {}))
     return out
+
+
+# ============================================================================================================================================
+# IN THE GAME (owner 2026-11-14: "the second one… the corridors and enemies in play"): every monster as a full set of the animations the enemy scripts
+# play — Idle, Walk, Attack, Hit, Death and Dead_Dead — in a sheet and a SpriteFrames resource that drops into the old enemy scenes.
+#
+#     python3 tools/art/creatures.py        ->  assets/monsters/<kind>.png  <kind>_frames.tres  monsters.json
+#
+# Each monster is drawn at its OWN scale (`SCALE`) so its height in the world matches the enemy it replaces (the old art was 28-36 texels tall at the
+# scene's 3x; this is drawn at whole-pixel blocks of 2, so the sprite's scale in the scene is 1). Attack, Hit and Death are made from the same drawing:
+# the attack re-renders it with the pulse at its widest and drives it forward; the hit throws it back, squashed, in a white flash; the death rolls it
+# off its feet and lets it spread. Everything stands on the cell's bottom row, centred on the cell, facing right (the game flips it).
+# ============================================================================================================================================
+import json
+import os
+from contextlib import contextmanager
+
+from PIL import Image, ImageDraw
+
+SCALE = {'standard': 2.0, 'crawler': 2.0, 'big': 2.0, 'longarm': 1.5, 'spitter': 2.0}
+GOO = {'standard': ('ff4a6a', '9a1c40', '4a0c2a'), 'crawler': ('c8f060', '6aa81e', '2c5a10'), 'big': ('e060d0', '7a2a8a', '38104e'),
+       'longarm': ('ff9a40', 'b8501e', '5a2410'), 'spitter': ('a4ff2a', '3ab81e', '167a2a')}
+ANIMS = (('Idle', 6, 6.0, True), ('Walk', 12, 9.0, True), ('Attack', 10, 12.0, True), ('Hit', 4, 8.0, True), ('Death', 12, 10.0, False), ('Dead_Dead', 1, 1.0, True))
+OUT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'assets', 'monsters'))
+
+
+@contextmanager
+def at_scale(k):
+    """Draw at scale `k` (the people's module and this one both read it)."""
+    global K
+    old = (P.K, P.CW, P.CH, K)
+    P.K, P.CW, P.CH, K = k, int(P.W * k), int(P.H * k), k
+    try:
+        yield
+    finally:
+        P.K, P.CW, P.CH, K = old
+
+
+def _ease(t):
+    return t * t * (3.0 - 2.0 * t)
+
+
+def _xform(im, foot, dx=0.0, sx=1.0, sy=1.0, rot=0.0):
+    """Scale about `foot`, rotate about it (degrees, + clockwise), then shift by dx — nearest-neighbour, so it stays a pixel drawing."""
+    a = math.radians(rot)
+    ca, sa = math.cos(a), math.sin(a)
+    fx, fy = foot
+    # forward: p' = foot + dx + R * S * (p - foot);  inverse for PIL
+    def inv(x, y):
+        px, py = x - fx - dx, y - fy
+        qx, qy = ca * px + sa * py, -sa * px + ca * py
+        return fx + qx / sx, fy + qy / sy
+    x0, y0 = inv(0, 0)
+    x1, y1 = inv(1, 0)
+    x2, y2 = inv(0, 1)
+    return im.transform(im.size, Image.AFFINE, (x1 - x0, x2 - x0, x0, y1 - y0, y2 - y0, y0), Image.NEAREST)
+
+
+def _flash(im, k):
+    """Blend toward white (a hit): k 0..1, only where it is drawn."""
+    px = im.load()
+    out = im.copy()
+    op = out.load()
+    for y in range(im.height):
+        for x in range(im.width):
+            r, g, b, a = px[x, y]
+            if a:
+                op[x, y] = (int(r + (255 - r) * k), int(g + (255 - g) * k), int(b + (255 - b) * k), a)
+    return out
+
+
+def _pool(size, foot, name, radius):
+    """The stuff it leaves on the floor: three flat ellipses on the feet row, darker at the edge."""
+    c1, c2, c3 = (P.rgb(h) for h in GOO[name])
+    im = Image.new('RGBA', size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    fx, fy = foot
+    for (col, k) in ((c3, 1.0), (c2, 0.78), (c1, 0.46)):
+        rx, ry = radius * k, max(1.0, radius * 0.16 * k)
+        d.ellipse([fx - rx, fy - ry, fx + rx, fy + ry * 0.5], fill=col)
+    return im
+
+
+def build(name):
+    """-> (list of (anim, [images]) in sheet order, cell (w, h)) for one monster, centred on a wide cell."""
+    k = SCALE[name]
+    with at_scale(k):
+        base = {kind: [im for im, _ in frames(name, kind)] for kind in ('idle', 'walk')}
+        cw, ch = P.CW, P.CH
+        bs = [im.getbbox() for im in base['idle'] + base['walk']]
+        cx = (min(b[0] for b in bs) + max(b[2] for b in bs)) / 2.0
+        wide = int(ch * 1.4) // 2 * 2
+        ox = int(round(wide / 2.0 - cx))
+        foot = (wide / 2.0, ch - 1.0)
+
+        def place(im):
+            out = Image.new('RGBA', (wide, ch), (0, 0, 0, 0))
+            out.alpha_composite(im, (ox, 0))
+            return out
+        idle = [place(im) for im in base['idle']]
+        walk = [place(im) for im in base['walk']]
+        # the attack: the drawing at its widest (a mouth, arms, a sack at full) driven forward — wind back, strike, recover
+        pulses = (-0.4, -0.8, -1.0, 1.0, 1.0, 0.9, 0.5, 0.2, 0.0, -0.2)
+        shifts = (-0.6, -1.4, -2.4, 3.6, 6.4, 5.2, 2.6, 0.8, 0.0, 0.0)           # x design px
+        sqs = ((1.00, 1.00), (1.02, 0.97), (1.04, 0.95), (1.12, 0.96), (1.20, 0.92), (1.14, 0.95), (1.06, 0.98), (1.02, 1.0), (1.0, 1.0), (1.0, 1.0))
+        attack = []
+        for i in range(10):
+            c = P.Cel()
+            if name == 'standard':
+                KINDS[name](c, 0.25, pulses[i], False, 3 + i)
+            else:
+                KINDS[name](c, 0.25, pulses[i], False, 3 + i)
+            P._outline(c, (26, 14, 34), 0.8)
+            attack.append(_xform(place(c.im), foot, dx=shifts[i] * k, sx=sqs[i][0], sy=sqs[i][1]))
+        # the hit: thrown back, squashed, flashing white, then it rights itself
+        hit = []
+        for i, (dx, sy, fl) in enumerate(((-3.0, 0.90, 0.85), (-5.0, 0.84, 0.55), (-3.0, 0.92, 0.18), (-1.0, 0.97, 0.0))):
+            src = idle[(i + 1) % 6]
+            hit.append(_flash(_xform(src, foot, dx=dx * k, sx=1.0 + (1.0 - sy) * 0.6, sy=sy, rot=-4.0 * (1.0 - i / 3.0)), fl) if fl else
+                       _xform(src, foot, dx=dx * k, sy=sy, rot=-2.0))
+        # the death: it rocks, goes over backward, hits the floor, and what is in it comes out
+        death = []
+        for i in range(12):
+            t = i / 11.0
+            e = _ease(t)
+            src = idle[(i * 2) % 6]
+            pool = _pool((wide, ch), foot, name, (4.0 + 24.0 * max(0.0, t - 0.25) ** 0.7) * k)
+            body = _xform(src, foot, dx=-9.0 * k * e, sx=1.0 + 0.25 * e, sy=1.0 - 0.45 * e * e, rot=-84.0 * e)
+            if i == 0:
+                body = _flash(body, 0.6)
+            out = Image.new('RGBA', (wide, ch), (0, 0, 0, 0))
+            out.alpha_composite(pool)
+            out.alpha_composite(body)
+            death.append(out)
+        dead = [death[-1]]
+        return [('Idle', idle), ('Walk', walk), ('Attack', attack), ('Hit', hit), ('Death', death), ('Dead_Dead', dead)], (wide, ch)
+
+
+def write_all():
+    os.makedirs(OUT, exist_ok=True)
+    meta = {}
+    for name in SCALE:
+        sets, (cw, ch) = build(name)
+        cols = max(len(fr) for _, fr in sets)
+        sheet = Image.new('RGBA', (cols * cw, len(sets) * ch), (0, 0, 0, 0))
+        for r, (_, fr) in enumerate(sets):
+            for c, im in enumerate(fr):
+                sheet.alpha_composite(im, (c * cw, r * ch))
+        sheet.save(os.path.join(OUT, name + '.png'))
+        anims = []
+        for r, ((an, n, fps, loop), (_, fr)) in enumerate(zip(ANIMS, sets)):
+            assert n == len(fr), (name, an, n, len(fr))
+            anims.append((an, r, n, fps, loop))
+        res = ['[gd_resource type="SpriteFrames" format=3]', '', '[ext_resource type="Texture2D" path="res://assets/monsters/%s.png" id="1_sheet"]' % name, '']
+        sub = []
+        body = []
+        for (an, r, n, fps, loop) in anims:
+            fl = []
+            for c in range(n):
+                sid = 'a_%s_%d_%d' % (name, r, c)
+                sub += ['[sub_resource type="AtlasTexture" id="%s"]' % sid, 'atlas = ExtResource("1_sheet")', 'region = Rect2(%d, %d, %d, %d)' % (c * cw, r * ch, cw, ch), '']
+                fl.append('{\n"duration": 1.0,\n"texture": SubResource("%s")\n}' % sid)
+            body.append('{\n"frames": [%s],\n"loop": %s,\n"name": &"%s",\n"speed": %.1f\n}' % (', '.join(fl), 'true' if loop else 'false', an, fps))
+        res += sub + ['[resource]', 'animations = [%s]' % ', '.join(body), '']
+        with open(os.path.join(OUT, name + '_frames.tres'), 'w') as fh:
+            fh.write('\n'.join(res))
+        meta[name] = dict(cell=[cw, ch], scale=SCALE[name], feet_row=ch - 1, anims={a: [r, n] for (a, r, n, _, _) in anims})
+    with open(os.path.join(OUT, 'monsters.json'), 'w') as fh:
+        json.dump(meta, fh, indent=1, sort_keys=True)
+    return meta
+
+
+if __name__ == '__main__':
+    m = write_all()
+    for k, v in m.items():
+        print(k, v['cell'], v['scale'])
+
+
+def write_spit():
+    """The spitter's shot: a fat blob of green with a bright core and drops trailing off it, six frames of 64 x 64 (the old sheet's size), flying right."""
+    acid = pal('a4ff2a', '3ab81e', '167a2a', 'f4ffb0')
+    sheet = Image.new('RGBA', (64 * 6, 64), (0, 0, 0, 0))
+    with at_scale(2.0):
+        for i in range(6):
+            c = P.Cel()
+            a = 2.0 * math.pi * i / 6.0
+            r = 5.0 + 0.5 * math.sin(a)
+            blob(c, 23.0 + 1.4, 29.0, r, r * (0.92 - 0.06 * math.sin(a)), acid)
+            for j in range(3):                                                         # drops trailing behind, jostling
+                x = 23.0 - 5.0 - j * 3.2
+                y = 29.0 + 1.6 * math.sin(a + j * 1.9)
+                blob(c, x, y, 2.1 - 0.5 * j, 2.1 - 0.5 * j, acid, wet=False)
+            blob(c, 24.6, 27.2, 1.6, 1.3, {'m': WHITE, 'd': WHITE, 'dd': WHITE, 'l': WHITE, 'll': WHITE}, wet=False)   # the shine
+            P._outline(c, (10, 40, 12), 0.7)
+            sheet.alpha_composite(c.im.crop((14, 26, 78, 90)), (64 * i, 0))
+    sheet.save(os.path.join(OUT, 'spit.png'))

@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/enemy_zombie_crawler.gd" id="1_craw"]
 [ext_resource type="SpriteFrames" path="res://assets/Enemies/crawler_frames.tres" id="2_craw"]
+[ext_resource type="SpriteFrames" path="res://assets/monsters/crawler_frames.tres" id="mon_frames_crawler"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_craw"]
 size = Vector2(80, 60)
@@ -10,8 +11,8 @@ size = Vector2(80, 60)
 script = ExtResource("1_craw")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
-scale = Vector2(3, 3)
-sprite_frames = ExtResource("2_craw")
+scale = Vector2(1, 1)
+sprite_frames = ExtResource("mon_frames_crawler")
 animation = &"Idle"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

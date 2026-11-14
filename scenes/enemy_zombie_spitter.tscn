@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/enemy_zombie_spitter.gd" id="1_spit"]
 [ext_resource type="SpriteFrames" path="res://assets/Enemies/spitter_frames.tres" id="2_spit"]
+[ext_resource type="SpriteFrames" path="res://assets/monsters/spitter_frames.tres" id="mon_frames_spitter"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_spit"]
 radius = 26.0
@@ -11,8 +12,8 @@ height = 90.0
 script = ExtResource("1_spit")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
-scale = Vector2(3, 3)
-sprite_frames = ExtResource("2_spit")
+scale = Vector2(1, 1)
+sprite_frames = ExtResource("mon_frames_spitter")
 animation = &"Idle"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

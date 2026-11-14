@@ -1,0 +1,351 @@
+[gd_resource type="SpriteFrames" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/monsters/crawler.png" id="1_sheet"]
+
+[sub_resource type="AtlasTexture" id="a_crawler_0_0"]
+atlas = ExtResource("1_sheet")
+region = Rect2(0, 0, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_0_1"]
+atlas = ExtResource("1_sheet")
+region = Rect2(162, 0, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_0_2"]
+atlas = ExtResource("1_sheet")
+region = Rect2(324, 0, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_0_3"]
+atlas = ExtResource("1_sheet")
+region = Rect2(486, 0, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_0_4"]
+atlas = ExtResource("1_sheet")
+region = Rect2(648, 0, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_0_5"]
+atlas = ExtResource("1_sheet")
+region = Rect2(810, 0, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_1_0"]
+atlas = ExtResource("1_sheet")
+region = Rect2(0, 116, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_1_1"]
+atlas = ExtResource("1_sheet")
+region = Rect2(162, 116, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_1_2"]
+atlas = ExtResource("1_sheet")
+region = Rect2(324, 116, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_1_3"]
+atlas = ExtResource("1_sheet")
+region = Rect2(486, 116, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_1_4"]
+atlas = ExtResource("1_sheet")
+region = Rect2(648, 116, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_1_5"]
+atlas = ExtResource("1_sheet")
+region = Rect2(810, 116, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_1_6"]
+atlas = ExtResource("1_sheet")
+region = Rect2(972, 116, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_1_7"]
+atlas = ExtResource("1_sheet")
+region = Rect2(1134, 116, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_1_8"]
+atlas = ExtResource("1_sheet")
+region = Rect2(1296, 116, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_1_9"]
+atlas = ExtResource("1_sheet")
+region = Rect2(1458, 116, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_1_10"]
+atlas = ExtResource("1_sheet")
+region = Rect2(1620, 116, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_1_11"]
+atlas = ExtResource("1_sheet")
+region = Rect2(1782, 116, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_2_0"]
+atlas = ExtResource("1_sheet")
+region = Rect2(0, 232, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_2_1"]
+atlas = ExtResource("1_sheet")
+region = Rect2(162, 232, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_2_2"]
+atlas = ExtResource("1_sheet")
+region = Rect2(324, 232, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_2_3"]
+atlas = ExtResource("1_sheet")
+region = Rect2(486, 232, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_2_4"]
+atlas = ExtResource("1_sheet")
+region = Rect2(648, 232, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_2_5"]
+atlas = ExtResource("1_sheet")
+region = Rect2(810, 232, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_2_6"]
+atlas = ExtResource("1_sheet")
+region = Rect2(972, 232, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_2_7"]
+atlas = ExtResource("1_sheet")
+region = Rect2(1134, 232, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_2_8"]
+atlas = ExtResource("1_sheet")
+region = Rect2(1296, 232, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_2_9"]
+atlas = ExtResource("1_sheet")
+region = Rect2(1458, 232, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_3_0"]
+atlas = ExtResource("1_sheet")
+region = Rect2(0, 348, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_3_1"]
+atlas = ExtResource("1_sheet")
+region = Rect2(162, 348, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_3_2"]
+atlas = ExtResource("1_sheet")
+region = Rect2(324, 348, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_3_3"]
+atlas = ExtResource("1_sheet")
+region = Rect2(486, 348, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_4_0"]
+atlas = ExtResource("1_sheet")
+region = Rect2(0, 464, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_4_1"]
+atlas = ExtResource("1_sheet")
+region = Rect2(162, 464, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_4_2"]
+atlas = ExtResource("1_sheet")
+region = Rect2(324, 464, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_4_3"]
+atlas = ExtResource("1_sheet")
+region = Rect2(486, 464, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_4_4"]
+atlas = ExtResource("1_sheet")
+region = Rect2(648, 464, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_4_5"]
+atlas = ExtResource("1_sheet")
+region = Rect2(810, 464, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_4_6"]
+atlas = ExtResource("1_sheet")
+region = Rect2(972, 464, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_4_7"]
+atlas = ExtResource("1_sheet")
+region = Rect2(1134, 464, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_4_8"]
+atlas = ExtResource("1_sheet")
+region = Rect2(1296, 464, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_4_9"]
+atlas = ExtResource("1_sheet")
+region = Rect2(1458, 464, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_4_10"]
+atlas = ExtResource("1_sheet")
+region = Rect2(1620, 464, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_4_11"]
+atlas = ExtResource("1_sheet")
+region = Rect2(1782, 464, 162, 116)
+
+[sub_resource type="AtlasTexture" id="a_crawler_5_0"]
+atlas = ExtResource("1_sheet")
+region = Rect2(0, 580, 162, 116)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("a_crawler_0_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_0_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_0_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_0_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_0_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_0_5")
+}],
+"loop": true,
+"name": &"Idle",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("a_crawler_1_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_1_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_1_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_1_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_1_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_1_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_1_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_1_7")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_1_8")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_1_9")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_1_10")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_1_11")
+}],
+"loop": true,
+"name": &"Walk",
+"speed": 9.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("a_crawler_2_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_2_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_2_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_2_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_2_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_2_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_2_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_2_7")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_2_8")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_2_9")
+}],
+"loop": true,
+"name": &"Attack",
+"speed": 12.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("a_crawler_3_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_3_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_3_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_3_3")
+}],
+"loop": true,
+"name": &"Hit",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("a_crawler_4_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_4_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_4_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_4_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_4_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_4_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_4_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_4_7")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_4_8")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_4_9")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_4_10")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_crawler_4_11")
+}],
+"loop": false,
+"name": &"Death",
+"speed": 10.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("a_crawler_5_0")
+}],
+"loop": true,
+"name": &"Dead_Dead",
+"speed": 1.0
+}]

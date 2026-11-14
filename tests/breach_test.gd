@@ -495,8 +495,8 @@ func _test_longarm() -> void:
 	add_child(la)
 	await get_tree().process_frame
 	var spr: AnimatedSprite2D = la.get_node("AnimatedSprite2D")
-	check(absf(spr.scale.x - la.SPRITE_SCALE) < 0.001 and la.SPRITE_SCALE < 3.0, "the long arm is drawn smaller (%.1f, was 3)" % spr.scale.x)
-	var feet: float = spr.position.y + spr.scale.y * la.FEET_BELOW_CENTRE
+	check(absf(spr.scale.x - la.SPRITE_SCALE) < 0.001 and la.SPRITE_SCALE <= 3.0, "the long arm is drawn at its own scale (%.1f; the new art is authored at its size, the old rig was shrunk from 3)" % spr.scale.x)
+	var feet: float = load("res://scripts/enemy_feet.gd").drawn_bottom(spr)      # the drawn feet, MEASURED off the art (the old check assumed the old sheet's row 80; the new long arm is on the bottom row of a 87 px cell)
 	# scaled about its feet, which (round 33, enemy_feet.gd) sit on the player's row: 1 px over the collision feet
 	var want: float = load("res://scripts/enemy_feet.gd").collision_bottom(la) - 1.0
 	check(absf(feet - want) < 0.6, "...scaled about its feet: they're on the player's row (%.1f, want %.1f)" % [feet, want])

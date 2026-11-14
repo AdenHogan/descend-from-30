@@ -375,7 +375,7 @@ func _do(step: String) -> void:
 			var host = get_tree().current_scene
 			var pl2 = _player()
 			if host != null and pl2 != null:
-				var z = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
+				var z = load("res://scenes/enemy_zombie_%s.tscn" % (p[2] if p.size() > 2 else "standard")).instantiate()
 				host.add_child(z)
 				# on the walking line: a hidden player stands RAISED in a tub, so their own y is not the floor (that put the first render's dead thing on an 'upper plane')
 				var lane_y: float = pl2.lane_position().y if pl2.has_method("lane_position") else pl2.global_position.y

@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" uid="uid://3500yxrgjg8v" path="res://assets/Enemies/BigZombie/BigZombie/BigZombie - Hit.png" id="3_xf0tq"]
 [ext_resource type="Texture2D" uid="uid://bh70x73v2err" path="res://assets/Enemies/BigZombie/BigZombie/BigZombie - Idle.png" id="4_gla4f"]
 [ext_resource type="Texture2D" uid="uid://douftnaov76sb" path="res://assets/Enemies/BigZombie/BigZombie/BigZombie - Walk.png" id="5_nb250"]
+[ext_resource type="SpriteFrames" path="res://assets/monsters/big_frames.tres" id="mon_frames_big"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_eubov"]
 atlas = ExtResource("1_pufdr")
@@ -526,8 +527,8 @@ height = 90.0
 script = ExtResource("1_h2bx4")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=645587394]
-scale = Vector2(3, 3)
-sprite_frames = SubResource("SpriteFrames_wy18f")
+scale = Vector2(1, 1)
+sprite_frames = ExtResource("mon_frames_big")
 animation = &"Attack"
 
 [node name="ProximityLabel" type="Label" parent="AnimatedSprite2D" unique_id=2106945596]

@@ -110,7 +110,7 @@ func _end_pounce(cool: bool) -> void:
 # the right way up, lands on its floor line and comes for you. Never stuck: every one of those drops
 # it, and it's remembered on the floor, never up the wall (_exit_tree).
 # ---------------------------------------------------------------------------------------------
-const WALL_BODY_OFFSET := Vector2(-5.5, -12.0)   # frame px: centres the drawn body (x 54..85, y 72..80) on the node
+const WALL_BODY_OFFSET := Vector2(0.0, -32.0)   # frame px: centres the drawn body (the new louse: centred on the cell, 52 px tall on the bottom row of a 116 px cell) on the node — was (-5.5, -12) for the old art
 const WALL_DEPTH_SCALE := 0.85                   # on the back wall it's further away than the lane
 const WALL_DROP_RANGE := 95.0                    # |dx| that sets it off (+ a seeded jitter)
 const WALL_GRAVITY := 900.0

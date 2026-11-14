@@ -1,0 +1,351 @@
+[gd_resource type="SpriteFrames" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/monsters/longarm.png" id="1_sheet"]
+
+[sub_resource type="AtlasTexture" id="a_longarm_0_0"]
+atlas = ExtResource("1_sheet")
+region = Rect2(0, 0, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_0_1"]
+atlas = ExtResource("1_sheet")
+region = Rect2(120, 0, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_0_2"]
+atlas = ExtResource("1_sheet")
+region = Rect2(240, 0, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_0_3"]
+atlas = ExtResource("1_sheet")
+region = Rect2(360, 0, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_0_4"]
+atlas = ExtResource("1_sheet")
+region = Rect2(480, 0, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_0_5"]
+atlas = ExtResource("1_sheet")
+region = Rect2(600, 0, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_1_0"]
+atlas = ExtResource("1_sheet")
+region = Rect2(0, 87, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_1_1"]
+atlas = ExtResource("1_sheet")
+region = Rect2(120, 87, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_1_2"]
+atlas = ExtResource("1_sheet")
+region = Rect2(240, 87, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_1_3"]
+atlas = ExtResource("1_sheet")
+region = Rect2(360, 87, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_1_4"]
+atlas = ExtResource("1_sheet")
+region = Rect2(480, 87, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_1_5"]
+atlas = ExtResource("1_sheet")
+region = Rect2(600, 87, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_1_6"]
+atlas = ExtResource("1_sheet")
+region = Rect2(720, 87, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_1_7"]
+atlas = ExtResource("1_sheet")
+region = Rect2(840, 87, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_1_8"]
+atlas = ExtResource("1_sheet")
+region = Rect2(960, 87, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_1_9"]
+atlas = ExtResource("1_sheet")
+region = Rect2(1080, 87, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_1_10"]
+atlas = ExtResource("1_sheet")
+region = Rect2(1200, 87, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_1_11"]
+atlas = ExtResource("1_sheet")
+region = Rect2(1320, 87, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_2_0"]
+atlas = ExtResource("1_sheet")
+region = Rect2(0, 174, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_2_1"]
+atlas = ExtResource("1_sheet")
+region = Rect2(120, 174, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_2_2"]
+atlas = ExtResource("1_sheet")
+region = Rect2(240, 174, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_2_3"]
+atlas = ExtResource("1_sheet")
+region = Rect2(360, 174, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_2_4"]
+atlas = ExtResource("1_sheet")
+region = Rect2(480, 174, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_2_5"]
+atlas = ExtResource("1_sheet")
+region = Rect2(600, 174, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_2_6"]
+atlas = ExtResource("1_sheet")
+region = Rect2(720, 174, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_2_7"]
+atlas = ExtResource("1_sheet")
+region = Rect2(840, 174, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_2_8"]
+atlas = ExtResource("1_sheet")
+region = Rect2(960, 174, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_2_9"]
+atlas = ExtResource("1_sheet")
+region = Rect2(1080, 174, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_3_0"]
+atlas = ExtResource("1_sheet")
+region = Rect2(0, 261, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_3_1"]
+atlas = ExtResource("1_sheet")
+region = Rect2(120, 261, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_3_2"]
+atlas = ExtResource("1_sheet")
+region = Rect2(240, 261, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_3_3"]
+atlas = ExtResource("1_sheet")
+region = Rect2(360, 261, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_4_0"]
+atlas = ExtResource("1_sheet")
+region = Rect2(0, 348, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_4_1"]
+atlas = ExtResource("1_sheet")
+region = Rect2(120, 348, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_4_2"]
+atlas = ExtResource("1_sheet")
+region = Rect2(240, 348, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_4_3"]
+atlas = ExtResource("1_sheet")
+region = Rect2(360, 348, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_4_4"]
+atlas = ExtResource("1_sheet")
+region = Rect2(480, 348, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_4_5"]
+atlas = ExtResource("1_sheet")
+region = Rect2(600, 348, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_4_6"]
+atlas = ExtResource("1_sheet")
+region = Rect2(720, 348, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_4_7"]
+atlas = ExtResource("1_sheet")
+region = Rect2(840, 348, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_4_8"]
+atlas = ExtResource("1_sheet")
+region = Rect2(960, 348, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_4_9"]
+atlas = ExtResource("1_sheet")
+region = Rect2(1080, 348, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_4_10"]
+atlas = ExtResource("1_sheet")
+region = Rect2(1200, 348, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_4_11"]
+atlas = ExtResource("1_sheet")
+region = Rect2(1320, 348, 120, 87)
+
+[sub_resource type="AtlasTexture" id="a_longarm_5_0"]
+atlas = ExtResource("1_sheet")
+region = Rect2(0, 435, 120, 87)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("a_longarm_0_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_0_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_0_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_0_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_0_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_0_5")
+}],
+"loop": true,
+"name": &"Idle",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("a_longarm_1_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_1_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_1_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_1_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_1_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_1_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_1_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_1_7")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_1_8")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_1_9")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_1_10")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_1_11")
+}],
+"loop": true,
+"name": &"Walk",
+"speed": 9.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("a_longarm_2_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_2_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_2_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_2_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_2_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_2_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_2_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_2_7")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_2_8")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_2_9")
+}],
+"loop": true,
+"name": &"Attack",
+"speed": 12.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("a_longarm_3_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_3_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_3_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_3_3")
+}],
+"loop": true,
+"name": &"Hit",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("a_longarm_4_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_4_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_4_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_4_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_4_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_4_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_4_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_4_7")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_4_8")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_4_9")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_4_10")
+}, {
+"duration": 1.0,
+"texture": SubResource("a_longarm_4_11")
+}],
+"loop": false,
+"name": &"Death",
+"speed": 10.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("a_longarm_5_0")
+}],
+"loop": true,
+"name": &"Dead_Dead",
+"speed": 1.0
+}]

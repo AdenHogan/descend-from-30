@@ -6,7 +6,7 @@ extends Node2D
 # of 64x64), so no extra .tres is needed. Kept deliberately simple — a straight-line
 # horizontal shot on the spit's own plane.
 
-const SHEET := preload("res://assets/Enemies/SpittingZombie/SpittingZombie/SpittingZombie - Projectile.png")
+const SHEET := preload("res://assets/monsters/spit.png")       # tools/art/creatures.py write_spit (was the bought SpittingZombie - Projectile sheet)
 const FRAME := 64
 const SPEED := 260.0
 const MAX_DIST := 360.0
