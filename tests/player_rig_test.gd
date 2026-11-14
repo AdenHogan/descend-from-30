@@ -10,7 +10,7 @@ extends Node
 
 var failures: int = 0
 const PLAYED := ["idle", "walk", "run", "crouch_idle", "crouch_walk", "death", "hurt", "punch_jab", "push", "katana_attack_continuous", "sword_attack", "sword_stab",
-	"katana_idle", "sword_idle", "katana_walk", "katana_run", "sword_run", "grab", "roll", "air_spin", "gun_idle", "gun_walk", "gun_run", "gun_shoot", "run_aim", "run_shooting"]
+	"katana_idle", "sword_idle", "katana_walk", "katana_run", "sword_run", "grab", "roll", "air_spin", "gun_idle", "gun_walk", "gun_run", "gun_shoot", "run_aim", "run_shooting", "hide_inside", "hide_in", "hide_behind", "hide_flat", "hide_dark"]
 const OLD_DURATION := {"idle": 1.25, "walk": 1.333, "run": 1.0, "death": 1.4286, "hurt": 0.5, "punch_jab": 1.0, "katana_attack_continuous": 1.0, "gun_shoot": 0.625}
 
 

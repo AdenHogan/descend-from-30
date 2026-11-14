@@ -780,231 +780,351 @@ region = Rect2(540, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_roll_0"]
 atlas = ExtResource("1_sheet")
-region = Rect2(0, 1188, 108, 108)
+region = Rect2(0, 1728, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_roll_1"]
 atlas = ExtResource("1_sheet")
-region = Rect2(108, 1188, 108, 108)
+region = Rect2(108, 1728, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_roll_2"]
 atlas = ExtResource("1_sheet")
-region = Rect2(216, 1188, 108, 108)
+region = Rect2(216, 1728, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_roll_3"]
 atlas = ExtResource("1_sheet")
-region = Rect2(324, 1188, 108, 108)
+region = Rect2(324, 1728, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_roll_4"]
 atlas = ExtResource("1_sheet")
-region = Rect2(432, 1188, 108, 108)
+region = Rect2(432, 1728, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_roll_5"]
 atlas = ExtResource("1_sheet")
-region = Rect2(540, 1188, 108, 108)
+region = Rect2(540, 1728, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_roll_6"]
 atlas = ExtResource("1_sheet")
-region = Rect2(648, 1188, 108, 108)
+region = Rect2(648, 1728, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_air_spin_0"]
 atlas = ExtResource("1_sheet")
-region = Rect2(0, 1296, 108, 108)
+region = Rect2(0, 1836, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_air_spin_1"]
 atlas = ExtResource("1_sheet")
-region = Rect2(108, 1296, 108, 108)
+region = Rect2(108, 1836, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_air_spin_2"]
 atlas = ExtResource("1_sheet")
-region = Rect2(216, 1296, 108, 108)
+region = Rect2(216, 1836, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_air_spin_3"]
 atlas = ExtResource("1_sheet")
-region = Rect2(324, 1296, 108, 108)
+region = Rect2(324, 1836, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_air_spin_4"]
 atlas = ExtResource("1_sheet")
-region = Rect2(432, 1296, 108, 108)
+region = Rect2(432, 1836, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_air_spin_5"]
 atlas = ExtResource("1_sheet")
+region = Rect2(540, 1836, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_hide_inside_0"]
+atlas = ExtResource("1_sheet")
+region = Rect2(0, 1188, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_hide_inside_1"]
+atlas = ExtResource("1_sheet")
+region = Rect2(108, 1188, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_hide_inside_2"]
+atlas = ExtResource("1_sheet")
+region = Rect2(216, 1188, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_hide_inside_3"]
+atlas = ExtResource("1_sheet")
+region = Rect2(324, 1188, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_hide_inside_4"]
+atlas = ExtResource("1_sheet")
+region = Rect2(432, 1188, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_hide_inside_5"]
+atlas = ExtResource("1_sheet")
+region = Rect2(540, 1188, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_hide_in_0"]
+atlas = ExtResource("1_sheet")
+region = Rect2(0, 1296, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_hide_in_1"]
+atlas = ExtResource("1_sheet")
+region = Rect2(108, 1296, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_hide_in_2"]
+atlas = ExtResource("1_sheet")
+region = Rect2(216, 1296, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_hide_in_3"]
+atlas = ExtResource("1_sheet")
+region = Rect2(324, 1296, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_hide_in_4"]
+atlas = ExtResource("1_sheet")
+region = Rect2(432, 1296, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_hide_in_5"]
+atlas = ExtResource("1_sheet")
 region = Rect2(540, 1296, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_alex_gun_idle_0"]
+[sub_resource type="AtlasTexture" id="p_alex_hide_behind_0"]
 atlas = ExtResource("1_sheet")
 region = Rect2(0, 1404, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_alex_gun_idle_1"]
+[sub_resource type="AtlasTexture" id="p_alex_hide_behind_1"]
 atlas = ExtResource("1_sheet")
 region = Rect2(108, 1404, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_alex_gun_walk_0"]
+[sub_resource type="AtlasTexture" id="p_alex_hide_behind_2"]
+atlas = ExtResource("1_sheet")
+region = Rect2(216, 1404, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_hide_behind_3"]
+atlas = ExtResource("1_sheet")
+region = Rect2(324, 1404, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_hide_behind_4"]
+atlas = ExtResource("1_sheet")
+region = Rect2(432, 1404, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_hide_behind_5"]
+atlas = ExtResource("1_sheet")
+region = Rect2(540, 1404, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_hide_flat_0"]
 atlas = ExtResource("1_sheet")
 region = Rect2(0, 1512, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_alex_gun_walk_1"]
+[sub_resource type="AtlasTexture" id="p_alex_hide_flat_1"]
 atlas = ExtResource("1_sheet")
 region = Rect2(108, 1512, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_alex_gun_walk_2"]
+[sub_resource type="AtlasTexture" id="p_alex_hide_flat_2"]
 atlas = ExtResource("1_sheet")
 region = Rect2(216, 1512, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_alex_gun_walk_3"]
+[sub_resource type="AtlasTexture" id="p_alex_hide_flat_3"]
 atlas = ExtResource("1_sheet")
 region = Rect2(324, 1512, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_alex_gun_walk_4"]
+[sub_resource type="AtlasTexture" id="p_alex_hide_flat_4"]
 atlas = ExtResource("1_sheet")
 region = Rect2(432, 1512, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_alex_gun_walk_5"]
+[sub_resource type="AtlasTexture" id="p_alex_hide_flat_5"]
 atlas = ExtResource("1_sheet")
 region = Rect2(540, 1512, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_alex_gun_walk_6"]
-atlas = ExtResource("1_sheet")
-region = Rect2(648, 1512, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_alex_gun_walk_7"]
-atlas = ExtResource("1_sheet")
-region = Rect2(756, 1512, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_alex_gun_run_0"]
+[sub_resource type="AtlasTexture" id="p_alex_hide_dark_0"]
 atlas = ExtResource("1_sheet")
 region = Rect2(0, 1620, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_alex_gun_run_1"]
+[sub_resource type="AtlasTexture" id="p_alex_hide_dark_1"]
 atlas = ExtResource("1_sheet")
 region = Rect2(108, 1620, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_alex_gun_run_2"]
+[sub_resource type="AtlasTexture" id="p_alex_hide_dark_2"]
 atlas = ExtResource("1_sheet")
 region = Rect2(216, 1620, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_alex_gun_run_3"]
+[sub_resource type="AtlasTexture" id="p_alex_hide_dark_3"]
 atlas = ExtResource("1_sheet")
 region = Rect2(324, 1620, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_alex_gun_run_4"]
+[sub_resource type="AtlasTexture" id="p_alex_hide_dark_4"]
 atlas = ExtResource("1_sheet")
 region = Rect2(432, 1620, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_alex_gun_run_5"]
+[sub_resource type="AtlasTexture" id="p_alex_hide_dark_5"]
 atlas = ExtResource("1_sheet")
 region = Rect2(540, 1620, 108, 108)
 
+[sub_resource type="AtlasTexture" id="p_alex_gun_idle_0"]
+atlas = ExtResource("1_sheet")
+region = Rect2(0, 1944, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_gun_idle_1"]
+atlas = ExtResource("1_sheet")
+region = Rect2(108, 1944, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_gun_walk_0"]
+atlas = ExtResource("1_sheet")
+region = Rect2(0, 2052, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_gun_walk_1"]
+atlas = ExtResource("1_sheet")
+region = Rect2(108, 2052, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_gun_walk_2"]
+atlas = ExtResource("1_sheet")
+region = Rect2(216, 2052, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_gun_walk_3"]
+atlas = ExtResource("1_sheet")
+region = Rect2(324, 2052, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_gun_walk_4"]
+atlas = ExtResource("1_sheet")
+region = Rect2(432, 2052, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_gun_walk_5"]
+atlas = ExtResource("1_sheet")
+region = Rect2(540, 2052, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_gun_walk_6"]
+atlas = ExtResource("1_sheet")
+region = Rect2(648, 2052, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_gun_walk_7"]
+atlas = ExtResource("1_sheet")
+region = Rect2(756, 2052, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_gun_run_0"]
+atlas = ExtResource("1_sheet")
+region = Rect2(0, 2160, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_gun_run_1"]
+atlas = ExtResource("1_sheet")
+region = Rect2(108, 2160, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_gun_run_2"]
+atlas = ExtResource("1_sheet")
+region = Rect2(216, 2160, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_gun_run_3"]
+atlas = ExtResource("1_sheet")
+region = Rect2(324, 2160, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_gun_run_4"]
+atlas = ExtResource("1_sheet")
+region = Rect2(432, 2160, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_gun_run_5"]
+atlas = ExtResource("1_sheet")
+region = Rect2(540, 2160, 108, 108)
+
 [sub_resource type="AtlasTexture" id="p_alex_gun_run_6"]
 atlas = ExtResource("1_sheet")
-region = Rect2(648, 1620, 108, 108)
+region = Rect2(648, 2160, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_gun_run_7"]
 atlas = ExtResource("1_sheet")
-region = Rect2(756, 1620, 108, 108)
+region = Rect2(756, 2160, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_gun_shoot_0"]
 atlas = ExtResource("1_sheet")
-region = Rect2(0, 1728, 108, 108)
+region = Rect2(0, 2268, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_gun_shoot_1"]
 atlas = ExtResource("1_sheet")
-region = Rect2(108, 1728, 108, 108)
+region = Rect2(108, 2268, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_gun_shoot_2"]
 atlas = ExtResource("1_sheet")
-region = Rect2(216, 1728, 108, 108)
+region = Rect2(216, 2268, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_gun_shoot_3"]
 atlas = ExtResource("1_sheet")
-region = Rect2(324, 1728, 108, 108)
+region = Rect2(324, 2268, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_gun_shoot_4"]
 atlas = ExtResource("1_sheet")
-region = Rect2(432, 1728, 108, 108)
+region = Rect2(432, 2268, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_gun_shoot_5"]
 atlas = ExtResource("1_sheet")
-region = Rect2(540, 1728, 108, 108)
+region = Rect2(540, 2268, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_gun_shoot_6"]
 atlas = ExtResource("1_sheet")
-region = Rect2(648, 1728, 108, 108)
+region = Rect2(648, 2268, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_gun_shoot_7"]
 atlas = ExtResource("1_sheet")
-region = Rect2(756, 1728, 108, 108)
+region = Rect2(756, 2268, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_gun_shoot_8"]
 atlas = ExtResource("1_sheet")
-region = Rect2(864, 1728, 108, 108)
+region = Rect2(864, 2268, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_gun_shoot_9"]
 atlas = ExtResource("1_sheet")
-region = Rect2(972, 1728, 108, 108)
+region = Rect2(972, 2268, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_gun_walk_0"]
 atlas = ExtResource("1_sheet")
-region = Rect2(0, 1512, 108, 108)
+region = Rect2(0, 2052, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_gun_walk_1"]
 atlas = ExtResource("1_sheet")
-region = Rect2(108, 1512, 108, 108)
+region = Rect2(108, 2052, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_gun_walk_2"]
 atlas = ExtResource("1_sheet")
-region = Rect2(216, 1512, 108, 108)
+region = Rect2(216, 2052, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_gun_walk_3"]
 atlas = ExtResource("1_sheet")
-region = Rect2(324, 1512, 108, 108)
+region = Rect2(324, 2052, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_gun_walk_4"]
 atlas = ExtResource("1_sheet")
-region = Rect2(432, 1512, 108, 108)
+region = Rect2(432, 2052, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_gun_walk_5"]
 atlas = ExtResource("1_sheet")
-region = Rect2(540, 1512, 108, 108)
+region = Rect2(540, 2052, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_gun_walk_6"]
 atlas = ExtResource("1_sheet")
-region = Rect2(648, 1512, 108, 108)
+region = Rect2(648, 2052, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_gun_walk_7"]
 atlas = ExtResource("1_sheet")
-region = Rect2(756, 1512, 108, 108)
+region = Rect2(756, 2052, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_gun_run_0"]
 atlas = ExtResource("1_sheet")
-region = Rect2(0, 1620, 108, 108)
+region = Rect2(0, 2160, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_gun_run_1"]
 atlas = ExtResource("1_sheet")
-region = Rect2(108, 1620, 108, 108)
+region = Rect2(108, 2160, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_gun_run_2"]
 atlas = ExtResource("1_sheet")
-region = Rect2(216, 1620, 108, 108)
+region = Rect2(216, 2160, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_gun_run_3"]
 atlas = ExtResource("1_sheet")
-region = Rect2(324, 1620, 108, 108)
+region = Rect2(324, 2160, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_gun_run_4"]
 atlas = ExtResource("1_sheet")
-region = Rect2(432, 1620, 108, 108)
+region = Rect2(432, 2160, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_gun_run_5"]
 atlas = ExtResource("1_sheet")
-region = Rect2(540, 1620, 108, 108)
+region = Rect2(540, 2160, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_gun_run_6"]
 atlas = ExtResource("1_sheet")
-region = Rect2(648, 1620, 108, 108)
+region = Rect2(648, 2160, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_gun_run_7"]
 atlas = ExtResource("1_sheet")
-region = Rect2(756, 1620, 108, 108)
+region = Rect2(756, 2160, 108, 108)
 
 [resource]
 animations = [{
@@ -1753,6 +1873,121 @@ animations = [{
 "loop": true,
 "name": &"air_spin",
 "speed": 9.00
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_inside_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_inside_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_inside_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_inside_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_inside_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_inside_5")
+}],
+"loop": true,
+"name": &"hide_inside",
+"speed": 8.00
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_in_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_in_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_in_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_in_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_in_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_in_5")
+}],
+"loop": true,
+"name": &"hide_in",
+"speed": 8.00
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_behind_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_behind_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_behind_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_behind_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_behind_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_behind_5")
+}],
+"loop": true,
+"name": &"hide_behind",
+"speed": 8.00
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_flat_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_flat_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_flat_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_flat_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_flat_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_flat_5")
+}],
+"loop": true,
+"name": &"hide_flat",
+"speed": 8.00
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_dark_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_dark_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_dark_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_dark_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_dark_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_hide_dark_5")
+}],
+"loop": true,
+"name": &"hide_dark",
+"speed": 8.00
 }, {
 "frames": [{
 "duration": 1.0,

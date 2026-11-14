@@ -9,6 +9,11 @@
   "gun_run": "gun_run",
   "gun_shoot": "gun_shoot",
   "gun_walk": "gun_walk",
+  "hide_behind": "hide_behind",
+  "hide_dark": "hide_dark",
+  "hide_flat": "hide_flat",
+  "hide_in": "hide_in",
+  "hide_inside": "hide_inside",
   "hurt": "hurt",
   "idle": "idle",
   "katana_attack_continuous": "swing_bat",
@@ -45,7 +50,7 @@
    ],
    "rows": {
     "air_spin": [
-     12,
+     17,
      6
     ],
     "crouch_idle": [
@@ -61,20 +66,40 @@
      10
     ],
     "gun_idle": [
-     13,
+     18,
      2
     ],
     "gun_run": [
-     15,
+     20,
      8
     ],
     "gun_shoot": [
-     16,
+     21,
      10
     ],
     "gun_walk": [
-     14,
+     19,
      8
+    ],
+    "hide_behind": [
+     13,
+     6
+    ],
+    "hide_dark": [
+     15,
+     6
+    ],
+    "hide_flat": [
+     14,
+     6
+    ],
+    "hide_in": [
+     12,
+     6
+    ],
+    "hide_inside": [
+     11,
+     6
     ],
     "hurt": [
      9,
@@ -85,7 +110,7 @@
      6
     ],
     "roll": [
-     11,
+     16,
      7
     ],
     "run": [
@@ -121,7 +146,7 @@
    ],
    "rows": {
     "air_spin": [
-     12,
+     17,
      6
     ],
     "crouch_idle": [
@@ -137,20 +162,40 @@
      10
     ],
     "gun_idle": [
-     13,
+     18,
      2
     ],
     "gun_run": [
-     15,
+     20,
      8
     ],
     "gun_shoot": [
-     16,
+     21,
      10
     ],
     "gun_walk": [
-     14,
+     19,
      8
+    ],
+    "hide_behind": [
+     13,
+     6
+    ],
+    "hide_dark": [
+     15,
+     6
+    ],
+    "hide_flat": [
+     14,
+     6
+    ],
+    "hide_in": [
+     12,
+     6
+    ],
+    "hide_inside": [
+     11,
+     6
     ],
     "hurt": [
      9,
@@ -161,7 +206,7 @@
      6
     ],
     "roll": [
-     11,
+     16,
      7
     ],
     "run": [
@@ -197,7 +242,7 @@
    ],
    "rows": {
     "air_spin": [
-     12,
+     17,
      6
     ],
     "crouch_idle": [
@@ -213,20 +258,40 @@
      10
     ],
     "gun_idle": [
-     13,
+     18,
      2
     ],
     "gun_run": [
-     15,
+     20,
      8
     ],
     "gun_shoot": [
-     16,
+     21,
      10
     ],
     "gun_walk": [
-     14,
+     19,
      8
+    ],
+    "hide_behind": [
+     13,
+     6
+    ],
+    "hide_dark": [
+     15,
+     6
+    ],
+    "hide_flat": [
+     14,
+     6
+    ],
+    "hide_in": [
+     12,
+     6
+    ],
+    "hide_inside": [
+     11,
+     6
     ],
     "hurt": [
      9,
@@ -237,7 +302,7 @@
      6
     ],
     "roll": [
-     11,
+     16,
      7
     ],
     "run": [
@@ -273,7 +338,7 @@
    ],
    "rows": {
     "air_spin": [
-     12,
+     17,
      6
     ],
     "crouch_idle": [
@@ -289,20 +354,40 @@
      10
     ],
     "gun_idle": [
-     13,
+     18,
      2
     ],
     "gun_run": [
-     15,
+     20,
      8
     ],
     "gun_shoot": [
-     16,
+     21,
      10
     ],
     "gun_walk": [
-     14,
+     19,
      8
+    ],
+    "hide_behind": [
+     13,
+     6
+    ],
+    "hide_dark": [
+     15,
+     6
+    ],
+    "hide_flat": [
+     14,
+     6
+    ],
+    "hide_in": [
+     12,
+     6
+    ],
+    "hide_inside": [
+     11,
+     6
     ],
     "hurt": [
      9,
@@ -313,7 +398,7 @@
      6
     ],
     "roll": [
-     11,
+     16,
      7
     ],
     "run": [

@@ -279,10 +279,11 @@ def skeleton(pose, p=None):
     sh_y = (stand + 0.4 * (hipy - stand)) - back * math.cos(bend) + g.get('breath', 0)   # the shoulders take only 40 % of the hips' rise and fall: the coat absorbs the rest, so the head rides level
     j['hip'] = (hip[0], hipy)
     j['neck'] = (sx + 0.5, sh_y - 1.0)
-    j['head'] = (sx + 1.5 + 6.0 * math.sin(bend), sh_y - 7.6 * math.cos(bend * 0.75) + g.get('nod', 0))   # (8.0: the head sat ON the shoulders — no neck)
+    hb = bend * (1.0 - g.get('head_pitch', 0.0))                      # the head lifts against the spine's bend (a crouching person keeps their eyes up)
+    j['head'] = (sx + 1.5 + 6.0 * math.sin(hb) + g.get('head_dx', 0.0), sh_y - 7.6 * math.cos(hb * 0.75) + g.get('nod', 0))   # (8.0: the head sat ON the shoulders — no neck)
     for side, ox in (('n', -2.6), ('f', 3.4)):                # (the near shoulder was at -3.0: the arm hung down the MIDDLE of the body and hid the clothes)
         a1, a2 = g[side + '_arm']
-        j['shoulder_' + side] = (sx + ox * math.cos(bend), sh_y + 1.5 + abs(ox) * 0.4 * math.sin(bend))
+        j['shoulder_' + side] = (sx + ox * math.cos(bend) + g.get('twist', 0.0) * (1.0 if side == 'n' else -1.0), sh_y + 1.5 + abs(ox) * 0.4 * math.sin(bend))
         j['elbow_' + side], j['hand_' + side] = _fk(j['shoulder_' + side], BONES['upper'] * arml, a1, BONES['fore'] * arml, a2)
     j['grip'] = g['n_arm'][0] + g['n_arm'][1]                 # the forearm's angle: what a held thing lines up with
     return j
@@ -472,7 +473,7 @@ def draw(p, pose, item=None):
     # the head is FIXED to the shoulders, in whole pixels (owner: "the heads bobbing up and down are weird and necks are still too long with the
     # bobbing"). It was placed from its own joint and rounded on its own, with a one-frame lag on top (`nod`): against a torso rounded separately it
     # slid a pixel or two up and down every step and opened a neck. Now it is the shoulder row minus a constant; it rises and falls only WITH the body.
-    hcx, hcy = int(round(j['neck'][0] + 0.2)), shy - 6             # over the spine (a head carried forward of it is half of a hunch)
+    hcx, hcy = int(round(j['neck'][0] + 0.2 + pose.get('head_dx', 0.0))), shy - 6 + int(round(pose.get('head_dy', 0.0)))   # (a person crouching keeps their eyes UP: the head lifts and juts)             # over the spine (a head carried forward of it is half of a hunch)
     j['head'] = (float(hcx), float(hcy))
     st = p['hairstyle']
     sway = pose.get('sway', 0)

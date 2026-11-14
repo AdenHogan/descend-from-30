@@ -60,14 +60,6 @@ def keys(table, t):
 
 
 # ---- poses: each returns (pose dict, item or None) for frame i of n ---------------------------------------------------------------------------------
-def idle(i, n):
-    return P.idle_pose(i), None
-
-
-def walk(i, n):
-    return P.walk_pose(i, n=n), None
-
-
 def run(i, n):
     ph = i / float(n)
     pose = P.walk_pose(i, n=n, stride=1.5)
@@ -76,18 +68,110 @@ def run(i, n):
     return pose, None
 
 
-def crouch(i, n):
-    """A real crouch: the knees bend, the rig lowers the hips, the back leans in, the hands come up."""
+THIGH = P.BONES['thigh']
+SHIN = P.BONES['shin']
+
+
+def _reach(a1, bend):
+    """How far below the hip the ankle is, for a thigh at a1 degrees from straight down and a knee bent `bend` degrees back."""
+    return THIGH * math.cos(math.radians(a1)) + SHIN * math.cos(math.radians(a1 - bend))
+
+
+def plant(a1, reach):
+    """The knee bend that puts the ankle exactly `reach` below the hip for a thigh at a1: both feet can then stand on the same floor at any thigh angle."""
+    lo, hi = 0.0, 170.0
+    for _ in range(40):
+        mid = (lo + hi) / 2.0
+        if _reach(a1, mid) > reach:
+            lo = mid
+        else:
+            hi = mid
+    return (a1, (lo + hi) / 2.0)
+
+
+def idle(i, n):
+    """Standing, but not still: the weight settles from one leg to the other, the arms hang a little out of step, the head turns a hair, and it breathes."""
+    ph = 2.0 * math.pi * i / float(n)
     pose = P.idle_pose(i)
-    pose.update(n_leg=(66, 128), f_leg=(76, 134), spine=34, lean=0.0, n_arm=(52, 70), f_arm=(44, 74))
+    sh = math.sin(ph)
+    pose.update(n_leg=(3.0 * sh, 3.0 - 2.0 * sh), f_leg=(-3.0 * sh, 3.0 + 2.0 * sh), n_arm=(-4.0 + 3.0 * sh, 8.0 + 2.0 * math.cos(ph)), f_arm=(-2.0 - 3.0 * sh, 10.0),
+                lean=0.2 + 0.25 * sh, head_dx=0.4 * math.sin(ph * 0.5))
+    return pose, None
+
+
+def walk(i, n):
+    """A walk with weight: the shoulders turn against the hips, the forearm lags the upper arm by a beat, the head rides level."""
+    ph = i / float(n)
+    pose = P.walk_pose(i, n=n)
+    arm = 22.0 * math.cos(2.0 * math.pi * (ph - 0.06))                        # the hand swings a beat behind the foot
+    bend = lambda a: 10.0 + max(0.0, a) * 1.1                                   # the elbow folds as the arm comes forward
+    pose.update(n_arm=(-arm, bend(arm)), f_arm=(arm, bend(-arm)), twist=1.1 * math.cos(2.0 * math.pi * ph), lean=1.0 + 0.4 * math.cos(4.0 * math.pi * ph))
+    return pose, None
+
+
+def crouch(i, n):
+    """A stealth CREEP, not a squat: knees bent about 80 degrees, ONE foot ahead of the other and both on the floor, the back pitched forward, the head and the eyes up,
+    the near hand reaching out ahead for balance and the far one held back. It breathes."""
+    ph = 2.0 * math.pi * i / float(n)
+    reach = 6.7 + 0.12 * math.sin(ph)
+    nl, fl = plant(60, reach), plant(26, reach)
+    pose = P.idle_pose(0)
+    pose.update(n_leg=nl, f_leg=fl, spine=36, lean=0.0, head_dy=-2.0, head_dx=1.8, n_arm=(46, 78), f_arm=(-12, 60), breath=0, n_roll=None, f_roll='toe')
     return pose, None
 
 
 def crouch_walk(i, n):
+    """The creep, moving: a slow heel-toe step, the planted foot taking the weight, the swing foot lifted just clear; the arms stay low and quiet."""
     ph = i / float(n)
-    c = math.cos(2.0 * math.pi * ph)
+    base = crouch(0, n)[0]
+
+    def leg(q, a_mid):
+        q %= 1.0
+        a1 = a_mid + 20.0 * math.cos(2.0 * math.pi * q)
+        lift = 1.5 * math.sin(math.pi * (q - 0.5) / 0.5) if q >= 0.5 else 0.0
+        return plant(a1, 6.7 - lift)
+    base.update(n_leg=leg(ph, 42), f_leg=leg(ph + 0.5, 42), twist=0.8 * math.cos(2.0 * math.pi * ph), n_roll='heel' if ph % 1.0 < 0.1 else None,
+                n_arm=(46 + 6.0 * math.cos(2.0 * math.pi * ph), 78), f_arm=(-12 - 6.0 * math.cos(2.0 * math.pi * ph), 60))
+    return base, None
+
+
+def hide_inside(i, n):
+    """In a wardrobe: standing very straight, flat to the back, arms drawn in to the chest, chin down, holding its breath (the breath barely moves)."""
     pose = P.idle_pose(0)
-    pose.update(n_leg=(66 + 14 * c, 128 - 12 * abs(c)), f_leg=(76 - 14 * c, 134 - 12 * abs(c)), spine=34, n_arm=(52 - 8 * c, 70), f_arm=(44 + 8 * c, 74), breath=0)
+    pose.update(mood='scared', n_arm=(18, 118), f_arm=(10, 124), lean=-0.3, head_dy=1.0, breath=0, n_leg=(2, 4), f_leg=(-1, 4))
+    pose['breath'] = 1 if i % n == n // 2 else 0
+    return pose, None
+
+
+def hide_in(i, n):
+    """Down in a bath or behind a shower curtain: sat low with the knees drawn up and the arms round them, the head down on them."""
+    pose = P.idle_pose(0)
+    nl, fl = plant(88, 5.2), plant(76, 5.2)
+    pose.update(mood='scared', n_leg=nl, f_leg=fl, spine=18, lean=0.0, head_dy=2.5, head_dx=1.0, n_arm=(70, 100), f_arm=(62, 108), breath=1 if i % 3 == 0 else 0)
+    return pose, None
+
+
+def hide_behind(i, n):
+    """Behind a sofa or an armchair: down as low as a crouch goes, the back against the furniture, both hands up on its top edge, the eyes just over it."""
+    ph = 2.0 * math.pi * i / float(n)
+    pose = P.idle_pose(0)
+    nl, fl = plant(72, 5.6), plant(52, 5.6)
+    pose.update(mood='wary', n_leg=nl, f_leg=fl, spine=22, lean=0.0, head_dy=-3.0, head_dx=1.4, n_arm=(118, 44), f_arm=(108, 52), breath=0, nod=1 if math.sin(ph) > 0.7 else 0)
+    return pose, None
+
+
+def hide_flat(i, n):
+    """Pressed flat against a wall beside a doorway: standing, the back and the heels to the wall, the arms down tight, the head turned toward what might come."""
+    pose = P.idle_pose(0)
+    pose.update(mood='scared', n_arm=(-6, 4), f_arm=(-8, 4), lean=-0.9, head_dx=1.2, n_leg=(2, 3), f_leg=(0, 3), breath=1 if i % n == n // 2 else 0)
+    return pose, None
+
+
+def hide_dark(i, n):
+    """In the dark: down on the floor, folded small — a deep crouch, the knees to the chest and the arms wrapped round them, the face tucked down."""
+    pose = P.idle_pose(0)
+    nl, fl = plant(98, 4.4), plant(86, 4.4)
+    pose.update(mood='scared', n_leg=nl, f_leg=fl, spine=44, lean=0.0, head_dy=2.0, head_dx=0.5, n_arm=(76, 104), f_arm=(66, 110), breath=1 if i % 3 == 0 else 0)
     return pose, None
 
 
@@ -161,7 +245,8 @@ def shoot(i, n):
 SOURCES = {   # key: (builder(i, n, item?) , frames)
     'idle': (idle, 6), 'walk': (walk, 12), 'run': (run, 8), 'crouch_idle': (crouch, 6), 'crouch_walk': (crouch_walk, 8), 'shove': (shove, 10),
     'swing_bat': ('swing', 9, 'hammer', _BAT), 'swing_sword': ('swing', 9, 'sword', _SWORD), 'swing_knife': ('swing', 9, 'knife', _KNIFE),
-    'hurt': (hurt, 4), 'death': ('death', 10), 'roll': ('roll', 7), 'air_spin': ('roll', 6),
+    'hurt': (hurt, 4), 'death': ('death', 10), 'hide_inside': (hide_inside, 6), 'hide_in': (hide_in, 6), 'hide_behind': (hide_behind, 6), 'hide_flat': (hide_flat, 6),
+    'hide_dark': (hide_dark, 6), 'roll': ('roll', 7), 'air_spin': ('roll', 6),
     'gun_idle': (aim, 2), 'gun_walk': (aim_walk, 8), 'gun_run': (aim_run, 8), 'gun_shoot': (shoot, 10),
 }
 # every animation NAME the game plays -> the source it uses (the old rig had these; names with no pose of their own yet play the nearest)
@@ -172,6 +257,7 @@ ALIAS = {
     'swing_bat': 'swing_bat', 'swing_sword': 'swing_sword', 'swing_knife': 'swing_knife',
     'katana_idle': 'idle', 'sword_idle': 'idle', 'katana_walk': 'walk', 'katana_run': 'run', 'sword_run': 'run', 'grab': 'idle',
     'roll': 'roll', 'air_spin': 'air_spin',
+    'hide_inside': 'hide_inside', 'hide_in': 'hide_in', 'hide_behind': 'hide_behind', 'hide_flat': 'hide_flat', 'hide_dark': 'hide_dark',
     'gun_idle': 'gun_idle', 'gun_walk': 'gun_walk', 'gun_run': 'gun_run', 'gun_shoot': 'gun_shoot', 'run_aim': 'gun_walk', 'run_shooting': 'gun_run',
 }
 OLD_GUN = {'gun_idle': (1, 8.0, True), 'gun_walk': (8, 8.0, True), 'gun_run': (8, 14.0, True), 'gun_shoot': (10, 16.0, False)}

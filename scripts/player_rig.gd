@@ -44,3 +44,22 @@ static func swing_anim(spr: AnimatedSprite2D, weapon_type: String) -> String:
 	if spr != null and spr.sprite_frames != null and spr.sprite_frames.has_animation(n):
 		return n
 	return "katana_attack_continuous"
+
+
+## The hiding pose for a hiding place: wardrobe "inside", bath / curtain "in", sofa / armchair "behind", the dark, or flat to a wall beside a doorway (a spot you STAND in). "" = no special pose.
+static func hide_anim(spot: Object) -> String:
+	if spot == null or not is_instance_valid(spot):
+		return ""
+	var how: String = str(spot.get("how")) if spot.get("how") != null else ""
+	match how:
+		"inside":
+			return "hide_inside"
+		"in":
+			return "hide_in"
+		"behind":
+			return "hide_behind"
+		"dark":
+			return "hide_dark"
+	if spot.get("stands") == true:
+		return "hide_flat"
+	return ""

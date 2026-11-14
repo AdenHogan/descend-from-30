@@ -509,7 +509,10 @@ func _physics_process(delta: float) -> void:
 		current_speed = CROUCH_SPEED
 	current_speed *= WorldState.get_move_speed_mult()
 
-	if is_crouching:
+	var hide_anim: String = PlayerRig.hide_anim(hide_spot) if hide_spot != null and is_instance_valid(hide_spot) else ""
+	if hide_anim != "" and animated_sprite.sprite_frames != null and animated_sprite.sprite_frames.has_animation(hide_anim):
+		animated_sprite.play(hide_anim)   # hidden: the pose for THIS hiding place (wardrobe, bath, behind a sofa, flat to a wall, the dark)
+	elif is_crouching:
 		if direction == 0:
 			animated_sprite.play("crouch_idle")
 		else:
