@@ -156,8 +156,8 @@ def hide_behind(i, n):
     """Behind a sofa or an armchair: down as low as a crouch goes, the back against the furniture, both hands up on its top edge, the eyes just over it."""
     ph = 2.0 * math.pi * i / float(n)
     pose = P.idle_pose(0)
-    nl, fl = plant(72, 5.6), plant(52, 5.6)
-    pose.update(mood='wary', n_leg=nl, f_leg=fl, spine=22, lean=0.0, head_dy=-3.0, head_dx=1.4, n_arm=(118, 44), f_arm=(108, 52), breath=0, nod=1 if math.sin(ph) > 0.7 else 0)
+    nl, fl = plant(58, 6.6), plant(34, 6.6)
+    pose.update(mood='wary', n_leg=nl, f_leg=fl, spine=12, lean=0.0, head_dy=-1.0, head_dx=0.6, n_arm=(118, 44), f_arm=(108, 52), breath=0, nod=1 if math.sin(ph) > 0.7 else 0)
     return pose, None
 
 
@@ -171,8 +171,8 @@ def hide_flat(i, n):
 def hide_dark(i, n):
     """In the dark: down on the floor, folded small — a deep crouch, the knees to the chest and the arms wrapped round them, the face tucked down."""
     pose = P.idle_pose(0)
-    nl, fl = plant(98, 4.4), plant(86, 4.4)
-    pose.update(mood='scared', n_leg=nl, f_leg=fl, spine=44, lean=0.0, head_dy=2.0, head_dx=0.5, n_arm=(76, 104), f_arm=(66, 110), breath=1 if i % 3 == 0 else 0)
+    nl, fl = plant(88, 5.0), plant(74, 5.0)
+    pose.update(mood='scared', n_leg=nl, f_leg=fl, spine=26, lean=0.0, head_dy=1.0, head_dx=0.4, n_arm=(76, 104), f_arm=(66, 110), breath=1 if i % 3 == 0 else 0)
     return pose, None
 
 
