@@ -379,6 +379,57 @@ func _do(step: String) -> void:
 				var spr_a: AnimatedSprite2D = pl_a.get_node("AnimatedSprite2D")
 				spr_a.play(p[1])
 			await _frames(1)
+		"apt":
+			# apt:<id> — make that the current apartment (then `scene:res://scenes/room.tscn` opens it)
+			WorldState.current_apartment_id = p[1]
+			await _frames(1)
+		"healthy":
+			# healthy — clear any dying state (a capture spawn can start with it carried over) BEFORE the scene that spawns the player
+			WorldState.is_dying = false
+			WorldState.dying_timer = 0.0
+			WorldState.player_health = 0
+			await _frames(1)
+		"nodead":
+			# nodead — remove every enemy from the scene (to look at the player alone)
+			for z in get_tree().get_nodes_in_group("zombie"):
+				if is_instance_valid(z):
+					z.queue_free()
+			await _frames(2)
+		"hidein":
+			# hidein:<inside|in|behind|dark|flat> — the player walks into the FIRST hiding place of that kind in this scene and hides (the real piece, the real cover)
+			var pl_i = _player()
+			var found: Node = null
+			var all: Array = []
+			var stack: Array = [get_tree().current_scene]
+			while not stack.is_empty():
+				var n = stack.pop_back()
+				if n == null:
+					continue
+				if n.get_script() != null and n.has_method("hide_x") and n.get("how") != null:
+					all.append(n)
+				for ch in n.get_children():
+					stack.append(ch)
+			var skip: int = int(p[2]) if p.size() > 2 else 0       # hidein:<kind>:<n> — the n-th place of that kind (0 = first)
+			for n in all:
+				var kind: String = "flat" if n.get("stands") == true else str(n.get("how"))
+				if kind == p[1]:
+					if skip <= 0:
+						found = n
+						break
+					skip -= 1
+			var kinds: Array = []
+			for n in all:
+				kinds.append(("flat" if n.get("stands") == true else str(n.get("how"))) + "/" + str(n.get("piece_id")))
+			print("hidein %s: %d hiding places in the scene %s, %s" % [p[1], all.size(), str(kinds), "found" if found != null else "NONE of that kind"])
+			if pl_i != null and found != null:
+				pl_i.global_position.x = (found as Node2D).global_position.x + 30.0
+				await _frames(3)
+				pl_i.is_dying = false      # (a capture spawn can start in the dying state: the hiding rules refuse that)
+				WorldState.is_dying = false
+				var ok_i: bool = pl_i.enter_hide(found)
+				print("  enter_hide -> %s (spot x %.0f, player x %.0f, cutscene %s)" % [str(ok_i), (found as Node2D).global_position.x, pl_i.global_position.x, str(pl_i.is_cutscene)])
+				print("  flags: hide %s back %s balc %s dead %s dying %s lash %s listen %s switch %s pack %s esc %s" % [str(pl_i.hide_spot), str(pl_i.back_spot), str(pl_i.on_balcony_plane), str(pl_i.is_dead), str(pl_i.is_dying), str(pl_i.is_lashing), str(pl_i.is_listening), str(pl_i.is_switching_mode), str(pl_i.pack_phase), str(pl_i.escaping)])
+			await _frames(40)
 		"who":
 			print("character: %s (run %d)" % [WorldState.current_character(), WorldState.current_run])
 			await _frames(1)

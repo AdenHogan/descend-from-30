@@ -82,7 +82,7 @@ static func add_for(module: Node2D, plan: Dictionary) -> Array:
 		module.add_child(s)
 		var sprite_top: float = float(it["y"]) - float(int(it.get("ry", 0)))
 		s.variant = variant_key(String(it.get("file", "")))
-		if s.how == "behind":
+		if s.how == "behind" or s.how == "inside":        # (a wardrobe too: its doors are drawn over the player, who stands at the wardrobe's own base line, IN it)
 			# behind a sofa / an armchair: the whole piece (and what stands in front of it) is drawn over the player, whose feet go just behind its front edge
 			s.piece_sprite = _sprite_of(module, id, float(it["x"]) - float(int(it.get("rx", 0))), sprite_top)
 			if s.piece_sprite != null and s.piece_sprite.texture != null:
