@@ -4,183 +4,183 @@
 
 [sub_resource type="AtlasTexture" id="a_crawler_0_0"]
 atlas = ExtResource("1_sheet")
-region = Rect2(0, 0, 120, 87)
+region = Rect2(0, 0, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_0_1"]
 atlas = ExtResource("1_sheet")
-region = Rect2(120, 0, 120, 87)
+region = Rect2(154, 0, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_0_2"]
 atlas = ExtResource("1_sheet")
-region = Rect2(240, 0, 120, 87)
+region = Rect2(308, 0, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_0_3"]
 atlas = ExtResource("1_sheet")
-region = Rect2(360, 0, 120, 87)
+region = Rect2(462, 0, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_0_4"]
 atlas = ExtResource("1_sheet")
-region = Rect2(480, 0, 120, 87)
+region = Rect2(616, 0, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_0_5"]
 atlas = ExtResource("1_sheet")
-region = Rect2(600, 0, 120, 87)
+region = Rect2(770, 0, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_1_0"]
 atlas = ExtResource("1_sheet")
-region = Rect2(0, 87, 120, 87)
+region = Rect2(0, 110, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_1_1"]
 atlas = ExtResource("1_sheet")
-region = Rect2(120, 87, 120, 87)
+region = Rect2(154, 110, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_1_2"]
 atlas = ExtResource("1_sheet")
-region = Rect2(240, 87, 120, 87)
+region = Rect2(308, 110, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_1_3"]
 atlas = ExtResource("1_sheet")
-region = Rect2(360, 87, 120, 87)
+region = Rect2(462, 110, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_1_4"]
 atlas = ExtResource("1_sheet")
-region = Rect2(480, 87, 120, 87)
+region = Rect2(616, 110, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_1_5"]
 atlas = ExtResource("1_sheet")
-region = Rect2(600, 87, 120, 87)
+region = Rect2(770, 110, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_1_6"]
 atlas = ExtResource("1_sheet")
-region = Rect2(720, 87, 120, 87)
+region = Rect2(924, 110, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_1_7"]
 atlas = ExtResource("1_sheet")
-region = Rect2(840, 87, 120, 87)
+region = Rect2(1078, 110, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_1_8"]
 atlas = ExtResource("1_sheet")
-region = Rect2(960, 87, 120, 87)
+region = Rect2(1232, 110, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_1_9"]
 atlas = ExtResource("1_sheet")
-region = Rect2(1080, 87, 120, 87)
+region = Rect2(1386, 110, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_1_10"]
 atlas = ExtResource("1_sheet")
-region = Rect2(1200, 87, 120, 87)
+region = Rect2(1540, 110, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_1_11"]
 atlas = ExtResource("1_sheet")
-region = Rect2(1320, 87, 120, 87)
+region = Rect2(1694, 110, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_2_0"]
 atlas = ExtResource("1_sheet")
-region = Rect2(0, 174, 120, 87)
+region = Rect2(0, 220, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_2_1"]
 atlas = ExtResource("1_sheet")
-region = Rect2(120, 174, 120, 87)
+region = Rect2(154, 220, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_2_2"]
 atlas = ExtResource("1_sheet")
-region = Rect2(240, 174, 120, 87)
+region = Rect2(308, 220, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_2_3"]
 atlas = ExtResource("1_sheet")
-region = Rect2(360, 174, 120, 87)
+region = Rect2(462, 220, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_2_4"]
 atlas = ExtResource("1_sheet")
-region = Rect2(480, 174, 120, 87)
+region = Rect2(616, 220, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_2_5"]
 atlas = ExtResource("1_sheet")
-region = Rect2(600, 174, 120, 87)
+region = Rect2(770, 220, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_2_6"]
 atlas = ExtResource("1_sheet")
-region = Rect2(720, 174, 120, 87)
+region = Rect2(924, 220, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_2_7"]
 atlas = ExtResource("1_sheet")
-region = Rect2(840, 174, 120, 87)
+region = Rect2(1078, 220, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_2_8"]
 atlas = ExtResource("1_sheet")
-region = Rect2(960, 174, 120, 87)
+region = Rect2(1232, 220, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_2_9"]
 atlas = ExtResource("1_sheet")
-region = Rect2(1080, 174, 120, 87)
+region = Rect2(1386, 220, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_3_0"]
 atlas = ExtResource("1_sheet")
-region = Rect2(0, 261, 120, 87)
+region = Rect2(0, 330, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_3_1"]
 atlas = ExtResource("1_sheet")
-region = Rect2(120, 261, 120, 87)
+region = Rect2(154, 330, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_3_2"]
 atlas = ExtResource("1_sheet")
-region = Rect2(240, 261, 120, 87)
+region = Rect2(308, 330, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_3_3"]
 atlas = ExtResource("1_sheet")
-region = Rect2(360, 261, 120, 87)
+region = Rect2(462, 330, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_4_0"]
 atlas = ExtResource("1_sheet")
-region = Rect2(0, 348, 120, 87)
+region = Rect2(0, 440, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_4_1"]
 atlas = ExtResource("1_sheet")
-region = Rect2(120, 348, 120, 87)
+region = Rect2(154, 440, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_4_2"]
 atlas = ExtResource("1_sheet")
-region = Rect2(240, 348, 120, 87)
+region = Rect2(308, 440, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_4_3"]
 atlas = ExtResource("1_sheet")
-region = Rect2(360, 348, 120, 87)
+region = Rect2(462, 440, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_4_4"]
 atlas = ExtResource("1_sheet")
-region = Rect2(480, 348, 120, 87)
+region = Rect2(616, 440, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_4_5"]
 atlas = ExtResource("1_sheet")
-region = Rect2(600, 348, 120, 87)
+region = Rect2(770, 440, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_4_6"]
 atlas = ExtResource("1_sheet")
-region = Rect2(720, 348, 120, 87)
+region = Rect2(924, 440, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_4_7"]
 atlas = ExtResource("1_sheet")
-region = Rect2(840, 348, 120, 87)
+region = Rect2(1078, 440, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_4_8"]
 atlas = ExtResource("1_sheet")
-region = Rect2(960, 348, 120, 87)
+region = Rect2(1232, 440, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_4_9"]
 atlas = ExtResource("1_sheet")
-region = Rect2(1080, 348, 120, 87)
+region = Rect2(1386, 440, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_4_10"]
 atlas = ExtResource("1_sheet")
-region = Rect2(1200, 348, 120, 87)
+region = Rect2(1540, 440, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_4_11"]
 atlas = ExtResource("1_sheet")
-region = Rect2(1320, 348, 120, 87)
+region = Rect2(1694, 440, 154, 110)
 
 [sub_resource type="AtlasTexture" id="a_crawler_5_0"]
 atlas = ExtResource("1_sheet")
-region = Rect2(0, 435, 120, 87)
+region = Rect2(0, 550, 154, 110)
 
 [resource]
 animations = [{

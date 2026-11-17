@@ -1,0 +1,19 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy_zombie_flyer.gd" id="1_fly"]
+[ext_resource type="SpriteFrames" path="res://assets/monsters/flyer_frames.tres" id="mon_frames_flyer"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_fly"]
+size = Vector2(56, 40)
+
+[node name="CharacterBody2D" type="CharacterBody2D" groups=["zombie"]]
+script = ExtResource("1_fly")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+scale = Vector2(1, 1)
+sprite_frames = ExtResource("mon_frames_flyer")
+animation = &"Idle"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 25)
+shape = SubResource("RectangleShape2D_fly")

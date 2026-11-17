@@ -33,6 +33,7 @@ const ENEMY_SCENES := {
 	"zombie_standard": preload("res://scenes/enemy_zombie_standard.tscn"),
 	"zombie_big": preload("res://scenes/enemy_zombie_big.tscn"),
 	"zombie_crawler": preload("res://scenes/enemy_zombie_crawler.tscn"),
+	"zombie_flyer": preload("res://scenes/enemy_zombie_flyer.tscn"),
 	"zombie_longarm": preload("res://scenes/enemy_zombie_longarm.tscn"),
 	"zombie_spitter": preload("res://scenes/enemy_zombie_spitter.tscn"),
 }
@@ -45,6 +46,7 @@ const ENEMY_SETTLED_Y := {
 	"zombie_standard": 370.0,
 	"zombie_big": 374.0,
 	"zombie_crawler": 374.0,
+	"zombie_flyer": 374.0,
 	"zombie_longarm": 374.0,
 	"zombie_spitter": 374.0,
 }

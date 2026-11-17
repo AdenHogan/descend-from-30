@@ -3642,6 +3642,10 @@ func heavy_chance(floor_num: int) -> float:
 	return HEAVY_CHANCE[_floor_band(floor_num)][r]
 
 
+## The share of the crawler slots that hold a FLYER (a hovering thing) instead of a blob on the floor.
+const FLYER_SHARE := 0.4
+
+
 func enemy_type_for(floor_num: int, spawn_key: String) -> String:
 	# Which enemy type fills ONE corridor slot — a pure function of (floor, position,
 	# run), so it's identical between a pan backdrop and its live commit, stable across
@@ -3663,6 +3667,8 @@ func enemy_type_for(floor_num: int, spawn_key: String) -> String:
 	for id in _MIX_ORDER:
 		acc += _MIX_TABLES[id][band][r] * open_ease
 		if roll < acc:
+			if id == "zombie_crawler" and rng.randf() < FLYER_SHARE:
+				return "zombie_flyer"        # a share of the crawler slots are FLYERS instead (docs/ENEMY_MOVEMENT.md)
 			return id
 	return "zombie_standard"
 

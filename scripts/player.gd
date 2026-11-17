@@ -855,6 +855,8 @@ func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
 		var dy = absf(zombie.global_position.y - global_position.y)
 		if dy > MELEE_PLANE_TOLERANCE or not _same_plane(zombie):
 			continue
+		if zombie.has_method("can_be_meleed") and not zombie.can_be_meleed():
+			continue          # a flyer up in the high half of its bob: the swing goes under it
 		var edge_dist = absf(dx) - _zombie_body_radius(zombie)
 		if edge_dist <= attack_range:
 			var facing_right = not animated_sprite.flip_h

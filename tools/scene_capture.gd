@@ -453,6 +453,7 @@ func _do(step: String) -> void:
 				var spr_t: AnimatedSprite2D = zt.get_node("AnimatedSprite2D")
 				spr_t.flip_h = p.size() > 4 and p[4] == "left"
 				spr_t.play(p[3])
+				print("thing %s: pos %s visible %s anims %s frame %s" % [p[2], str(zt.global_position), str(zt.visible), str(spr_t.sprite_frames.get_animation_names() if spr_t.sprite_frames else null), str(spr_t.frame)])
 			await _frames(1)
 		"zombie":
 			# zombie:<x> — a standard zombie standing at world x on the player's walking line in the current scene (to see it pass a hiding player)

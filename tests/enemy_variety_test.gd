@@ -362,14 +362,20 @@ func _test_crawler_behaviour() -> void:
 	# floor's small sample otherwise.
 	WorldState.current_run = 1
 	var craw := 0
+	var fly := 0
 	var total := 0
 	for f in range(3, 19):
 		for i in range(45):
 			total += 1
-			if WorldState.enemy_type_for(f, "%d:%d:388" % [f, 150 + i * 7]) == "zombie_crawler":
+			var et: String = WorldState.enemy_type_for(f, "%d:%d:388" % [f, 150 + i * 7])
+			if et == "zombie_crawler" or et == "zombie_flyer":        # (a share of the crawler slots hold a flyer: FLYER_SHARE)
 				craw += 1
+				if et == "zombie_flyer":
+					fly += 1
 	var frac := float(craw) / float(total)
-	check(frac >= 0.18 and frac <= 0.32, "run-1 crawlers are ~1-in-4 through the mid/deep floors (%.2f)" % frac)
+	check(frac >= 0.18 and frac <= 0.32, "run-1 crawlers + flyers are ~1-in-4 through the mid/deep floors (%.2f)" % frac)
+	var fshare := float(fly) / maxf(1.0, float(craw))
+	check(fshare >= 0.25 and fshare <= 0.55, "...and about WorldState.FLYER_SHARE (%.1f) of those slots hold a flyer (%.2f)" % [WorldState.FLYER_SHARE, fshare])
 	# Run-1 TOP is mostly regulars: the 2nd floor down (29) carries FAR fewer crawlers than the
 	# deep swarm, so two landing side-by-side up top is highly unlikely (owner ask).
 	var top := 0

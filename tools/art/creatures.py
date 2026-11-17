@@ -6,8 +6,10 @@ Nothing here names or explains what they are (CLAUDE.md "Context" 4): they are b
 
     standard   THE HUSK      no head. A hunched trunk on two bent legs, split down the front by a mouth that runs from where the neck was to
                              the belly; a cluster of small eyes on one shoulder; two arms that end in hooks; sacs on its back that swell.
-    crawler    THE LOUSE     low and fast: a segmented abdomen, six jointed legs, a small head that is mostly two red eyes and a pair of jaws,
-                             stub wings that never stop twitching.
+    crawler    THE BLOB      a heap of wet pink lobes with no face and no front: every lobe swells and sinks out of step, blisters rise on them and
+                             burst, and it humps along the floor on a wave of flowing.
+    flyer      THE LOUSE     a segmented abdomen, jointed legs hanging, a small head that is mostly two red eyes and a pair of jaws, wings that never stop
+                             (it HOVERS: scripts/enemy_zombie_flyer.gd).
     big        THE BULK      a sack as wide as the corridor allows on four pillars of leg. No head: a ring of teeth at the front, boils that
                              rise and sink across its back, a fringe of small arms hanging under the mouth.
     longarm    THE REACH     a small body carried high on four arms twice its height, elbows above its back; a round sucking mouth underneath;
@@ -181,7 +183,70 @@ def husk(c, ph, pulse, walking, fr):
 
 
 # ------------------------------------------------------------------------------------------------------------------------------------- crawler
-def louse(c, ph, pulse, walking, fr):
+def ooze(c, ph, pulse, walking, fr):
+    """THE BLOB (owner 2026-11-17, on a first jelly with eyes: "too cute, a blobby rubber duck. We need horror, no face, no discernible features, something
+    pulsating, blisters popping, pink almost flesh-like blobbiness, as it grimly grossly moves towards the player"; the reference is the glossy red-pink
+    heap of bulbous lobes from the film): a HEAP of wet pink lobes with no front and no face. Every lobe swells and sinks out of step with the others;
+    blisters rise on them, tighten, BURST and spit, and begin again; walking, a wave of flowing runs through the heap so it humps forward, a thick rope of
+    slime behind it."""
+    gy = G + 0.45                                                                      # (on the cell's last row, like every other kind: the death's puddle is measured from it)
+    t = (ph if walking else fr / 6.0) % 1.0
+    freq = 2.0 if walking else 1.0
+    flesh = pal('dc6684', '9a2646', '3c0a20', 'ffa8b8')
+    deep = pal('922a48', '56142f', '1e0612', 'c05070')
+    # the floor under it: a wet smear that trails
+    for x in range(int(2 * K), int(42 * K)):
+        c.raw(x, int((gy + 0.3) * K), deep['dd'])
+        if x % 3 != 0:
+            c.raw(x, int((gy + 0.3) * K) - 1, deep['d'])
+    back = ((11.0, -7.0, 6.0), (18.0, -11.5, 7.0), (26.0, -10.5, 7.0), (33.0, -7.0, 6.0), (22.0, -16.0, 5.0), (30.0, -14.0, 4.4))
+    front = ((7.5, -3.2, 5.0), (14.0, -4.5, 6.4), (21.5, -5.6, 7.0), (29.0, -4.8, 6.6), (36.0, -3.4, 5.2), (17.5, -10.5, 4.6), (26.5, -10.6, 4.8), (22.5, -14.8, 3.6), (33.0, -9.6, 3.4), (11.0, -9.0, 3.2))
+
+    LOW = 0.74                                                                         # it is LOW: a heap along the floor, not a hill
+
+    def lobe(i, x, y, r, tone, out_of_step):
+        w = 2.0 * math.pi * (freq * t + i * 0.137 + out_of_step)
+        rr = r * (1.0 + 0.13 * math.sin(w))                                           # it swells and sinks
+        xx = x + (2.4 * math.sin(2.0 * math.pi * (t - x / 44.0)) if walking else 0.5 * math.sin(w))
+        yy = y - (0.9 * abs(math.sin(w)) if y < -8 else 0.0) + (-0.12 * (rr - r))
+        if y > -8:                                                                    # the lowest lobes rest on the floor, whatever their size
+            yy = -rr * 0.82 / LOW + 0.4 * math.sin(w)
+        blob(c, xx, gy + yy * LOW, rr * 1.12, rr * 0.92 * LOW, tone)
+        return xx, gy + yy * LOW, rr * LOW
+    spots = []
+    for i, (x, y, r) in enumerate(back):
+        lobe(i, x, y, r, deep, 0.0)
+    for i, (x, y, r) in enumerate(front):
+        spots.append(lobe(i + 7, x, y, r, flesh, 0.3))
+    # the dark creases between lobes, and the red threads under the skin
+    for (a, b_) in ((0, 5), (1, 6), (2, 3), (5, 6), (7, 8)):
+        if a < len(spots) and b_ < len(spots):
+            (x0, y0, r0), (x1, y1, r1) = spots[a], spots[b_]
+            P.limb(c, (x0 + r0 * 0.3, y0 + r0 * 0.5), (x1 - r1 * 0.2, y1 + r1 * 0.4), 0.7, one('7a2038'))
+    # BLISTERS: each on a lobe, rising, tightening, bursting, gone, again
+    for k, (li, dx_, dy_, ph0) in enumerate(((1, -1.5, -3.5, 0.0), (2, 2.0, -4.0, 0.34), (3, 0.5, -3.0, 0.67), (5, -0.8, -2.2, 0.17), (6, 1.0, -2.6, 0.5), (8, 0.0, -2.6, 0.83))):
+        if li >= len(spots):
+            continue
+        sx, sy, sr = spots[li]
+        bx, by_ = sx + dx_, sy + dy_
+        u = (t * (1.0 if not walking else 2.0) + ph0) % 1.0
+        if u < 0.70:
+            r = 0.7 + 2.3 * (u / 0.70)
+            blob(c, bx, by_, r, r * 0.9, pal('f4a0b0', 'c8506c', '7a2038', 'ffe0e4'))              # a blister: pale, tight, glossy
+        elif u < 0.84:                                                                 # it bursts: a dark crater and drops thrown up and out
+            v = (u - 0.70) / 0.14
+            blob(c, bx, by_ + 0.4, 1.8, 1.0, one('3a0c1e'))
+            for q in range(6):
+                ang = math.pi * (0.1 + 0.16 * q)
+                rd = 1.5 + 4.0 * v
+                c.put(bx + rd * math.cos(ang) * (1 if q % 2 else -1), by_ - rd * math.sin(ang) + 2.2 * v * v, (255, 214, 220, 255) if q % 2 else (214, 78, 102, 255))
+    # slime hanging from the heap and a rope of it dragged behind
+    drip(c, 9.0, gy - 1.5, (fr / 6.0 + 0.2) if not walking else ph * 2 + 0.2, flesh['m'], WHITE, length=3.5)
+    drip(c, 33.0, gy - 1.5, (fr / 6.0 + 0.7) if not walking else ph * 2 + 0.7, flesh['l'], WHITE, length=3.0)
+
+
+# ------------------------------------------------------------------------------------------------------------------------------------- flyer
+def louse(c, ph, pulse, walking, fr):   # (the FLYER now: see KINDS)
     shell = pal('1f7a9a', '14406a', '0c1c40', '5ae6e0')
     far = pal('14406a', '0c2248', '08122c', '1f7a9a')
     belly = pal('f08a2a', 'b84a1a', '6a2010', 'ffd070')
@@ -363,7 +428,7 @@ def gullet(c, ph, pulse, walking, fr):
         c.rect(f[0] - 1, f[1], f[0] + 2, f[1], P.rgb('0a0610'))
 
 
-KINDS = {'standard': husk, 'crawler': louse, 'big': bulk, 'longarm': reach, 'spitter': gullet}
+KINDS = {'standard': husk, 'crawler': ooze, 'flyer': louse, 'big': bulk, 'longarm': reach, 'spitter': gullet}
 
 
 def frames(name, kind):
@@ -399,8 +464,8 @@ from contextlib import contextmanager
 
 from PIL import Image, ImageDraw
 
-SCALE = {'standard': 2.0, 'crawler': 1.5, 'big': 2.0, 'longarm': 1.25, 'spitter': 2.0}   # (watched in the game: the louse at 2.0 was 130 px long, the reach at 1.5 filled the corridor's height)
-GOO = {'standard': ('ff4a6a', '9a1c40', '4a0c2a'), 'crawler': ('c8f060', '6aa81e', '2c5a10'), 'big': ('e060d0', '7a2a8a', '38104e'),
+SCALE = {'standard': 2.0, 'crawler': 1.9, 'flyer': 1.5, 'big': 2.0, 'longarm': 1.25, 'spitter': 2.0}   # (watched in the game: the louse at 2.0 was 130 px long, the reach at 1.5 filled the corridor's height)
+GOO = {'standard': ('ff4a6a', '9a1c40', '4a0c2a'), 'crawler': ('e2788c', 'a83052', '4a0e26'), 'flyer': ('c8f060', '6aa81e', '2c5a10'), 'big': ('e060d0', '7a2a8a', '38104e'),
        'longarm': ('ff9a40', 'b8501e', '5a2410'), 'spitter': ('a4ff2a', '3ab81e', '167a2a')}
 ANIMS = (('Idle', 6, 6.0, True), ('Walk', 12, 9.0, True), ('Attack', 10, 12.0, True), ('Hit', 4, 8.0, True), ('Death', 12, 10.0, False), ('Dead_Dead', 1, 1.0, True))
 OUT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'assets', 'monsters'))
@@ -507,7 +572,9 @@ def build(name):
             e = _ease(t)
             src = idle[(i * 2) % 6]
             pool = _pool((wide, ch), foot, name, (4.0 + 24.0 * max(0.0, t - 0.25) ** 0.7) * k)
-            if name == 'crawler':                                                      # a long low thing does not stand on its tail: it rocks and rolls onto its back, legs up
+            if name == 'crawler':                                                      # the heap does not fall: it slumps, flattens and spreads where it was
+                body = _xform(src, foot, dx=-1.0 * k * e, sx=1.0 + 0.45 * e, sy=1.0 - 0.82 * e * e)
+            elif name == 'flyer':                                                      # a long low thing does not stand on its tail: it rocks and rolls onto its back, legs up
                 bb = src.getbbox()
                 if t < 0.35:
                     body = _xform(src, foot, dx=-2.0 * k * e, rot=-22.0 * (e / _ease(0.35)))
