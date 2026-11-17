@@ -162,9 +162,10 @@ def hide_behind(i, n):
 
 
 def hide_flat(i, n):
-    """Pressed flat against a wall beside a doorway: standing, the back and the heels to the wall, the arms down tight, the head turned toward what might come."""
+    """Pressed FLAT against a wall beside a doorway: the whole body shoved back until the shoulder blades and the heels touch it, legs straight and together, both hands
+    flat on the wall behind, the chin down and the head pulled back against it, eyes wide on what may come round the corner; it barely breathes."""
     pose = P.idle_pose(0)
-    pose.update(mood='scared', n_arm=(-6, 4), f_arm=(-8, 4), lean=-0.9, head_dx=1.2, n_leg=(2, 3), f_leg=(0, 3), breath=1 if i % n == n // 2 else 0)
+    pose.update(mood='scared', dx=-0.2, n_arm=(-17, 4), f_arm=(-20, 4), lean=-1.6, head_dx=-0.5, head_dy=0.5, n_leg=(0, 2), f_leg=(-1, 2), breath=1 if i % n == n // 2 else 0)
     return pose, None
 
 

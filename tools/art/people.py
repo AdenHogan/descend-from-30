@@ -398,7 +398,7 @@ def torso_edges(v, p):
         if v <= v1 or k == len(st) - 2:
             t = max(0.0, min(1.0, (v - v0) / float(v1 - v0)))
             t = 0.5 - 0.5 * math.cos(math.pi * t)                                    # eased: curves, not corners
-            grow = 1.0 + 0.09 * p.get('build', 0)
+            grow = (1.0 + 0.09 * p.get('build', 0)) * p.get('slim', 1.0)       # (`slim`: a person narrower in the body than the garment's shape — owner: "he looks fat")
             return ((b0 + (b1 - b0) * t) * grow + 0.3 * p.get('shoulders', 0.0) * (1.0 - v), (f0 + (f1 - f0) * t) * grow + 0.3 * p.get('shoulders', 0.0) * (1.0 - v))
     return (st[-1][1], st[-1][2])
 
@@ -747,8 +747,8 @@ def draw(p, pose, item=None):
         c.rect(mx - 1, my_, mx + 1, my_, mouth)
         c.put(mx - 2, my_ + 1, mouth)
         c.put(mx + 2, my_ + 1, mouth)
-    elif m == 'o':                                                                  # a mouth open a little: a breath, a fright
-        c.rect(mx, my_, mx + 1, my_ + 1, (70, 34, 40, 255))
+    elif m == 'o':                                                                  # a mouth open a little: a breath, a fright (centred under the eyes, one px in from the jaw)
+        c.rect(mx - 1, my_, mx, my_ + 1, (92, 44, 50, 255))
     elif m == 'maw':                                                                # a mouth that hangs open: dark, a few teeth, and it is wet
         c.rect(mx - 2, my_ - 1, mx + 2, my_ + 1, (48, 16, 22, 255))
         for tx_ in range(mx - 2, mx + 3, 2):                                        # teeth, top and bottom, gappy
@@ -887,7 +887,7 @@ FACE_DEFAULT = dict(eye=(2, 2), gap=2)
 MOODS = {
     'calm': dict(face={}, pose={}),                                                                       # their own face
     'wary': dict(face=dict(brow='flat', brow_low=True, eye_grow=-1, mouth='line', lids=False, glint=False, bags=False), pose=dict(lean=-0.8, n_arm=(8, 34))),                    # watching you, not sure yet
-    'scared': dict(face=dict(brow='worried', mouth='o', eye_grow=1, glint=True, lids=False, bags=False),
+    'scared': dict(face=dict(brow='raised', mouth='o', eye_grow=1, glint=True, lids=False, bags=False),
                    pose=dict(n_arm=(40, 100), f_arm=(30, 104), lean=-1.2, palms=True)),                                # hands up in front, leaning away
     'hurt': dict(face=dict(brow='stern', mouth='frown', squint=True), pose=dict(n_arm=(18, 110), lean=1.6, breath=1)),   # eyes screwed shut, a hand to the body
     'angry': dict(face=dict(brow='stern', mouth='frown', lids=False, glint=False, cheek='c8685a'), pose=dict(n_arm=(-8, 30), f_arm=(-10, 34), lean=1.0)),
@@ -922,16 +922,16 @@ PLAYERS = [
     # hair's shape and colour, the skin, and what they wear — not by features too small to draw.
     # Joe, the tenant — a white man: dark brown mess of hair; a faded teal jumper over a grey tee (nobody's idea of a hero); jeans; brown boots
     dict(name='joe', shape='m', coat='4f7f7c', skin='f0d4bc', hair='5a3e2c', hairstyle='mop', legs='3f5a82', shoes='6a4428', garment='jumper',
-         open='b8bcc0', drop=2, marks=(('yoke', '6a9a94', 2),), carry='hammer', face=dict(eye=(2, 2), gap=2, under=True)),
+         open='b8bcc0', drop=2, slim=0.84, marks=(('yoke', '6a9a94', 2),), carry='hammer', face=dict(eye=(2, 2), gap=2)),
     # Vivianne, the neighbour who runs — a white woman: golden hair loose to just below the shoulder; a coral zip-up, white across the shoulders; leggings
     dict(name='vivianne', shape='f', coat='e8705e', skin='f4dcc8', hair='eec25a', hair2='fbe9a4', hairstyle='lob', legs='2e2c38',
          shoes='ece8e0', garment='jumper', drop=2, marks=(('yoke', 'f4f0e8', 2), ('zip', 'f4f0e8')), leg_stripe='e8705e', carry='torch',
-         face=dict(eye=(2, 2), gap=2, under=True)),
+         slim=0.92, face=dict(eye=(2, 2), gap=2)),
     # Alex, the super — a black man: hair cropped close; navy overalls with the sleeves off, a name patch, a tool belt; tan boots
     dict(name='alex', shape='m', coat='2f4a7a', skin='7a4e36', hair='1c1418', hairstyle='crop', legs='2f4a7a', shoes='b8863c', sleeves=False, drop=2,
-         marks=(('patch', 'f0ece0'), ('belt', '6a4428', 'e8c860', 'c89a3c')), carry='hammer', face=dict(eye=(2, 2), gap=2, under=True)),
+         marks=(('patch', 'f0ece0'), ('belt', '6a4428', 'e8c860', 'c89a3c')), carry='hammer', slim=0.86, face=dict(eye=(2, 2), gap=2, under=True)),
     # Amina, the nurse, off duty — an Indian woman: long black hair; a mustard cardigan open over a magenta top; dark trousers
-    dict(name='amina', shape='f', coat='d8a43a', skin='bc8660', hair='1e161c', hairstyle='long', legs='3a3448', shoes='7a4a3a', garment='jumper',
+    dict(name='amina', shape='f', coat='d8a43a', skin='bc8660', hair='1e161c', hairstyle='long', legs='3a3448', shoes='7a4a3a', garment='jumper', slim=0.92,
          open='c83a6a', drop=2, carry='bag', face=dict(eye=(2, 2), gap=2, under=True, earring='f0d060')),
 ]
 
