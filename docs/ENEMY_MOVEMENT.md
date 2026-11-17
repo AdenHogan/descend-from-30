@@ -9,19 +9,22 @@ blisters popping, pink almost flesh-like blobbiness, as it grimly grossly moves 
 |---|---|---|---|
 | standard | `enemy_zombie_standard.gd` | the husk | upright shamble |
 | crawler | `enemy_zombie_crawler.gd` | **the blob** — a low heap of wet pink lobes, no face, no front | the heap flows: a wave runs through it, it humps forward; lobes swell and sink out of step; blisters rise, burst and spit; the old pounce / wall-nest rules are unchanged |
-| flyer | `enemy_zombie_flyer.gd` (NEW) | the louse (the old crawler drawing) | hangs at head height and BOBS; see below |
+| flyer | `enemy_zombie_flyer.gd` (NEW) | the fuzz — matted lilac fur, no legs, no eyes, a mouth | hangs at head height, bobs, is kicked about by random twitches, lurches in surges; inside 190 px it stops, SCREAMS (maw open), then SPINS at you and bites where it lands; see below |
 | big | `enemy_zombie_big.gd` | the bulk | heavy four-legged lumber |
 | longarm | `enemy_zombie_longarm.gd` | the reach | tall, on four long arms |
 | spitter | `enemy_zombie_spitter.gd` | the heap | stands and spits |
 
 ## The flyer
 
-- Height `HOVER_BASE` 40 px ± `HOVER_AMP` 16 px on a bob of `HOVER_RATE` 2.3 rad/s. The SPRITE is lifted (`animated_sprite.position.y`); the collision box stays on the floor, because
-  every feet-line measurement reads it (`EnemyFeet`, the shadow, the plane checks).
-- **Melee**: `can_be_meleed()` is true only while it is at or below `MELEE_MAX_H` 46 px (the low half of the bob). `player._do_melee_attack` skips a target that answers false. A bullet always lands.
-- **Its bite**: a standing player is always in reach; a crouching one is bitten only while it is below `CROUCH_STRIKE_H` 34 px.
+- Height `HOVER_BASE` 44 px ± `HOVER_AMP` 16 px on a bob of `HOVER_RATE` 2.3 rad/s, plus TWITCHES (a random kick every 0.25-0.9 s that decays) and a sideways wobble, so its height and position are never the same twice.
+  The SPRITE is lifted and thrown about; the collision box stays on the floor, because every feet measurement reads it (`EnemyFeet`, the shadow, the plane checks).
+- **SURGES**: `SPEED` is rewritten every frame (0.25-1.75 x 56), so it lurches in bursts and stalls.
+- **THE DIVE**: inside `DIVE_RANGE` 190 px (and outside its bite reach) it stops and SCREAMS for 0.7 s (the tell: the Attack frames, a pitched-down moan), then spins at you at 340 px/s for 0.55 s
+  (the sprite whirls 20 rad/s) and bites where it lands. 3.4 s cooldown; a hit, a shove or death ends it.
+- **Melee**: `can_be_meleed()` is true only while it is at or below `MELEE_MAX_H` 50 px. `player._do_melee_attack` skips a target that answers false. A bullet always lands.
+- **Its bite**: a standing player is always in reach; a crouching one (or a rolling one — the roll sets `is_crouching`) is bitten only while it is below `CROUCH_STRIKE_H` 38 px.
 - **Passing**: solid to a standing player, passable (a collision exception) to a crouching one — crouch and go under.
-- Fragile (40 % of a standard's health), quick (58 vs 40), senses from 200 px.
+- Fragile (40 % of a standard's health), senses from 220 px.
 - **Where**: corridors only. `WorldState.enemy_type_for` turns `FLYER_SHARE` (0.4) of the crawler slots into `zombie_flyer` (seeded, so a pan backdrop and its live commit agree). Breach rooms,
   revenants and the like still lay blobs (`room.gd` maps `crawler`).
 

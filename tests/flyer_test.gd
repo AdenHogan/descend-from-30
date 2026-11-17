@@ -33,15 +33,17 @@ func _ready() -> void:
 	check(f.max_hp < std.max_hp, "fragile: %d hp against a standard's %d" % [f.max_hp, std.max_hp])
 	var cs: CollisionShape2D = f.get_node("CollisionShape2D")
 	var shape_y: float = cs.position.y
-	f._hover_t = PI / 2.0
+	f._twitch = Vector2.ZERO
+	f._phase = Vector2.ZERO
+	f._t = PI / 2.0 / f.HOVER_RATE
 	f._h = f.target_height()
 	f._apply_height()
 	check(absf(f.height() - (f.HOVER_BASE + f.HOVER_AMP)) < 0.01, "the top of the bob is %.0f px up" % f.height())
 	check(not f.can_be_meleed(), "up high a swing goes under it")
 	var spr: AnimatedSprite2D = f.get_node("AnimatedSprite2D")
-	check(absf(spr.position.y - (f._sprite_y0 - f.height())) < 0.01, "its sprite is lifted by its height")
+	check(absf(spr.position.y - (f._sprite_p0.y - f.height())) < 0.01, "its sprite is lifted by its height")
 	check(cs.position.y == shape_y, "the collision box stays on the floor (every feet measurement reads it)")
-	f._hover_t = -PI / 2.0
+	f._t = -PI / 2.0 / f.HOVER_RATE
 	f._h = f.target_height()
 	check(f.can_be_meleed(), "down low (%.0f px) a swing reaches it" % f.height())
 	# the bite: a stub player
@@ -61,6 +63,23 @@ func _ready() -> void:
 	f._h = 24.0
 	f._deliver_attack(0.0)
 	check(pl.hits == 2, "...and bitten when it dives")
+	# the dive: scream, then spin, then a bite where it lands, then a cooldown
+	pl.is_crouching = false
+	pl.global_position = f.global_position + Vector2(150.0, 0.0)
+	f._dive_cd = 0.0
+	check(f._ai_override(150.0, 150.0, 220.0) and f.dive == "scream", "inside DIVE_RANGE it stops and SCREAMS first (the tell)")
+	check(spr.animation == "Attack", "...with its maw open (the Attack frames)")
+	f._dive_t = 0.0
+	check(f._ai_override(150.0, 150.0, 220.0) and f.dive == "spin", "...then spins at the player")
+	var hits0: int = pl.hits
+	spr.rotation = 0.0
+	f._dive_t = 0.5
+	f._ai_override(10.0, 10.0, 220.0)
+	check(f.dive == "" and pl.hits == hits0 + 1 and spr.rotation == 0.0 and f._dive_cd > 1.0, "...bites where it lands, stops whirling and cools down")
+	f._dive_cd = 0.0
+	f.hurt_timer = 0.5
+	check(not f._ai_override(150.0, 150.0, 220.0) and f.dive == "", "a hurt one does not dive")
+	f.hurt_timer = 0.0
 	f.is_dead = true
 	check(f.can_be_meleed() and f.target_height() == 0.0, "a dead one is on the floor and can be hit")
 	# the spawner

@@ -8,8 +8,8 @@ Nothing here names or explains what they are (CLAUDE.md "Context" 4): they are b
                              the belly; a cluster of small eyes on one shoulder; two arms that end in hooks; sacs on its back that swell.
     crawler    THE BLOB      a heap of wet pink lobes with no face and no front: every lobe swells and sinks out of step, blisters rise on them and
                              burst, and it humps along the floor on a wave of flowing.
-    flyer      THE LOUSE     a segmented abdomen, jointed legs hanging, a small head that is mostly two red eyes and a pair of jaws, wings that never stop
-                             (it HOVERS: scripts/enemy_zombie_flyer.gd).
+    flyer      THE FUZZ      a ball of matted lilac-grey fur with no legs and no eyes — a mouth: a slit at rest, a gape in flight, a scream when it dives
+                             (it HOVERS and darts: scripts/enemy_zombie_flyer.gd).
     big        THE BULK      a sack as wide as the corridor allows on four pillars of leg. No head: a ring of teeth at the front, boils that
                              rise and sink across its back, a fringe of small arms hanging under the mouth.
     longarm    THE REACH     a small body carried high on four arms twice its height, elbows above its back; a round sucking mouth underneath;
@@ -246,40 +246,63 @@ def ooze(c, ph, pulse, walking, fr):
 
 
 # ------------------------------------------------------------------------------------------------------------------------------------- flyer
-def louse(c, ph, pulse, walking, fr):   # (the FLYER now: see KINDS)
-    shell = pal('1f7a9a', '14406a', '0c1c40', '5ae6e0')
-    far = pal('14406a', '0c2248', '08122c', '1f7a9a')
-    belly = pal('f08a2a', 'b84a1a', '6a2010', 'ffd070')
-    eye = pal('ff3a2a', 'a80c1c', '5a0414', 'ffb09a')
-    by = 46.0 - (0.8 if walking and (ph * 3) % 1.0 < 0.3 else 0.3 * pulse)
-    homes = (17.0, 23.0, 29.0)
-    for k, hx in enumerate(homes):
-        f = step(ph + (0.5 if k % 2 == 0 else 0.0), hx + 3.0, 7.0 if walking else 0.0, 2.6)
-        leg(c, (hx + 2.0, by + 1.0), (f[0], f[1]), 4.6, 1.9, 1.3, far, near=False)
-    buzz = (fr % 2 == 0)                                                               # the wings never stop
-    for (a0, a1, w, col) in (((17.0, by - 3.0), (8.0, by - 9.0 - (3.0 if buzz else -1.0)), 2.6, 'c8f4ff'), ((15.0, by - 3.0), (5.0, by - 5.0 - (2.0 if buzz else -2.0)), 2.2, '8ad0e8')):
-        P.limb(c, a0, a1, w, one(col))
-    swell = 0.9 * pulse
-    blob(c, 13.5, by, 8.8 + swell, 5.2 + swell, shell)                                 # the abdomen: it throbs
-    blob(c, 13.5, by + 2.6, 7.6 + swell * 0.5, 2.8, belly)
-    for x in (8.6, 12.0, 15.6):
-        c.vwire(x, by - 5, by + 4, P.rgb('08122c'))
-    for i, (x, y) in enumerate(((9.5, by + 2.2), (12.6, by + 3.0), (15.6, by + 2.4), (11.0, by + 0.8))):   # what it is carrying, lit from inside
-        if (fr + i) % 3 != 0:
-            glow(c, x, y, 1.3 + 0.4 * pulse, (255, 240, 120, 255))
-    blob(c, 24.5, by - 0.6, 5.6, 5.0, shell)
-    blob(c, 31.6, by + 0.8, 3.8, 3.6, shell)
-    blob(c, 32.6, by - 0.4, 2.3 + 0.3 * pulse, 2.2 + 0.3 * pulse, eye)                 # an eye that is most of the head
-    c.put(33.0, by - 1.4, WHITE)
-    jaw = 1.2 * (0.5 + 0.5 * pulse) if not walking else 1.2 * abs(math.sin(4 * math.pi * ph))
-    P.limb(c, (33.6, by + 2.4), (37.0, by + 4.0 + jaw), 1.4, one('ffd070'))
-    P.limb(c, (33.0, by + 3.2), (35.6, by + 6.6 - jaw), 1.4, one('f08a2a'))
-    P.limb(c, (33.0, by - 2.8), (38.0, by - 7.0 + 2.0 * pulse), 0.9, one('5ae6e0'))
-    P.limb(c, (32.0, by - 3.0), (35.0, by - 8.6 - 2.0 * pulse), 0.9, one('1f7a9a'))
-    drip(c, 35.6, by + 5.4, (fr / 6.0 + 0.3) if not walking else ph * 2 + 0.3, P.rgb('c8f060'), WHITE, length=4.0)
-    for k, hx in enumerate(homes):
-        f = step(ph + (0.0 if k % 2 == 0 else 0.5), hx, 7.0 if walking else 0.0, 3.2)
-        leg(c, (hx + 1.0, by + 0.5), (f[0], f[1]), 6.4, 2.4, 1.6, shell)
+def fuzz(c, ph, pulse, walking, fr):
+    """THE FLYER (owner 2026-11-17, of a house-fly with stiff legs: "so rigid, especially around the legs… more horrific. No legs, always airborne, seemingly
+    random movements, violent, furry, fuzzy. When it approaches the player its maw opens up, screams, spins violently toward the player"): a ball of matted fur
+    with NO legs, no eyes — a mouth. Every frame its fur stands differently (it never holds still: it shivers), ragged hanks trail behind it, and the mouth is a
+    puckered slit at rest, a gape that works as it flies, and a full scream (teeth, tongue, throat) in the attack frames."""
+    import random
+    fur = pal('5a466e', '382a4c', '1a1026', 'a894c8')
+    tip = pal('c8b4e8', '8c78b0', '4a3a6a', 'f0e4ff')
+    cx, cy = 21.0, 46.0
+    attack = (not walking) and ph == 0.25
+    gape = 1.0 if attack and pulse > 0.3 else (0.45 + 0.35 * pulse if walking else 0.12)
+    # trailing hanks behind (to the LEFT: it faces right), writhing differently every frame
+    for k in range(5):
+        rr = random.Random(900 + k * 31 + fr * 7)
+        y0 = cy - 4.0 + k * 2.2
+        x1, y1 = cx - 11.0 - rr.uniform(3.0, 8.0), y0 + rr.uniform(-4.0, 6.0) + (3.0 if k > 2 else 0.0)
+        P.limb(c, (cx - 7.0, y0), (x1, y1), 1.4, one('2a1e3a'))
+        P.limb(c, (x1 + 2.0, y1), (x1 - 2.5, y1 + rr.uniform(-2.0, 3.0)), 0.8, one('6a5688'))
+    # the body: a heavy round mass, lit from above-left
+    swell = 0.7 * pulse
+    blob(c, cx, cy, 9.6 + swell, 8.8 + swell, fur)
+    # the fur: hundreds of strands in effect — spikes all round the rim, long, short, bent, new every frame
+    for i in range(86):
+        ang = 2.0 * math.pi * i / 86.0
+        rr = random.Random(i * 7919 + fr * 104729 + int(ph * 100))
+        ln = rr.uniform(2.0, 6.4) * (1.0 + 0.3 * abs(pulse)) * (0.6 if i % 2 else 1.0)
+        bend = rr.uniform(-0.9, 0.9)
+        r0 = 8.0 + swell + rr.uniform(0.0, 1.2)
+        x0, y0 = cx + r0 * 1.04 * math.cos(ang), cy + r0 * 0.94 * math.sin(ang)
+        x1, y1 = x0 + ln * math.cos(ang + bend), y0 + ln * math.sin(ang + bend)
+        lit = (math.cos(ang - 3.6) > 0.1)
+        P.limb(c, (x0, y0), (x1, y1), 0.9, tip if lit else fur) if False else P.limb(c, (x0, y0), (x1, y1), 0.9, one('c8b4e8') if lit else one('4a3a68'))
+    # fur laid over the face of it, in tufts, so the body reads as fur and not a ball
+    for i in range(150):
+        rr = random.Random(i * 313 + fr * 17)
+        ang, rad = rr.uniform(0.0, 2.0 * math.pi), 8.4 * math.sqrt(rr.random())
+        tx, ty = cx + rad * math.cos(ang), cy + rad * 0.95 * math.sin(ang)
+        if tx > cx + 5.2 and abs(ty - cy) < 5.5:
+            continue                                                                    # keep the mouth clear
+        lit = (tx - cx) * -0.5 + (ty - cy) * -0.7
+        col = one('d8c8f4') if lit > 3.4 else (one('a894c8') if lit > 0.8 else (one('6a5688') if lit > -2.6 else one('2a1e3a')))
+        P.limb(c, (tx, ty), (tx + rr.uniform(-1.8, 0.6), ty + rr.uniform(1.2, 3.4)), 0.8, col)
+    # THE MOUTH, on the front: a puckered slit that opens to a scream
+    mx, my = cx + 8.2, cy + 0.4
+    rx, ry = 1.0 + 3.6 * gape, 2.2 + 4.2 * gape
+    blob(c, mx, my, rx + 1.3, ry + 1.2, pal('c8506c', '8c2a48', '4a1028', 'ff98ac'))   # the wet rim of it
+    blob(c, mx + 0.3, my, rx, ry, one('2a0610'))                                       # the throat
+    if gape > 0.6:
+        blob(c, mx - 0.6, my + ry * 0.35, rx * 0.7, ry * 0.4, pal('e0788c', 'a8384e', '5a1428', 'ffb8c4'), wet=False)   # a tongue
+    nt = 7 if gape > 0.6 else 4
+    for q in range(nt):                                                                  # teeth round the rim, uneven
+        ang = 2.0 * math.pi * (q + 0.5) / nt
+        rr = random.Random(q * 53 + fr)
+        px, py = mx + (rx + 0.6) * math.cos(ang), my + (ry + 0.6) * math.sin(ang)
+        P.limb(c, (px, py), (px - 1.4 * math.cos(ang), py - 1.4 * math.sin(ang) * (0.8 + 0.3 * rr.random())), 0.7, one('f4ecd8'))
+    if gape > 0.6:
+        drip(c, mx - 0.4, my + ry + 1.2, fr / 6.0 + 0.3, one('e8a0b0')[ 'm'], WHITE, length=4.0)
 
 
 # ----------------------------------------------------------------------------------------------------------------------------------------- big
@@ -428,7 +451,7 @@ def gullet(c, ph, pulse, walking, fr):
         c.rect(f[0] - 1, f[1], f[0] + 2, f[1], P.rgb('0a0610'))
 
 
-KINDS = {'standard': husk, 'crawler': ooze, 'flyer': louse, 'big': bulk, 'longarm': reach, 'spitter': gullet}
+KINDS = {'standard': husk, 'crawler': ooze, 'flyer': fuzz, 'big': bulk, 'longarm': reach, 'spitter': gullet}
 
 
 def frames(name, kind):
@@ -464,8 +487,8 @@ from contextlib import contextmanager
 
 from PIL import Image, ImageDraw
 
-SCALE = {'standard': 2.0, 'crawler': 1.9, 'flyer': 1.5, 'big': 2.0, 'longarm': 1.25, 'spitter': 2.0}   # (watched in the game: the louse at 2.0 was 130 px long, the reach at 1.5 filled the corridor's height)
-GOO = {'standard': ('ff4a6a', '9a1c40', '4a0c2a'), 'crawler': ('e2788c', 'a83052', '4a0e26'), 'flyer': ('c8f060', '6aa81e', '2c5a10'), 'big': ('e060d0', '7a2a8a', '38104e'),
+SCALE = {'standard': 2.0, 'crawler': 1.9, 'flyer': 1.9, 'big': 2.0, 'longarm': 1.25, 'spitter': 2.0}   # (watched in the game: the louse at 2.0 was 130 px long, the reach at 1.5 filled the corridor's height)
+GOO = {'standard': ('ff4a6a', '9a1c40', '4a0c2a'), 'crawler': ('e2788c', 'a83052', '4a0e26'), 'flyer': ('a894c8', '5a466e', '1a1026'), 'big': ('e060d0', '7a2a8a', '38104e'),
        'longarm': ('ff9a40', 'b8501e', '5a2410'), 'spitter': ('a4ff2a', '3ab81e', '167a2a')}
 ANIMS = (('Idle', 6, 6.0, True), ('Walk', 12, 9.0, True), ('Attack', 10, 12.0, True), ('Hit', 4, 8.0, True), ('Death', 12, 10.0, False), ('Dead_Dead', 1, 1.0, True))
 OUT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'assets', 'monsters'))
@@ -574,7 +597,7 @@ def build(name):
             pool = _pool((wide, ch), foot, name, (4.0 + 24.0 * max(0.0, t - 0.25) ** 0.7) * k)
             if name == 'crawler':                                                      # the heap does not fall: it slumps, flattens and spreads where it was
                 body = _xform(src, foot, dx=-1.0 * k * e, sx=1.0 + 0.45 * e, sy=1.0 - 0.82 * e * e)
-            elif name == 'flyer':                                                      # a long low thing does not stand on its tail: it rocks and rolls onto its back, legs up
+            elif False:                                                                # (the old legged flyer rolled onto its back)
                 bb = src.getbbox()
                 if t < 0.35:
                     body = _xform(src, foot, dx=-2.0 * k * e, rot=-22.0 * (e / _ease(0.35)))
