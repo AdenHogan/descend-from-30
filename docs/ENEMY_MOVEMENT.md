@@ -33,3 +33,16 @@ blisters popping, pink almost flesh-like blobbiness, as it grimly grossly moves 
 - No playtest: the bob rate, the heights, the 0.4 share and the speed are first guesses.
 - The collision box is on the floor, so a standing player is stopped by an invisible block under the flyer when it is high; the alternative is raising the box (every feet measurement would then need a flyer exception).
 - Art is placeholder. The blob's Hit / Attack / Death are derived from the same drawing (squash, drive forward, slump and spread).
+
+## The dive roll (player; owner 2026-11-17 — BUILT v1, the FEEL unplayed)
+
+"A forward roll when running and press crouch… it rolls the player lower so they dive under things. Fully wipes out the stamina bar, just like a push would… roll past an enemy
+without taking damage, but it's not a big distance, so if they mis-roll they could end up in a pack of enemies or too close to another enemy with no stamina. Risk v reward."
+
+- **Input**: sprint held + a direction held + the crouch key (`crouch_toggle`). Anything less and the key just toggles the crouch. Not in scavenge stance, hiding, mid-swing / shove / hit, on a balcony or in a cutscene.
+- **Cost**: the same as a shove — `WorldState.push_cost()` (a full bar for a one-charge character) and `push_recovery_delay()` before stamina starts back; it needs `push_min_stamina()` to begin. A roll noise as loud as a run.
+- **Distance / time**: `ROLL_DISTANCE` 118 px in `ROLL_TIME` 0.46 s, committed (no steering, no stopping), the sheet's 7-frame `roll` stretched to fit.
+- **Nothing lands**: `_begin_hit` refuses while `is_rolling`; no swing, shot or shove from inside it. The dead within reach become passable for the whole roll (`_roll_pass_through`; an enemy's `_try_resolidify` waits while the player rolls),
+  and firm up again once you are clear — end a roll INSIDE a pack and you are stood among them with an empty bar.
+- **Low**: the roll sets `is_crouching`, so a flyer's bite passes over you and the flyer lets you through; the roll ends standing.
+- Placeholder: the `roll` frames are the people rig's tuck (`tools/art/player_rigs.py`); no roll sound, no dust, no HUD hint yet. `tests/roll_test` covers the rules.

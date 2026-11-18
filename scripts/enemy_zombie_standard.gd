@@ -801,6 +801,8 @@ func _make_passable_to_player() -> void:
 		passable_to_player = true
 
 func _try_resolidify() -> void:
+	if is_instance_valid(player) and player.get("is_rolling") == true:
+		return          # a rolling player passes through everything (player.gd: the dive roll)
 	# Restore solidity only once the player is clear, so the zombie never
 	# re-solidifies while overlapping the player (which would jam both bodies).
 	# Different planes (room floor vs balcony) never collide — the lines overlap in space.

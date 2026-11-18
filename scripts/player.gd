@@ -24,6 +24,17 @@ const DEV_MODE = true
 # Owner round 49d: "since our changes to the stamina bar… stamina is no longer a thing to be overly concerned about… bump degeneration for running
 # by 20%… moving in combat should also hit stamina, but it needs to be a gradual reduction considering that it is a faster movement pace."
 const STAMINA_SPRINT_DRAIN = 14.4          # per second of sprinting (was 12.0: +20%)
+# THE DIVE ROLL (owner 2026-11-17: "a forward roll when running and press crouch… it rolls the player lower so they dive under things. Fully wipes out the stamina bar, just
+# like a push would… roll past an enemy without taking damage, but it's not a big distance, so if they mis-roll they could end up in a pack of enemies or too close to another
+# enemy with no stamina. Risk v reward"). Sprint + move + the crouch key: a short low forward roll. NOTHING can hurt you while it lasts, the dead let you through, a flyer passes
+# over you (you are low), and it costs what a shove costs: the bar, and the stamina's wait before it comes back. Docs: docs/ENEMY_MOVEMENT.md "The dive roll".
+const ROLL_TIME := 0.46
+const ROLL_DISTANCE := 118.0               # px: not a big distance
+var is_rolling := false
+var _roll_t := 0.0
+var _roll_dir := 1.0
+var _roll_was_crouching := false
+
 const STAMINA_SPRINT_MIN = 2.4             # the stamina sprint needs to (re)engage — it was STAMINA_SPRINT_DRAIN * 0.2 while that was 12.0
 const STAMINA_COMBAT_WALK_DRAIN = 3.0      # per second of walking at the COMBAT pace (150 px/s, nearly twice scavenge's): about a fifth of a sprint's
 const STAMINA_PASSIVE_RATE = 10.0
@@ -391,8 +402,16 @@ func _physics_process(delta: float) -> void:
 		request_mode_toggle()
 		return
 
-	if Input.is_action_just_pressed("crouch_toggle") and hide_spot == null:       # (hidden, you stay down: the stance is the hiding)
-		is_crouching = !is_crouching
+	if is_rolling:
+		_roll_t -= delta
+		_roll_pass_through()
+		if _roll_t <= 0.0:
+			_end_roll()
+	if Input.is_action_just_pressed("crouch_toggle") and hide_spot == null and not is_rolling:       # (hidden, you stay down: the stance is the hiding)
+		if can_start_roll():
+			_start_roll()                          # running + crouch = the dive roll
+		else:
+			is_crouching = !is_crouching
 
 	if attack_cooldown_timer > 0:
 		attack_cooldown_timer -= delta
@@ -510,7 +529,9 @@ func _physics_process(delta: float) -> void:
 	current_speed *= WorldState.get_move_speed_mult()
 
 	var hide_anim: String = PlayerRig.hide_anim(hide_spot) if hide_spot != null and is_instance_valid(hide_spot) else ""
-	if hide_anim != "" and animated_sprite.sprite_frames != null and animated_sprite.sprite_frames.has_animation(hide_anim):
+	if is_rolling:
+		_play_roll_anim()
+	elif hide_anim != "" and animated_sprite.sprite_frames != null and animated_sprite.sprite_frames.has_animation(hide_anim):
 		animated_sprite.play(hide_anim)   # hidden: the pose for THIS hiding place (wardrobe, bath, behind a sofa, flat to a wall, the dark)
 	elif is_crouching:
 		if direction == 0:
@@ -544,7 +565,9 @@ func _physics_process(delta: float) -> void:
 				"gun": animated_sprite.play("gun_walk")
 				_: animated_sprite.play("walk")
 
-	if is_pushing:
+	if is_rolling:
+		velocity.x = _roll_dir * ROLL_DISTANCE / ROLL_TIME      # a committed roll: no steering, no stopping
+	elif is_pushing:
 		velocity.x = move_toward(velocity.x, 0, SPEED * 2)
 	elif direction != 0:
 		velocity.x = direction * current_speed
@@ -582,6 +605,64 @@ func _physics_process(delta: float) -> void:
 			footstep_player.play()
 	else:
 		footstep_timer = 0.0
+
+
+## True when a sprinting, moving player may dive-roll right now: it needs the same bar a shove needs.
+func can_start_roll() -> bool:
+	if is_rolling or is_crouching or is_attacking or is_pushing or is_hit or is_dead or is_dying or is_cutscene or on_balcony_plane or hide_spot != null:
+		return false
+	if WorldState.is_scavenge_mode or pack_phase != "" or is_listening or is_switching_mode or escaping:
+		return false
+	if not Input.is_action_pressed("sprint") or Input.get_axis("move_left", "move_right") == 0.0:
+		return false
+	return WorldState.god_mode or WorldState.stamina >= WorldState.push_min_stamina()
+
+
+func _start_roll() -> void:
+	_roll_dir = signf(Input.get_axis("move_left", "move_right"))
+	if _roll_dir == 0.0:
+		_roll_dir = -1.0 if animated_sprite.flip_h else 1.0
+	is_rolling = true
+	_roll_t = ROLL_TIME
+	_roll_was_crouching = is_crouching
+	is_crouching = true                          # LOW: a flyer's bite passes over a crouching body, and it is the crouch the flyer lets through
+	is_running = false
+	animated_sprite.flip_h = _roll_dir < 0.0
+	_clear_move_target()
+	if not WorldState.god_mode:
+		WorldState.stamina = maxf(WorldState.stamina - WorldState.push_cost(), 0.0)
+		stamina_recovery_timer = maxf(stamina_recovery_timer, WorldState.push_recovery_delay())
+		HUD.update_stamina(WorldState.stamina, WorldState.get_max_stamina())
+	WorldState.emit_noise(global_position, WorldState.NOISE_RADIUS["run"] * WorldState.get_noise_mult(), 0.5)
+	_roll_pass_through()
+
+
+## The dead within the roll's reach let the roller through (every frame of it: an enemy never firms up while `is_rolling`; afterwards it does once you are clear - enemy._try_resolidify).
+func _roll_pass_through() -> void:
+	for z in get_tree().get_nodes_in_group("zombie"):
+		if is_instance_valid(z) and z.has_method("_make_passable_to_player") and absf(z.global_position.x - global_position.x) < ROLL_DISTANCE + 90.0:
+			z._make_passable_to_player()
+
+
+func _end_roll() -> void:
+	if not is_rolling:
+		return
+	is_rolling = false
+	is_crouching = false                         # up on their feet (a roll ends standing; the stance toggle is unchanged by it)
+	animated_sprite.speed_scale = 1.0
+
+
+## The roll animation, stretched so one turn takes exactly ROLL_TIME (the old sprite has none: it falls back to the crouch).
+func _play_roll_anim() -> void:
+	var frames: SpriteFrames = animated_sprite.sprite_frames
+	if frames != null and frames.has_animation("roll"):
+		var n: int = frames.get_frame_count("roll")
+		var fps: float = maxf(0.1, frames.get_animation_speed("roll"))
+		animated_sprite.speed_scale = (float(n) / fps) / ROLL_TIME
+		if animated_sprite.animation != "roll":
+			animated_sprite.play("roll")
+	else:
+		animated_sprite.play("crouch_walk")
 
 
 func _move_locked() -> void:
@@ -793,7 +874,7 @@ func _zombie_body_radius(zombie: Node) -> float:
 	return 10.0
 
 func _do_melee_attack(instance: ItemInstance, slot_index: int) -> void:
-	if is_attacking:
+	if is_attacking or is_rolling:
 		return
 	var item_data = instance.get_data()
 	var weapon_type = _get_weapon_type(item_data)
@@ -956,6 +1037,8 @@ func gunshot_noise_radius(instance: ItemInstance) -> float:
 
 
 func _do_gun_attack(instance: ItemInstance, _slot_index: int) -> void:
+	if is_rolling:
+		return
 	# Guns fire from their MAGAZINE (18, or 10 damaged). Loose bullets stay
 	# in inventory until loaded — press the use key on the equipped gun.
 	if instance.is_depleted:
@@ -1082,6 +1165,8 @@ func _calculate_gun_outcome(distance: float, damaged: bool = false, instance: It
 
 
 func _do_push() -> void:
+	if is_rolling:
+		return
 	# THE SHOVE COSTS A BAR, ON EVERY FLOOR (owner rounds 49q / 49r): it needs a FULL bar (a character with two charges needs half), takes it all (or half), and stamina then waits a long
 	# beat before it comes back - a bar that has regenerated to 99 % does not shove. Not on the descent ramp: floor 30 and the tutorial play by the same rule as floor 5.
 	if WorldState.stamina < WorldState.push_min_stamina() and not WorldState.god_mode:
@@ -2173,6 +2258,8 @@ func receive_burn() -> void:
 func _begin_hit() -> bool:
 	if is_dead or is_dying or escaping:
 		return false
+	if is_rolling:
+		return false          # nothing lands on a rolling player (the dive roll's whole point)
 	if WorldState.god_mode:
 		return false
 	if is_listening:

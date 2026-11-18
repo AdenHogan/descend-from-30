@@ -160,3 +160,6 @@ phone — render them with `tools/scene_capture`), the Android export itself (Go
 events really carry device −1 on every Android build (the device tracker relies on it to tell a tap from a mouse).
 Not built: gyro / aim assist (the game has no aiming), pad rumble, a pinch-to-zoom, a left-handed touch layout, per-button touch scaling, on-screen
 pad glyph art (labels are text).
+
+**The dive roll (round 49v):** no new action — it is SPRINT held + a direction + the existing crouch action (`crouch_toggle`: the crouch key; the stick pushed DOWN on a pad). While running, that press rolls instead of toggling the crouch
+(`Player.can_start_roll`); see `docs/ENEMY_MOVEMENT.md` "The dive roll". A touch player has no sprint hold, so it is not reachable on touch yet.
