@@ -357,7 +357,7 @@ def reach(c, ph, pulse, walking, fr):
     bob = 0.9 * math.sin(4 * math.pi * ph) if walking else 0.7 * pulse
     bx, by = 21.0, 20.0 + bob
     homes = (8.0, 16.0, 27.0, 35.0)
-    feet = [step(ph + (0.0, 0.5, 0.25, 0.75)[k], homes[k], 5.0 if walking else 0.0, 4.0) for k in range(4)]
+    feet = [step(ph + (0.0, 0.5, 0.25, 0.75)[k], homes[k], 10.0 if walking else 0.0, 4.0) for k in range(4)]   # stride 10 x 1.25: right for ~19 px/s (WALK_DESIGN_SPEED)
     elbows = ((8.0, 7.0), (14.0, 9.0), (29.0, 9.0), (35.0, 7.0))
     for k in (1, 3):
         P.limb(c, (bx + (-2 if k < 2 else 2), by - 2.0), (elbows[k][0], elbows[k][1] + bob), 2.8, far, near=False)

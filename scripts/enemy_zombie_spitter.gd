@@ -34,6 +34,7 @@ func make_breach_leader(key_target: String) -> void:
 
 func _ready() -> void:
 	super()
+	WALK_DESIGN_SPEED = 18.0
 	SPEED = 30.0                 # slow — it doesn't need to reach you
 	DETECTION_RANGE = 320.0
 	ATTACK_RANGE = 300.0         # a SPIT range, NOT a melee reach

@@ -18,6 +18,7 @@ func _ready() -> void:
 	if animated_sprite != null:
 		animated_sprite.scale = Vector2(SPRITE_SCALE, SPRITE_SCALE)
 		animated_sprite.position.y += FEET_BELOW_CENTRE * (SCENE_SCALE - SPRITE_SCALE)
+	WALK_DESIGN_SPEED = 19.0         # (its drawn stride: tools/art/creatures.py `reach`)
 	SPEED = 38.0
 	DETECTION_RANGE = 120.0
 	ATTACK_RANGE = 62.0          # the reach threat — standard is 30 (both +8 from floor 25 down: the descent ramp)

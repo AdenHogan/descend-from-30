@@ -44,8 +44,8 @@ func _ready() -> void:
 	await _frames(2)
 	WorldState.stamina = full
 	check(p.can_start_roll(), "sprinting and moving with a full bar: a roll is on offer")
-	WorldState.stamina = full * 0.5
-	check(not p.can_start_roll(), "half a bar is not enough (a shove's price)")
+	WorldState.stamina = WorldState.push_min_stamina() * 0.5
+	check(not p.can_start_roll(), "less than a shove's price is not enough (a character with two shove charges needs half a bar, so this is trait-aware)")
 	WorldState.stamina = full
 	# a dead thing in reach lets the roller through
 	var z = load("res://scenes/enemy_zombie_standard.tscn").instantiate()
@@ -53,9 +53,10 @@ func _ready() -> void:
 	z.global_position = Vector2(680, 370)
 	await _frames(2)
 	var x0: float = p.global_position.x
+	var before: float = WorldState.stamina               # (a sprint drains a little each frame: measure what the roll started from)
 	p._start_roll()
 	check(p.is_rolling and p.is_crouching, "the roll starts and the player is LOW")
-	check(WorldState.stamina <= 0.01, "it takes the bar (stamina %.1f)" % WorldState.stamina)
+	check(absf(WorldState.stamina - maxf(before - WorldState.push_cost(), 0.0)) < 0.01, "it takes a shove's price of the bar (stamina %.1f of %.1f)" % [WorldState.stamina, full])
 	check(p.stamina_recovery_timer >= WorldState.push_recovery_delay() - 0.001, "...and the stamina's wait starts, like a shove")
 	check(z.passable_to_player, "the thing in reach is made passable to the roller")
 	var hp0: int = WorldState.player_health
@@ -69,7 +70,7 @@ func _ready() -> void:
 	var dist: float = p.global_position.x - x0
 	check(dist > p.ROLL_DISTANCE * 0.6 and dist < p.ROLL_DISTANCE * 1.4, "it carried the player about ROLL_DISTANCE (%.0f px of %.0f)" % [dist, p.ROLL_DISTANCE])
 	# without a full bar the crouch key only crouches
-	WorldState.stamina = 5.0
+	WorldState.stamina = 0.0
 	check(not p.can_start_roll(), "an empty bar cannot roll again")
 	# a flyer passes over a rolling (crouching) player
 	var f = load("res://scenes/enemy_zombie_flyer.tscn").instantiate()

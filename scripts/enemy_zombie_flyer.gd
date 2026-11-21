@@ -43,6 +43,7 @@ var _dive_dir := 1.0
 func _ready() -> void:
 	super()
 	SPEED = BASE_SPEED
+	WALK_DESIGN_SPEED = BASE_SPEED          # its fur shivers faster in a surge, slower in a stall
 	DETECTION_RANGE = 220.0
 	ATTACK_RANGE = 34.0
 	ATTACK_DAMAGE = 1

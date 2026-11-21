@@ -16,6 +16,22 @@ func _ready() -> void:
 	max_hp = maxi(1, int(round(max_hp * 0.55)))   # fragile
 	current_hp = max_hp
 	add_to_group("crawler")
+	SYNC_CADENCE = false         # the blob's own rate: it humps forward in step with its drawn wave (`_physics_process`)
+
+
+# THE HUMP (owner 2026-11-21, the motion review: "each type moving differently"): the blob has no feet to slide, so its speed follows its drawn WAVE - a surge as the heap
+# humps forward, a near-stop as it gathers - averaging the old crawl speed (0.25 + 1.5 x a 0..1 wave has mean 1).
+var _hump_base := 0.0
+var _hump_written := 0.0
+
+
+func _hump() -> void:
+	if wall_mode == "" and pounce == "" and not is_dead and animated_sprite != null and animated_sprite.animation == "Walk":
+		if _hump_base <= 0.0 or absf(SPEED - _hump_written) > 0.01:
+			_hump_base = SPEED                 # (first frame, or something - a revenant's boost - changed it)
+		var h: float = 0.5 + 0.5 * sin(TAU * float(animated_sprite.frame) / 12.0 - 1.0)
+		_hump_written = _hump_base * (0.25 + 1.5 * h)
+		SPEED = _hump_written
 
 
 # ---------------------------------------------------------------------------------------------
@@ -234,6 +250,7 @@ func _physics_process(delta: float) -> void:
 	if wall_mode != "" and not is_dead:
 		_wall_tick(delta)
 		return
+	_hump()
 	super(delta)
 
 

@@ -571,4 +571,26 @@ func _physics_process(delta: float) -> void:
 				else:
 					prey = null
 	move_and_slide()
+	_sync_walk_cadence()
 	ENEMY_PLANE.hold(self)
+
+# WALK CADENCE (owner 2026-11-21, the motion review): every kind's Walk plays at one fixed rate, but the kinds move at 15-40 px/s, so the feet slid (a standard's
+# planted foot is dragged ~1.5x too fast, a long arm's ~4x). The Walk now plays at the rate its drawn stride covers the ground at the speed the body is really going:
+# speed_scale = |velocity.x| / WALK_DESIGN_SPEED (the speed the drawing's stride is right for: 2 x stride x scale / 1.33 s), clamped. Slower = a slower shamble, a surge = quicker steps.
+var WALK_DESIGN_SPEED := 15.0
+var SYNC_CADENCE := true               # false for a kind that sets its own rate (the blob's hump, the flyer's shiver)
+var _cadence_set := false
+
+
+func _sync_walk_cadence() -> void:
+	if animated_sprite == null or is_dead:
+		return
+	if not SYNC_CADENCE:
+		return
+	if animated_sprite.animation == "Walk":
+		animated_sprite.speed_scale = clampf(absf(velocity.x) / WALK_DESIGN_SPEED, 0.3, 2.4)
+		_cadence_set = true
+	elif _cadence_set:
+		animated_sprite.speed_scale = 1.0              # an Attack / Hit / Idle plays at its own rate
+		_cadence_set = false
+

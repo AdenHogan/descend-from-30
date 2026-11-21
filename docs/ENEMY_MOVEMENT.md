@@ -46,3 +46,22 @@ without taking damage, but it's not a big distance, so if they mis-roll they cou
   and firm up again once you are clear — end a roll INSIDE a pack and you are stood among them with an empty bar.
 - **Low**: the roll sets `is_crouching`, so a flyer's bite passes over you and the flyer lets you through; the roll ends standing.
 - Placeholder: the `roll` frames are the people rig's tuck (`tools/art/player_rigs.py`); no roll sound, no dust, no HUD hint yet. `tests/roll_test` covers the rules.
+
+## Motion review (2026-11-21)
+
+Finding: every kind's Walk played at one fixed 9 fps, but the kinds move at 15-40 px/s, so the drawn feet slid on the floor. The ground a drawn stride covers is `2 x stride x scale / 1.33 s`
+(`creatures.step`): standard 27 px/s (moves at 40: ~1.5x too fast), big 15 (25), longarm 9 (38: ~4x), spitter 18 (30).
+Fix: `enemy_zombie_standard._sync_walk_cadence` (and the same in `enemy_zombie_big.gd`, which does not extend it) plays a Walk at `|velocity.x| / WALK_DESIGN_SPEED`, clamped 0.3-2.4; an Attack / Hit / Idle plays at 1.0.
+
+| kind | speed | `WALK_DESIGN_SPEED` | cadence at full speed | how it moves, differently from the rest |
+|---|---|---|---|---|
+| standard | 40 | 27 | 1.48x | upright shamble; steps quicken and slow with its speed |
+| big | 25 | 15 | 1.67x | heavy: slow four-legged lumber |
+| longarm | 38 | 19 (drawn stride 5 -> 10) | 2.0x | long, wide arm-strides |
+| spitter | 30 | 18 | 1.67x | slow stalk, stops to spit |
+| crawler (blob) | 26 mean | own rate | - | no feet: it HUMPS - speed follows its drawn wave (`_hump`: 0.25-1.75 x, mean 1), then pounces |
+| flyer | 56 base | 56 | 0.3-2.4x | surges, twitches, scream + spin dive; fur shivers faster in a surge |
+
+`tests/enemy_cadence_test` pins the cadence band for every kind and the blob's hump (mean = its old crawl speed).
+
+Not done / owner's call: a standard's own stumble or stagger gait (it would change the commonest enemy's timing); a footstep sound per kind; the longarm's stride 10 is a first try (look at it moving); speeds themselves are unchanged.
