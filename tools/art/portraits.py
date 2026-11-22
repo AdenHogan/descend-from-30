@@ -37,7 +37,7 @@ IDS = {'joe': 'blond_man', 'vivianne': 'blond_woman', 'alex': 'bald_man', 'amina
 YY, XX = np.mgrid[0:H, 0:W].astype(np.float32)
 # a fixed screen of noise that nudges where one tone ends and the next begins, so the bands are not ruler-straight (the old portraits' painted edge)
 _rng = np.random.RandomState(7)
-DITHER = (_rng.rand(H, W).astype(np.float32) - 0.5) * 0.10
+DITHER = np.zeros((H, W), dtype=np.float32)       # CEL SHADING (owner: the smoothly shaded busts "look like bizarre claymation"): no dithered edges, hard flat tones
 
 
 def hexrgb(h):
@@ -62,7 +62,8 @@ class Canvas:
     def __init__(self):
         self.rgb = np.zeros((H, W, 3), dtype=np.uint8)
         self.alpha = np.zeros((H, W), dtype=bool)
-        self.who = np.zeros((H, W), dtype=np.uint8)        # which layer last painted a pixel (for the outline's sake)
+        self.who = np.zeros((H, W), dtype=np.int32)        # which layer last painted a pixel (for the outline's sake)
+        self.layer = 0
 
     def paint(self, mask, colour_fn):
         ys, xs = np.nonzero(mask)
@@ -73,6 +74,8 @@ class Canvas:
     def paint_arr(self, mask, arr):
         self.rgb[mask] = arr[mask]
         self.alpha |= mask
+        self.layer += 1
+        self.who[mask] = self.layer                         # paint order: a line is inked where one shape sits in front of another
 
     def px(self, x, y, col):
         xi, yi = int(round(x)), int(round(y))
@@ -104,6 +107,15 @@ class Canvas:
         im[..., :3] = self.rgb
         im[..., 3] = np.where(self.alpha, 255, 0)
         if outline:
+            # the inner ink: where a shape sits in front of another, its edge is drawn in a deep shade of its own colour
+            ww = self.who
+            inner = np.zeros(self.alpha.shape, dtype=bool)
+            for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                nb = np.roll(np.roll(ww, dy, 0), dx, 1)
+                inner |= self.alpha & (nb > 0) & (ww > nb)
+            inner[0, :] = inner[-1, :] = False
+            ink = np.array(OUTLINE, dtype=np.float32)
+            im[inner, :3] = (im[inner, :3].astype(np.float32) * 0.42 + ink * 0.58).astype(np.uint8)
             a = self.alpha
             edge = np.zeros_like(a)
             for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
@@ -119,13 +131,16 @@ def lambert(nx, ny, nz):
     return nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]
 
 
-def band(l, tones, cuts=(-0.28, 0.12, 0.50, 0.80)):
-    """Light -> one of the five tones, with the edge between two of them wandering a little."""
+CEL_CUTS = (0.06, 0.74)
+
+
+def band(l, tones, cuts=None):
+    """CEL: light -> one of THREE flat tones (shade / base / lit), each edge hard. (`cuts` is kept so the callers still read; the cel rule is one for everything.)"""
     l = l + DITHER
     idx = np.zeros(l.shape, dtype=np.int32)
-    for c in cuts:
+    for c in CEL_CUTS:
         idx += (l > c)
-    order = ['dd', 'd', 'm', 'l', 'll']
+    order = ['d', 'm', 'l']
     out = np.zeros(l.shape + (3,), dtype=np.uint8)
     for i, k in enumerate(order):
         out[idx == i] = tones[k]
@@ -149,21 +164,30 @@ def ellipsoid(cx, cy, rx, ry, rz=None, skew=None):
 # the people: what is theirs (hair shape, clothes, the little things)
 # -------------------------------------------------------------------------------------------------------------------------------------------------
 LOOK = {
-    'joe': dict(gender='m', hair_style='mop', hair_light='7a5a3e', brow=0.8, eye='5a6a7a', lips='c08070', stubble=True, jaw=0.0, cloth='teal'),
-    'vivianne': dict(gender='f', hair_style='lob', hair_light='fbe9a4', brow=0.6, eye='5a82a8', lips='d4707a', blush='f4a8a8', lash=True, jaw=-0.12, cloth='coral'),
-    'alex': dict(gender='m', hair_style='crop', hair_light='3a2e36', brow=1.0, eye='2a1a14', lips='7a3c34', jaw=0.1, cloth='overalls'),
-    'amina': dict(gender='f', hair_style='long', hair_light='4a4658', brow=0.8, eye='2a1a14', lips='9c4a44', lash=True, earring='f0d060', jaw=-0.08, cloth='cardigan'),
+    # FACE STRUCTURE is each person's own (owner: "their faces and face structures all look so cut and paste"): head size, jaw (how far it narrows, how square), eyes (width of the near
+    # and far eye, height, spacing, tilt of the outer corner, iris), brows (thickness, arch, how far they sit), nose (length, width, nostril), mouth (width, lip thickness), cheekbone.
+    'joe': dict(gender='m', hair_style='mop', hair_light='7a5a3e', eye='5a6a7a', lips='c08070', stubble=True, cloth='teal',
+                head=(20.5, 26.5), jaw=0.22, jaw_pow=2.0, ear=1.15, eyes=dict(w=(8.0, 6.4), h=2.4, gap=8.9, tilt=-0.2, iris=2.3, drop=0.0), brow=dict(th=2, arch=0.5, tilt=0.0, up=0.0),
+                nose=dict(len=13.5, w=3.6, nostril=1.6, bridge=1.0), mouth=dict(w=5.6, thick=0.7, y=17.8), cheek=0.2),
+    'vivianne': dict(gender='f', hair_style='lob', hair_light='fbe9a4', eye='5a82a8', lips='d4707a', blush='f4a8a8', lash=True, cloth='coral',
+                     head=(19.0, 25.0), jaw=0.46, jaw_pow=1.15, ear=0.8, eyes=dict(w=(9.6, 7.8), h=3.5, gap=8.0, tilt=0.5, iris=3.0, drop=0.0), brow=dict(th=1, arch=1.3, tilt=-0.2, up=0.8),
+                     nose=dict(len=10.8, w=2.5, nostril=1.1, bridge=0.5), mouth=dict(w=5.4, thick=1.7, y=17.0), cheek=0.5),
+    'alex': dict(gender='m', hair_style='crop', hair_light='3a2e36', eye='2a1a14', lips='7a3c34', cloth='overalls',
+                 head=(22.0, 26.0), jaw=0.12, jaw_pow=1.6, ear=0.9, eyes=dict(w=(7.8, 6.4), h=2.7, gap=9.6, tilt=-0.1, iris=2.5, drop=0.3), brow=dict(th=3, arch=0.3, tilt=-0.4, up=-0.3),
+                 nose=dict(len=13.0, w=4.8, nostril=2.2, bridge=1.3), mouth=dict(w=6.8, thick=1.9, y=18.0), cheek=0.1),
+    'amina': dict(gender='f', hair_style='long', hair_light='4a4658', eye='2a1a14', lips='9c4a44', lash=True, earring='f0d060', cloth='cardigan',
+                  head=(19.6, 26.5), jaw=0.40, jaw_pow=1.35, ear=0.9, eyes=dict(w=(9.8, 8.0), h=3.2, gap=8.6, tilt=1.0, iris=2.9, drop=0.0), brow=dict(th=1, arch=1.6, tilt=-0.3, up=1.0),
+                  nose=dict(len=12.0, w=2.8, nostril=1.3, bridge=0.7), mouth=dict(w=6.4, thick=1.5, y=17.4), cheek=0.9),
 }
 
 
 def head_masks(look):
     """The head: an ellipsoid with the jaw drawn in (a narrower chin) -> mask, normals."""
     cx, cy = CX - 1.0, HY
-    rx, ry = 20.5, 25.5
-    m, nx, ny, nz = ellipsoid(cx, cy, rx, ry, 19.0)
-    # jaw: below the cheekbone line the half-width falls away to the chin
+    rx, ry = look['head']
+    # jaw: below the cheekbone line the half-width falls away to the chin (how far, and how square, is the person's own)
     t = np.clip((YY + 0.5 - (cy + 6.0)) / (ry - 6.0), 0.0, 1.0)
-    narrow = 1.0 - (0.30 + look.get('jaw', 0.0)) * (t ** 1.35)
+    narrow = 1.0 - look['jaw'] * (t ** look['jaw_pow']) * 1.5
     u = (XX + 0.5 - cx) / (rx * narrow)
     v = (YY + 0.5 - cy) / ry
     d = u * u + v * v
@@ -198,13 +222,14 @@ def draw_person(who, stage, seed=1):
     nk = (np.abs(XX + 0.5 - (CX + 1.0)) < 8.2) & (YY > cy + 17) & (YY < 92)
     nxn = np.clip((XX + 0.5 - (CX + 1.0)) / 8.2, -1, 1)
     nzn = np.sqrt(np.clip(1.0 - nxn * nxn, 0, 1))
-    c.paint_arr(nk & ~shoulders | (nk & (YY < 84)), band(lambert(nxn, np.zeros_like(nxn), nzn) - 0.08, skin))
+    neck_m = (nk & ~shoulders) | (nk & (YY < 84))
+    c.rgb[neck_m] = np.where((nxn > 0.35)[..., None], skin['d'], skin['m'])[neck_m]
+    c.alpha |= neck_m                                              # (no layer of its own: a neck is not a box with an outline)
     # the chin's shadow on the neck
     hm0, _a, _b, _c = head_masks(look)
     bot = np.where(hm0.any(axis=0), (YY * hm0).max(axis=0), 0).astype(np.float32)        # the lowest head pixel of each column
     depth = YY - bot[None, :]
-    c.rgb[nk & (depth >= 0) & (depth < 3.2)] = skin['dd']
-    c.rgb[nk & (depth >= 3.2) & (depth < 7.0) & (((XX.astype(int) + YY.astype(int)) % 3) != 0)] = skin['d']
+    c.rgb[nk & (depth >= 0) & (depth < 6.0)] = skin['d']                                          # the chin's shadow on the neck: one hard shape
 
     _clothes(c, who, p, look, coat, skin, shoulders, rng, stage)
     if look['hair_style'] in ('lob', 'long'):
@@ -214,7 +239,14 @@ def draw_person(who, stage, seed=1):
     hm, hnx, hny, hnz = head_masks(look)
     # the face turns to the right: the normals swing with it
     hnx2 = hnx * math.cos(0.30) + hnz * math.sin(0.30) * -1.0 + 0.0
-    face_img = band(lambert(hnx, hny, hnz) - 0.10 - 0.12 * np.clip((XX - cx) / 20.0, 0, 1), skin, cuts=(-0.32, 0.08, 0.46, 0.80))
+    ry_h = look['head'][1]
+    face_img = np.zeros((H, W, 3), dtype=np.uint8)
+    face_img[:] = skin['m']
+    far_shade = (XX > cx + 10.5 + 5.0 * ((YY - cy) / ry_h) ** 2)                                   # one crescent of shade down the far side of the face
+    jaw_shade = (YY > cy + ry_h - 9.0 + 0.5 * np.abs(XX - cx - 4.0) * 0.0) & (XX > cx - 9.0)         # and the underside of the jaw
+    lit_a = (((XX - (cx - 9.0)) / 6.0) ** 2 + ((YY - (cy - 9.5)) / 3.0) ** 2 < 1.0)                 # a crisp light on the brow
+    face_img[lit_a] = skin['l']
+    face_img[far_shade | jaw_shade] = skin['d']
     # ear (near side)
     em, enx, eny, enz = ellipsoid(cx - 19.5, cy + 3.0, 3.6, 6.4, 3.0)
     c.paint_arr(em & ~hm, band(lambert(enx, eny, enz) - 0.1, skin))
@@ -233,128 +265,134 @@ def draw_person(who, stage, seed=1):
 
 
 # -------------------------------------------------------------------------------------------------------------------------------------------------
+def _t(col):
+    return tuple(int(v) for v in col)
+
+
 def _face(c, who, p, look, skin, hm, hnx, hny, hnz, cx, cy, stage, rng, hair_t):
-    eye_y = cy - 1.5
+    """The face in the SPRITES' language, drawn large and cel: big dark eyes with a bold catch-light (no realistic whites), a plain brow stroke, a tiny nose mark, a short mouth.
+    What makes one person not another is STRUCTURE (`LOOK`): the head and jaw, the eyes' shape / size / spacing, the brow's weight and arch, the nose, the mouth."""
     s = YAW
-    ex_near, ex_far = cx + s - 8.6, cx + s + 8.0
-    mood = {1: 'calm', 2: 'worry', 3: 'worry', 4: 'pain', 5: 'slack', 6: 'out'}[stage]
-    ink = tuple(int(v) for v in hair_t['dd'])
+    E, B, N, M = look['eyes'], look['brow'], look['nose'], look['mouth']
+    ink = _t(hair_t['dd'])
+    line = (30, 16, 34)
+    sk_d, sk_l, sk_m, sk_dd = _t(skin['d']), _t(skin['l']), _t(skin['m']), _t(skin['dd'])
     eye_col = hexrgb(look['eye'])
-    white = mix(tuple(int(v) for v in skin['ll']), (245, 245, 240), 0.55)
-    white_sh = mix(white, tuple(int(v) for v in skin['d']), 0.45)
+    mood = {1: 'calm', 2: 'worry', 3: 'worry', 4: 'pain', 5: 'slack', 6: 'out'}[stage]
     droop = {1: 0.0, 2: 0.0, 3: 0.4, 4: 0.8, 5: 1.4, 6: 2.6}[stage]
-    for k, (ex, wd) in enumerate(((ex_near, 8.6), (ex_far, 7.0))):
-        # the eye: an almond of white, an iris, a pupil, a catch-light
-        ey = eye_y + (0.6 if k else 0.0)
-        lid_close = min(1.0, droop / 2.6)
-        for yy in range(int(ey - 4), int(ey + 5)):
-            for xx in range(int(ex - 6), int(ex + 7)):
-                u = (xx + 0.5 - ex) / (wd / 2.0)
-                v = (yy + 0.5 - ey) / (2.9 - 1.9 * lid_close)
-                if u * u * 0.8 + v * v * 1.0 <= 1.0 and (stage < 6 or abs(v) < 0.5):
-                    c.px(xx, yy, white if v > -0.2 else white_sh)
-        if stage < 6:
-            ir = 2.6 if stage < 5 else 2.2
-            ix = ex + 0.9 + (0.0 if k == 0 else -0.3)
-            iy = ey + 0.3 + droop * 0.15
-            for yy in range(int(iy - 3), int(iy + 4)):
-                for xx in range(int(ix - 3), int(ix + 4)):
-                    d = math.hypot(xx + 0.5 - ix, yy + 0.5 - iy)
-                    if d <= ir:
-                        top_cut = (yy + 0.5) < (ey - 1.6 + droop * 0.9)
-                        if top_cut:
-                            continue
-                        shade = mix(eye_col, (255, 255, 255), 0.18) if (xx + 0.5 - ix) < -0.5 and (yy + 0.5 - iy) < 0.5 else eye_col
-                        c.px(xx, yy, shade)
-                        if d <= ir * 0.52:
-                            c.px(xx, yy, (18, 10, 16))
-            c.px(ix - 1.2, iy - 1.1, (255, 255, 255))
-        # lids: the dark top lash line, the crease above it, the lower rim
-        lid_y = ey - 2.6 + droop * 0.9
-        for xx in range(int(ex - wd / 2.0), int(ex + wd / 2.0) + 1):
-            t = (xx - ex) / (wd / 2.0)
-            yy = lid_y + 0.9 * t * t + (0.5 if look['gender'] == 'm' else 0.0) * 0
-            c.px(xx, yy, ink)
-            if look.get('lash') and t < -0.55:
-                c.px(xx - 1, yy - 1, ink)
-            c.px(xx, yy - 1.6, tuple(int(v) for v in skin['d']))
-        for xx in range(int(ex - wd / 2.0 + 1), int(ex + wd / 2.0)):
-            c.px(xx, ey + 3.0 - 0.4 * lid_close, tuple(int(v) for v in skin['d']))
-        if stage >= 3:                                                                         # shadow under the eye: tired, then ill
-            for xx in range(int(ex - 4), int(ex + 5)):
-                for dy in (4.0, 5.0):
-                    c.px_on(xx, ey + dy, tuple(int(v) for v in mix(tuple(int(q) for q in skin['d']), (90, 60, 110), 0.25 * min(1.0, (stage - 2) / 3.0))), hm)
-        if stage == 6:                                                                         # shut: a heavy lid, a lash line
-            for xx in range(int(ex - wd / 2.0), int(ex + wd / 2.0) + 1):
-                c.px(xx, ey + 0.4, ink)
-                c.px(xx, ey - 0.6, tuple(int(v) for v in skin['d']))
-    # brows
-    bw = look['brow']
-    brow_col = tuple(int(v) for v in hair_t['dd'])
+    eye_y = cy - 1.5 + E['drop']
+    gender_f = look['gender'] == 'f'
+    # --- the eyes: a tall dark oval (a rounder, bigger one for the women, a flatter lidded one for Alex), the lower part in the iris colour, two catch-lights
+    for k, (ex, wd) in enumerate(((cx + s - E['gap'], E['w'][0]), (cx + s + E['gap'] * 0.92, E['w'][1]))):
+        ey = eye_y + (0.5 if k else 0.0)
+        outer = -1.0 if k == 0 else 1.0
+        hh = max(1.0, E['h'] * 1.55 - 2.0 * min(1.0, droop / 2.6))
+        ww = wd * 0.5
+        shape = np.zeros((H, W), dtype=bool)
+        for yy in range(int(ey - 8), int(ey + 9)):
+            for xx in range(int(ex - 8), int(ex + 9)):
+                u = (xx + 0.5 - ex) / ww
+                lift = E['tilt'] * 1.6 * max(0.0, u * outer)                       # the outer corner rises (or falls) with the person's tilt
+                v = (yy + 0.5 - (ey - lift)) / hh
+                if u * u + v * v <= 1.0 and not (stage == 6 and v < 0.0):
+                    shape[yy, xx] = True
+        if stage == 6:
+            for xx in range(int(ex - ww), int(ex + ww) + 1):                       # shut: a heavy dark lid line and its lash
+                c.px(xx, ey + 0.4, line)
+                c.px(xx, ey - 0.6, line)
+            continue
+        c.rgb[shape] = (22, 14, 24)
+        lower = shape & (YY > ey + hh * 0.15)
+        c.rgb[lower & (((XX + 0.5 - ex) / (ww * 0.78)) ** 2 + ((YY - (ey + hh * 0.5)) / (hh * 0.7)) ** 2 < 1.0)] = eye_col
+        top_rows = {}
+        for xx in range(int(ex - ww) - 1, int(ex + ww) + 2):
+            if 0 <= xx < W:
+                ys = np.nonzero(shape[:, xx])[0]
+                if len(ys):
+                    top_rows[xx] = int(ys.min())
+        for xx, ty in top_rows.items():
+            c.px(xx, ty, line)                                                     # the lid line, a hard dark top edge
+            if gender_f:
+                c.px(xx, ty - 1, line)                                             # thicker, lashed
+        if gender_f and top_rows:
+            xo = (min(top_rows) - 1) if k == 0 else (max(top_rows) + 1)
+            yo = top_rows[min(top_rows) if k == 0 else max(top_rows)]
+            c.px(xo, yo - 1, line)
+            c.px(xo + (-1 if k == 0 else 1), yo - 2, line)
+        if look['who'] == 'alex' if 'who' in look else False:
+            pass
+        cxh, cyh = ex - ww * 0.35, ey - hh * 0.35
+        for dx_, dy_ in ((0, 0), (1, 0), (0, 1), (1, 1)):                          # the big catch-light, a 2 x 2 block of white
+            c.px_on(cxh + dx_, cyh + dy_, (255, 255, 255), shape)
+        c.px_on(ex + ww * 0.45, ey + hh * 0.5, (255, 255, 255), shape)             # and the small one low on the other side
+        if stage >= 3:                                                              # tired: a hard shadow under the eye, then ill
+            col = _t(mix(sk_d, (96, 60, 112), 0.3 * min(1.0, (stage - 2) / 3.0)))
+            for xx in range(int(ex - ww), int(ex + ww) + 1):
+                c.px_on(xx, ey + hh + 1.4, col, hm)
+                if stage >= 4:
+                    c.px_on(xx, ey + hh + 2.4, col, hm)
+    # --- the brows: one dark stroke of the person's own weight and arch
     tilt = {'calm': 0.0, 'worry': 1.6, 'pain': 2.4, 'slack': 0.6, 'out': 1.0}[mood]
-    for k, (ex, wd) in enumerate(((ex_near, 9.4), (ex_far, 7.6))):
-        by = eye_y - 7.6 - (1.2 if mood in ('worry', 'pain') else 0.0) + (0.8 if mood == 'slack' else 0.0)
-        inner_x = ex + (wd / 2.0 if k == 0 else -wd / 2.0)
+    for k, (ex, wd) in enumerate(((cx + s - E['gap'], E['w'][0] + 1.6), (cx + s + E['gap'] * 0.92, E['w'][1] + 1.4))):
+        by = eye_y - 7.0 - B['up'] - (1.2 if mood in ('worry', 'pain') else 0.0) + (0.8 if mood == 'slack' else 0.0)
         for i in range(int(wd) + 1):
             t = i / max(1.0, wd)
             xx = ex - wd / 2.0 + wd * t
             near_inner = (t if k == 0 else 1.0 - t)
-            yy = by + 1.2 * (1.0 - 4.0 * (t - 0.5) ** 2) * -1.0 - tilt * near_inner
-            for th in range(int(1 + bw)):
-                c.px_on(xx, yy + th - 0.5, brow_col, hm)
-    # nose: the bridge's light side, the shadow side, the nostril, the tip
+            yy = by - B['arch'] * (1.0 - 4.0 * (t - 0.5) ** 2) - tilt * near_inner * 0.5 + B['tilt'] * (t - 0.5) * (1 if k == 0 else -1)
+            th = B['th'] if 0.12 < t < 0.9 else max(1, B['th'] - 1)
+            for q in range(th):
+                c.px_on(xx, yy + q - th / 2.0 + 0.5, ink, hm)
+    # --- the nose: a short shaded side and a shadow under the tip, one lit pixel; its size is the person's
     nx_ = cx + s + 1.2
-    ny0, ny1 = cy + 1.0, cy + 12.5
-    nm, nnx, nny, nnz = ellipsoid(nx_ + 0.6, cy + 9.4, 3.4, 4.6, 3.2)
-    nose = nm & hm
-    c.rgb[nose] = band(lambert(nnx, nny, nnz) - 0.02, skin, cuts=(-0.30, 0.10, 0.45, 0.78))[nose]
-    for yy in range(int(ny0), int(cy + 6)):                                              # the bridge: a lit edge and a shaded one, fading into the brow
-        t = (yy - ny0) / 5.0
-        c.px_on(nx_ - 0.2, yy, tuple(int(v) for v in skin['l']), hm)
-        c.px_on(nx_ + 1.8 + 0.4 * t, yy, tuple(int(v) for v in skin['d']), hm)
-    for dx in (-1.6, 1.6):
-        c.px_on(nx_ + dx + 0.6, ny1 + 0.4, tuple(int(v) for v in skin['dd']), hm)
-    c.px_on(nx_ + 0.2, ny1 - 0.6, tuple(int(v) for v in skin['ll']), hm)
-    c.px_on(nx_ + 0.9, ny1 + 1.4, tuple(int(v) for v in skin['d']), hm)
-    # mouth
-    my = cy + 17.4
+    tip_y = cy - 1.0 + N['len']
+    for yy in range(int(cy + 3), int(tip_y - 1)):
+        t = (yy - (cy + 3)) / max(1.0, tip_y - 1 - (cy + 3))
+        for q in range(int(N['bridge'] + 0.5)):
+            c.px_on(nx_ + 1.6 + 1.4 * t + q, yy, sk_d, hm)
+    wn = int(N['w'])
+    for dx in range(0, wn):
+        c.px_on(nx_ + 0.5 + dx - wn / 2.0 + 1.0, tip_y - 0.5, sk_d, hm)                 # the underside of the nose
+        c.px_on(nx_ + 0.5 + dx - wn / 2.0 + 1.0, tip_y + 0.5, sk_d, hm) if dx > 0 else None
+    c.px_on(nx_ + 0.2, tip_y - 1.5, sk_l, hm)
+    for dx in (-N['nostril'] * 0.5, N['nostril'] * 0.5):
+        c.px_on(nx_ + 0.6 + dx, tip_y, sk_dd, hm)
+    # --- the mouth: a short dark line, a flat lower lip, corners
+    my = cy + M['y']
     mx = cx + s + 1.0
     lips = hexrgb(look['lips'])
-    lips_d = mix(lips, (30, 10, 20), 0.45)
-    lips_l = mix(lips, (255, 230, 220), 0.35)
+    lips_d = _t(mix(lips, (36, 12, 24), 0.55))
     open_ = {'calm': 0.0, 'worry': 0.4, 'pain': 1.4, 'slack': 2.2, 'out': 3.0}[mood]
-    half = 6.6
+    half = M['w']
+    th = max(1, int(round(M['thick'])))
     for i in range(int(half * 2) + 1):
         t = (i - half) / half
         xx = mx + t * half
         sag = {'calm': 0.0, 'worry': 0.4, 'pain': 1.0, 'slack': 0.4, 'out': 0.2}[mood] * (t * t)
-        yy = my - 0.6 * (1 - t * t) * (1.0 if mood == 'calm' else 0.2) + sag
-        c.px_on(xx, yy, lips_d, hm)
+        yy = my - 0.5 * (1 - t * t) * (1.0 if mood == 'calm' else 0.2) + sag
         if open_ > 0.8 and abs(t) < 0.75:
             for d in range(1, int(open_) + 1):
                 c.px_on(xx, yy + d, (74, 26, 34), hm)
-            if open_ > 1.8 and abs(t) < 0.45:
-                c.px_on(xx, yy + 1, (232, 224, 208), hm)
-        c.px_on(xx, yy + open_ * (1.0 - t * t) * 0.9 + 1.0, lips, hm)
-        if abs(t) < 0.5:
-            c.px_on(xx, yy - 1.0, lips, hm)
-            c.px_on(xx - 0.5, yy + open_ * 0.9 + 1.0, lips_l, hm)
-        c.px_on(xx, yy + open_ + 2.2, tuple(int(v) for v in skin['d']), hm) if abs(t) < 0.35 else None
+        c.px_on(xx, yy, lips_d, hm)
+        if abs(t) < 0.7:
+            for q in range(1, th + 1):
+                c.px_on(xx, yy + open_ * 0.9 + q, lips, hm)
     if look.get('stubble'):
-        for _ in range(70):
-            x, y = cx + rng.uniform(-13, 14) + s * 0.5, cy + rng.uniform(10, 25)
-            if hm[int(y), int(x)] if 0 <= int(y) < H and 0 <= int(x) < W else False:
-                c.px(x, y, tuple(int(v) for v in mix(tuple(int(q) for q in skin['d']), tuple(int(q) for q in hair_t['dd']), 0.5)))
-    if look.get('blush') and stage <= 2:
-        bl = hexrgb(look['blush'])
-        for dx, dy in ((-9, 7), (-8, 8), (-10, 8), (-9, 9), (10, 7), (9, 8), (11, 8)):
-            c.px_on(cx + s + dx, cy + dy, mix(tuple(int(v) for v in skin['m']), bl, 0.45), hm)
-    # a worried forehead
-    if stage >= 2:
+        for _ in range(46):
+            x, y = cx + rng.uniform(-12, 13) + s * 0.5, cy + rng.uniform(12, 25)
+            if 0 <= int(y) < H and 0 <= int(x) < W and hm[int(y), int(x)]:
+                c.px(x, y, _t(mix(sk_d, ink, 0.5)))
+    if look.get('blush') and stage <= 2:                                            # a flat blush: two small ovals
+        bl = _t(mix(sk_m, hexrgb(look['blush']), 0.55))
+        for ex_, dir_ in ((cx + s - E['gap'] * 0.9, 1), (cx + s + E['gap'] * 0.9, 1)):
+            for dx in range(-2, 3):
+                for dy in range(0, 2):
+                    c.px_on(ex_ + dx, cy + 8 + dy, bl, hm)
+    if stage >= 2:                                                                  # a worried forehead: hard creases
         for k in range(2 if stage < 4 else 3):
-            yy = cy - 14 - k * 1.6
+            yy = cy - 14 - k * 1.8
             for xx in range(int(cx - 5 + s), int(cx + 8 + s)):
-                c.px_on(xx, yy + (0.5 if (xx % 3 == 0) else 0.0), tuple(int(v) for v in skin['d']), hm)
+                c.px_on(xx, yy + (0.5 if (xx % 4 == 0) else 0.0), sk_d, hm)
 
 
 # -------------------------------------------------------------------------------------------------------------------------------------------------
@@ -393,8 +431,23 @@ def _hair(c, who, p, look, hair_t, hair_lt, skin, hm, cx, cy, rng, stage):
         sel = near & (YY > cy - 8)
         arr = np.where(sel[..., None], curtain, arr)
     c.paint_arr(mask, arr)
+    # CEL HAIR: flat clumps - parallel bands that follow the fall of the hair, each a hard-edged lit or shaded tone, and one crisp shine
+    if st in ('lob', 'long'):
+        flow = np.sin(XX * 0.80 + 1.6 * np.sin(YY * 0.11))
+    elif st == 'crop':
+        flow = np.sin((XX * 0.9 - YY * 0.6) * 0.9)
+    else:
+        flow = np.sin((XX * 0.55 + YY * 0.95) * 0.75 + 1.2 * np.sin(XX * 0.17))
+    lit = mask & (flow > 0.62) & (YY < 112)
+    shd = mask & (flow < -0.78)
+    lt = np.array(hair_t['l'], dtype=np.uint8)
+    dk = np.array(hair_t['d'], dtype=np.uint8)
+    c.rgb[lit] = np.where((c.rgb[lit] == np.array(hair_t['d'], dtype=np.uint8)).all(axis=1)[:, None], c.rgb[lit], lt)
+    c.rgb[shd] = dk
+    shine = mask & (((XX - (cx - 8.0)) / 9.0) ** 2 + ((YY - (cy - 21.0)) / 3.4) ** 2 < 1.0) & (st != 'crop')
+    c.rgb[shine] = np.array(hair_lt, dtype=np.uint8)
     # strands: long curved lines along the flow, lighter and darker, so it reads as hair and not a helmet
-    n_strands = 70 if st != 'crop' else 90
+    n_strands = 0                                                                 # (cel: no hair-thin scribbles - the clumps are the stripes below)
     for i in range(n_strands):
         if st == 'crop':
             x0, y0 = cx + rng.uniform(-18, 14), cy - rng.uniform(16, 30)
@@ -412,7 +465,7 @@ def _hair(c, who, p, look, hair_t, hair_lt, skin, hm, cx, cy, rng, stage):
         for a, b in zip(pts, pts[1:]):
             c.line(a, b, col, onto=mask)
     if st in ('lob', 'long'):
-        for i in range(34):                                                       # strands down the curtain
+        for i in range(0):                                                        # strands down the curtain
             x0 = cx - 30 + rng.uniform(0, 15)
             y0 = cy + rng.uniform(-6, 40)
             col = ll if rng.random() < 0.42 else (d if rng.random() < 0.12 else l_)
@@ -494,7 +547,7 @@ def _clothes(c, who, p, look, coat, skin, shoulders, rng, stage):
         tee = tone_set('a8a498')
         scoop = ((XX - (cx + 1.0)) / 12.0) ** 2 + ((YY - 78.0) / 11.0) ** 2 < 1.0
         tee_m = shoulders & (np.abs(XX - (cx + 1.0)) < 27) & (YY > 84) & (YY < 100) & ~scoop
-        c.rgb[tee_m] = band(lambert(*c.snorm) - 0.04, tee, cuts=(-0.32, 0.08, 0.46, 0.80))[tee_m]
+        pass
         bib = shoulders & (XX > 34) & (XX < 82) & (YY > 90)
         c.rgb[bib] = coat['m']
         c.rgb[bib & (XX > 62)] = coat['d']
@@ -555,7 +608,7 @@ def _wounds(c, who, p, look, skin, hm, shoulders, cx, cy, stage, rng, hair_t):
             c.px_on(x, y + 1, (190, 200, 214), hm)
     # --- 3: a bruise round the near eye, a split lip with blood, dirt, a cut on the brow
     if stage >= 3:
-        bx, by = cx + s - 8.6, cy - 1.5
+        bx, by = cx + s - look['eyes']['gap'], cy - 1.5
         for yy in range(int(by - 6), int(by + 9)):
             for xx in range(int(bx - 9), int(bx + 9)):
                 dd_ = math.hypot((xx + 0.5 - bx) / 9.0, (yy + 0.5 - (by + 2)) / 7.0)
@@ -602,7 +655,7 @@ def _wounds(c, who, p, look, skin, hm, shoulders, cx, cy, stage, rng, hair_t):
             dist = math.hypot((x - (cx + 7.0)) / 13.0, (y - (cy - 16.0)) / 5.0) + 0.25 * math.sin(x * 0.9 + y * 0.7)
             if dist < 1.0:
                 c.rgb[y, x] = blood if dist < 0.65 else blood_d
-        bx, by = cx + s - 8.6, cy - 1.5                                                    # the near eye swollen shut
+        bx, by = cx + s - look['eyes']['gap'], cy - 1.5                                                    # the near eye swollen shut
         for yy in range(int(by - 5), int(by + 7)):
             for xx in range(int(bx - 7), int(bx + 8)):
                 u = (xx + 0.5 - bx) / 7.0
