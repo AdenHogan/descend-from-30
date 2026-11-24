@@ -61,11 +61,7 @@ def keys(table, t):
 
 # ---- poses: each returns (pose dict, item or None) for frame i of n ---------------------------------------------------------------------------------
 def run(i, n):
-    ph = i / float(n)
-    pose = P.walk_pose(i, n=n, stride=1.5)
-    arm = 30.0 * math.cos(2.0 * math.pi * ph)
-    pose.update(n_arm=(-arm, 80 + max(0.0, -arm)), f_arm=(arm, 80 + max(0.0, arm)), lean=3.2, nod=0)
-    return pose, None
+    return gait('run', i, n), None
 
 
 CREEP = 8.6                                      # how far the hip stands above the ankle in the creep (leg is 11.2 long: knees bent ~65 degrees)
@@ -90,6 +86,98 @@ def plant(a1, reach):
     return (a1, (lo + hi) / 2.0)
 
 
+# ---- THE GAIT: feet that do not slide (owner 2026-11-24: "the leg walking movement is weird") ----------------------------------------------------------
+# Measured: the old walk's feet covered ~18 px of stride per half cycle at a 1.33 s cycle (a ground speed of ~27 px/s) while the player moves at 150 px/s, the run's covered 22 px at 1 s
+# against 300 px/s: the feet skated 5-7 times faster than they stepped. Now each foot is PLACED: a stance foot is held on the floor and carried back relative to the hip at exactly the
+# body's speed, a swing foot arcs forward, and a two-bone IK (`_ik_leg`) bends the leg to meet each ankle target; the cycle time is set from the speed (T = stride / (speed x duty)).
+GAITS = {   # name: dict(speed px/s the drawn feet are right for, cycle seconds, stride px, duty (share of the cycle a foot is down), frames)
+    'walk': dict(speed=150.0, T=0.30, stride=22.0, duty=0.56, n=8),
+    'run': dict(speed=300.0, T=0.22, stride=25.0, duty=0.38, n=8),
+    'crouch_walk': dict(speed=60.0, T=0.34, stride=11.0, duty=0.62, n=8),
+}
+
+
+CYCLE_KEYS = {'walk': 'walk', 'run': 'run', 'crouch_walk': 'crouch_walk', 'gun_walk': 'walk', 'gun_run': 'run'}
+
+
+def design_speed(name):
+    g = GAITS[name]
+    return g['stride'] / (g['duty'] * g['T'])
+
+
+def _ik_leg(dx, drop):
+    """(thigh angle from straight down, knee bend) that puts the ankle `dx` forward and `drop` below the hip (design px)."""
+    D = math.hypot(dx, drop)
+    D = max(abs(THIGH - SHIN) + 1e-3, min(D, THIGH + SHIN - 1e-3))
+    theta = math.atan2(dx, drop)
+    a = math.acos(max(-1.0, min(1.0, (THIGH * THIGH + D * D - SHIN * SHIN) / (2.0 * THIGH * D))))
+    b = math.acos(max(-1.0, min(1.0, (SHIN * SHIN + D * D - THIGH * THIGH) / (2.0 * SHIN * D))))
+    return (math.degrees(theta + a), math.degrees(a + b))
+
+
+def gait_legs(name, i, n=None):
+    """-> dict(n_leg, f_leg, hip height, air, n_roll, f_roll) for frame i of the named gait: feet locked while down."""
+    g = GAITS[name]
+    n = n or g['n']
+    u = i / float(n)
+    s = g['stride'] / P.K
+    duty = g['duty']
+    run_ = duty < 0.5
+    hip = {'walk': 8.1, 'run': 7.4, 'crouch_walk': 7.0}[name]
+    bob = {'walk': 0.45, 'run': -0.5, 'crouch_walk': 0.2}[name]
+    lift = {'walk': 3.4, 'run': 6.5, 'crouch_walk': 2.2}[name] / P.K
+    h = hip + bob * math.cos(4.0 * math.pi * (u - duty / 2.0))
+    air = 0.0
+    if run_:
+        air = 1.7 * max(0.0, math.sin(2.0 * math.pi * 2.0 * (u - duty)) if True else 0.0)
+
+    def foot(v):
+        v %= 1.0
+        if v < duty:
+            return s / 2.0 - s * (v / duty), 0.0
+        w = (v - duty) / (1.0 - duty)
+        e = w * w * (3.0 - 2.0 * w)
+        return -s / 2.0 + s * e, lift * math.sin(math.pi * w)
+
+    out = {}
+    for key, v in (('n', u), ('f', u + 0.5)):
+        x, y = foot(v)
+        out[key + '_leg'] = _ik_leg(x, h - y)
+        vv = v % 1.0
+        out[key + '_roll'] = 'heel' if vv < 0.10 else ('toe' if duty * 0.78 < vv < duty + 0.12 else None)
+    out['air'] = air
+    return out
+
+
+def gait_body(name, i, n=None):
+    """The upper body of a gait: the torso pitched forward (more for a run), the arms swinging against the legs with the forearm a beat behind, the shoulders turning against the hips."""
+    g = GAITS[name]
+    n = n or g['n']
+    u = i / float(n)
+    two = 2.0 * math.pi
+    if name == 'run':
+        amp, elbow, spine, lean = 38.0, 92.0, 13.0, 1.4
+    elif name == 'crouch_walk':
+        amp, elbow, spine, lean = 9.0, 62.0, 22.0, 0.0
+    else:
+        amp, elbow, spine, lean = 26.0, 62.0, 6.0, 0.6
+    arm = amp * math.cos(two * (u - 0.07))
+    body = dict(n_arm=(-arm, elbow + 14.0 * max(0.0, arm / amp)), f_arm=(arm, elbow + 14.0 * max(0.0, -arm / amp)), spine=spine, lean=lean,
+                twist=(1.0 if name != 'crouch_walk' else 0.5) * math.cos(two * u), head_pitch=0.8, hem_swing=-1.2 * math.cos(two * u))
+    if name == 'crouch_walk':
+        body.update(head_dy=0.0, head_dx=0.4)
+    return body
+
+
+def gait(name, i, n=None):
+    pose = P.idle_pose(0)
+    pose = pose[0] if isinstance(pose, tuple) else pose
+    pose.update(gait_legs(name, i, n))
+    pose.update(gait_body(name, i, n))
+    pose.update(nod=0)
+    return pose
+
+
 def idle(i, n):
     """Standing, but not still: the weight settles from one leg to the other, the arms hang a little out of step, the head turns a hair, and it breathes."""
     ph = 2.0 * math.pi * i / float(n)
@@ -101,39 +189,23 @@ def idle(i, n):
 
 
 def walk(i, n):
-    """A walk with weight: the shoulders turn against the hips, the forearm lags the upper arm by a beat, the head rides level."""
-    ph = i / float(n)
-    pose = P.walk_pose(i, n=n)
-    arm = 22.0 * math.cos(2.0 * math.pi * (ph - 0.06))                        # the hand swings a beat behind the foot
-    bend = lambda a: 10.0 + max(0.0, a) * 1.1                                   # the elbow folds as the arm comes forward
-    pose.update(n_arm=(-arm, bend(arm)), f_arm=(arm, bend(-arm)), twist=1.1 * math.cos(2.0 * math.pi * ph), lean=1.0 + 0.4 * math.cos(4.0 * math.pi * ph))
-    return pose, None
+    return gait('walk', i, n), None
 
 
 def crouch(i, n):
-    """A stealth CREEP, not a squat: knees bent about 80 degrees, ONE foot ahead of the other and both on the floor, the back pitched forward, the head and the eyes up,
-    the near hand reaching out ahead for balance and the far one held back. It breathes."""
+    """A stealth CROUCH you can read as one (owner 2026-11-24: "I don't think the player crouch looks very good"): the hips DROP to ~60 % of standing height, the knees are bent to about a right
+    angle with one foot ahead and one behind (the back heel up), the back pitched forward ~30 degrees with the head kept up, the lead hand held low and ready, the other back for balance."""
     ph = 2.0 * math.pi * i / float(n)
-    reach = CREEP + 0.1 * math.sin(ph)
-    nl, fl = plant(46, reach), plant(14, reach)
+    reach = 6.9 + 0.12 * math.sin(ph)
     pose = P.idle_pose(0)
-    pose.update(n_leg=nl, f_leg=fl, spine=22, lean=0.0, head_dy=0.0, head_dx=0.4, n_arm=(34, 62), f_arm=(-8, 44), breath=0, n_roll=None, f_roll='toe')
+    pose = pose[0] if isinstance(pose, tuple) else pose
+    pose.update(n_leg=_ik_leg(4.6, reach), f_leg=_ik_leg(-3.2, reach), spine=30, lean=0.0, head_pitch=0.8, head_dy=-0.5, head_dx=0.8, n_arm=(40, 74), f_arm=(-16, 56),
+                breath=0, n_roll=None, f_roll='toe', nod=0)
     return pose, None
 
 
 def crouch_walk(i, n):
-    """The creep, moving: a slow heel-toe step, the planted foot taking the weight, the swing foot lifted just clear; the arms stay low and quiet."""
-    ph = i / float(n)
-    base = crouch(0, n)[0]
-
-    def leg(q, a_mid):  # (a_mid: the thigh's average angle)
-        q %= 1.0
-        a1 = a_mid + 17.0 * math.cos(2.0 * math.pi * q)
-        lift = 1.5 * math.sin(math.pi * (q - 0.5) / 0.5) if q >= 0.5 else 0.0
-        return plant(a1, CREEP - lift)
-    base.update(n_leg=leg(ph, 30), f_leg=leg(ph + 0.5, 30), twist=0.8 * math.cos(2.0 * math.pi * ph), n_roll='heel' if ph % 1.0 < 0.1 else None,
-                n_arm=(34 + 6.0 * math.cos(2.0 * math.pi * ph), 62), f_arm=(-8 - 6.0 * math.cos(2.0 * math.pi * ph), 44))
-    return base, None
+    return gait('crouch_walk', i, n), None
 
 
 def hide_inside(i, n):
@@ -227,15 +299,15 @@ def aim(i, n, shot=None):
 
 def aim_walk(i, n):
     pose, item = aim(0, n)
-    w = P.walk_pose(i, n=n)
-    pose.update(n_leg=w['n_leg'], f_leg=w['f_leg'], n_roll=w.get('n_roll'), f_roll=w.get('f_roll'), hem_swing=w.get('hem_swing', 0.0))
+    w = gait_legs('walk', i, n)
+    pose.update(w, lean=0.5, spine=4.0)
     return pose, item
 
 
 def aim_run(i, n):
     pose, item = aim(0, n)
-    w = P.walk_pose(i, n=n, stride=1.5)
-    pose.update(n_leg=w['n_leg'], f_leg=w['f_leg'], lean=2.5, n_roll=w.get('n_roll'), f_roll=w.get('f_roll'), hem_swing=w.get('hem_swing', 0.0))
+    w = gait_legs('run', i, n)
+    pose.update(w, lean=2.2, spine=9.0)
     return pose, item
 
 
@@ -245,7 +317,7 @@ def shoot(i, n):
 
 # ---- which pose each animation uses, its frame count; durations are kept from the old sprite ---------------------------------------------------------
 SOURCES = {   # key: (builder(i, n, item?) , frames)
-    'idle': (idle, 6), 'walk': (walk, 12), 'run': (run, 8), 'crouch_idle': (crouch, 6), 'crouch_walk': (crouch_walk, 8), 'shove': (shove, 10),
+    'idle': (idle, 6), 'walk': (walk, 8), 'run': (run, 8), 'crouch_idle': (crouch, 6), 'crouch_walk': (crouch_walk, 8), 'shove': (shove, 10),
     'swing_bat': ('swing', 9, 'hammer', _BAT), 'swing_sword': ('swing', 9, 'sword', _SWORD), 'swing_knife': ('swing', 9, 'knife', _KNIFE),
     'hurt': (hurt, 4), 'death': ('death', 10), 'hide_inside': (hide_inside, 6), 'hide_in': (hide_in, 6), 'hide_behind': (hide_behind, 6), 'hide_flat': (hide_flat, 6),
     'hide_dark': (hide_dark, 6), 'roll': ('roll', 7), 'air_spin': ('roll', 6),
@@ -409,6 +481,8 @@ def write_all():
             n = len(src[key])
             of, osp, olp = old.get(an, (n, 8.0, True))
             speed = n / (of / osp) if of and osp else 8.0                          # the old DURATION: frames / speed
+            if key in CYCLE_KEYS:
+                speed = n / GAITS[CYCLE_KEYS[key]]['T']                              # a gait's cycle time is its own (feet that do not slide)
             if an in ('gun_idle',):
                 speed = 4.0
             fl = []
@@ -425,7 +499,9 @@ def write_all():
             fh.write('\n'.join(res))
         meta[name] = dict(cell=list(CELL), rows={k: [r, len(src[k])] for r, k in enumerate(rows)})
     with open(os.path.join(OUT, 'players.json'), 'w') as fh:
-        json.dump(dict(cell=list(CELL), feet_row=CELL[1] - 1, alias=ALIAS, players=meta), fh, indent=1, sort_keys=True)
+        gait_speed = {an: round(design_speed(CYCLE_KEYS[key]), 1) for an, key in ALIAS.items() if key in CYCLE_KEYS}        # the ground speed each gait's drawn feet are right for
+        cycles = {an: GAITS[CYCLE_KEYS[key]]['T'] for an, key in ALIAS.items() if key in CYCLE_KEYS}
+        json.dump(dict(cell=list(CELL), feet_row=CELL[1] - 1, alias=ALIAS, design_speed=gait_speed, cycles=cycles, players=meta), fh, indent=1, sort_keys=True)
     return meta
 
 
@@ -446,6 +522,23 @@ def self_check():
                     continue
                 if any(px[x, 0][3] for x in range(im.width)) or any(px[0, y][3] or px[im.width - 1, y][3] for y in range(im.height)):
                     errs.append('%s %s %d: touches the edge of its cell' % (player['name'], key, i))
+    # FEET DO NOT SLIDE: while a foot is down it moves back relative to the hip by exactly the ground the body covers in that frame
+    joe = P.PLAYERS[0]
+    for name, g in GAITS.items():
+        n = g['n']
+        dt = g['T'] / n
+        for key in ('ankle_n', 'ankle_f'):
+            for i in range(n):
+                v0 = (i / float(n) + (0.0 if key == 'ankle_n' else 0.5)) % 1.0
+                v1 = ((i + 1) / float(n) + (0.0 if key == 'ankle_n' else 0.5)) % 1.0
+                if not (v0 < g['duty'] and v1 <= g['duty'] and v1 > v0):
+                    continue
+                a = P.skeleton(gait(name, i, n), joe)[key][0]
+                b = P.skeleton(gait(name, (i + 1) % n, n), joe)[key][0]
+                moved = (a - b) * P.K                                                   # px the foot moved BACK relative to the hip
+                want = design_speed(name) * dt
+                if abs(moved - want) > 0.25 * want + 0.6:
+                    errs.append('%s %s frame %d: the planted foot slides (%.1f px back, the body covers %.1f)' % (name, key, i, moved, want))
     return errs
 
 

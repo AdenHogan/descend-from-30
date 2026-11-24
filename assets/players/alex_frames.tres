@@ -58,22 +58,6 @@ region = Rect2(648, 108, 108, 108)
 atlas = ExtResource("1_sheet")
 region = Rect2(756, 108, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_alex_walk_8"]
-atlas = ExtResource("1_sheet")
-region = Rect2(864, 108, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_alex_walk_9"]
-atlas = ExtResource("1_sheet")
-region = Rect2(972, 108, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_alex_walk_10"]
-atlas = ExtResource("1_sheet")
-region = Rect2(1080, 108, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_alex_walk_11"]
-atlas = ExtResource("1_sheet")
-region = Rect2(1188, 108, 108, 108)
-
 [sub_resource type="AtlasTexture" id="p_alex_run_0"]
 atlas = ExtResource("1_sheet")
 region = Rect2(0, 216, 108, 108)
@@ -674,22 +658,6 @@ region = Rect2(648, 108, 108, 108)
 atlas = ExtResource("1_sheet")
 region = Rect2(756, 108, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_alex_walk_8"]
-atlas = ExtResource("1_sheet")
-region = Rect2(864, 108, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_alex_walk_9"]
-atlas = ExtResource("1_sheet")
-region = Rect2(972, 108, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_alex_walk_10"]
-atlas = ExtResource("1_sheet")
-region = Rect2(1080, 108, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_alex_walk_11"]
-atlas = ExtResource("1_sheet")
-region = Rect2(1188, 108, 108, 108)
-
 [sub_resource type="AtlasTexture" id="p_alex_run_0"]
 atlas = ExtResource("1_sheet")
 region = Rect2(0, 216, 108, 108)
@@ -1175,22 +1143,10 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": SubResource("p_alex_walk_7")
-}, {
-"duration": 1.0,
-"texture": SubResource("p_alex_walk_8")
-}, {
-"duration": 1.0,
-"texture": SubResource("p_alex_walk_9")
-}, {
-"duration": 1.0,
-"texture": SubResource("p_alex_walk_10")
-}, {
-"duration": 1.0,
-"texture": SubResource("p_alex_walk_11")
 }],
 "loop": true,
 "name": &"walk",
-"speed": 9.00
+"speed": 26.67
 }, {
 "frames": [{
 "duration": 1.0,
@@ -1219,7 +1175,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"run",
-"speed": 8.00
+"speed": 36.36
 }, {
 "frames": [{
 "duration": 1.0,
@@ -1271,7 +1227,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"crouch_walk",
-"speed": 3.20
+"speed": 23.53
 }, {
 "frames": [{
 "duration": 1.0,
@@ -1727,22 +1683,10 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": SubResource("p_alex_walk_7")
-}, {
-"duration": 1.0,
-"texture": SubResource("p_alex_walk_8")
-}, {
-"duration": 1.0,
-"texture": SubResource("p_alex_walk_9")
-}, {
-"duration": 1.0,
-"texture": SubResource("p_alex_walk_10")
-}, {
-"duration": 1.0,
-"texture": SubResource("p_alex_walk_11")
 }],
 "loop": true,
 "name": &"katana_walk",
-"speed": 10.80
+"speed": 26.67
 }, {
 "frames": [{
 "duration": 1.0,
@@ -1771,7 +1715,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"katana_run",
-"speed": 9.00
+"speed": 36.36
 }, {
 "frames": [{
 "duration": 1.0,
@@ -1800,7 +1744,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"sword_run",
-"speed": 8.00
+"speed": 36.36
 }, {
 "frames": [{
 "duration": 1.0,
@@ -2027,7 +1971,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"gun_walk",
-"speed": 8.00
+"speed": 26.67
 }, {
 "frames": [{
 "duration": 1.0,
@@ -2056,7 +2000,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"gun_run",
-"speed": 14.00
+"speed": 36.36
 }, {
 "frames": [{
 "duration": 1.0,
@@ -2120,7 +2064,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"run_aim",
-"speed": 8.00
+"speed": 26.67
 }, {
 "frames": [{
 "duration": 1.0,
@@ -2149,5 +2093,5 @@ animations = [{
 }],
 "loop": true,
 "name": &"run_shooting",
-"speed": 8.00
+"speed": 36.36
 }]

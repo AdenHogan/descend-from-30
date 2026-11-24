@@ -41,6 +41,30 @@
   108,
   108
  ],
+ "cycles": {
+  "crouch_walk": 0.34,
+  "gun_run": 0.22,
+  "gun_walk": 0.3,
+  "katana_run": 0.22,
+  "katana_walk": 0.3,
+  "run": 0.22,
+  "run_aim": 0.3,
+  "run_shooting": 0.22,
+  "sword_run": 0.22,
+  "walk": 0.3
+ },
+ "design_speed": {
+  "crouch_walk": 52.2,
+  "gun_run": 299.0,
+  "gun_walk": 131.0,
+  "katana_run": 299.0,
+  "katana_walk": 131.0,
+  "run": 299.0,
+  "run_aim": 131.0,
+  "run_shooting": 299.0,
+  "sword_run": 299.0,
+  "walk": 131.0
+ },
  "feet_row": 107,
  "players": {
   "alex": {
@@ -135,7 +159,7 @@
     ],
     "walk": [
      1,
-     12
+     8
     ]
    }
   },
@@ -231,7 +255,7 @@
     ],
     "walk": [
      1,
-     12
+     8
     ]
    }
   },
@@ -327,7 +351,7 @@
     ],
     "walk": [
      1,
-     12
+     8
     ]
    }
   },
@@ -423,7 +447,7 @@
     ],
     "walk": [
      1,
-     12
+     8
     ]
    }
   }

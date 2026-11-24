@@ -38,6 +38,23 @@ static func apply(player: Node, spr: AnimatedSprite2D, character: String) -> boo
 	return true
 
 
+static var _gait_speed: Dictionary = {}
+static var _gait_loaded := false
+
+
+## The ground speed (px/s) an animation's drawn feet are right for (a walk / run / crouch-walk / gun walk...), or 0.0 for any other animation. Written by tools/art/player_rigs.py into
+## assets/players/players.json, so the art and the game read ONE number: the player's walk is played at |velocity| / this, and its feet do not slide.
+static func design_speed(anim: String) -> float:
+	if not _gait_loaded:
+		_gait_loaded = true
+		var f := FileAccess.open("res://assets/players/players.json", FileAccess.READ)
+		if f != null:
+			var parsed = JSON.parse_string(f.get_as_text())
+			if parsed is Dictionary and parsed.get("design_speed") is Dictionary:
+				_gait_speed = parsed["design_speed"]
+	return float(_gait_speed.get(anim, 0.0))
+
+
 ## The swing animation for a melee weapon type ("knife" / "sword" / "bat"): its own if the sprite has one, else the old single swing.
 static func swing_anim(spr: AnimatedSprite2D, weapon_type: String) -> String:
 	var n := "swing_" + weapon_type

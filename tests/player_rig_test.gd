@@ -11,7 +11,7 @@ extends Node
 var failures: int = 0
 const PLAYED := ["idle", "walk", "run", "crouch_idle", "crouch_walk", "death", "hurt", "punch_jab", "push", "katana_attack_continuous", "sword_attack", "sword_stab",
 	"katana_idle", "sword_idle", "katana_walk", "katana_run", "sword_run", "grab", "roll", "air_spin", "gun_idle", "gun_walk", "gun_run", "gun_shoot", "run_aim", "run_shooting", "hide_inside", "hide_in", "hide_behind", "hide_flat", "hide_dark"]
-const OLD_DURATION := {"idle": 1.25, "walk": 1.333, "run": 1.0, "death": 1.4286, "hurt": 0.5, "punch_jab": 1.0, "katana_attack_continuous": 1.0, "gun_shoot": 0.625}
+const OLD_DURATION := {"idle": 1.25, "death": 1.4286, "hurt": 0.5, "punch_jab": 1.0, "katana_attack_continuous": 1.0, "gun_shoot": 0.625}
 
 
 func check(cond: bool, label: String) -> void:
@@ -45,6 +45,17 @@ func _ready() -> void:
 				dur_ok = false
 				why += " %s %.2f vs %.2f" % [a, d, float(OLD_DURATION[a])]
 		check(dur_ok, "%s: the old durations are kept (%s)" % [character, why.strip_edges()])
+		# the walk, run and crouch-walk have their OWN cycle (feet that do not slide: tools/art/player_rigs.py GAITS), written to players.json with the ground speed the feet are right for
+		var gait_ok := true
+		var gwhy := ""
+		for a in ["walk", "run", "crouch_walk", "gun_walk", "gun_run", "katana_walk", "sword_run"]:
+			var want_speed: float = PlayerRig.design_speed(a)
+			var cyc: float = float(frames.get_frame_count(a)) / maxf(0.01, frames.get_animation_speed(a))
+			if want_speed <= 0.0 or cyc < 0.15 or cyc > 0.45:
+				gait_ok = false
+				gwhy += " %s speed %.0f cycle %.2f" % [a, want_speed, cyc]
+		check(gait_ok, "%s: every gait has a design speed and a quick, sensible cycle (%s)" % [character, gwhy.strip_edges()])
+		check(PlayerRig.design_speed("walk") > 100.0 and PlayerRig.design_speed("run") > PlayerRig.design_speed("walk") and PlayerRig.design_speed("crouch_walk") < PlayerRig.design_speed("walk"), "%s: the run is faster than the walk, the crouch-walk slower" % character)
 		check(not frames.get_animation_loop("death") and not frames.get_animation_loop("gun_shoot"), "%s: death and the shot do not loop" % character)
 		check(frames.get_frame_count("gun_walk") == 8 and frames.get_frame_count("gun_shoot") == 10, "%s: the gun animations keep their frame counts the tests pin" % character)
 		var cell_h: float = float(frames.get_frame_texture("idle", 0).get_height())

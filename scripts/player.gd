@@ -605,6 +605,24 @@ func _physics_process(delta: float) -> void:
 			footstep_player.play()
 	else:
 		footstep_timer = 0.0
+	_sync_gait_cadence()
+
+
+## The walk / run / crouch-walk plays at the rate its drawn feet match the ground speed (owner 2026-11-24: the leg movement looked wrong - the feet slid): scale = |velocity| / the
+## speed the art is right for (PlayerRig.design_speed). Any other animation plays at its own rate.
+var _gait_synced := false
+
+
+func _sync_gait_cadence() -> void:
+	if animated_sprite == null or is_rolling:
+		return
+	var d: float = PlayerRig.design_speed(String(animated_sprite.animation))
+	if d > 0.0:
+		animated_sprite.speed_scale = clampf(absf(velocity.x) / d, 0.3, 1.8)
+		_gait_synced = true
+	elif _gait_synced:
+		animated_sprite.speed_scale = 1.0
+		_gait_synced = false
 
 
 ## True when a sprinting, moving player may dive-roll right now: it needs the same bar a shove needs.
