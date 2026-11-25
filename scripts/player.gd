@@ -551,17 +551,17 @@ func _physics_process(delta: float) -> void:
 			equipped_weapon = "gun"          # a lit torch is held out in the gun's aiming pose (owner: "for now using the gun animations")
 		if direction == 0:
 			match equipped_weapon:
-				"sword", "knife", "bat": animated_sprite.play("katana_idle")
+				"sword", "knife", "bat": animated_sprite.play(PlayerRig.hold_anim(animated_sprite, equipped_weapon, "idle"))
 				"gun": animated_sprite.play("gun_idle")
 				_: animated_sprite.play("idle")
 		elif is_sprinting and WorldState.stamina > 0:
 			match equipped_weapon:
-				"sword", "knife", "bat": animated_sprite.play("katana_run")
+				"sword", "knife", "bat": animated_sprite.play(PlayerRig.hold_anim(animated_sprite, equipped_weapon, "run"))
 				"gun": animated_sprite.play("gun_run")
 				_: animated_sprite.play("run")
 		else:
 			match equipped_weapon:
-				"sword", "knife", "bat": animated_sprite.play("katana_walk")
+				"sword", "knife", "bat": animated_sprite.play(PlayerRig.hold_anim(animated_sprite, equipped_weapon, "walk"))
 				"gun": animated_sprite.play("gun_walk")
 				_: animated_sprite.play("walk")
 

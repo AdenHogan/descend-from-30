@@ -18,6 +18,7 @@ Nothing here names or explains what they are (CLAUDE.md "Context" 4): they are b
                              of pale tentacles, thin black legs under its skirts, and one puckered tube out of its back that fills with green and spits.
 """
 import math
+import sys
 
 import people as P
 
@@ -474,7 +475,7 @@ def frames(name, kind):
 # IN THE GAME (owner 2026-11-14: "the second one… the corridors and enemies in play"): every monster as a full set of the animations the enemy scripts
 # play — Idle, Walk, Attack, Hit, Death and Dead_Dead — in a sheet and a SpriteFrames resource that drops into the old enemy scenes.
 #
-#     python3 tools/art/creatures.py        ->  assets/monsters/<kind>.png  <kind>_frames.tres  monsters.json
+#     python3 tools/art/creatures.py [--regen]  ->  assets/monsters/<kind>/<Anim>.png  <kind>_frames.tres  monsters.json
 #
 # Each monster is drawn at its OWN scale (`SCALE`) so its height in the world matches the enemy it replaces (the old art was 28-36 texels tall at the
 # scene's 3x; this is drawn at whole-pixel blocks of 2, so the sprite's scale in the scene is 1). Attack, Hit and Death are made from the same drawing:
@@ -559,7 +560,7 @@ def build(name):
         cw, ch = P.CW, P.CH
         bs = [im.getbbox() for im in base['idle'] + base['walk']]
         cx = (min(b[0] for b in bs) + max(b[2] for b in bs)) / 2.0
-        wide = int(ch * 1.4) // 2 * 2
+        wide = int(ch * (1.7 if name == 'big' else 1.4)) // 2 * 2         # (the big's death spreads wider than the others': it was clipped at the cell edge)
         ox = int(round(wide / 2.0 - cx))
         foot = (wide / 2.0, ch - 1.0)
 
@@ -621,39 +622,51 @@ def build(name):
         return [('Idle', idle), ('Walk', walk), ('Attack', attack), ('Hit', hit), ('Death', death), ('Dead_Dead', dead)], (wide, ch)
 
 
+REGEN = '--regen' in sys.argv
+
+
 def write_all():
+    """One PNG STRIP per animation per monster: assets/monsters/<kind>/<Anim>.png (Idle, Walk, Attack, Hit, Death, Dead_Dead), frames left to right (owner 2026-11-25: "a sprite sheet for each
+    animation type"). The SpriteFrames points at those files; an existing strip is not overwritten unless the generator is run with --regen (a hand-redrawn one is safe); the frame count is
+    read from the file."""
     os.makedirs(OUT, exist_ok=True)
     meta = {}
     for name in SCALE:
         sets, (cw, ch) = build(name)
-        cols = max(len(fr) for _, fr in sets)
-        sheet = Image.new('RGBA', (cols * cw, len(sets) * ch), (0, 0, 0, 0))
-        for r, (_, fr) in enumerate(sets):
-            for c, im in enumerate(fr):
-                sheet.alpha_composite(im, (c * cw, r * ch))
-        sheet.save(os.path.join(OUT, name + '.png'))
-        anims = []
-        for r, ((an, n, fps, loop), (_, fr)) in enumerate(zip(ANIMS, sets)):
-            assert n == len(fr), (name, an, n, len(fr))
-            anims.append((an, r, n, fps, loop))
-        res = ['[gd_resource type="SpriteFrames" format=3]', '', '[ext_resource type="Texture2D" path="res://assets/monsters/%s.png" id="1_sheet"]' % name, '']
+        kdir = os.path.join(OUT, name)
+        os.makedirs(kdir, exist_ok=True)
+        files = {}
+        for (an, _n, _fps, _loop), (_, fr) in zip(ANIMS, sets):
+            path = os.path.join(kdir, an + '.png')
+            if REGEN or not os.path.exists(path):
+                strip = Image.new('RGBA', (len(fr) * cw, ch), (0, 0, 0, 0))
+                for c, im in enumerate(fr):
+                    strip.alpha_composite(im, (c * cw, 0))
+                strip.save(path)
+            with Image.open(path) as im:
+                files[an] = max(1, im.width // cw)
+        res = ['[gd_resource type="SpriteFrames" format=3]', '']
+        for (an, _n, _fps, _loop) in ANIMS:
+            res.append('[ext_resource type="Texture2D" path="res://assets/monsters/%s/%s.png" id="s_%s"]' % (name, an, an))
+        res.append('')
         sub = []
         body = []
-        for (an, r, n, fps, loop) in anims:
+        for (an, _n, fps, loop) in ANIMS:
+            n = files[an]
             fl = []
             for c in range(n):
-                sid = 'a_%s_%d_%d' % (name, r, c)
-                sub += ['[sub_resource type="AtlasTexture" id="%s"]' % sid, 'atlas = ExtResource("1_sheet")', 'region = Rect2(%d, %d, %d, %d)' % (c * cw, r * ch, cw, ch), '']
+                sid = 'a_%s_%s_%d' % (name, an, c)
+                sub += ['[sub_resource type="AtlasTexture" id="%s"]' % sid, 'atlas = ExtResource("s_%s")' % an, 'region = Rect2(%d, 0, %d, %d)' % (c * cw, cw, ch), '']
                 fl.append('{\n"duration": 1.0,\n"texture": SubResource("%s")\n}' % sid)
             body.append('{\n"frames": [%s],\n"loop": %s,\n"name": &"%s",\n"speed": %.1f\n}' % (', '.join(fl), 'true' if loop else 'false', an, fps))
         res += sub + ['[resource]', 'animations = [%s]' % ', '.join(body), '']
         with open(os.path.join(OUT, name + '_frames.tres'), 'w') as fh:
             fh.write('\n'.join(res))
-        meta[name] = dict(cell=[cw, ch], scale=SCALE[name], feet_row=ch - 1, anims={a: [r, n] for (a, r, n, _, _) in anims})
+        meta[name] = dict(cell=[cw, ch], scale=SCALE[name], feet_row=ch - 1, anims={an: [r, files[an]] for r, (an, _n, _f, _l) in enumerate(ANIMS)},
+                          files={an: 'res://assets/monsters/%s/%s.png' % (name, an) for (an, _n, _f, _l) in ANIMS})
     with open(os.path.join(OUT, 'monsters.json'), 'w') as fh:
         json.dump(meta, fh, indent=1, sort_keys=True)
     return meta
-
 
 
 def write_spit():

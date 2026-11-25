@@ -27,10 +27,18 @@
    ]
   },
   "cell": [
-   162,
+   196,
    116
   ],
   "feet_row": 115,
+  "files": {
+   "Attack": "res://assets/monsters/big/Attack.png",
+   "Dead_Dead": "res://assets/monsters/big/Dead_Dead.png",
+   "Death": "res://assets/monsters/big/Death.png",
+   "Hit": "res://assets/monsters/big/Hit.png",
+   "Idle": "res://assets/monsters/big/Idle.png",
+   "Walk": "res://assets/monsters/big/Walk.png"
+  },
   "scale": 2.0
  },
  "crawler": {
@@ -65,6 +73,14 @@
    110
   ],
   "feet_row": 109,
+  "files": {
+   "Attack": "res://assets/monsters/crawler/Attack.png",
+   "Dead_Dead": "res://assets/monsters/crawler/Dead_Dead.png",
+   "Death": "res://assets/monsters/crawler/Death.png",
+   "Hit": "res://assets/monsters/crawler/Hit.png",
+   "Idle": "res://assets/monsters/crawler/Idle.png",
+   "Walk": "res://assets/monsters/crawler/Walk.png"
+  },
   "scale": 1.9
  },
  "flyer": {
@@ -99,6 +115,14 @@
    110
   ],
   "feet_row": 109,
+  "files": {
+   "Attack": "res://assets/monsters/flyer/Attack.png",
+   "Dead_Dead": "res://assets/monsters/flyer/Dead_Dead.png",
+   "Death": "res://assets/monsters/flyer/Death.png",
+   "Hit": "res://assets/monsters/flyer/Hit.png",
+   "Idle": "res://assets/monsters/flyer/Idle.png",
+   "Walk": "res://assets/monsters/flyer/Walk.png"
+  },
   "scale": 1.9
  },
  "longarm": {
@@ -133,6 +157,14 @@
    72
   ],
   "feet_row": 71,
+  "files": {
+   "Attack": "res://assets/monsters/longarm/Attack.png",
+   "Dead_Dead": "res://assets/monsters/longarm/Dead_Dead.png",
+   "Death": "res://assets/monsters/longarm/Death.png",
+   "Hit": "res://assets/monsters/longarm/Hit.png",
+   "Idle": "res://assets/monsters/longarm/Idle.png",
+   "Walk": "res://assets/monsters/longarm/Walk.png"
+  },
   "scale": 1.25
  },
  "spitter": {
@@ -167,6 +199,14 @@
    116
   ],
   "feet_row": 115,
+  "files": {
+   "Attack": "res://assets/monsters/spitter/Attack.png",
+   "Dead_Dead": "res://assets/monsters/spitter/Dead_Dead.png",
+   "Death": "res://assets/monsters/spitter/Death.png",
+   "Hit": "res://assets/monsters/spitter/Hit.png",
+   "Idle": "res://assets/monsters/spitter/Idle.png",
+   "Walk": "res://assets/monsters/spitter/Walk.png"
+  },
   "scale": 2.0
  },
  "standard": {
@@ -201,6 +241,14 @@
    116
   ],
   "feet_row": 115,
+  "files": {
+   "Attack": "res://assets/monsters/standard/Attack.png",
+   "Dead_Dead": "res://assets/monsters/standard/Dead_Dead.png",
+   "Death": "res://assets/monsters/standard/Death.png",
+   "Hit": "res://assets/monsters/standard/Hit.png",
+   "Idle": "res://assets/monsters/standard/Idle.png",
+   "Walk": "res://assets/monsters/standard/Walk.png"
+  },
   "scale": 2.0
  }
 }

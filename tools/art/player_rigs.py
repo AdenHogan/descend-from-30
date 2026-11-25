@@ -2,7 +2,7 @@
 """THE FOUR PLAYERS, AS THE GAME'S SPRITES (owner 2026-11-14: "start on the core set"; and, mid-way: "this allows for making those specific contextual hide
 positions too, so it's not a generic crouch or something when hiding").
 
-    python3 tools/art/player_rigs.py  ->  assets/players/<joe|vivianne|alex|amina>.png + _frames.tres + players.json
+    python3 tools/art/player_rigs.py [--regen]  ->  assets/players/<joe|vivianne|alex|amina>/<animation>.png (one strip per animation) + <name>_frames.tres + players.json
 
 Each player is the people rig (tools/art/people.py) posed for every animation the player script plays. The CORE SET — a swing for each weapon with the weapon
 IN HAND (bat / hammer, knife, sword), the shove, the hit, the death — is built for this pass; the walk, run, idle and a REAL crouch (the legs bend: the rig drops
@@ -91,13 +91,15 @@ def plant(a1, reach):
 # against 300 px/s: the feet skated 5-7 times faster than they stepped. Now each foot is PLACED: a stance foot is held on the floor and carried back relative to the hip at exactly the
 # body's speed, a swing foot arcs forward, and a two-bone IK (`_ik_leg`) bends the leg to meet each ankle target; the cycle time is set from the speed (T = stride / (speed x duty)).
 GAITS = {   # name: dict(speed px/s the drawn feet are right for, cycle seconds, stride px, duty (share of the cycle a foot is down), frames)
-    'walk': dict(speed=150.0, T=0.30, stride=22.0, duty=0.56, n=8),
-    'run': dict(speed=300.0, T=0.22, stride=25.0, duty=0.38, n=8),
-    'crouch_walk': dict(speed=60.0, T=0.34, stride=11.0, duty=0.62, n=8),
+    # (cycle times land on whole frame ticks at 60 Hz: 30 fps = 2 ticks a frame, 20 fps = 3, so no frame is shown longer than its neighbour)
+    'walk': dict(speed=150.0, T=8 / 30.0, stride=22.0, duty=0.56, n=8),
+    'run': dict(speed=300.0, T=6 / 30.0, stride=25.0, duty=0.38, n=6),
+    'crouch_walk': dict(speed=60.0, T=6 / 20.0, stride=11.0, duty=0.62, n=6),
 }
 
 
-CYCLE_KEYS = {'walk': 'walk', 'run': 'run', 'crouch_walk': 'crouch_walk', 'gun_walk': 'walk', 'gun_run': 'run'}
+CYCLE_KEYS = {'walk': 'walk', 'run': 'run', 'crouch_walk': 'crouch_walk', 'gun_walk': 'walk', 'gun_run': 'run',
+              **{'hold_%s_%s' % (k, m): m for k in ('bat', 'sword', 'knife') for m in ('walk', 'run')}}
 
 
 def design_speed(name):
@@ -271,6 +273,26 @@ _KNIFE = [(0.00, (60, 80, 50, 85, 60, 0.0, 0.0, 4, -4)), (0.25, (35, 100, 40, 95
           (0.65, (92, 6, 80, 12, 92, 4.0, 3.5, 28, -20)), (0.85, (60, 60, 55, 70, 70, 1.5, 1.0, 14, -8)), (1.00, (60, 80, 50, 85, 60, 0.0, 0.0, 4, -4))]
 
 
+READY = {'bat': ((60, 70), (55, 75), 0, 'hammer'), 'sword': ((60, 70), (50, 80), 0, 'sword'), 'knife': ((60, 80), (50, 85), 60, 'knife')}      # the swing tables' own first pose
+
+
+def hold(kind, mode):
+    """The weapon IN HAND at the ready, standing ('idle') or moving ('walk' / 'run' with the gait's feet): the arms hold the swing's own starting pose and ride the body's bob."""
+    na, fa, rot, item = READY[kind]
+
+    def f(i, n):
+        ph = 2.0 * math.pi * i / float(n)
+        if mode == 'idle':
+            pose = dict(idle(i, n)[0])
+            wob = 2.0 * math.sin(ph)
+        else:
+            pose = gait(mode, i, n)
+            wob = 2.5 * math.sin(2.0 * ph)
+        pose.update(n_arm=(na[0] + wob, na[1]), f_arm=(fa[0] + wob, fa[1]), item_rot=rot + (3.0 * math.sin(2.0 * ph) if mode != 'idle' else 0.0), twist=0.0)
+        return pose, item
+    return f
+
+
 def shove(i, n):
     t = i / float(n - 1)
     a, b, lean, dx, fl, bl = keys([(0.0, (50, 70, 50, 70, 0.0, 0.0, 4, -4)), (0.25, (30, 100, 30, 100, -2.5, -1.5, 6, -8)), (0.45, (98, 2, 94, 4, 4.5, 3.5, 28, -22)),
@@ -317,12 +339,16 @@ def shoot(i, n):
 
 # ---- which pose each animation uses, its frame count; durations are kept from the old sprite ---------------------------------------------------------
 SOURCES = {   # key: (builder(i, n, item?) , frames)
-    'idle': (idle, 6), 'walk': (walk, 8), 'run': (run, 8), 'crouch_idle': (crouch, 6), 'crouch_walk': (crouch_walk, 8), 'shove': (shove, 10),
+    'idle': (idle, 6), 'walk': (walk, 8), 'run': (run, 6), 'crouch_idle': (crouch, 6), 'crouch_walk': (crouch_walk, 6), 'shove': (shove, 10),
     'swing_bat': ('swing', 9, 'hammer', _BAT), 'swing_sword': ('swing', 9, 'sword', _SWORD), 'swing_knife': ('swing', 9, 'knife', _KNIFE),
     'hurt': (hurt, 4), 'death': ('death', 10), 'hide_inside': (hide_inside, 6), 'hide_in': (hide_in, 6), 'hide_behind': (hide_behind, 6), 'hide_flat': (hide_flat, 6),
     'hide_dark': (hide_dark, 6), 'roll': ('roll', 7), 'air_spin': ('roll', 6),
-    'gun_idle': (aim, 2), 'gun_walk': (aim_walk, 8), 'gun_run': (aim_run, 8), 'gun_shoot': (shoot, 10),
+    'gun_idle': (aim, 2), 'gun_walk': (aim_walk, 8), 'gun_run': (aim_run, 6), 'gun_shoot': (shoot, 10),
 }
+for _kind in ('bat', 'sword', 'knife'):                                      # the weapon HELD, standing / walking / running (owner 2026-11-25 check: these played the empty-handed idle)
+    SOURCES['hold_%s_idle' % _kind] = (hold(_kind, 'idle'), 6)
+    SOURCES['hold_%s_walk' % _kind] = (hold(_kind, 'walk'), 8)
+    SOURCES['hold_%s_run' % _kind] = (hold(_kind, 'run'), 6)
 # every animation NAME the game plays -> the source it uses (the old rig had these; names with no pose of their own yet play the nearest)
 ALIAS = {
     'idle': 'idle', 'walk': 'walk', 'run': 'run', 'crouch_idle': 'crouch_idle', 'crouch_walk': 'crouch_walk', 'death': 'death', 'hurt': 'hurt',
@@ -334,6 +360,9 @@ ALIAS = {
     'hide_inside': 'hide_inside', 'hide_in': 'hide_in', 'hide_behind': 'hide_behind', 'hide_flat': 'hide_flat', 'hide_dark': 'hide_dark',
     'gun_idle': 'gun_idle', 'gun_walk': 'gun_walk', 'gun_run': 'gun_run', 'gun_shoot': 'gun_shoot', 'run_aim': 'gun_walk', 'run_shooting': 'gun_run',
 }
+for _kind in ('bat', 'sword', 'knife'):
+    for _m in ('idle', 'walk', 'run'):
+        ALIAS['hold_%s_%s' % (_kind, _m)] = 'hold_%s_%s' % (_kind, _m)
 OLD_GUN = {'gun_idle': (1, 8.0, True), 'gun_walk': (8, 8.0, True), 'gun_run': (8, 14.0, True), 'gun_shoot': (10, 16.0, False)}
 
 
@@ -461,46 +490,61 @@ def _pool(foot, radius):
 
 
 # ---- writing ---------------------------------------------------------------------------------------------------------------------------------------------
+REGEN = '--regen' in sys.argv
+
+
 def write_all():
+    """One PNG STRIP per animation per player: assets/players/<name>/<key>.png, the frames left to right in cells of CELL (owner 2026-11-25: "separate the images into a sprite sheet for each
+    animation type", so any one can be redrawn by hand). The SpriteFrames resource points at those files. A strip that already exists is NOT overwritten (a hand-redrawn one is safe) unless
+    the generator is run with --regen; the frame count is read from the file, so a redrawn strip may have more or fewer frames."""
     os.makedirs(OUT, exist_ok=True)
     old = old_timing()
     meta = {}
     for player in P.PLAYERS:
         name = player['name']
         src = frames_for(player)
-        rows = list(src)
-        cols = max(len(v) for v in src.values())
-        sheet = Image.new('RGBA', (cols * CELL[0], len(rows) * CELL[1]), (0, 0, 0, 0))
-        for r, k in enumerate(rows):
-            for c, im in enumerate(src[k]):
-                sheet.alpha_composite(im, (c * CELL[0], r * CELL[1]))
-        sheet.save(os.path.join(OUT, name + '.png'))
-        res = ['[gd_resource type="SpriteFrames" format=3]', '', '[ext_resource type="Texture2D" path="res://assets/players/%s.png" id="1_sheet"]' % name, '']
-        subs, anims = [], []
+        sdir = os.path.join(OUT, name)
+        os.makedirs(sdir, exist_ok=True)
+        strips = {}
+        for key, frs in src.items():
+            path = os.path.join(sdir, key + '.png')
+            if REGEN or not os.path.exists(path):
+                strip = Image.new('RGBA', (len(frs) * CELL[0], CELL[1]), (0, 0, 0, 0))
+                for c, im in enumerate(frs):
+                    strip.alpha_composite(im, (c * CELL[0], 0))
+                strip.save(path)
+            with Image.open(path) as im:
+                strips[key] = (path, max(1, im.width // CELL[0]))
+        res = ['[gd_resource type="SpriteFrames" format=3]', '']
+        for key in strips:
+            res.append('[ext_resource type="Texture2D" path="res://assets/players/%s/%s.png" id="s_%s"]' % (name, key, key))
+        res.append('')
+        subs, anims, seen = [], [], set()
         for an, key in ALIAS.items():
-            n = len(src[key])
+            n = strips[key][1]
             of, osp, olp = old.get(an, (n, 8.0, True))
             speed = n / (of / osp) if of and osp else 8.0                          # the old DURATION: frames / speed
-            if key in CYCLE_KEYS:
-                speed = n / GAITS[CYCLE_KEYS[key]]['T']                              # a gait's cycle time is its own (feet that do not slide)
             if an in ('gun_idle',):
                 speed = 4.0
+            if key in CYCLE_KEYS:
+                speed = n / GAITS[CYCLE_KEYS[key]]['T']                              # a gait's cycle time is its own (feet that do not slide)
             fl = []
             for c in range(n):
                 sid = 'p_%s_%s_%d' % (name, key, c)
-                if sid not in [x for x in subs if x.startswith('[sub_resource') and sid in x]:
-                    subs += ['[sub_resource type="AtlasTexture" id="%s"]' % sid, 'atlas = ExtResource("1_sheet")',
-                             'region = Rect2(%d, %d, %d, %d)' % (c * CELL[0], rows.index(key) * CELL[1], CELL[0], CELL[1]), '']
+                if sid not in seen:
+                    seen.add(sid)
+                    subs += ['[sub_resource type="AtlasTexture" id="%s"]' % sid, 'atlas = ExtResource("s_%s")' % key,
+                             'region = Rect2(%d, 0, %d, %d)' % (c * CELL[0], CELL[0], CELL[1]), '']
                 fl.append('{\n"duration": 1.0,\n"texture": SubResource("%s")\n}' % sid)
             loop = False if an in ('death', 'gun_shoot') else olp
             anims.append('{\n"frames": [%s],\n"loop": %s,\n"name": &"%s",\n"speed": %.2f\n}' % (', '.join(fl), 'true' if loop else 'false', an, speed))
         res += subs + ['[resource]', 'animations = [%s]' % ', '.join(anims), '']
         with open(os.path.join(OUT, name + '_frames.tres'), 'w') as fh:
             fh.write('\n'.join(res))
-        meta[name] = dict(cell=list(CELL), rows={k: [r, len(src[k])] for r, k in enumerate(rows)})
+        meta[name] = dict(cell=list(CELL), rows={k: [r, strips[k][1]] for r, k in enumerate(strips)}, files={k: 'res://assets/players/%s/%s.png' % (name, k) for k in strips})
+    gait_speed = {an: round(design_speed(CYCLE_KEYS[key]), 1) for an, key in ALIAS.items() if key in CYCLE_KEYS}        # the ground speed each gait's drawn feet are right for
+    cycles = {an: GAITS[CYCLE_KEYS[key]]['T'] for an, key in ALIAS.items() if key in CYCLE_KEYS}
     with open(os.path.join(OUT, 'players.json'), 'w') as fh:
-        gait_speed = {an: round(design_speed(CYCLE_KEYS[key]), 1) for an, key in ALIAS.items() if key in CYCLE_KEYS}        # the ground speed each gait's drawn feet are right for
-        cycles = {an: GAITS[CYCLE_KEYS[key]]['T'] for an, key in ALIAS.items() if key in CYCLE_KEYS}
         json.dump(dict(cell=list(CELL), feet_row=CELL[1] - 1, alias=ALIAS, design_speed=gait_speed, cycles=cycles, players=meta), fh, indent=1, sort_keys=True)
     return meta
 

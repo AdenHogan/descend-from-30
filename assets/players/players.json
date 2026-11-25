@@ -14,6 +14,15 @@
   "hide_flat": "hide_flat",
   "hide_in": "hide_in",
   "hide_inside": "hide_inside",
+  "hold_bat_idle": "hold_bat_idle",
+  "hold_bat_run": "hold_bat_run",
+  "hold_bat_walk": "hold_bat_walk",
+  "hold_knife_idle": "hold_knife_idle",
+  "hold_knife_run": "hold_knife_run",
+  "hold_knife_walk": "hold_knife_walk",
+  "hold_sword_idle": "hold_sword_idle",
+  "hold_sword_run": "hold_sword_run",
+  "hold_sword_walk": "hold_sword_walk",
   "hurt": "hurt",
   "idle": "idle",
   "katana_attack_continuous": "swing_bat",
@@ -42,28 +51,40 @@
   108
  ],
  "cycles": {
-  "crouch_walk": 0.34,
-  "gun_run": 0.22,
-  "gun_walk": 0.3,
-  "katana_run": 0.22,
-  "katana_walk": 0.3,
-  "run": 0.22,
-  "run_aim": 0.3,
-  "run_shooting": 0.22,
-  "sword_run": 0.22,
-  "walk": 0.3
+  "crouch_walk": 0.3,
+  "gun_run": 0.2,
+  "gun_walk": 0.26666666666666666,
+  "hold_bat_run": 0.2,
+  "hold_bat_walk": 0.26666666666666666,
+  "hold_knife_run": 0.2,
+  "hold_knife_walk": 0.26666666666666666,
+  "hold_sword_run": 0.2,
+  "hold_sword_walk": 0.26666666666666666,
+  "katana_run": 0.2,
+  "katana_walk": 0.26666666666666666,
+  "run": 0.2,
+  "run_aim": 0.26666666666666666,
+  "run_shooting": 0.2,
+  "sword_run": 0.2,
+  "walk": 0.26666666666666666
  },
  "design_speed": {
-  "crouch_walk": 52.2,
-  "gun_run": 299.0,
-  "gun_walk": 131.0,
-  "katana_run": 299.0,
-  "katana_walk": 131.0,
-  "run": 299.0,
-  "run_aim": 131.0,
-  "run_shooting": 299.0,
-  "sword_run": 299.0,
-  "walk": 131.0
+  "crouch_walk": 59.1,
+  "gun_run": 328.9,
+  "gun_walk": 147.3,
+  "hold_bat_run": 328.9,
+  "hold_bat_walk": 147.3,
+  "hold_knife_run": 328.9,
+  "hold_knife_walk": 147.3,
+  "hold_sword_run": 328.9,
+  "hold_sword_walk": 147.3,
+  "katana_run": 328.9,
+  "katana_walk": 147.3,
+  "run": 328.9,
+  "run_aim": 147.3,
+  "run_shooting": 328.9,
+  "sword_run": 328.9,
+  "walk": 147.3
  },
  "feet_row": 107,
  "players": {
@@ -72,6 +93,39 @@
     108,
     108
    ],
+   "files": {
+    "air_spin": "res://assets/players/alex/air_spin.png",
+    "crouch_idle": "res://assets/players/alex/crouch_idle.png",
+    "crouch_walk": "res://assets/players/alex/crouch_walk.png",
+    "death": "res://assets/players/alex/death.png",
+    "gun_idle": "res://assets/players/alex/gun_idle.png",
+    "gun_run": "res://assets/players/alex/gun_run.png",
+    "gun_shoot": "res://assets/players/alex/gun_shoot.png",
+    "gun_walk": "res://assets/players/alex/gun_walk.png",
+    "hide_behind": "res://assets/players/alex/hide_behind.png",
+    "hide_dark": "res://assets/players/alex/hide_dark.png",
+    "hide_flat": "res://assets/players/alex/hide_flat.png",
+    "hide_in": "res://assets/players/alex/hide_in.png",
+    "hide_inside": "res://assets/players/alex/hide_inside.png",
+    "hold_bat_idle": "res://assets/players/alex/hold_bat_idle.png",
+    "hold_bat_run": "res://assets/players/alex/hold_bat_run.png",
+    "hold_bat_walk": "res://assets/players/alex/hold_bat_walk.png",
+    "hold_knife_idle": "res://assets/players/alex/hold_knife_idle.png",
+    "hold_knife_run": "res://assets/players/alex/hold_knife_run.png",
+    "hold_knife_walk": "res://assets/players/alex/hold_knife_walk.png",
+    "hold_sword_idle": "res://assets/players/alex/hold_sword_idle.png",
+    "hold_sword_run": "res://assets/players/alex/hold_sword_run.png",
+    "hold_sword_walk": "res://assets/players/alex/hold_sword_walk.png",
+    "hurt": "res://assets/players/alex/hurt.png",
+    "idle": "res://assets/players/alex/idle.png",
+    "roll": "res://assets/players/alex/roll.png",
+    "run": "res://assets/players/alex/run.png",
+    "shove": "res://assets/players/alex/shove.png",
+    "swing_bat": "res://assets/players/alex/swing_bat.png",
+    "swing_knife": "res://assets/players/alex/swing_knife.png",
+    "swing_sword": "res://assets/players/alex/swing_sword.png",
+    "walk": "res://assets/players/alex/walk.png"
+   },
    "rows": {
     "air_spin": [
      17,
@@ -83,7 +137,7 @@
     ],
     "crouch_walk": [
      4,
-     8
+     6
     ],
     "death": [
      10,
@@ -95,7 +149,7 @@
     ],
     "gun_run": [
      20,
-     8
+     6
     ],
     "gun_shoot": [
      21,
@@ -125,6 +179,42 @@
      11,
      6
     ],
+    "hold_bat_idle": [
+     22,
+     6
+    ],
+    "hold_bat_run": [
+     24,
+     6
+    ],
+    "hold_bat_walk": [
+     23,
+     8
+    ],
+    "hold_knife_idle": [
+     28,
+     6
+    ],
+    "hold_knife_run": [
+     30,
+     6
+    ],
+    "hold_knife_walk": [
+     29,
+     8
+    ],
+    "hold_sword_idle": [
+     25,
+     6
+    ],
+    "hold_sword_run": [
+     27,
+     6
+    ],
+    "hold_sword_walk": [
+     26,
+     8
+    ],
     "hurt": [
      9,
      4
@@ -139,7 +229,7 @@
     ],
     "run": [
      2,
-     8
+     6
     ],
     "shove": [
      5,
@@ -168,6 +258,39 @@
     108,
     108
    ],
+   "files": {
+    "air_spin": "res://assets/players/amina/air_spin.png",
+    "crouch_idle": "res://assets/players/amina/crouch_idle.png",
+    "crouch_walk": "res://assets/players/amina/crouch_walk.png",
+    "death": "res://assets/players/amina/death.png",
+    "gun_idle": "res://assets/players/amina/gun_idle.png",
+    "gun_run": "res://assets/players/amina/gun_run.png",
+    "gun_shoot": "res://assets/players/amina/gun_shoot.png",
+    "gun_walk": "res://assets/players/amina/gun_walk.png",
+    "hide_behind": "res://assets/players/amina/hide_behind.png",
+    "hide_dark": "res://assets/players/amina/hide_dark.png",
+    "hide_flat": "res://assets/players/amina/hide_flat.png",
+    "hide_in": "res://assets/players/amina/hide_in.png",
+    "hide_inside": "res://assets/players/amina/hide_inside.png",
+    "hold_bat_idle": "res://assets/players/amina/hold_bat_idle.png",
+    "hold_bat_run": "res://assets/players/amina/hold_bat_run.png",
+    "hold_bat_walk": "res://assets/players/amina/hold_bat_walk.png",
+    "hold_knife_idle": "res://assets/players/amina/hold_knife_idle.png",
+    "hold_knife_run": "res://assets/players/amina/hold_knife_run.png",
+    "hold_knife_walk": "res://assets/players/amina/hold_knife_walk.png",
+    "hold_sword_idle": "res://assets/players/amina/hold_sword_idle.png",
+    "hold_sword_run": "res://assets/players/amina/hold_sword_run.png",
+    "hold_sword_walk": "res://assets/players/amina/hold_sword_walk.png",
+    "hurt": "res://assets/players/amina/hurt.png",
+    "idle": "res://assets/players/amina/idle.png",
+    "roll": "res://assets/players/amina/roll.png",
+    "run": "res://assets/players/amina/run.png",
+    "shove": "res://assets/players/amina/shove.png",
+    "swing_bat": "res://assets/players/amina/swing_bat.png",
+    "swing_knife": "res://assets/players/amina/swing_knife.png",
+    "swing_sword": "res://assets/players/amina/swing_sword.png",
+    "walk": "res://assets/players/amina/walk.png"
+   },
    "rows": {
     "air_spin": [
      17,
@@ -179,7 +302,7 @@
     ],
     "crouch_walk": [
      4,
-     8
+     6
     ],
     "death": [
      10,
@@ -191,7 +314,7 @@
     ],
     "gun_run": [
      20,
-     8
+     6
     ],
     "gun_shoot": [
      21,
@@ -221,6 +344,42 @@
      11,
      6
     ],
+    "hold_bat_idle": [
+     22,
+     6
+    ],
+    "hold_bat_run": [
+     24,
+     6
+    ],
+    "hold_bat_walk": [
+     23,
+     8
+    ],
+    "hold_knife_idle": [
+     28,
+     6
+    ],
+    "hold_knife_run": [
+     30,
+     6
+    ],
+    "hold_knife_walk": [
+     29,
+     8
+    ],
+    "hold_sword_idle": [
+     25,
+     6
+    ],
+    "hold_sword_run": [
+     27,
+     6
+    ],
+    "hold_sword_walk": [
+     26,
+     8
+    ],
     "hurt": [
      9,
      4
@@ -235,7 +394,7 @@
     ],
     "run": [
      2,
-     8
+     6
     ],
     "shove": [
      5,
@@ -264,6 +423,39 @@
     108,
     108
    ],
+   "files": {
+    "air_spin": "res://assets/players/joe/air_spin.png",
+    "crouch_idle": "res://assets/players/joe/crouch_idle.png",
+    "crouch_walk": "res://assets/players/joe/crouch_walk.png",
+    "death": "res://assets/players/joe/death.png",
+    "gun_idle": "res://assets/players/joe/gun_idle.png",
+    "gun_run": "res://assets/players/joe/gun_run.png",
+    "gun_shoot": "res://assets/players/joe/gun_shoot.png",
+    "gun_walk": "res://assets/players/joe/gun_walk.png",
+    "hide_behind": "res://assets/players/joe/hide_behind.png",
+    "hide_dark": "res://assets/players/joe/hide_dark.png",
+    "hide_flat": "res://assets/players/joe/hide_flat.png",
+    "hide_in": "res://assets/players/joe/hide_in.png",
+    "hide_inside": "res://assets/players/joe/hide_inside.png",
+    "hold_bat_idle": "res://assets/players/joe/hold_bat_idle.png",
+    "hold_bat_run": "res://assets/players/joe/hold_bat_run.png",
+    "hold_bat_walk": "res://assets/players/joe/hold_bat_walk.png",
+    "hold_knife_idle": "res://assets/players/joe/hold_knife_idle.png",
+    "hold_knife_run": "res://assets/players/joe/hold_knife_run.png",
+    "hold_knife_walk": "res://assets/players/joe/hold_knife_walk.png",
+    "hold_sword_idle": "res://assets/players/joe/hold_sword_idle.png",
+    "hold_sword_run": "res://assets/players/joe/hold_sword_run.png",
+    "hold_sword_walk": "res://assets/players/joe/hold_sword_walk.png",
+    "hurt": "res://assets/players/joe/hurt.png",
+    "idle": "res://assets/players/joe/idle.png",
+    "roll": "res://assets/players/joe/roll.png",
+    "run": "res://assets/players/joe/run.png",
+    "shove": "res://assets/players/joe/shove.png",
+    "swing_bat": "res://assets/players/joe/swing_bat.png",
+    "swing_knife": "res://assets/players/joe/swing_knife.png",
+    "swing_sword": "res://assets/players/joe/swing_sword.png",
+    "walk": "res://assets/players/joe/walk.png"
+   },
    "rows": {
     "air_spin": [
      17,
@@ -275,7 +467,7 @@
     ],
     "crouch_walk": [
      4,
-     8
+     6
     ],
     "death": [
      10,
@@ -287,7 +479,7 @@
     ],
     "gun_run": [
      20,
-     8
+     6
     ],
     "gun_shoot": [
      21,
@@ -317,6 +509,42 @@
      11,
      6
     ],
+    "hold_bat_idle": [
+     22,
+     6
+    ],
+    "hold_bat_run": [
+     24,
+     6
+    ],
+    "hold_bat_walk": [
+     23,
+     8
+    ],
+    "hold_knife_idle": [
+     28,
+     6
+    ],
+    "hold_knife_run": [
+     30,
+     6
+    ],
+    "hold_knife_walk": [
+     29,
+     8
+    ],
+    "hold_sword_idle": [
+     25,
+     6
+    ],
+    "hold_sword_run": [
+     27,
+     6
+    ],
+    "hold_sword_walk": [
+     26,
+     8
+    ],
     "hurt": [
      9,
      4
@@ -331,7 +559,7 @@
     ],
     "run": [
      2,
-     8
+     6
     ],
     "shove": [
      5,
@@ -360,6 +588,39 @@
     108,
     108
    ],
+   "files": {
+    "air_spin": "res://assets/players/vivianne/air_spin.png",
+    "crouch_idle": "res://assets/players/vivianne/crouch_idle.png",
+    "crouch_walk": "res://assets/players/vivianne/crouch_walk.png",
+    "death": "res://assets/players/vivianne/death.png",
+    "gun_idle": "res://assets/players/vivianne/gun_idle.png",
+    "gun_run": "res://assets/players/vivianne/gun_run.png",
+    "gun_shoot": "res://assets/players/vivianne/gun_shoot.png",
+    "gun_walk": "res://assets/players/vivianne/gun_walk.png",
+    "hide_behind": "res://assets/players/vivianne/hide_behind.png",
+    "hide_dark": "res://assets/players/vivianne/hide_dark.png",
+    "hide_flat": "res://assets/players/vivianne/hide_flat.png",
+    "hide_in": "res://assets/players/vivianne/hide_in.png",
+    "hide_inside": "res://assets/players/vivianne/hide_inside.png",
+    "hold_bat_idle": "res://assets/players/vivianne/hold_bat_idle.png",
+    "hold_bat_run": "res://assets/players/vivianne/hold_bat_run.png",
+    "hold_bat_walk": "res://assets/players/vivianne/hold_bat_walk.png",
+    "hold_knife_idle": "res://assets/players/vivianne/hold_knife_idle.png",
+    "hold_knife_run": "res://assets/players/vivianne/hold_knife_run.png",
+    "hold_knife_walk": "res://assets/players/vivianne/hold_knife_walk.png",
+    "hold_sword_idle": "res://assets/players/vivianne/hold_sword_idle.png",
+    "hold_sword_run": "res://assets/players/vivianne/hold_sword_run.png",
+    "hold_sword_walk": "res://assets/players/vivianne/hold_sword_walk.png",
+    "hurt": "res://assets/players/vivianne/hurt.png",
+    "idle": "res://assets/players/vivianne/idle.png",
+    "roll": "res://assets/players/vivianne/roll.png",
+    "run": "res://assets/players/vivianne/run.png",
+    "shove": "res://assets/players/vivianne/shove.png",
+    "swing_bat": "res://assets/players/vivianne/swing_bat.png",
+    "swing_knife": "res://assets/players/vivianne/swing_knife.png",
+    "swing_sword": "res://assets/players/vivianne/swing_sword.png",
+    "walk": "res://assets/players/vivianne/walk.png"
+   },
    "rows": {
     "air_spin": [
      17,
@@ -371,7 +632,7 @@
     ],
     "crouch_walk": [
      4,
-     8
+     6
     ],
     "death": [
      10,
@@ -383,7 +644,7 @@
     ],
     "gun_run": [
      20,
-     8
+     6
     ],
     "gun_shoot": [
      21,
@@ -413,6 +674,42 @@
      11,
      6
     ],
+    "hold_bat_idle": [
+     22,
+     6
+    ],
+    "hold_bat_run": [
+     24,
+     6
+    ],
+    "hold_bat_walk": [
+     23,
+     8
+    ],
+    "hold_knife_idle": [
+     28,
+     6
+    ],
+    "hold_knife_run": [
+     30,
+     6
+    ],
+    "hold_knife_walk": [
+     29,
+     8
+    ],
+    "hold_sword_idle": [
+     25,
+     6
+    ],
+    "hold_sword_run": [
+     27,
+     6
+    ],
+    "hold_sword_walk": [
+     26,
+     8
+    ],
     "hurt": [
      9,
      4
@@ -427,7 +724,7 @@
     ],
     "run": [
      2,
-     8
+     6
     ],
     "shove": [
      5,

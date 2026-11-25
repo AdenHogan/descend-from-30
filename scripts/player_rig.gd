@@ -55,6 +55,14 @@ static func design_speed(anim: String) -> float:
 	return float(_gait_speed.get(anim, 0.0))
 
 
+## The weapon-held animation for a melee weapon type and a state ("idle" / "walk" / "run"): its own (hold_<type>_<state>), else the old shared katana_* one.
+static func hold_anim(spr: AnimatedSprite2D, weapon_type: String, state: String) -> String:
+	var n := "hold_%s_%s" % [weapon_type, state]
+	if spr != null and spr.sprite_frames != null and spr.sprite_frames.has_animation(n):
+		return n
+	return "katana_" + state
+
+
 ## The swing animation for a melee weapon type ("knife" / "sword" / "bat"): its own if the sprite has one, else the old single swing.
 static func swing_anim(spr: AnimatedSprite2D, weapon_type: String) -> String:
 	var n := "swing_" + weapon_type

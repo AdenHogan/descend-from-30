@@ -1,1098 +1,884 @@
 [gd_resource type="SpriteFrames" format=3]
 
-[ext_resource type="Texture2D" path="res://assets/players/amina.png" id="1_sheet"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/idle.png" id="s_idle"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/walk.png" id="s_walk"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/run.png" id="s_run"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/crouch_idle.png" id="s_crouch_idle"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/crouch_walk.png" id="s_crouch_walk"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/shove.png" id="s_shove"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/swing_bat.png" id="s_swing_bat"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/swing_sword.png" id="s_swing_sword"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/swing_knife.png" id="s_swing_knife"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/hurt.png" id="s_hurt"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/death.png" id="s_death"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/hide_inside.png" id="s_hide_inside"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/hide_in.png" id="s_hide_in"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/hide_behind.png" id="s_hide_behind"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/hide_flat.png" id="s_hide_flat"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/hide_dark.png" id="s_hide_dark"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/roll.png" id="s_roll"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/air_spin.png" id="s_air_spin"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/gun_idle.png" id="s_gun_idle"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/gun_walk.png" id="s_gun_walk"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/gun_run.png" id="s_gun_run"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/gun_shoot.png" id="s_gun_shoot"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/hold_bat_idle.png" id="s_hold_bat_idle"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/hold_bat_walk.png" id="s_hold_bat_walk"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/hold_bat_run.png" id="s_hold_bat_run"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/hold_sword_idle.png" id="s_hold_sword_idle"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/hold_sword_walk.png" id="s_hold_sword_walk"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/hold_sword_run.png" id="s_hold_sword_run"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/hold_knife_idle.png" id="s_hold_knife_idle"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/hold_knife_walk.png" id="s_hold_knife_walk"]
+[ext_resource type="Texture2D" path="res://assets/players/amina/hold_knife_run.png" id="s_hold_knife_run"]
 
 [sub_resource type="AtlasTexture" id="p_amina_idle_0"]
-atlas = ExtResource("1_sheet")
+atlas = ExtResource("s_idle")
 region = Rect2(0, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_idle_1"]
-atlas = ExtResource("1_sheet")
+atlas = ExtResource("s_idle")
 region = Rect2(108, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_idle_2"]
-atlas = ExtResource("1_sheet")
+atlas = ExtResource("s_idle")
 region = Rect2(216, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_idle_3"]
-atlas = ExtResource("1_sheet")
+atlas = ExtResource("s_idle")
 region = Rect2(324, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_idle_4"]
-atlas = ExtResource("1_sheet")
+atlas = ExtResource("s_idle")
 region = Rect2(432, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_idle_5"]
-atlas = ExtResource("1_sheet")
+atlas = ExtResource("s_idle")
 region = Rect2(540, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_walk_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 108, 108, 108)
+atlas = ExtResource("s_walk")
+region = Rect2(0, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_walk_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 108, 108, 108)
+atlas = ExtResource("s_walk")
+region = Rect2(108, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_walk_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 108, 108, 108)
+atlas = ExtResource("s_walk")
+region = Rect2(216, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_walk_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 108, 108, 108)
+atlas = ExtResource("s_walk")
+region = Rect2(324, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_walk_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 108, 108, 108)
+atlas = ExtResource("s_walk")
+region = Rect2(432, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_walk_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 108, 108, 108)
+atlas = ExtResource("s_walk")
+region = Rect2(540, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_walk_6"]
-atlas = ExtResource("1_sheet")
-region = Rect2(648, 108, 108, 108)
+atlas = ExtResource("s_walk")
+region = Rect2(648, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_walk_7"]
-atlas = ExtResource("1_sheet")
-region = Rect2(756, 108, 108, 108)
+atlas = ExtResource("s_walk")
+region = Rect2(756, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_run_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 216, 108, 108)
+atlas = ExtResource("s_run")
+region = Rect2(0, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_run_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 216, 108, 108)
+atlas = ExtResource("s_run")
+region = Rect2(108, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_run_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 216, 108, 108)
+atlas = ExtResource("s_run")
+region = Rect2(216, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_run_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 216, 108, 108)
+atlas = ExtResource("s_run")
+region = Rect2(324, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_run_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 216, 108, 108)
+atlas = ExtResource("s_run")
+region = Rect2(432, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_run_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 216, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_run_6"]
-atlas = ExtResource("1_sheet")
-region = Rect2(648, 216, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_run_7"]
-atlas = ExtResource("1_sheet")
-region = Rect2(756, 216, 108, 108)
+atlas = ExtResource("s_run")
+region = Rect2(540, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_crouch_idle_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 324, 108, 108)
+atlas = ExtResource("s_crouch_idle")
+region = Rect2(0, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_crouch_idle_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 324, 108, 108)
+atlas = ExtResource("s_crouch_idle")
+region = Rect2(108, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_crouch_idle_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 324, 108, 108)
+atlas = ExtResource("s_crouch_idle")
+region = Rect2(216, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_crouch_idle_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 324, 108, 108)
+atlas = ExtResource("s_crouch_idle")
+region = Rect2(324, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_crouch_idle_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 324, 108, 108)
+atlas = ExtResource("s_crouch_idle")
+region = Rect2(432, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_crouch_idle_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 324, 108, 108)
+atlas = ExtResource("s_crouch_idle")
+region = Rect2(540, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_crouch_walk_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 432, 108, 108)
+atlas = ExtResource("s_crouch_walk")
+region = Rect2(0, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_crouch_walk_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 432, 108, 108)
+atlas = ExtResource("s_crouch_walk")
+region = Rect2(108, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_crouch_walk_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 432, 108, 108)
+atlas = ExtResource("s_crouch_walk")
+region = Rect2(216, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_crouch_walk_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 432, 108, 108)
+atlas = ExtResource("s_crouch_walk")
+region = Rect2(324, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_crouch_walk_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 432, 108, 108)
+atlas = ExtResource("s_crouch_walk")
+region = Rect2(432, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_crouch_walk_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 432, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_crouch_walk_6"]
-atlas = ExtResource("1_sheet")
-region = Rect2(648, 432, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_crouch_walk_7"]
-atlas = ExtResource("1_sheet")
-region = Rect2(756, 432, 108, 108)
+atlas = ExtResource("s_crouch_walk")
+region = Rect2(540, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_death_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 1080, 108, 108)
+atlas = ExtResource("s_death")
+region = Rect2(0, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_death_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 1080, 108, 108)
+atlas = ExtResource("s_death")
+region = Rect2(108, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_death_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 1080, 108, 108)
+atlas = ExtResource("s_death")
+region = Rect2(216, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_death_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 1080, 108, 108)
+atlas = ExtResource("s_death")
+region = Rect2(324, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_death_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 1080, 108, 108)
+atlas = ExtResource("s_death")
+region = Rect2(432, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_death_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 1080, 108, 108)
+atlas = ExtResource("s_death")
+region = Rect2(540, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_death_6"]
-atlas = ExtResource("1_sheet")
-region = Rect2(648, 1080, 108, 108)
+atlas = ExtResource("s_death")
+region = Rect2(648, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_death_7"]
-atlas = ExtResource("1_sheet")
-region = Rect2(756, 1080, 108, 108)
+atlas = ExtResource("s_death")
+region = Rect2(756, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_death_8"]
-atlas = ExtResource("1_sheet")
-region = Rect2(864, 1080, 108, 108)
+atlas = ExtResource("s_death")
+region = Rect2(864, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_death_9"]
-atlas = ExtResource("1_sheet")
-region = Rect2(972, 1080, 108, 108)
+atlas = ExtResource("s_death")
+region = Rect2(972, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hurt_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 972, 108, 108)
+atlas = ExtResource("s_hurt")
+region = Rect2(0, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hurt_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 972, 108, 108)
+atlas = ExtResource("s_hurt")
+region = Rect2(108, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hurt_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 972, 108, 108)
+atlas = ExtResource("s_hurt")
+region = Rect2(216, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hurt_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 972, 108, 108)
+atlas = ExtResource("s_hurt")
+region = Rect2(324, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_shove_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 540, 108, 108)
+atlas = ExtResource("s_shove")
+region = Rect2(0, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_shove_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 540, 108, 108)
+atlas = ExtResource("s_shove")
+region = Rect2(108, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_shove_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 540, 108, 108)
+atlas = ExtResource("s_shove")
+region = Rect2(216, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_shove_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 540, 108, 108)
+atlas = ExtResource("s_shove")
+region = Rect2(324, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_shove_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 540, 108, 108)
+atlas = ExtResource("s_shove")
+region = Rect2(432, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_shove_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 540, 108, 108)
+atlas = ExtResource("s_shove")
+region = Rect2(540, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_shove_6"]
-atlas = ExtResource("1_sheet")
-region = Rect2(648, 540, 108, 108)
+atlas = ExtResource("s_shove")
+region = Rect2(648, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_shove_7"]
-atlas = ExtResource("1_sheet")
-region = Rect2(756, 540, 108, 108)
+atlas = ExtResource("s_shove")
+region = Rect2(756, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_shove_8"]
-atlas = ExtResource("1_sheet")
-region = Rect2(864, 540, 108, 108)
+atlas = ExtResource("s_shove")
+region = Rect2(864, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_shove_9"]
-atlas = ExtResource("1_sheet")
-region = Rect2(972, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_6"]
-atlas = ExtResource("1_sheet")
-region = Rect2(648, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_7"]
-atlas = ExtResource("1_sheet")
-region = Rect2(756, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_8"]
-atlas = ExtResource("1_sheet")
-region = Rect2(864, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_9"]
-atlas = ExtResource("1_sheet")
-region = Rect2(972, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_6"]
-atlas = ExtResource("1_sheet")
-region = Rect2(648, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_7"]
-atlas = ExtResource("1_sheet")
-region = Rect2(756, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_8"]
-atlas = ExtResource("1_sheet")
-region = Rect2(864, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_9"]
-atlas = ExtResource("1_sheet")
-region = Rect2(972, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_6"]
-atlas = ExtResource("1_sheet")
-region = Rect2(648, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_7"]
-atlas = ExtResource("1_sheet")
-region = Rect2(756, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_8"]
-atlas = ExtResource("1_sheet")
-region = Rect2(864, 540, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_shove_9"]
-atlas = ExtResource("1_sheet")
-region = Rect2(972, 540, 108, 108)
+atlas = ExtResource("s_shove")
+region = Rect2(972, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_swing_bat_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 648, 108, 108)
+atlas = ExtResource("s_swing_bat")
+region = Rect2(0, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_swing_bat_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 648, 108, 108)
+atlas = ExtResource("s_swing_bat")
+region = Rect2(108, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_swing_bat_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 648, 108, 108)
+atlas = ExtResource("s_swing_bat")
+region = Rect2(216, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_swing_bat_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 648, 108, 108)
+atlas = ExtResource("s_swing_bat")
+region = Rect2(324, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_swing_bat_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 648, 108, 108)
+atlas = ExtResource("s_swing_bat")
+region = Rect2(432, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_swing_bat_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 648, 108, 108)
+atlas = ExtResource("s_swing_bat")
+region = Rect2(540, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_swing_bat_6"]
-atlas = ExtResource("1_sheet")
-region = Rect2(648, 648, 108, 108)
+atlas = ExtResource("s_swing_bat")
+region = Rect2(648, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_swing_bat_7"]
-atlas = ExtResource("1_sheet")
-region = Rect2(756, 648, 108, 108)
+atlas = ExtResource("s_swing_bat")
+region = Rect2(756, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_swing_bat_8"]
-atlas = ExtResource("1_sheet")
-region = Rect2(864, 648, 108, 108)
+atlas = ExtResource("s_swing_bat")
+region = Rect2(864, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_swing_sword_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 756, 108, 108)
+atlas = ExtResource("s_swing_sword")
+region = Rect2(0, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_swing_sword_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 756, 108, 108)
+atlas = ExtResource("s_swing_sword")
+region = Rect2(108, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_swing_sword_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 756, 108, 108)
+atlas = ExtResource("s_swing_sword")
+region = Rect2(216, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_swing_sword_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 756, 108, 108)
+atlas = ExtResource("s_swing_sword")
+region = Rect2(324, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_swing_sword_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 756, 108, 108)
+atlas = ExtResource("s_swing_sword")
+region = Rect2(432, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_swing_sword_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 756, 108, 108)
+atlas = ExtResource("s_swing_sword")
+region = Rect2(540, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_swing_sword_6"]
-atlas = ExtResource("1_sheet")
-region = Rect2(648, 756, 108, 108)
+atlas = ExtResource("s_swing_sword")
+region = Rect2(648, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_swing_sword_7"]
-atlas = ExtResource("1_sheet")
-region = Rect2(756, 756, 108, 108)
+atlas = ExtResource("s_swing_sword")
+region = Rect2(756, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_swing_sword_8"]
-atlas = ExtResource("1_sheet")
-region = Rect2(864, 756, 108, 108)
+atlas = ExtResource("s_swing_sword")
+region = Rect2(864, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_swing_knife_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 864, 108, 108)
+atlas = ExtResource("s_swing_knife")
+region = Rect2(0, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_swing_knife_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 864, 108, 108)
+atlas = ExtResource("s_swing_knife")
+region = Rect2(108, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_swing_knife_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 864, 108, 108)
+atlas = ExtResource("s_swing_knife")
+region = Rect2(216, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_swing_knife_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 864, 108, 108)
+atlas = ExtResource("s_swing_knife")
+region = Rect2(324, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_swing_knife_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 864, 108, 108)
+atlas = ExtResource("s_swing_knife")
+region = Rect2(432, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_swing_knife_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 864, 108, 108)
+atlas = ExtResource("s_swing_knife")
+region = Rect2(540, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_swing_knife_6"]
-atlas = ExtResource("1_sheet")
-region = Rect2(648, 864, 108, 108)
+atlas = ExtResource("s_swing_knife")
+region = Rect2(648, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_swing_knife_7"]
-atlas = ExtResource("1_sheet")
-region = Rect2(756, 864, 108, 108)
+atlas = ExtResource("s_swing_knife")
+region = Rect2(756, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_swing_knife_8"]
-atlas = ExtResource("1_sheet")
-region = Rect2(864, 864, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_swing_bat_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 648, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_swing_bat_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 648, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_swing_bat_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 648, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_swing_bat_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 648, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_swing_bat_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 648, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_swing_bat_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 648, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_swing_bat_6"]
-atlas = ExtResource("1_sheet")
-region = Rect2(648, 648, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_swing_bat_7"]
-atlas = ExtResource("1_sheet")
-region = Rect2(756, 648, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_swing_bat_8"]
-atlas = ExtResource("1_sheet")
-region = Rect2(864, 648, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_swing_sword_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 756, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_swing_sword_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 756, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_swing_sword_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 756, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_swing_sword_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 756, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_swing_sword_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 756, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_swing_sword_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 756, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_swing_sword_6"]
-atlas = ExtResource("1_sheet")
-region = Rect2(648, 756, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_swing_sword_7"]
-atlas = ExtResource("1_sheet")
-region = Rect2(756, 756, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_swing_sword_8"]
-atlas = ExtResource("1_sheet")
-region = Rect2(864, 756, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_swing_knife_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 864, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_swing_knife_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 864, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_swing_knife_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 864, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_swing_knife_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 864, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_swing_knife_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 864, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_swing_knife_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 864, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_swing_knife_6"]
-atlas = ExtResource("1_sheet")
-region = Rect2(648, 864, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_swing_knife_7"]
-atlas = ExtResource("1_sheet")
-region = Rect2(756, 864, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_swing_knife_8"]
-atlas = ExtResource("1_sheet")
-region = Rect2(864, 864, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_idle_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 0, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_idle_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 0, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_idle_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 0, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_idle_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 0, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_idle_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 0, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_idle_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 0, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_idle_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 0, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_idle_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 0, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_idle_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 0, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_idle_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 0, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_idle_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 0, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_idle_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 0, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_walk_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 108, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_walk_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 108, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_walk_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 108, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_walk_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 108, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_walk_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 108, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_walk_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 108, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_walk_6"]
-atlas = ExtResource("1_sheet")
-region = Rect2(648, 108, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_walk_7"]
-atlas = ExtResource("1_sheet")
-region = Rect2(756, 108, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_run_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 216, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_run_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 216, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_run_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 216, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_run_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 216, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_run_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 216, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_run_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 216, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_run_6"]
-atlas = ExtResource("1_sheet")
-region = Rect2(648, 216, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_run_7"]
-atlas = ExtResource("1_sheet")
-region = Rect2(756, 216, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_run_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 216, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_run_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 216, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_run_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 216, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_run_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 216, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_run_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 216, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_run_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 216, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_run_6"]
-atlas = ExtResource("1_sheet")
-region = Rect2(648, 216, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_run_7"]
-atlas = ExtResource("1_sheet")
-region = Rect2(756, 216, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_idle_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 0, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_idle_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 0, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_idle_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 0, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_idle_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 0, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_idle_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 0, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_idle_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 0, 108, 108)
+atlas = ExtResource("s_swing_knife")
+region = Rect2(864, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_roll_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 1728, 108, 108)
+atlas = ExtResource("s_roll")
+region = Rect2(0, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_roll_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 1728, 108, 108)
+atlas = ExtResource("s_roll")
+region = Rect2(108, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_roll_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 1728, 108, 108)
+atlas = ExtResource("s_roll")
+region = Rect2(216, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_roll_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 1728, 108, 108)
+atlas = ExtResource("s_roll")
+region = Rect2(324, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_roll_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 1728, 108, 108)
+atlas = ExtResource("s_roll")
+region = Rect2(432, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_roll_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 1728, 108, 108)
+atlas = ExtResource("s_roll")
+region = Rect2(540, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_roll_6"]
-atlas = ExtResource("1_sheet")
-region = Rect2(648, 1728, 108, 108)
+atlas = ExtResource("s_roll")
+region = Rect2(648, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_air_spin_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 1836, 108, 108)
+atlas = ExtResource("s_air_spin")
+region = Rect2(0, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_air_spin_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 1836, 108, 108)
+atlas = ExtResource("s_air_spin")
+region = Rect2(108, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_air_spin_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 1836, 108, 108)
+atlas = ExtResource("s_air_spin")
+region = Rect2(216, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_air_spin_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 1836, 108, 108)
+atlas = ExtResource("s_air_spin")
+region = Rect2(324, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_air_spin_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 1836, 108, 108)
+atlas = ExtResource("s_air_spin")
+region = Rect2(432, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_air_spin_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 1836, 108, 108)
+atlas = ExtResource("s_air_spin")
+region = Rect2(540, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_inside_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 1188, 108, 108)
+atlas = ExtResource("s_hide_inside")
+region = Rect2(0, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_inside_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 1188, 108, 108)
+atlas = ExtResource("s_hide_inside")
+region = Rect2(108, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_inside_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 1188, 108, 108)
+atlas = ExtResource("s_hide_inside")
+region = Rect2(216, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_inside_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 1188, 108, 108)
+atlas = ExtResource("s_hide_inside")
+region = Rect2(324, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_inside_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 1188, 108, 108)
+atlas = ExtResource("s_hide_inside")
+region = Rect2(432, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_inside_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 1188, 108, 108)
+atlas = ExtResource("s_hide_inside")
+region = Rect2(540, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_in_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 1296, 108, 108)
+atlas = ExtResource("s_hide_in")
+region = Rect2(0, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_in_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 1296, 108, 108)
+atlas = ExtResource("s_hide_in")
+region = Rect2(108, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_in_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 1296, 108, 108)
+atlas = ExtResource("s_hide_in")
+region = Rect2(216, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_in_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 1296, 108, 108)
+atlas = ExtResource("s_hide_in")
+region = Rect2(324, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_in_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 1296, 108, 108)
+atlas = ExtResource("s_hide_in")
+region = Rect2(432, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_in_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 1296, 108, 108)
+atlas = ExtResource("s_hide_in")
+region = Rect2(540, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_behind_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 1404, 108, 108)
+atlas = ExtResource("s_hide_behind")
+region = Rect2(0, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_behind_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 1404, 108, 108)
+atlas = ExtResource("s_hide_behind")
+region = Rect2(108, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_behind_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 1404, 108, 108)
+atlas = ExtResource("s_hide_behind")
+region = Rect2(216, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_behind_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 1404, 108, 108)
+atlas = ExtResource("s_hide_behind")
+region = Rect2(324, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_behind_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 1404, 108, 108)
+atlas = ExtResource("s_hide_behind")
+region = Rect2(432, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_behind_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 1404, 108, 108)
+atlas = ExtResource("s_hide_behind")
+region = Rect2(540, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_flat_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 1512, 108, 108)
+atlas = ExtResource("s_hide_flat")
+region = Rect2(0, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_flat_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 1512, 108, 108)
+atlas = ExtResource("s_hide_flat")
+region = Rect2(108, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_flat_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 1512, 108, 108)
+atlas = ExtResource("s_hide_flat")
+region = Rect2(216, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_flat_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 1512, 108, 108)
+atlas = ExtResource("s_hide_flat")
+region = Rect2(324, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_flat_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 1512, 108, 108)
+atlas = ExtResource("s_hide_flat")
+region = Rect2(432, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_flat_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 1512, 108, 108)
+atlas = ExtResource("s_hide_flat")
+region = Rect2(540, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_dark_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 1620, 108, 108)
+atlas = ExtResource("s_hide_dark")
+region = Rect2(0, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_dark_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 1620, 108, 108)
+atlas = ExtResource("s_hide_dark")
+region = Rect2(108, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_dark_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 1620, 108, 108)
+atlas = ExtResource("s_hide_dark")
+region = Rect2(216, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_dark_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 1620, 108, 108)
+atlas = ExtResource("s_hide_dark")
+region = Rect2(324, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_dark_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 1620, 108, 108)
+atlas = ExtResource("s_hide_dark")
+region = Rect2(432, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_hide_dark_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 1620, 108, 108)
+atlas = ExtResource("s_hide_dark")
+region = Rect2(540, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_gun_idle_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 1944, 108, 108)
+atlas = ExtResource("s_gun_idle")
+region = Rect2(0, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_gun_idle_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 1944, 108, 108)
+atlas = ExtResource("s_gun_idle")
+region = Rect2(108, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_gun_walk_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 2052, 108, 108)
+atlas = ExtResource("s_gun_walk")
+region = Rect2(0, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_gun_walk_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 2052, 108, 108)
+atlas = ExtResource("s_gun_walk")
+region = Rect2(108, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_gun_walk_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 2052, 108, 108)
+atlas = ExtResource("s_gun_walk")
+region = Rect2(216, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_gun_walk_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 2052, 108, 108)
+atlas = ExtResource("s_gun_walk")
+region = Rect2(324, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_gun_walk_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 2052, 108, 108)
+atlas = ExtResource("s_gun_walk")
+region = Rect2(432, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_gun_walk_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 2052, 108, 108)
+atlas = ExtResource("s_gun_walk")
+region = Rect2(540, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_gun_walk_6"]
-atlas = ExtResource("1_sheet")
-region = Rect2(648, 2052, 108, 108)
+atlas = ExtResource("s_gun_walk")
+region = Rect2(648, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_gun_walk_7"]
-atlas = ExtResource("1_sheet")
-region = Rect2(756, 2052, 108, 108)
+atlas = ExtResource("s_gun_walk")
+region = Rect2(756, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_gun_run_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 2160, 108, 108)
+atlas = ExtResource("s_gun_run")
+region = Rect2(0, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_gun_run_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 2160, 108, 108)
+atlas = ExtResource("s_gun_run")
+region = Rect2(108, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_gun_run_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 2160, 108, 108)
+atlas = ExtResource("s_gun_run")
+region = Rect2(216, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_gun_run_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 2160, 108, 108)
+atlas = ExtResource("s_gun_run")
+region = Rect2(324, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_gun_run_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 2160, 108, 108)
+atlas = ExtResource("s_gun_run")
+region = Rect2(432, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_gun_run_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 2160, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_gun_run_6"]
-atlas = ExtResource("1_sheet")
-region = Rect2(648, 2160, 108, 108)
-
-[sub_resource type="AtlasTexture" id="p_amina_gun_run_7"]
-atlas = ExtResource("1_sheet")
-region = Rect2(756, 2160, 108, 108)
+atlas = ExtResource("s_gun_run")
+region = Rect2(540, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_gun_shoot_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 2268, 108, 108)
+atlas = ExtResource("s_gun_shoot")
+region = Rect2(0, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_gun_shoot_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 2268, 108, 108)
+atlas = ExtResource("s_gun_shoot")
+region = Rect2(108, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_gun_shoot_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 2268, 108, 108)
+atlas = ExtResource("s_gun_shoot")
+region = Rect2(216, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_gun_shoot_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 2268, 108, 108)
+atlas = ExtResource("s_gun_shoot")
+region = Rect2(324, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_gun_shoot_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 2268, 108, 108)
+atlas = ExtResource("s_gun_shoot")
+region = Rect2(432, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_gun_shoot_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 2268, 108, 108)
+atlas = ExtResource("s_gun_shoot")
+region = Rect2(540, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_gun_shoot_6"]
-atlas = ExtResource("1_sheet")
-region = Rect2(648, 2268, 108, 108)
+atlas = ExtResource("s_gun_shoot")
+region = Rect2(648, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_gun_shoot_7"]
-atlas = ExtResource("1_sheet")
-region = Rect2(756, 2268, 108, 108)
+atlas = ExtResource("s_gun_shoot")
+region = Rect2(756, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_gun_shoot_8"]
-atlas = ExtResource("1_sheet")
-region = Rect2(864, 2268, 108, 108)
+atlas = ExtResource("s_gun_shoot")
+region = Rect2(864, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_amina_gun_shoot_9"]
-atlas = ExtResource("1_sheet")
-region = Rect2(972, 2268, 108, 108)
+atlas = ExtResource("s_gun_shoot")
+region = Rect2(972, 0, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_amina_gun_walk_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 2052, 108, 108)
+[sub_resource type="AtlasTexture" id="p_amina_hold_bat_idle_0"]
+atlas = ExtResource("s_hold_bat_idle")
+region = Rect2(0, 0, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_amina_gun_walk_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 2052, 108, 108)
+[sub_resource type="AtlasTexture" id="p_amina_hold_bat_idle_1"]
+atlas = ExtResource("s_hold_bat_idle")
+region = Rect2(108, 0, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_amina_gun_walk_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 2052, 108, 108)
+[sub_resource type="AtlasTexture" id="p_amina_hold_bat_idle_2"]
+atlas = ExtResource("s_hold_bat_idle")
+region = Rect2(216, 0, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_amina_gun_walk_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 2052, 108, 108)
+[sub_resource type="AtlasTexture" id="p_amina_hold_bat_idle_3"]
+atlas = ExtResource("s_hold_bat_idle")
+region = Rect2(324, 0, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_amina_gun_walk_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 2052, 108, 108)
+[sub_resource type="AtlasTexture" id="p_amina_hold_bat_idle_4"]
+atlas = ExtResource("s_hold_bat_idle")
+region = Rect2(432, 0, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_amina_gun_walk_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 2052, 108, 108)
+[sub_resource type="AtlasTexture" id="p_amina_hold_bat_idle_5"]
+atlas = ExtResource("s_hold_bat_idle")
+region = Rect2(540, 0, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_amina_gun_walk_6"]
-atlas = ExtResource("1_sheet")
-region = Rect2(648, 2052, 108, 108)
+[sub_resource type="AtlasTexture" id="p_amina_hold_bat_walk_0"]
+atlas = ExtResource("s_hold_bat_walk")
+region = Rect2(0, 0, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_amina_gun_walk_7"]
-atlas = ExtResource("1_sheet")
-region = Rect2(756, 2052, 108, 108)
+[sub_resource type="AtlasTexture" id="p_amina_hold_bat_walk_1"]
+atlas = ExtResource("s_hold_bat_walk")
+region = Rect2(108, 0, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_amina_gun_run_0"]
-atlas = ExtResource("1_sheet")
-region = Rect2(0, 2160, 108, 108)
+[sub_resource type="AtlasTexture" id="p_amina_hold_bat_walk_2"]
+atlas = ExtResource("s_hold_bat_walk")
+region = Rect2(216, 0, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_amina_gun_run_1"]
-atlas = ExtResource("1_sheet")
-region = Rect2(108, 2160, 108, 108)
+[sub_resource type="AtlasTexture" id="p_amina_hold_bat_walk_3"]
+atlas = ExtResource("s_hold_bat_walk")
+region = Rect2(324, 0, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_amina_gun_run_2"]
-atlas = ExtResource("1_sheet")
-region = Rect2(216, 2160, 108, 108)
+[sub_resource type="AtlasTexture" id="p_amina_hold_bat_walk_4"]
+atlas = ExtResource("s_hold_bat_walk")
+region = Rect2(432, 0, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_amina_gun_run_3"]
-atlas = ExtResource("1_sheet")
-region = Rect2(324, 2160, 108, 108)
+[sub_resource type="AtlasTexture" id="p_amina_hold_bat_walk_5"]
+atlas = ExtResource("s_hold_bat_walk")
+region = Rect2(540, 0, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_amina_gun_run_4"]
-atlas = ExtResource("1_sheet")
-region = Rect2(432, 2160, 108, 108)
+[sub_resource type="AtlasTexture" id="p_amina_hold_bat_walk_6"]
+atlas = ExtResource("s_hold_bat_walk")
+region = Rect2(648, 0, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_amina_gun_run_5"]
-atlas = ExtResource("1_sheet")
-region = Rect2(540, 2160, 108, 108)
+[sub_resource type="AtlasTexture" id="p_amina_hold_bat_walk_7"]
+atlas = ExtResource("s_hold_bat_walk")
+region = Rect2(756, 0, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_amina_gun_run_6"]
-atlas = ExtResource("1_sheet")
-region = Rect2(648, 2160, 108, 108)
+[sub_resource type="AtlasTexture" id="p_amina_hold_bat_run_0"]
+atlas = ExtResource("s_hold_bat_run")
+region = Rect2(0, 0, 108, 108)
 
-[sub_resource type="AtlasTexture" id="p_amina_gun_run_7"]
-atlas = ExtResource("1_sheet")
-region = Rect2(756, 2160, 108, 108)
+[sub_resource type="AtlasTexture" id="p_amina_hold_bat_run_1"]
+atlas = ExtResource("s_hold_bat_run")
+region = Rect2(108, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_bat_run_2"]
+atlas = ExtResource("s_hold_bat_run")
+region = Rect2(216, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_bat_run_3"]
+atlas = ExtResource("s_hold_bat_run")
+region = Rect2(324, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_bat_run_4"]
+atlas = ExtResource("s_hold_bat_run")
+region = Rect2(432, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_bat_run_5"]
+atlas = ExtResource("s_hold_bat_run")
+region = Rect2(540, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_sword_idle_0"]
+atlas = ExtResource("s_hold_sword_idle")
+region = Rect2(0, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_sword_idle_1"]
+atlas = ExtResource("s_hold_sword_idle")
+region = Rect2(108, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_sword_idle_2"]
+atlas = ExtResource("s_hold_sword_idle")
+region = Rect2(216, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_sword_idle_3"]
+atlas = ExtResource("s_hold_sword_idle")
+region = Rect2(324, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_sword_idle_4"]
+atlas = ExtResource("s_hold_sword_idle")
+region = Rect2(432, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_sword_idle_5"]
+atlas = ExtResource("s_hold_sword_idle")
+region = Rect2(540, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_sword_walk_0"]
+atlas = ExtResource("s_hold_sword_walk")
+region = Rect2(0, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_sword_walk_1"]
+atlas = ExtResource("s_hold_sword_walk")
+region = Rect2(108, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_sword_walk_2"]
+atlas = ExtResource("s_hold_sword_walk")
+region = Rect2(216, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_sword_walk_3"]
+atlas = ExtResource("s_hold_sword_walk")
+region = Rect2(324, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_sword_walk_4"]
+atlas = ExtResource("s_hold_sword_walk")
+region = Rect2(432, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_sword_walk_5"]
+atlas = ExtResource("s_hold_sword_walk")
+region = Rect2(540, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_sword_walk_6"]
+atlas = ExtResource("s_hold_sword_walk")
+region = Rect2(648, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_sword_walk_7"]
+atlas = ExtResource("s_hold_sword_walk")
+region = Rect2(756, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_sword_run_0"]
+atlas = ExtResource("s_hold_sword_run")
+region = Rect2(0, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_sword_run_1"]
+atlas = ExtResource("s_hold_sword_run")
+region = Rect2(108, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_sword_run_2"]
+atlas = ExtResource("s_hold_sword_run")
+region = Rect2(216, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_sword_run_3"]
+atlas = ExtResource("s_hold_sword_run")
+region = Rect2(324, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_sword_run_4"]
+atlas = ExtResource("s_hold_sword_run")
+region = Rect2(432, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_sword_run_5"]
+atlas = ExtResource("s_hold_sword_run")
+region = Rect2(540, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_knife_idle_0"]
+atlas = ExtResource("s_hold_knife_idle")
+region = Rect2(0, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_knife_idle_1"]
+atlas = ExtResource("s_hold_knife_idle")
+region = Rect2(108, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_knife_idle_2"]
+atlas = ExtResource("s_hold_knife_idle")
+region = Rect2(216, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_knife_idle_3"]
+atlas = ExtResource("s_hold_knife_idle")
+region = Rect2(324, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_knife_idle_4"]
+atlas = ExtResource("s_hold_knife_idle")
+region = Rect2(432, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_knife_idle_5"]
+atlas = ExtResource("s_hold_knife_idle")
+region = Rect2(540, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_knife_walk_0"]
+atlas = ExtResource("s_hold_knife_walk")
+region = Rect2(0, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_knife_walk_1"]
+atlas = ExtResource("s_hold_knife_walk")
+region = Rect2(108, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_knife_walk_2"]
+atlas = ExtResource("s_hold_knife_walk")
+region = Rect2(216, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_knife_walk_3"]
+atlas = ExtResource("s_hold_knife_walk")
+region = Rect2(324, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_knife_walk_4"]
+atlas = ExtResource("s_hold_knife_walk")
+region = Rect2(432, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_knife_walk_5"]
+atlas = ExtResource("s_hold_knife_walk")
+region = Rect2(540, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_knife_walk_6"]
+atlas = ExtResource("s_hold_knife_walk")
+region = Rect2(648, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_knife_walk_7"]
+atlas = ExtResource("s_hold_knife_walk")
+region = Rect2(756, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_knife_run_0"]
+atlas = ExtResource("s_hold_knife_run")
+region = Rect2(0, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_knife_run_1"]
+atlas = ExtResource("s_hold_knife_run")
+region = Rect2(108, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_knife_run_2"]
+atlas = ExtResource("s_hold_knife_run")
+region = Rect2(216, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_knife_run_3"]
+atlas = ExtResource("s_hold_knife_run")
+region = Rect2(324, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_knife_run_4"]
+atlas = ExtResource("s_hold_knife_run")
+region = Rect2(432, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_amina_hold_knife_run_5"]
+atlas = ExtResource("s_hold_knife_run")
+region = Rect2(540, 0, 108, 108)
 
 [resource]
 animations = [{
@@ -1146,7 +932,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"walk",
-"speed": 26.67
+"speed": 30.00
 }, {
 "frames": [{
 "duration": 1.0,
@@ -1166,16 +952,10 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": SubResource("p_amina_run_5")
-}, {
-"duration": 1.0,
-"texture": SubResource("p_amina_run_6")
-}, {
-"duration": 1.0,
-"texture": SubResource("p_amina_run_7")
 }],
 "loop": true,
 "name": &"run",
-"speed": 36.36
+"speed": 30.00
 }, {
 "frames": [{
 "duration": 1.0,
@@ -1218,16 +998,10 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": SubResource("p_amina_crouch_walk_5")
-}, {
-"duration": 1.0,
-"texture": SubResource("p_amina_crouch_walk_6")
-}, {
-"duration": 1.0,
-"texture": SubResource("p_amina_crouch_walk_7")
 }],
 "loop": true,
 "name": &"crouch_walk",
-"speed": 23.53
+"speed": 20.00
 }, {
 "frames": [{
 "duration": 1.0,
@@ -1686,7 +1460,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"katana_walk",
-"speed": 26.67
+"speed": 30.00
 }, {
 "frames": [{
 "duration": 1.0,
@@ -1706,16 +1480,10 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": SubResource("p_amina_run_5")
-}, {
-"duration": 1.0,
-"texture": SubResource("p_amina_run_6")
-}, {
-"duration": 1.0,
-"texture": SubResource("p_amina_run_7")
 }],
 "loop": true,
 "name": &"katana_run",
-"speed": 36.36
+"speed": 30.00
 }, {
 "frames": [{
 "duration": 1.0,
@@ -1735,16 +1503,10 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": SubResource("p_amina_run_5")
-}, {
-"duration": 1.0,
-"texture": SubResource("p_amina_run_6")
-}, {
-"duration": 1.0,
-"texture": SubResource("p_amina_run_7")
 }],
 "loop": true,
 "name": &"sword_run",
-"speed": 36.36
+"speed": 30.00
 }, {
 "frames": [{
 "duration": 1.0,
@@ -1971,7 +1733,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"gun_walk",
-"speed": 26.67
+"speed": 30.00
 }, {
 "frames": [{
 "duration": 1.0,
@@ -1991,16 +1753,10 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": SubResource("p_amina_gun_run_5")
-}, {
-"duration": 1.0,
-"texture": SubResource("p_amina_gun_run_6")
-}, {
-"duration": 1.0,
-"texture": SubResource("p_amina_gun_run_7")
 }],
 "loop": true,
 "name": &"gun_run",
-"speed": 36.36
+"speed": 30.00
 }, {
 "frames": [{
 "duration": 1.0,
@@ -2064,7 +1820,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"run_aim",
-"speed": 26.67
+"speed": 30.00
 }, {
 "frames": [{
 "duration": 1.0,
@@ -2084,14 +1840,233 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": SubResource("p_amina_gun_run_5")
-}, {
-"duration": 1.0,
-"texture": SubResource("p_amina_gun_run_6")
-}, {
-"duration": 1.0,
-"texture": SubResource("p_amina_gun_run_7")
 }],
 "loop": true,
 "name": &"run_shooting",
-"speed": 36.36
+"speed": 30.00
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_bat_idle_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_bat_idle_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_bat_idle_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_bat_idle_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_bat_idle_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_bat_idle_5")
+}],
+"loop": true,
+"name": &"hold_bat_idle",
+"speed": 8.00
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_bat_walk_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_bat_walk_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_bat_walk_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_bat_walk_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_bat_walk_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_bat_walk_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_bat_walk_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_bat_walk_7")
+}],
+"loop": true,
+"name": &"hold_bat_walk",
+"speed": 30.00
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_bat_run_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_bat_run_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_bat_run_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_bat_run_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_bat_run_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_bat_run_5")
+}],
+"loop": true,
+"name": &"hold_bat_run",
+"speed": 30.00
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_sword_idle_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_sword_idle_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_sword_idle_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_sword_idle_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_sword_idle_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_sword_idle_5")
+}],
+"loop": true,
+"name": &"hold_sword_idle",
+"speed": 8.00
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_sword_walk_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_sword_walk_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_sword_walk_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_sword_walk_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_sword_walk_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_sword_walk_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_sword_walk_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_sword_walk_7")
+}],
+"loop": true,
+"name": &"hold_sword_walk",
+"speed": 30.00
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_sword_run_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_sword_run_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_sword_run_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_sword_run_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_sword_run_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_sword_run_5")
+}],
+"loop": true,
+"name": &"hold_sword_run",
+"speed": 30.00
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_knife_idle_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_knife_idle_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_knife_idle_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_knife_idle_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_knife_idle_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_knife_idle_5")
+}],
+"loop": true,
+"name": &"hold_knife_idle",
+"speed": 8.00
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_knife_walk_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_knife_walk_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_knife_walk_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_knife_walk_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_knife_walk_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_knife_walk_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_knife_walk_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_knife_walk_7")
+}],
+"loop": true,
+"name": &"hold_knife_walk",
+"speed": 30.00
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_knife_run_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_knife_run_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_knife_run_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_knife_run_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_knife_run_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_amina_hold_knife_run_5")
+}],
+"loop": true,
+"name": &"hold_knife_run",
+"speed": 30.00
 }]

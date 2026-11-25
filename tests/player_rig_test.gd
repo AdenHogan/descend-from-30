@@ -55,6 +55,13 @@ func _ready() -> void:
 				gait_ok = false
 				gwhy += " %s speed %.0f cycle %.2f" % [a, want_speed, cyc]
 		check(gait_ok, "%s: every gait has a design speed and a quick, sensible cycle (%s)" % [character, gwhy.strip_edges()])
+		# the weapon HELD has its own idle / walk / run (the old shared ones were empty-handed), and the player script asks for them by weapon type
+		var hold_ok := true
+		for t in ["bat", "sword", "knife"]:
+			for st in ["idle", "walk", "run"]:
+				hold_ok = hold_ok and frames.has_animation("hold_%s_%s" % [t, st]) and PlayerRig.hold_anim(spr, t, st) == "hold_%s_%s" % [t, st]
+		check(hold_ok, "%s: every melee weapon has its own held idle / walk / run" % character)
+		check(PlayerRig.hold_anim(spr, "gun", "idle") == "katana_idle", "%s: an unknown weapon type falls back to the old shared one" % character)
 		check(PlayerRig.design_speed("walk") > 100.0 and PlayerRig.design_speed("run") > PlayerRig.design_speed("walk") and PlayerRig.design_speed("crouch_walk") < PlayerRig.design_speed("walk"), "%s: the run is faster than the walk, the crouch-walk slower" % character)
 		check(not frames.get_animation_loop("death") and not frames.get_animation_loop("gun_shoot"), "%s: death and the shot do not loop" % character)
 		check(frames.get_frame_count("gun_walk") == 8 and frames.get_frame_count("gun_shoot") == 10, "%s: the gun animations keep their frame counts the tests pin" % character)
