@@ -830,6 +830,12 @@ def draw(p, pose, item=None):
     body_.im.alpha_composite(c.im)
     c = body_
     _outline(c)
+    if p.get('hd'):
+        import people_hd as HD                                                       # the DETAIL pass for the players (tools/art/people_hd.py)
+        HD.polish(c.im, j, pose, p)
+        HD.details(c.im, j, pose, p)
+        HD.swap_palette(c.im, p)
+        HD.outline(c.im, p)
     return c.im, j
 
 
@@ -921,7 +927,12 @@ PLAYERS = [
     # soft head of hair, a small pale face that is two dark eyes and nothing else, no neck, an oversized garment. WHO they are is carried by the
     # hair's shape and colour, the skin, and what they wear — not by features too small to draw.
     # Joe, the tenant — a white man: dark brown mess of hair; a faded teal jumper over a grey tee (nobody's idea of a hero); jeans; brown boots
-    dict(name='joe', shape='m', coat='4f7f7c', skin='f0d4bc', hair='5a3e2c', hairstyle='mop', legs='3f5a82', shoes='6a4428', garment='jumper',
+    dict(name='joe', hd=dict(coat={'dd': ((30, 24, 92), 0.45), 'd': ((46, 52, 130), 0.40), 'l': ((170, 244, 212), 0.40), 'll': ((220, 255, 236), 0.35)},
+                             skin={'d': ((196, 100, 116), 0.38), 'dd': ((120, 54, 84), 0.40), 'l': ((255, 232, 200), 0.45)},
+                             legs={'d': ((40, 40, 120), 0.40), 'dd': ((24, 20, 78), 0.40), 'l': ((130, 170, 226), 0.45)},
+                             shoes={'l': ((232, 168, 96), 0.45), 'll': ((255, 214, 150), 0.40), 'dd': ((40, 18, 24), 0.45)},
+                             hair={'d': ((88, 36, 44), 0.35), 'dd': ((48, 20, 40), 0.40), 'l': ((200, 140, 78), 0.40)}),
+         shape='m', coat='4f7f7c', skin='f0d4bc', hair='5a3e2c', hairstyle='mop', legs='3f5a82', shoes='6a4428', garment='jumper',
          open='b8bcc0', drop=2, slim=0.84, marks=(('yoke', '6a9a94', 2),), carry='hammer', face=dict(eye=(2, 2), gap=2)),
     # Vivianne, the neighbour who runs — a white woman: golden hair loose to just below the shoulder; a coral zip-up, white across the shoulders; leggings
     dict(name='vivianne', shape='f', coat='e8705e', skin='f4dcc8', hair='eec25a', hair2='fbe9a4', hairstyle='lob', legs='2e2c38',

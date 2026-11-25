@@ -497,7 +497,7 @@ func _test_dark_hide() -> void:
 	check(not p.torch_lit() and ds.interact_ready(), "torch off: the dark is back")
 	# ONE press
 	await _tap("interact")
-	check(p.hide_spot == ds and Stealth.conceal_of(p) == Stealth.HIDDEN, "one press of [interact]: hidden in the dark")
+	check(p.hide_spot == ds and Stealth.conceal_of(p) == Stealth.HIDDEN, "one press of [interact]: hidden in the dark (character %s, ready %s, crouching %s, torch %s)" % [WorldState.current_character(), str(ds.interact_ready()), str(p.is_crouching), str(p.torch_lit())])
 	await _pframes(20)
 	check("Come out" in ds.prompt_text(), "…and the prompt says how to come out (%s)" % ds.prompt_text())
 	# the dead walk past

@@ -23,13 +23,13 @@ Contact sheets (all strips of a character stacked, a floor line under each cell)
 | `hide_inside` | 6 | 8.0 | 0.75 | yes | 64-65 | 108 | 0 | ok |
 | `hold_bat_idle` | 6 | 8.0 | 0.75 | yes | 65-67 | 108 | 1 | ok |
 | `hold_bat_run` | 6 | 30.0 | 0.20 | yes | 62-64 | 105-108 | 5 | ok |
-| `hold_bat_walk` | 8 | 30.0 | 0.27 | yes | 65-65 | 108 | 4 | ok |
+| `hold_bat_walk` | 8 | 30.0 | 0.27 | yes | 64-65 | 108 | 4 | ok |
 | `hold_knife_idle` | 6 | 8.0 | 0.75 | yes | 65-67 | 108 | 1 | ok |
 | `hold_knife_run` | 6 | 30.0 | 0.20 | yes | 62-64 | 105-108 | 6 | ok |
-| `hold_knife_walk` | 8 | 30.0 | 0.27 | yes | 65-65 | 108 | 4 | ok |
+| `hold_knife_walk` | 8 | 30.0 | 0.27 | yes | 64-65 | 108 | 4 | ok |
 | `hold_sword_idle` | 6 | 8.0 | 0.75 | yes | 68-71 | 108 | 2 | ok |
-| `hold_sword_run` | 6 | 30.0 | 0.20 | yes | 65-68 | 105-108 | 5 | ok |
-| `hold_sword_walk` | 8 | 30.0 | 0.27 | yes | 68-68 | 108 | 4 | ok |
+| `hold_sword_run` | 6 | 30.0 | 0.20 | yes | 65-66 | 105-108 | 5 | ok |
+| `hold_sword_walk` | 8 | 30.0 | 0.27 | yes | 66-69 | 108 | 4 | ok |
 | `hurt` | 4 | 8.0 | 0.50 | yes | 65-65 | 108 | 6 | ok |
 | `idle` | 6 | 2.0 | 3.00 | yes | 65-67 | 108 | 2 | ok |
 | `roll` | 7 | 9.0 | 0.78 | yes | 29-50 | 76-101 | 21 | ok |
@@ -38,7 +38,7 @@ Contact sheets (all strips of a character stacked, a floor line under each cell)
 | `swing_bat` | 9 | 9.0 | 1.00 | yes | 67-74 | 108 | 30 | ok |
 | `swing_knife` | 9 | 8.0 | 1.12 | yes | 67-67 | 108 | 17 | ok |
 | `swing_sword` | 9 | 8.0 | 1.12 | yes | 67-80 | 108 | 34 | ok |
-| `walk` | 8 | 30.0 | 0.27 | yes | 65-65 | 108 | 7 | ok |
+| `walk` | 8 | 30.0 | 0.27 | yes | 64-65 | 108 | 7 | ok |
 
 The game plays these NAMES (`animated_sprite.play(name)`); several names share a strip until they get their own:
 

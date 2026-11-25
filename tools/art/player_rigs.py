@@ -117,6 +117,9 @@ def _ik_leg(dx, drop):
     return (math.degrees(theta + a), math.degrees(a + b))
 
 
+GAIT_BOB = {'walk': 0.45, 'run': -0.5, 'crouch_walk': 0.2}      # the hips' rise at mid-stance (design px; negative = they sink as the leg takes the weight, as in a run)
+
+
 def gait_legs(name, i, n=None):
     """-> dict(n_leg, f_leg, hip height, air, n_roll, f_roll) for frame i of the named gait: feet locked while down."""
     g = GAITS[name]
@@ -126,7 +129,7 @@ def gait_legs(name, i, n=None):
     duty = g['duty']
     run_ = duty < 0.5
     hip = {'walk': 8.1, 'run': 7.4, 'crouch_walk': 7.0}[name]
-    bob = {'walk': 0.45, 'run': -0.5, 'crouch_walk': 0.2}[name]
+    bob = GAIT_BOB[name]
     lift = {'walk': 3.4, 'run': 6.5, 'crouch_walk': 2.2}[name] / P.K
     h = hip + bob * math.cos(4.0 * math.pi * (u - duty / 2.0))
     air = 0.0
@@ -164,7 +167,9 @@ def gait_body(name, i, n=None):
     else:
         amp, elbow, spine, lean = 26.0, 62.0, 6.0, 0.6
     arm = amp * math.cos(two * (u - 0.07))
-    body = dict(n_arm=(-arm, elbow + 14.0 * max(0.0, arm / amp)), f_arm=(arm, elbow + 14.0 * max(0.0, -arm / amp)), spine=spine, lean=lean,
+    # the whole upper body BOBS with the hips (owner 2026-11-25: the movement felt sloppy / floaty): the head was locked rigid, 0 px of movement through a whole walk
+    breath = -1.1 * GAIT_BOB[name] * math.cos(4.0 * math.pi * (u - g['duty'] / 2.0))
+    body = dict(n_arm=(-arm, elbow + 14.0 * max(0.0, arm / amp)), f_arm=(arm, elbow + 14.0 * max(0.0, -arm / amp)), spine=spine, lean=lean, breath=breath,
                 twist=(1.0 if name != 'crouch_walk' else 0.5) * math.cos(two * u), head_pitch=0.8, hem_swing=-1.2 * math.cos(two * u))
     if name == 'crouch_walk':
         body.update(head_dy=0.0, head_dx=0.4)
