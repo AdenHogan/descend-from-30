@@ -22,6 +22,10 @@
 [ext_resource type="Texture2D" path="res://assets/players/alex/gun_walk.png" id="s_gun_walk"]
 [ext_resource type="Texture2D" path="res://assets/players/alex/gun_run.png" id="s_gun_run"]
 [ext_resource type="Texture2D" path="res://assets/players/alex/gun_shoot.png" id="s_gun_shoot"]
+[ext_resource type="Texture2D" path="res://assets/players/alex/throw.png" id="s_throw"]
+[ext_resource type="Texture2D" path="res://assets/players/alex/torch_idle.png" id="s_torch_idle"]
+[ext_resource type="Texture2D" path="res://assets/players/alex/torch_walk.png" id="s_torch_walk"]
+[ext_resource type="Texture2D" path="res://assets/players/alex/torch_run.png" id="s_torch_run"]
 [ext_resource type="Texture2D" path="res://assets/players/alex/hold_bat_idle.png" id="s_hold_bat_idle"]
 [ext_resource type="Texture2D" path="res://assets/players/alex/hold_bat_walk.png" id="s_hold_bat_walk"]
 [ext_resource type="Texture2D" path="res://assets/players/alex/hold_bat_run.png" id="s_hold_bat_run"]
@@ -878,6 +882,118 @@ region = Rect2(432, 0, 108, 108)
 
 [sub_resource type="AtlasTexture" id="p_alex_hold_knife_run_5"]
 atlas = ExtResource("s_hold_knife_run")
+region = Rect2(540, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_throw_0"]
+atlas = ExtResource("s_throw")
+region = Rect2(0, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_throw_1"]
+atlas = ExtResource("s_throw")
+region = Rect2(108, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_throw_2"]
+atlas = ExtResource("s_throw")
+region = Rect2(216, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_throw_3"]
+atlas = ExtResource("s_throw")
+region = Rect2(324, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_throw_4"]
+atlas = ExtResource("s_throw")
+region = Rect2(432, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_throw_5"]
+atlas = ExtResource("s_throw")
+region = Rect2(540, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_throw_6"]
+atlas = ExtResource("s_throw")
+region = Rect2(648, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_throw_7"]
+atlas = ExtResource("s_throw")
+region = Rect2(756, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_torch_idle_0"]
+atlas = ExtResource("s_torch_idle")
+region = Rect2(0, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_torch_idle_1"]
+atlas = ExtResource("s_torch_idle")
+region = Rect2(108, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_torch_idle_2"]
+atlas = ExtResource("s_torch_idle")
+region = Rect2(216, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_torch_idle_3"]
+atlas = ExtResource("s_torch_idle")
+region = Rect2(324, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_torch_idle_4"]
+atlas = ExtResource("s_torch_idle")
+region = Rect2(432, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_torch_idle_5"]
+atlas = ExtResource("s_torch_idle")
+region = Rect2(540, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_torch_walk_0"]
+atlas = ExtResource("s_torch_walk")
+region = Rect2(0, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_torch_walk_1"]
+atlas = ExtResource("s_torch_walk")
+region = Rect2(108, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_torch_walk_2"]
+atlas = ExtResource("s_torch_walk")
+region = Rect2(216, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_torch_walk_3"]
+atlas = ExtResource("s_torch_walk")
+region = Rect2(324, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_torch_walk_4"]
+atlas = ExtResource("s_torch_walk")
+region = Rect2(432, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_torch_walk_5"]
+atlas = ExtResource("s_torch_walk")
+region = Rect2(540, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_torch_walk_6"]
+atlas = ExtResource("s_torch_walk")
+region = Rect2(648, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_torch_walk_7"]
+atlas = ExtResource("s_torch_walk")
+region = Rect2(756, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_torch_run_0"]
+atlas = ExtResource("s_torch_run")
+region = Rect2(0, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_torch_run_1"]
+atlas = ExtResource("s_torch_run")
+region = Rect2(108, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_torch_run_2"]
+atlas = ExtResource("s_torch_run")
+region = Rect2(216, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_torch_run_3"]
+atlas = ExtResource("s_torch_run")
+region = Rect2(324, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_torch_run_4"]
+atlas = ExtResource("s_torch_run")
+region = Rect2(432, 0, 108, 108)
+
+[sub_resource type="AtlasTexture" id="p_alex_torch_run_5"]
+atlas = ExtResource("s_torch_run")
 region = Rect2(540, 0, 108, 108)
 
 [resource]
@@ -2068,5 +2184,109 @@ animations = [{
 }],
 "loop": true,
 "name": &"hold_knife_run",
+"speed": 30.00
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("p_alex_throw_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_throw_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_throw_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_throw_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_throw_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_throw_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_throw_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_throw_7")
+}],
+"loop": false,
+"name": &"throw",
+"speed": 16.00
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("p_alex_torch_idle_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_torch_idle_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_torch_idle_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_torch_idle_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_torch_idle_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_torch_idle_5")
+}],
+"loop": true,
+"name": &"torch_idle",
+"speed": 8.00
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("p_alex_torch_walk_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_torch_walk_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_torch_walk_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_torch_walk_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_torch_walk_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_torch_walk_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_torch_walk_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_torch_walk_7")
+}],
+"loop": true,
+"name": &"torch_walk",
+"speed": 30.00
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("p_alex_torch_run_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_torch_run_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_torch_run_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_torch_run_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_torch_run_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("p_alex_torch_run_5")
+}],
+"loop": true,
+"name": &"torch_run",
 "speed": 30.00
 }]

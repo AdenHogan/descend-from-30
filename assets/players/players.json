@@ -44,6 +44,10 @@
   "sword_idle": "idle",
   "sword_run": "run",
   "sword_stab": "swing_knife",
+  "throw": "throw",
+  "torch_idle": "torch_idle",
+  "torch_run": "torch_run",
+  "torch_walk": "torch_walk",
   "walk": "walk"
  },
  "cell": [
@@ -66,6 +70,8 @@
   "run_aim": 0.26666666666666666,
   "run_shooting": 0.2,
   "sword_run": 0.2,
+  "torch_run": 0.2,
+  "torch_walk": 0.26666666666666666,
   "walk": 0.26666666666666666
  },
  "design_speed": {
@@ -84,6 +90,8 @@
   "run_aim": 147.3,
   "run_shooting": 328.9,
   "sword_run": 328.9,
+  "torch_run": 328.9,
+  "torch_walk": 147.3,
   "walk": 147.3
  },
  "feet_row": 107,
@@ -124,6 +132,10 @@
     "swing_bat": "res://assets/players/alex/swing_bat.png",
     "swing_knife": "res://assets/players/alex/swing_knife.png",
     "swing_sword": "res://assets/players/alex/swing_sword.png",
+    "throw": "res://assets/players/alex/throw.png",
+    "torch_idle": "res://assets/players/alex/torch_idle.png",
+    "torch_run": "res://assets/players/alex/torch_run.png",
+    "torch_walk": "res://assets/players/alex/torch_walk.png",
     "walk": "res://assets/players/alex/walk.png"
    },
    "rows": {
@@ -180,39 +192,39 @@
      6
     ],
     "hold_bat_idle": [
-     22,
+     26,
      6
     ],
     "hold_bat_run": [
-     24,
-     6
-    ],
-    "hold_bat_walk": [
-     23,
-     8
-    ],
-    "hold_knife_idle": [
      28,
      6
     ],
+    "hold_bat_walk": [
+     27,
+     8
+    ],
+    "hold_knife_idle": [
+     32,
+     6
+    ],
     "hold_knife_run": [
-     30,
+     34,
      6
     ],
     "hold_knife_walk": [
-     29,
+     33,
      8
     ],
     "hold_sword_idle": [
-     25,
+     29,
      6
     ],
     "hold_sword_run": [
-     27,
+     31,
      6
     ],
     "hold_sword_walk": [
-     26,
+     30,
      8
     ],
     "hurt": [
@@ -246,6 +258,22 @@
     "swing_sword": [
      7,
      9
+    ],
+    "throw": [
+     22,
+     8
+    ],
+    "torch_idle": [
+     23,
+     6
+    ],
+    "torch_run": [
+     25,
+     6
+    ],
+    "torch_walk": [
+     24,
+     8
     ],
     "walk": [
      1,
@@ -289,6 +317,10 @@
     "swing_bat": "res://assets/players/amina/swing_bat.png",
     "swing_knife": "res://assets/players/amina/swing_knife.png",
     "swing_sword": "res://assets/players/amina/swing_sword.png",
+    "throw": "res://assets/players/amina/throw.png",
+    "torch_idle": "res://assets/players/amina/torch_idle.png",
+    "torch_run": "res://assets/players/amina/torch_run.png",
+    "torch_walk": "res://assets/players/amina/torch_walk.png",
     "walk": "res://assets/players/amina/walk.png"
    },
    "rows": {
@@ -345,39 +377,39 @@
      6
     ],
     "hold_bat_idle": [
-     22,
+     26,
      6
     ],
     "hold_bat_run": [
-     24,
-     6
-    ],
-    "hold_bat_walk": [
-     23,
-     8
-    ],
-    "hold_knife_idle": [
      28,
      6
     ],
+    "hold_bat_walk": [
+     27,
+     8
+    ],
+    "hold_knife_idle": [
+     32,
+     6
+    ],
     "hold_knife_run": [
-     30,
+     34,
      6
     ],
     "hold_knife_walk": [
-     29,
+     33,
      8
     ],
     "hold_sword_idle": [
-     25,
+     29,
      6
     ],
     "hold_sword_run": [
-     27,
+     31,
      6
     ],
     "hold_sword_walk": [
-     26,
+     30,
      8
     ],
     "hurt": [
@@ -411,6 +443,22 @@
     "swing_sword": [
      7,
      9
+    ],
+    "throw": [
+     22,
+     8
+    ],
+    "torch_idle": [
+     23,
+     6
+    ],
+    "torch_run": [
+     25,
+     6
+    ],
+    "torch_walk": [
+     24,
+     8
     ],
     "walk": [
      1,
@@ -454,6 +502,10 @@
     "swing_bat": "res://assets/players/joe/swing_bat.png",
     "swing_knife": "res://assets/players/joe/swing_knife.png",
     "swing_sword": "res://assets/players/joe/swing_sword.png",
+    "throw": "res://assets/players/joe/throw.png",
+    "torch_idle": "res://assets/players/joe/torch_idle.png",
+    "torch_run": "res://assets/players/joe/torch_run.png",
+    "torch_walk": "res://assets/players/joe/torch_walk.png",
     "walk": "res://assets/players/joe/walk.png"
    },
    "rows": {
@@ -510,39 +562,39 @@
      6
     ],
     "hold_bat_idle": [
-     22,
+     26,
      6
     ],
     "hold_bat_run": [
-     24,
-     6
-    ],
-    "hold_bat_walk": [
-     23,
-     8
-    ],
-    "hold_knife_idle": [
      28,
      6
     ],
+    "hold_bat_walk": [
+     27,
+     8
+    ],
+    "hold_knife_idle": [
+     32,
+     6
+    ],
     "hold_knife_run": [
-     30,
+     34,
      6
     ],
     "hold_knife_walk": [
-     29,
+     33,
      8
     ],
     "hold_sword_idle": [
-     25,
+     29,
      6
     ],
     "hold_sword_run": [
-     27,
+     31,
      6
     ],
     "hold_sword_walk": [
-     26,
+     30,
      8
     ],
     "hurt": [
@@ -576,6 +628,22 @@
     "swing_sword": [
      7,
      9
+    ],
+    "throw": [
+     22,
+     8
+    ],
+    "torch_idle": [
+     23,
+     6
+    ],
+    "torch_run": [
+     25,
+     6
+    ],
+    "torch_walk": [
+     24,
+     8
     ],
     "walk": [
      1,
@@ -619,6 +687,10 @@
     "swing_bat": "res://assets/players/vivianne/swing_bat.png",
     "swing_knife": "res://assets/players/vivianne/swing_knife.png",
     "swing_sword": "res://assets/players/vivianne/swing_sword.png",
+    "throw": "res://assets/players/vivianne/throw.png",
+    "torch_idle": "res://assets/players/vivianne/torch_idle.png",
+    "torch_run": "res://assets/players/vivianne/torch_run.png",
+    "torch_walk": "res://assets/players/vivianne/torch_walk.png",
     "walk": "res://assets/players/vivianne/walk.png"
    },
    "rows": {
@@ -675,39 +747,39 @@
      6
     ],
     "hold_bat_idle": [
-     22,
+     26,
      6
     ],
     "hold_bat_run": [
-     24,
-     6
-    ],
-    "hold_bat_walk": [
-     23,
-     8
-    ],
-    "hold_knife_idle": [
      28,
      6
     ],
+    "hold_bat_walk": [
+     27,
+     8
+    ],
+    "hold_knife_idle": [
+     32,
+     6
+    ],
     "hold_knife_run": [
-     30,
+     34,
      6
     ],
     "hold_knife_walk": [
-     29,
+     33,
      8
     ],
     "hold_sword_idle": [
-     25,
+     29,
      6
     ],
     "hold_sword_run": [
-     27,
+     31,
      6
     ],
     "hold_sword_walk": [
-     26,
+     30,
      8
     ],
     "hurt": [
@@ -741,6 +813,22 @@
     "swing_sword": [
      7,
      9
+    ],
+    "throw": [
+     22,
+     8
+    ],
+    "torch_idle": [
+     23,
+     6
+    ],
+    "torch_run": [
+     25,
+     6
+    ],
+    "torch_walk": [
+     24,
+     8
     ],
     "walk": [
      1,

@@ -834,6 +834,7 @@ def draw(p, pose, item=None):
         import people_hd as HD                                                       # the DETAIL pass for the players (tools/art/people_hd.py)
         HD.polish(c.im, j, pose, p)
         HD.details(c.im, j, pose, p)
+        HD.clothing(c.im, j, pose, p)
         HD.swap_palette(c.im, p)
         HD.outline(c.im, p)
     return c.im, j

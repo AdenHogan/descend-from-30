@@ -182,3 +182,65 @@ def details(im, j, pose, p):
             xx, yy = cx + dx, cy - 1
             if 0 <= xx < W and 0 <= yy < H and px[xx, yy][3] and _t(px[xx, yy][:3]) in {_t(sho['m']), _t(sho['d']), _t(sho['l'])}:
                 px[xx, yy] = (226, 214, 188, 255)
+
+
+def clothing(im, j, pose, p):
+    """The unworked clothing ideas, in final pixels and ONLY on cloth-coloured pixels (a mark never lands on skin or on air): a ribbed CUFF at each wrist, a PATCH POCKET on the jacket, two soft FOLDS across the
+    torso, and a couple of FLYAWAY hairs above the crown."""
+    K = P.K
+    px = im.load()
+    W, H = im.size
+    g = P.tones(p['coat'])
+    cloth = {_t(g[k]) for k in ('m', 'd', 'l', 'dd', 'll')}
+    slv = P._mix(g['m'][:3], g['l'][:3], 0.35)
+    sleeve = {_t(slv), _t(P._mix(g['d'][:3], g['m'][:3], 0.3))}
+    cloth |= sleeve
+
+    def on_cloth(x, y):
+        return 0 <= x < W and 0 <= y < H and px[x, y][3] and _t(px[x, y][:3]) in cloth
+    # ---- cuffs: a darker band across the arm just before the hand (not for a sleeveless person)
+    if p.get('sleeves', True):
+        for hand, elbow in (('hand_n', 'elbow_n'), ('hand_f', 'elbow_f')):
+            hx, hy = j[hand]
+            ex, ey = j[elbow]
+            dx, dy = hx - ex, hy - ey
+            L = math.hypot(dx, dy) or 1.0
+            ux, uy = dx / L, dy / L
+            wx, wy = (hx - ux * 2.4) * K, (hy - uy * 2.4) * K                     # the wrist, a little back from the hand
+            nx, ny = -uy, ux
+            for t in (-1, 0, 1, 2):
+                x, y = int(round(wx + nx * t * 0.8)), int(round(wy + ny * t * 0.8))
+                if on_cloth(x, y):
+                    px[x, y] = _t(P._mix(px[x, y][:3], g['dd'], 0.55)) + (255,)
+                x2, y2 = int(round(wx + nx * t * 0.8 - ux)), int(round(wy + ny * t * 0.8 - uy))
+                if on_cloth(x2, y2):
+                    px[x2, y2] = _t(P._mix(px[x2, y2][:3], g['l'], 0.30)) + (255,)    # the cuff's lit top edge
+    hipx, hipy = j['hip']
+    spine = pose.get('spine', 0.0)
+    if spine < 40:
+        # ---- a patch pocket on the near side of the jacket, at hip height
+        lx = int((hipx - 1.5) * K + pose.get('lean', 0.0) * K * 0.2)
+        ty = int((hipy - 3.6) * K)
+        for dx in range(4):
+            if on_cloth(lx + dx, ty):
+                px[lx + dx, ty] = _t(P._mix(px[lx + dx, ty][:3], g['dd'], 0.40)) + (255,)           # the pocket's top edge, shaded
+        for dy in range(1, 4):
+            if on_cloth(lx, ty + dy):
+                px[lx, ty + dy] = _t(P._mix(px[lx, ty + dy][:3], g['l'], 0.30)) + (255,)             # its lit left edge
+        # ---- two folds in the cloth
+        sx, sy = j['neck']
+        for k, (ox, oy0) in enumerate(((1.0, 2.0), (-0.5, 3.4))):
+            for t in range(4):
+                x = int((hipx + ox) * K) + t
+                y = int((sy + oy0) * K) + t * 2 + k
+                if on_cloth(x, y):
+                    px[x, y] = _t(P._mix(px[x, y][:3], g['dd'], 0.35)) + (255,)
+    # ---- flyaway hairs: two pixels of the hair colour standing off the crown
+    hair = P.tones(p['hair'], 0.74, 1.24)
+    hx, hy = j['head']
+    top = int((hy - 0.5 - 7.2) * K)
+    cx = int((hx - 0.5) * K)
+    for dx, dy in ((-2, 0), (1, -1)):
+        x, y = cx + dx, top + dy
+        if 0 <= x < W and 0 <= y < H and px[x, y][3] == 0 and px[x, y + 1][3] and _t(px[x, y + 1][:3]) in {_t(hair[k]) for k in ('m', 'd', 'l')}:
+            px[x, y] = _t(hair['d']) + (255,)

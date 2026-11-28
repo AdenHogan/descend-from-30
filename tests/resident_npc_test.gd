@@ -532,7 +532,11 @@ func _test_revenant() -> void:
 	plain.hp_floor = WorldState._apartment_floor(apt)
 	room.add_child(plain)
 	check(is_equal_approx(z.SPEED, plain.SPEED * 1.2), "20%% faster (%.1f vs %.1f)" % [z.SPEED, plain.SPEED])
-	check(z.max_hp == int(ceil(plain.max_hp * 1.2)) and z.max_hp > plain.max_hp, "20%% more health, rounded up (%d vs %d)" % [z.max_hp, plain.max_hp])
+	# (HP is seeded from the body's POSITION, so the revenant and a plain one placed elsewhere roll different variance: comparing them failed on some seeds. The rule is tested on ONE body, before and after.)
+	var hp0: int = plain.max_hp
+	plain.make_revenant()
+	check(plain.max_hp == int(ceil(hp0 * 1.2)) and plain.max_hp > hp0, "20%% more health, rounded up (%d from %d)" % [plain.max_hp, hp0])
+	check(z.is_in_group("revenant") and z.max_hp >= 1, "the one in the flat is a revenant with health (%d)" % z.max_hp)
 	plain.free()
 	z._die()
 	await _close(room)

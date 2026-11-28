@@ -317,7 +317,7 @@ func _test_torch_in_the_world() -> void:
 	check(beam != null and absf(absf(beam.rotation) - PI) < 0.001 and beam.position.x < 0.0, "…and turns with them (left)")
 	p.animated_sprite.flip_h = false
 	await _frames(4)
-	check(String(p.animated_sprite.animation) == "gun_idle", "held in the gun's aiming pose (for now): %s" % String(p.animated_sprite.animation))
+	check(String(p.animated_sprite.animation) == PlayerRig.torch_anim(p.animated_sprite, "idle"), "held out in its own pose (torch_idle; the pistol's only for a sprite without one): %s" % String(p.animated_sprite.animation))
 	# it lights what is ahead
 	LightSense.forget(bf)
 	_lights_out(bf)
@@ -469,6 +469,12 @@ func _test_dark_hide() -> void:
 	check(not ds.interact_ready() and ds.prompt_text() == "", "under a working lamp at night: not dark, no prompt")
 	lamp.free()
 	_lights_out(bf)
+	# THE FLAKE'S CAUSE (found 2026-11-28 by logging the arbiter): the corridor fixture scatters corridor BODIES (decals), and one lying nearer the player than the dark outranks it for the press
+	# (InteractArbiter: a body is looted before the dark is hidden in) — correct game behaviour, but then "one press" looted instead of hiding, in ~30 % of runs. None of them is the subject here.
+	for n in get_tree().get_nodes_in_group(InteractArbiter.GROUP):
+		if is_instance_valid(n) and n != ds and String(n.name).begins_with("Body_"):
+			n.queue_free()
+	await _pframes(2)
 	# standing, nobody about: no prompt (a dark corridor would otherwise nag from end to end)
 	p.is_crouching = false
 	await _pframes(6)
@@ -497,7 +503,7 @@ func _test_dark_hide() -> void:
 	check(not p.torch_lit() and ds.interact_ready(), "torch off: the dark is back")
 	# ONE press
 	await _tap("interact")
-	check(p.hide_spot == ds and Stealth.conceal_of(p) == Stealth.HIDDEN, "one press of [interact]: hidden in the dark (character %s, ready %s, crouching %s, torch %s)" % [WorldState.current_character(), str(ds.interact_ready()), str(p.is_crouching), str(p.torch_lit())])
+	check(p.hide_spot == ds and Stealth.conceal_of(p) == Stealth.HIDDEN, "one press of [interact]: hidden in the dark (character %s, ready %s, crouching %s, torch %s; dead %s dying %s lashing %s listening %s switching %s cutscene %s pack '%s' esc %s balc %s hide %s back %s)" % [WorldState.current_character(), str(ds.interact_ready()), str(p.is_crouching), str(p.torch_lit()), str(p.is_dead), str(p.is_dying), str(p.is_lashing), str(p.is_listening), str(p.is_switching_mode), str(p.is_cutscene), p.pack_phase, str(p.escaping), str(p.on_balcony_plane), str(p.hide_spot), str(p.back_spot)])
 	await _pframes(20)
 	check("Come out" in ds.prompt_text(), "…and the prompt says how to come out (%s)" % ds.prompt_text())
 	# the dead walk past

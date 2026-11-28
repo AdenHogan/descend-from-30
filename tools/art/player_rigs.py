@@ -99,7 +99,7 @@ GAITS = {   # name: dict(speed px/s the drawn feet are right for, cycle seconds,
 
 
 CYCLE_KEYS = {'walk': 'walk', 'run': 'run', 'crouch_walk': 'crouch_walk', 'gun_walk': 'walk', 'gun_run': 'run',
-              **{'hold_%s_%s' % (k, m): m for k in ('bat', 'sword', 'knife') for m in ('walk', 'run')}}
+              **{'hold_%s_%s' % (k, m): m for k in ('bat', 'sword', 'knife') for m in ('walk', 'run')}, 'torch_walk': 'walk', 'torch_run': 'run'}
 
 
 def design_speed(name):
@@ -298,6 +298,22 @@ def hold(kind, mode):
     return f
 
 
+def torch_hold(mode):
+    """A lit torch held OUT in the near hand, the far arm easy: standing, walking or running (it used the pistol's two-handed pose; owner's idea left unbuilt until now)."""
+    def f(i, n):
+        ph = 2.0 * math.pi * i / float(n)
+        pose = dict(idle(i, n)[0]) if mode == 'idle' else gait(mode, i, n)
+        pose.update(n_arm=(78 + 2.0 * math.sin(ph), 22), f_arm=(8 + (4.0 * math.sin(ph) if mode == 'idle' else 0.0), 14), item_rot=-4, twist=0.0)
+        return pose, 'torch'
+    return f
+
+
+# an overhand THROW with an empty hand (the throw reused the bat swing, so a thrown can came with a hammer): wind-up, step, release, follow through
+# (t, (near shoulder, near elbow, far shoulder, far elbow, item rot, lean, dx, front leg, back leg))
+_THROW = [(0.00, (40, 80, 30, 70, 0, 0.0, 0.0, 4, -4)), (0.26, (190, 50, 40, 70, 0, -1.5, -1.0, 4, -6)), (0.46, (214, 36, 60, 70, 0, -2.6, -1.6, 6, -8)),
+          (0.62, (100, 10, 28, 60, 0, 3.0, 2.0, 22, -14)), (0.78, (62, 12, 18, 50, 0, 3.6, 2.6, 26, -16)), (1.00, (40, 80, 30, 70, 0, 0.0, 0.0, 4, -4))]
+
+
 def shove(i, n):
     t = i / float(n - 1)
     a, b, lean, dx, fl, bl = keys([(0.0, (50, 70, 50, 70, 0.0, 0.0, 4, -4)), (0.25, (30, 100, 30, 100, -2.5, -1.5, 6, -8)), (0.45, (98, 2, 94, 4, 4.5, 3.5, 28, -22)),
@@ -349,6 +365,7 @@ SOURCES = {   # key: (builder(i, n, item?) , frames)
     'hurt': (hurt, 4), 'death': ('death', 10), 'hide_inside': (hide_inside, 6), 'hide_in': (hide_in, 6), 'hide_behind': (hide_behind, 6), 'hide_flat': (hide_flat, 6),
     'hide_dark': (hide_dark, 6), 'roll': ('roll', 7), 'air_spin': ('roll', 6),
     'gun_idle': (aim, 2), 'gun_walk': (aim_walk, 8), 'gun_run': (aim_run, 6), 'gun_shoot': (shoot, 10),
+    'throw': ('swing', 8, None, _THROW), 'torch_idle': (torch_hold('idle'), 6), 'torch_walk': (torch_hold('walk'), 8), 'torch_run': (torch_hold('run'), 6),
 }
 for _kind in ('bat', 'sword', 'knife'):                                      # the weapon HELD, standing / walking / running (owner 2026-11-25 check: these played the empty-handed idle)
     SOURCES['hold_%s_idle' % _kind] = (hold(_kind, 'idle'), 6)
@@ -368,6 +385,8 @@ ALIAS = {
 for _kind in ('bat', 'sword', 'knife'):
     for _m in ('idle', 'walk', 'run'):
         ALIAS['hold_%s_%s' % (_kind, _m)] = 'hold_%s_%s' % (_kind, _m)
+for _a in ('throw', 'torch_idle', 'torch_walk', 'torch_run'):
+    ALIAS[_a] = _a
 OLD_GUN = {'gun_idle': (1, 8.0, True), 'gun_walk': (8, 8.0, True), 'gun_run': (8, 14.0, True), 'gun_shoot': (10, 16.0, False)}
 
 
@@ -533,6 +552,8 @@ def write_all():
                 speed = 4.0
             if key in CYCLE_KEYS:
                 speed = n / GAITS[CYCLE_KEYS[key]]['T']                              # a gait's cycle time is its own (feet that do not slide)
+            if an == 'throw':
+                speed = n / 0.5                                                      # the throw takes the half second the script's cooldown allows
             fl = []
             for c in range(n):
                 sid = 'p_%s_%s_%d' % (name, key, c)
@@ -541,7 +562,7 @@ def write_all():
                     subs += ['[sub_resource type="AtlasTexture" id="%s"]' % sid, 'atlas = ExtResource("s_%s")' % key,
                              'region = Rect2(%d, 0, %d, %d)' % (c * CELL[0], CELL[0], CELL[1]), '']
                 fl.append('{\n"duration": 1.0,\n"texture": SubResource("%s")\n}' % sid)
-            loop = False if an in ('death', 'gun_shoot') else olp
+            loop = False if an in ('death', 'gun_shoot', 'throw') else olp
             anims.append('{\n"frames": [%s],\n"loop": %s,\n"name": &"%s",\n"speed": %.2f\n}' % (', '.join(fl), 'true' if loop else 'false', an, speed))
         res += subs + ['[resource]', 'animations = [%s]' % ', '.join(anims), '']
         with open(os.path.join(OUT, name + '_frames.tres'), 'w') as fh:

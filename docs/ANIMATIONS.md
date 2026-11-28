@@ -38,6 +38,10 @@ Contact sheets (all strips of a character stacked, a floor line under each cell)
 | `swing_bat` | 9 | 9.0 | 1.00 | yes | 67-74 | 108 | 30 | ok |
 | `swing_knife` | 9 | 8.0 | 1.12 | yes | 67-67 | 108 | 17 | ok |
 | `swing_sword` | 9 | 8.0 | 1.12 | yes | 67-80 | 108 | 34 | ok |
+| `throw` | 8 | 16.0 | 0.50 | no | 67-67 | 108 | 18 | ok |
+| `torch_idle` | 6 | 8.0 | 0.75 | yes | 65-67 | 108 | 1 | ok |
+| `torch_run` | 6 | 30.0 | 0.20 | yes | 62-64 | 105-108 | 5 | ok |
+| `torch_walk` | 8 | 30.0 | 0.27 | yes | 64-65 | 108 | 4 | ok |
 | `walk` | 8 | 30.0 | 0.27 | yes | 64-65 | 108 | 7 | ok |
 
 The game plays these NAMES (`animated_sprite.play(name)`); several names share a strip until they get their own:
@@ -88,6 +92,10 @@ The game plays these NAMES (`animated_sprite.play(name)`); several names share a
 | `sword_idle` | `idle` | PLACEHOLDER: uses the idle pose (no own drawing yet) |
 | `sword_run` | `run` | shares the walk / run legs |
 | `sword_stab` | `swing_knife` |  |
+| `throw` | `throw` |  |
+| `torch_idle` | `torch_idle` |  |
+| `torch_run` | `torch_run` |  |
+| `torch_walk` | `torch_walk` |  |
 | `walk` | `walk` |  |
 
 NOT built for the players yet (the game falls back to the nearest pose): kneeling to open the pack, the stairs, climbing, the torch held out, throwing, a portrait mood change.

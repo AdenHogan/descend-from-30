@@ -61,6 +61,14 @@ func _ready() -> void:
 			for st in ["idle", "walk", "run"]:
 				hold_ok = hold_ok and frames.has_animation("hold_%s_%s" % [t, st]) and PlayerRig.hold_anim(spr, t, st) == "hold_%s_%s" % [t, st]
 		check(hold_ok, "%s: every melee weapon has its own held idle / walk / run" % character)
+		# the torch held out and the overhand throw have their own strips, and the player script asks for them
+		var torch_ok := true
+		for st in ["idle", "walk", "run"]:
+			torch_ok = torch_ok and frames.has_animation("torch_%s" % st) and PlayerRig.torch_anim(spr, st) == "torch_%s" % st
+		check(torch_ok, "%s: the torch has its own held idle / walk / run" % character)
+		check(frames.has_animation("throw") and PlayerRig.throw_anim(spr) == "throw" and not frames.get_animation_loop("throw"), "%s: the throw has its own strip and does not loop" % character)
+		var throw_s: float = float(frames.get_frame_count("throw")) / maxf(0.01, frames.get_animation_speed("throw"))
+		check(absf(throw_s - 0.5) < 0.05, "%s: the throw takes the half second the script allows (%.2f s)" % [character, throw_s])
 		check(PlayerRig.hold_anim(spr, "gun", "idle") == "katana_idle", "%s: an unknown weapon type falls back to the old shared one" % character)
 		check(PlayerRig.design_speed("walk") > 100.0 and PlayerRig.design_speed("run") > PlayerRig.design_speed("walk") and PlayerRig.design_speed("crouch_walk") < PlayerRig.design_speed("walk"), "%s: the run is faster than the walk, the crouch-walk slower" % character)
 		check(not frames.get_animation_loop("death") and not frames.get_animation_loop("gun_shoot"), "%s: death and the shot do not loop" % character)

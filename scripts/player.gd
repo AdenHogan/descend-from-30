@@ -548,21 +548,24 @@ func _physics_process(delta: float) -> void:
 	else:
 		var equipped_weapon = _get_equipped_weapon_type()
 		if torch_on:
-			equipped_weapon = "gun"          # a lit torch is held out in the gun's aiming pose (owner: "for now using the gun animations")
+			equipped_weapon = "torch"        # a lit torch is held out in its own pose (it used the gun's until round 50a)
 		if direction == 0:
 			match equipped_weapon:
 				"sword", "knife", "bat": animated_sprite.play(PlayerRig.hold_anim(animated_sprite, equipped_weapon, "idle"))
 				"gun": animated_sprite.play("gun_idle")
+				"torch": animated_sprite.play(PlayerRig.torch_anim(animated_sprite, "idle"))
 				_: animated_sprite.play("idle")
 		elif is_sprinting and WorldState.stamina > 0:
 			match equipped_weapon:
 				"sword", "knife", "bat": animated_sprite.play(PlayerRig.hold_anim(animated_sprite, equipped_weapon, "run"))
 				"gun": animated_sprite.play("gun_run")
+				"torch": animated_sprite.play(PlayerRig.torch_anim(animated_sprite, "run"))
 				_: animated_sprite.play("run")
 		else:
 			match equipped_weapon:
 				"sword", "knife", "bat": animated_sprite.play(PlayerRig.hold_anim(animated_sprite, equipped_weapon, "walk"))
 				"gun": animated_sprite.play("gun_walk")
+				"torch": animated_sprite.play(PlayerRig.torch_anim(animated_sprite, "walk"))
 				_: animated_sprite.play("walk")
 
 	if is_rolling:
@@ -1958,7 +1961,7 @@ func _throw_can(slot_index: int) -> void:
 		return
 	is_attacking = true
 	attack_cooldown_timer = 0.5
-	animated_sprite.play("katana_attack_continuous")
+	animated_sprite.play(PlayerRig.throw_anim(animated_sprite))
 	melee_player.stream = MELEE_SLICE.pick_random()
 	melee_player.pitch_scale = 1.2
 	melee_player.play()

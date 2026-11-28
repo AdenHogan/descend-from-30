@@ -55,6 +55,21 @@ static func design_speed(anim: String) -> float:
 	return float(_gait_speed.get(anim, 0.0))
 
 
+## The lit torch held out, standing / walking / running: its own strip, else the pistol's pose the torch used before.
+static func torch_anim(spr: AnimatedSprite2D, state: String) -> String:
+	var n := "torch_" + state
+	if spr != null and spr.sprite_frames != null and spr.sprite_frames.has_animation(n):
+		return n
+	return "gun_" + state
+
+
+## The overhand throw (a can, a bottle, a Molotov): its own strip, else the old bat swing.
+static func throw_anim(spr: AnimatedSprite2D) -> String:
+	if spr != null and spr.sprite_frames != null and spr.sprite_frames.has_animation("throw"):
+		return "throw"
+	return "katana_attack_continuous"
+
+
 ## The weapon-held animation for a melee weapon type and a state ("idle" / "walk" / "run"): its own (hold_<type>_<state>), else the old shared katana_* one.
 static func hold_anim(spr: AnimatedSprite2D, weapon_type: String, state: String) -> String:
 	var n := "hold_%s_%s" % [weapon_type, state]
