@@ -21,6 +21,7 @@ import math
 import sys
 
 import people as P
+import creatures_hd as HD
 
 G = P.ANKLE_Y + 3            # the ground row, in design pixels
 K = P.K
@@ -466,7 +467,9 @@ def frames(name, kind):
             KINDS[name](c, i / float(n), math.sin(2 * math.pi * i / float(n) * 2.0), True, i)
         else:
             KINDS[name](c, 0.0, math.sin(2 * math.pi * i / 6.0), False, i)
+        HD.grade(c.im, name)                                 # the refinement pass: hue-shifted shadows and lights, a mottle (tools/art/creatures_hd.py)
         P._outline(c, (26, 14, 34), 0.8)                     # the things keep their hard line: it is the people who are soft
+        HD.rim(c.im, name)                                   # ...and a cool rim light inside it, a hot specular on each mass
         out.append((c.im, {}))
     return out
 
@@ -581,7 +584,9 @@ def build(name):
                 KINDS[name](c, 0.25, pulses[i], False, 3 + i)
             else:
                 KINDS[name](c, 0.25, pulses[i], False, 3 + i)
+            HD.grade(c.im, name)
             P._outline(c, (26, 14, 34), 0.8)
+            HD.rim(c.im, name)
             attack.append(_xform(place(c.im), foot, dx=shifts[i] * k, sx=sqs[i][0], sy=sqs[i][1]))
         # the hit: thrown back, squashed, flashing white, then it rights itself
         hit = []
