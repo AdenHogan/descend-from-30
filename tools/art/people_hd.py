@@ -96,7 +96,7 @@ def polish(im, j, pose, p):
     put(Fx + 1, Ey + 4, _t(P._mix(skin['d'], (214, 110, 110), 0.35)))
     # ---- hair: a warm highlight along the crown (only ON hair pixels), a bright catch, and a shade where the fringe falls on the brow
     hairset = {_t(hair[k]) for k in ('m', 'd', 'l', 'dd')}
-    hl = _t(P._mix(hair['l'], (255, 222, 150), 0.40))
+    hl = _t(P._mix(hair['l'], p.get('hd', {}).get('sheen', (255, 222, 150)), 0.40 if 'sheen' not in p.get('hd', {}) else 0.55))   # warm on fair hair, a blue-violet sheen on black hair
     for (dx, dy) in ((-6, -6), (-5, -7), (-4, -8), (-3, -8), (-2, -9), (-1, -9), (0, -9)):          # a diagonal streak of light on the upper left of the crown
         xx, yy = Ex + dx + 2, Ey + dy
         if _t(px[xx, yy][:3]) in hairset:

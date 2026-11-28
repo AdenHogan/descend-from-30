@@ -935,14 +935,32 @@ PLAYERS = [
          shape='m', coat='4f7f7c', skin='f0d4bc', hair='5a3e2c', hairstyle='mop', legs='3f5a82', shoes='6a4428', garment='jumper',
          open='b8bcc0', drop=2, slim=0.84, marks=(('yoke', '6a9a94', 2),), carry='hammer', face=dict(eye=(2, 2), gap=2)),
     # Vivianne, the neighbour who runs — a white woman: golden hair loose to just below the shoulder; a coral zip-up, white across the shoulders; leggings
-    dict(name='vivianne', shape='f', coat='e8705e', skin='f4dcc8', hair='eec25a', hair2='fbe9a4', hairstyle='lob', legs='2e2c38',
+    dict(name='vivianne', iris='4a86b8', hd=dict(
+             coat={'dd': ((70, 22, 90), 0.42), 'd': ((150, 56, 120), 0.36), 'l': ((255, 232, 176), 0.40), 'll': ((255, 246, 220), 0.32)},
+             skin={'d': ((214, 112, 130), 0.36), 'dd': ((132, 62, 92), 0.40), 'l': ((255, 238, 216), 0.45)},
+             legs={'d': ((36, 36, 112), 0.36), 'dd': ((16, 14, 62), 0.40), 'l': ((96, 102, 176), 0.45)},
+             shoes={'d': ((150, 150, 214), 0.40), 'dd': ((64, 64, 134), 0.40)},
+             hair={'d': ((196, 104, 44), 0.40), 'dd': ((112, 52, 44), 0.40), 'l': ((255, 242, 164), 0.45)}),
+         shape='f', coat='e8705e', skin='f4dcc8', hair='eec25a', hair2='fbe9a4', hairstyle='lob', legs='2e2c38',
          shoes='ece8e0', garment='jumper', drop=2, marks=(('yoke', 'f4f0e8', 2), ('zip', 'f4f0e8')), leg_stripe='e8705e', carry='torch',
          slim=0.92, face=dict(eye=(2, 2), gap=2)),
     # Alex, the super — a black man: hair cropped close; navy overalls with the sleeves off, a name patch, a tool belt; tan boots
-    dict(name='alex', shape='m', coat='2f4a7a', skin='7a4e36', hair='1c1418', hairstyle='crop', legs='2f4a7a', shoes='b8863c', sleeves=False, drop=2,
+    dict(name='alex', iris='3a2418', hd=dict(sheen=(120, 130, 220),
+             coat={'dd': ((14, 10, 64), 0.45), 'd': ((34, 24, 98), 0.40), 'l': ((120, 176, 232), 0.45), 'll': ((196, 228, 255), 0.35)},
+             skin={'d': ((116, 38, 64), 0.40), 'dd': ((64, 22, 44), 0.40), 'l': ((220, 146, 100), 0.45)},
+             legs={'d': ((34, 24, 98), 0.40), 'dd': ((14, 10, 64), 0.45), 'l': ((110, 166, 224), 0.45)},
+             shoes={'l': ((255, 214, 126), 0.45), 'dd': ((72, 38, 22), 0.40)},
+             hair={'d': ((44, 26, 76), 0.40), 'l': ((96, 80, 150), 0.55)}),
+         shape='m', coat='2f4a7a', skin='7a4e36', hair='1c1418', hairstyle='crop', legs='2f4a7a', shoes='b8863c', sleeves=False, drop=2,
          marks=(('patch', 'f0ece0'), ('belt', '6a4428', 'e8c860', 'c89a3c')), carry='hammer', slim=0.86, face=dict(eye=(2, 2), gap=2, under=True)),
     # Amina, the nurse, off duty — an Indian woman: long black hair; a mustard cardigan open over a magenta top; dark trousers
-    dict(name='amina', shape='f', coat='d8a43a', skin='bc8660', hair='1e161c', hairstyle='long', legs='3a3448', shoes='7a4a3a', garment='jumper', slim=0.92,
+    dict(name='amina', iris='4a2c20', hd=dict(sheen=(110, 130, 220),
+             coat={'dd': ((98, 42, 44), 0.42), 'd': ((168, 78, 34), 0.38), 'l': ((255, 242, 148), 0.45), 'll': ((255, 250, 206), 0.35)},
+             skin={'d': ((154, 72, 84), 0.38), 'dd': ((94, 42, 58), 0.40), 'l': ((242, 180, 124), 0.45)},
+             legs={'d': ((52, 32, 104), 0.36), 'dd': ((28, 18, 66), 0.40), 'l': ((124, 112, 184), 0.45)},
+             shoes={'l': ((214, 148, 104), 0.45), 'dd': ((52, 26, 32), 0.40)},
+             hair={'d': ((52, 32, 84), 0.40), 'l': ((74, 94, 156), 0.55)}),
+         shape='f', coat='d8a43a', skin='bc8660', hair='1e161c', hairstyle='long', legs='3a3448', shoes='7a4a3a', garment='jumper', slim=0.92,
          open='c83a6a', drop=2, carry='bag', face=dict(eye=(2, 2), gap=2, under=True, earring='f0d060')),
 ]
 
